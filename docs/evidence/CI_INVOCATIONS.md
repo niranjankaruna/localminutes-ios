@@ -143,3 +143,5 @@ behavior. Actual native intents, real models and every phone gate are unfinished
 | [40017195075](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017195075) | 01531f590c5de43c912c865f3ec8d3584f2d9421 | Regression RED:115XCTest114pass1newfail2assertions0skip; original114pass; Node/TSAN/native not run |
 
 | [40017962923](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017962923) | 40100fdb9a8349acdbf2d22c63eb25ce959e9388 | GREEN:115XCTest+59Node+81repeatedTSAN+15native passed0skip; actual device/simulator app+extension and ephemeral188232-byte IPA, no upload |
+
+Pre-native-RED cost check:1,387.7/2,000 included minutes used,612.3 displayed remaining,Actionsbillable$0; existing account-wide Actions$0/$0 Usageblocked rechecked. Storage100%; no uploads/billing/visibility changes. Native job remains15min, core10min, standardmacos-15-intel; no larger/paid runner.

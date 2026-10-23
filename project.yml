@@ -36,6 +36,9 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.niranjankaruna.localminutes
         PRODUCT_NAME: LocalMinutes
         GENERATE_INFOPLIST_FILE: 'NO'
+      configs:
+        Debug:
+          ENABLE_TESTABILITY: 'YES'
     dependencies:
       - target: LocalMinutesLiveActivity
         embed: true
@@ -60,13 +63,50 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.niranjankaruna.localminutes.LiveActivity
         PRODUCT_NAME: LocalMinutesLiveActivity
         APPLICATION_EXTENSION_API_ONLY: 'YES'
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: '$(inherited) LOCALMINUTES_EXTENSION'
         SKIP_INSTALL: 'YES'
         GENERATE_INFOPLIST_FILE: 'NO'
+  LocalMinutesAppTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: '18.0'
+    sources:
+      - Tests/RecordingTests/RecordingSessionOwnerTests.swift
+      - Tests/NativeAppTests
+    dependencies:
+      - target: LocalMinutes
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.niranjankaruna.localminutes.AppTests
+        GENERATE_INFOPLIST_FILE: 'YES'
+        CODE_SIGNING_ALLOWED: 'NO'
+  LocalMinutesUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: '18.0'
+    sources:
+      - Tests/NativeUITests
+    dependencies:
+      - target: LocalMinutes
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.niranjankaruna.localminutes.UITests
+        GENERATE_INFOPLIST_FILE: 'YES'
+        CODE_SIGNING_ALLOWED: 'NO'
 schemes:
   LocalMinutes:
     build:
       targets:
         LocalMinutes: all
+        LocalMinutesAppTests: [test]
+        LocalMinutesUITests: [test]
+    test:
+      config: Debug
+      targets:
+        - name: LocalMinutesAppTests
+          parallelizable: false
+        - name: LocalMinutesUITests
+          parallelizable: false
     run:
       config: Debug
     archive:

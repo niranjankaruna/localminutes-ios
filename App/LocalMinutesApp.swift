@@ -1,9 +1,11 @@
 import SwiftUI
 
-// Minimal composition interface for the native build gate. No capture adapter yet.
+// TEST-FIRST root identity interface only. The application has no default owner
+// or dispatcher yet, and this placeholder still exposes no recording controls.
 @main
+@MainActor
 struct LocalMinutesApp: App {
-    private let coordinator = RecordingCoordinator()
+    let application = RecordingApplication.shared
 
     var body: some Scene {
         WindowGroup {

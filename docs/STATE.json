@@ -3,15 +3,15 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-23T20:24:27.5097190Z",
+  "lastUpdated": "2026-10-23T20:37:13.4117163Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "T06.2.2",
+  "currentTask": "T06.2.2.2",
   "lastVerifiedCommit": "40100fdb9a8349acdbf2d22c63eb25ce959e9388",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017962923",
   "candidateArtifact": null,
-  "nextAction": "T06.2.2.2: router full GREEN verified40100fd/run40017962923. Activate actual SDK-conforming no-op native intent/composition stubs plus iOS Simulator tests, timer content contract and missing-model UI test. Prove meaningful native/UI RED before dispatch, foreground fallback, timer and controls behavior. Current3/6terminal; keep main at tested source.",
+  "nextAction": "T06.2.2.2: push actual SDK-conforming no-op app/intent/content interfaces and ten native intent cases +three content cases (37app-host expected with24existing) +one real UI case for hosted assertion RED. All37case names mandatory. No dispatch/default owner/foreground/timer/UI behavior before native RED. Current3/6terminal, next run4 after cost guard.",
   "pendingPushCommit": null,
   "remoteBranchHead": "40100fdb9a8349acdbf2d22c63eb25ce959e9388",
   "localScriptGreen": {
@@ -37,7 +37,7 @@
       40017962923
     ],
     "limitReached": false,
-    "costGuardObservedAt": "2026-10-23T20:16:24.2472182Z"
+    "costGuardObservedAt": "2026-10-23T20:37:13.4117163Z"
   },
   "latestCIRun": {
     "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017962923",
@@ -162,5 +162,18 @@
     "redVerified": true,
     "productionBehaviorImplemented": true,
     "greenVerifiedCommit": "40100fdb9a8349acdbf2d22c63eb25ce959e9388"
+  },
+  "nativeIntentTestFirst": {
+    "path": "docs/drafts/T06.2.2/native/README.md",
+    "nativeIntentCases": 10,
+    "activityContentCases": 3,
+    "appHostExpectedCases": 37,
+    "uiExpectedCases": 1,
+    "inActiveBuildPaths": true,
+    "compiled": false,
+    "redVerified": false,
+    "productionBehaviorImplemented": false,
+    "defaultOwnerWired": false,
+    "realASRProviderWired": false
   }
 }

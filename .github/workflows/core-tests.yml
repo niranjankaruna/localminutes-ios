@@ -109,6 +109,107 @@ jobs:
             -destination 'generic/platform=iOS' -derivedDataPath build/device CODE_SIGNING_ALLOWED=NO LOCALMINUTES_SOURCE_COMMIT="$GITHUB_SHA" build
           xcodebuild -quiet -project LocalMinutes.xcodeproj -scheme LocalMinutes -configuration Debug \
             -destination 'generic/platform=iOS Simulator' -derivedDataPath build/simulator CODE_SIGNING_ALLOWED=NO LOCALMINUTES_SOURCE_COMMIT="$GITHUB_SHA" build
+      - name: Select an installed iPhone simulator for native control tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcrun simctl list devices available --json > .agent-local/native-simulators.json
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          inventory = json.loads(Path('.agent-local/native-simulators.json').read_text())
+          candidates = [(runtime, device) for runtime, devices in inventory['devices'].items()
+                        if '.iOS-' in runtime and int(runtime.rsplit('.iOS-', 1)[1].split('-')[0]) >= 18
+                        for device in devices
+                        if device.get('isAvailable') and device['name'].startswith('iPhone')]
+          assert candidates, 'No installed available iPhone simulator'
+          runtime, device = next((item for item in candidates if item[0].endswith('iOS-26-2')),
+                                 candidates[0])
+          with open(os.environ['GITHUB_ENV'], 'a') as environment:
+              environment.write(f"LOCALMINUTES_TEST_SIMULATOR={device['udid']}\n")
+          print(json.dumps({'nativeTestRuntime': runtime, 'nativeTestDevice': device}))
+          PY
+      - name: Execute actual app-hosted recording intent tests
+        id: native-app
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild test -project LocalMinutes.xcodeproj -scheme LocalMinutes -configuration Debug \
+            -destination "platform=iOS Simulator,id=$LOCALMINUTES_TEST_SIMULATOR" -destination-timeout 120 \
+            -parallel-testing-enabled NO -only-testing:LocalMinutesAppTests \
+            -derivedDataPath build/native-tests -resultBundlePath .agent-local/native-app.xcresult \
+            CODE_SIGNING_ALLOWED=NO LOCALMINUTES_SOURCE_COMMIT="$GITHUB_SHA" \
+            2>&1 | tee .agent-local/native-app-tests.log
+      - name: Require actual native cases and inspect their result bundle
+        if: ${{ !cancelled() && (steps.native-app.outcome == 'success' || steps.native-app.outcome == 'failure') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcrun xcresulttool get test-results summary --path .agent-local/native-app.xcresult \
+            > .agent-local/native-app-summary.json
+          xcrun xcresulttool get test-results tests --path .agent-local/native-app.xcresult \
+            > .agent-local/native-app-cases.json
+          cat .agent-local/native-app-summary.json
+          node scripts/verify-test-log.mjs .agent-local/native-app-tests.log \
+            testUnavailableRealModelPreventsEveryOSResourceStart \
+            testStopDuringHeldPreparationWaitsForExitAndRejectsLateReady \
+            testDuplicateStartAndCoalescedStopOwnExactlyOneSetOfResources \
+            testActualOwnedAudioReachesRecordingOnlyWithAllThreeFactsAndProducesRealCAF \
+            testDisabledOrInactiveActivityCannotStartTheMicrophone \
+            testDeniedMicrophoneEndsTheOwnedActivityWithoutRecordingSuccess \
+            testHeldActivityEndKeepsCleanupPendingAfterRealAudioFlushAndDeactivation \
+            testToggleStartsStopsAndRetriesPendingActivityCleanupWithoutNewCapture \
+            testFailedDeactivationKeepsActivityAndExplicitStopRetryDoesNotRestartCapture \
+            testUnexpectedActivityLossCannotCompleteAndOldCallbacksCannotStopReplacement \
+            testToggleDuringDomainReservationCancelsTheAdmittedStart \
+            testCancellingStartDuringPermissionReleasesTheActivityAndOwner \
+            testIntentMissingModelReportsBlockedWithoutAnyOSResources \
+            testIntentReportsStartingUntilActualFirstBufferThenRecording \
+            testIntentDuplicateStartPreservesTheExistingEpochAndResourceSet \
+            testIntentDeniedMicrophoneRequiresForegroundAfterActivityCleanup \
+            testIntentUnavailableAudioSessionRequiresForegroundAfterActivityCleanup \
+            testIntentDisabledOrInitiallyPendingActivityRequiresForegroundWithoutMicrophone \
+            testIntentStopAcknowledgesActualSavedCAFOnlyAfterCleanup \
+            testIntentIdleStopReturnsIdleWithoutCreatingResources \
+            testIntentStaleLockScreenStopCannotStopAReplacementAndMatchingOwnerStopWorks \
+            testIntentMissingActivityEndReportsCleanupPendingAndRetryNeverClaimsSavedSuccess \
+            testIntentToggleUsesOwnerPhaseAndLaterToggleCanStartANewEpoch \
+            testIntentCannotAttributeAReplacementManifestToAnEarlierStopOrToggle \
+            testNativeDefaultRootAndIntentsShareApplicationAndMissingModelIsBlocked \
+            testNativeStartUsesInjectedRealOwnerAndWaitsForActualBufferReadiness \
+            testNativeGenericStopWaitsForActualSavedCAFAndAllResourceCleanup \
+            testNativeToggleStopsExistingOwnerAndLaterInvocationStartsNewEpoch \
+            testNativeActivityStopParameterRejectsMalformedAndStaleIDsBeforeMatchingStop \
+            testNativeStopKeepsFailedEndPendingAndExplicitRetryPreservesFailure \
+            testNativeForegroundRequestFailureNeverChangesDeniedCaptureIntoSuccess \
+            testNativeSDKConformancesAndThreeDiscoverableShortcutsArePresent \
+            testNativeOverlappingTogglesShareOneCleanupAndALaterCallCanStart \
+            testNativeCancelledStartAndToggleCannotActivateAfterHeldModelPreparation \
+            testActivityTimerStartsOnlyAtRecordingAndDoesNotResetOnUpdates \
+            testActivityTerminalTimerRemainsFixedAndCannotEndBeforeItsStart \
+            testFailedPreparationHasNoRecordingTimerAndDefaultPayloadContainsNoMeetingText
+      - name: Execute actual recording-control UI test
+        id: native-ui
+        if: ${{ !cancelled() && (steps.native-app.outcome == 'success' || steps.native-app.outcome == 'failure') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild test -project LocalMinutes.xcodeproj -scheme LocalMinutes -configuration Debug \
+            -destination "platform=iOS Simulator,id=$LOCALMINUTES_TEST_SIMULATOR" -destination-timeout 120 \
+            -parallel-testing-enabled NO -only-testing:LocalMinutesUITests \
+            -derivedDataPath build/native-tests -resultBundlePath .agent-local/native-ui.xcresult \
+            CODE_SIGNING_ALLOWED=NO LOCALMINUTES_SOURCE_COMMIT="$GITHUB_SHA" \
+            2>&1 | tee .agent-local/native-ui-tests.log
+      - name: Require actual control UI assertion and inspect its result bundle
+        if: ${{ !cancelled() && (steps.native-ui.outcome == 'success' || steps.native-ui.outcome == 'failure') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcrun xcresulttool get test-results summary --path .agent-local/native-ui.xcresult \
+            > .agent-local/native-ui-summary.json
+          cat .agent-local/native-ui-summary.json
+          node scripts/verify-test-log.mjs .agent-local/native-ui-tests.log \
+            testStartExplainsMissingSpeechModelWithoutClaimingRecording
       - name: Inspect compiled plists and Mach-O products
         shell: bash
         run: |

@@ -342,3 +342,30 @@ T06.2.2.1 code complete pending actual intent/device integration; broadT06.2.2,
 UI, native AppIntent behavior and baseline remainIN_PROGRESS. NextT06.2.2.2
 activates native no-op declarations and actual Simulator/UI tests before behavior.
 Current3/6runs terminal. All physical/model/renewal gates remainNOT_RUN.
+## T06.2.2.2 native contract activation — no result yet
+
+After router full GREEN, activate actual SDK-conforming StartMeetingIntent,
+StopMeetingIntent,ToggleMeetingIntent and hidden scoped StopRecordingActivityIntent.
+All perform stubs throw notImplemented; default application owner remains nil,
+provider empty, content.updating returns self and app still renders Text only.
+No dispatch/default hardware/fallback/timer/control behavior precedes native RED.
+
+Ten native intent cases (eight reviewed plus overlapping-toggle and caller-
+cancellation regressions) append to the existing same-file private real-owner
+harness under iOS&&!SWIFT_PACKAGE. Twenty-four existing owner/router cases stay
+unchanged. Three real ActivityKit content/timer/serialization cases plus those34
+propose37app-hosted tests; a separate XCUIApplication UI case proposes1. UI
+asserts the readable missing-model message, rather than identifier presence only.
+Case counts are proposed, unexecuted. Only permission/hardware/ActivityKit/model-
+preparation/foreground boundaries doubled, never recognizer output.
+
+XcodeGen2.46 infers unit/UI hosts from application dependencies; no extra app
+or capture extension, Apple credential or entitlement. New native workflow selects
+an installed compatible iOS18+ iPhone simulator (prefers pinned26.2), runs app/UI
+separately with nonparallel xcodebuild test and .xcresult, and requires all37named
+app cases and the UI case using the existing strict reporter. Actual xcresult
+summary/tree are saved for cross-checking; no upload. UI runs even after native
+assertion failure to preserve both REDs, but failed exit codes remain failures.
+A compiler/boot/zero-test error will not count as RED. Native SDK/metadata, fallback
+and iOS18 execution, device signing/LockScreen/ActionButton/endurance and real
+models remain unverified until appropriate evidence exists.
