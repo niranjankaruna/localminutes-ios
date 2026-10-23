@@ -1,7 +1,8 @@
 # ADR 0002: callback admission and capture shutdown
 
-Status: T05.3 tests-first preparation. No gate/runtime implementation or native
-RED/GREEN is established by this decision. Microphone/device validation is pending.
+Status: T05.3 implemented after native RED at f6e2b6d/run39999604752
+(78 executed,22 failed). Implementation GREEN is pending. Microphone/device
+validation is pending.
 
 Apple documents off-main taps, one tap per bus, variable actual buffer sizes,
 and removal during engine operation. The reviewed stop/removeTap documentation
@@ -16,7 +17,7 @@ threads retain the single-producer memory ordering. Closing prevents new entry;
 the owner acquires closed-and-quiescent before finishing the queue. Separate
 unsynchronized closed/count observations cannot establish that invariant.
 
-The eventual tap explicitly uses a Sendable closure capturing this owned context.
+The tap explicitly uses a Sendable closure capturing this owned context.
 It checks actual frame count/format and sample-time validity, then copies through
 the queue. No Task, actor, array allocation, conversion, persistence or mutex
 belongs in that callback. Overflow, overlapping input or invalid/discontinuous
