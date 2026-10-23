@@ -185,3 +185,25 @@ assertion bodies remain; only harness boundary scheduling support is extended.
 Expected103discovered tests, with new failures and prior behavior measured by CI.
 No regression fix/meaningful RED claimed until actual results. Next run4 is the
 expanded regression RED; the first owner implementation remains unverified.
+
+## T06.2.1 review RED — actual failures, then test scheduling correction
+
+Source **beca15403316f4265245820b0693da6299b39592**,
+[run40012128846](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40012128846),
+23October2026 at19:33:41UTC: **103executed,101passed,2failed,
+10assertion failures,0skip**. Original ten owner tests and previous91pass.
+Real converter/CAF/readiness/flush/retry behavior therefore executed. New toggle
+returns early, later activates unwanted mic/activity and leaves preparing;
+caller cancellation leaves domain preparing and Activity active. Both are
+meaningful behavioral RED. Node/TSAN/native did not run after Swift RED.
+
+Reviewer also found one over-specified assertion: requiring observation of a
+transient stopping state after releasing a gate can reject correct cancellation
+that reaches idle before preflight begins. Corrected only that observation to
+accept stopping-with-cleanup OR settled-idle with no session/cleanup, added
+nil final failure. All safety/no-resource/final-idle and early-return assertions
+remain. This is a requirement/scheduling correction, not an accepted behavior
+relaxation. Production bugs remain unchanged. Push/run refined tests for RED
+again BEFORE repairing either bug; expected both still fail on actual valid
+assertions. Full ignored log.agent-local/T06.2.1-review-red.log preserved.
+Refined test-only diff independently reviewed: transient scheduling condition corrected, valid early-return/noOS/final-state assertions preserved, nilfailure strengthened. No production diff since beca154. Re-RED is next, before production repairs.

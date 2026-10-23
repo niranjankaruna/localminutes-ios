@@ -751,11 +751,15 @@ final class RecordingSessionOwnerTests: XCTestCase {
             let vanished = await ownerEventually(timeout: .milliseconds(100)) { two.finished }
             XCTAssertFalse(vanished, "The admitted toggle cannot vanish into an ignored second start")
             gate.release()
-            let closing = await ownerEventually {
+            let cancelledOrClosing = await ownerEventually {
                 let state = await h.owner.snapshot()
-                return state.phase == .stopping && state.cleanupPending
+                // With no prepared resource, cancellation may settle directly
+                // to idle before this observer runs. A held preflight is tested
+                // separately; do not require an observable transient phase.
+                return (state.phase == .stopping && state.cleanupPending)
+                    || (state.phase == .idle && state.sessionID == nil && !state.cleanupPending)
             }
-            XCTAssertTrue(closing)
+            XCTAssertTrue(cancelledOrClosing)
             h.preparation.resolve(.ready(directory: h.directory))
             let returned = await ownerEventually { one.finished && two.finished }
             XCTAssertTrue(returned)
@@ -764,6 +768,7 @@ final class RecordingSessionOwnerTests: XCTestCase {
             XCTAssertEqual(final.phase, .idle)
             XCTAssertNil(final.sessionID)
             XCTAssertFalse(final.cleanupPending)
+            XCTAssertNil(final.failure)
             XCTAssertEqual(h.permission.requests, 0)
             XCTAssertTrue(h.activity.requests.isEmpty)
             XCTAssertNil(h.owner.completedManifest)
