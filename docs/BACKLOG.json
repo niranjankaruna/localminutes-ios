@@ -1,0 +1,667 @@
+{
+  "schemaVersion": 1,
+  "specVersion": "1.0",
+  "policy": "Split broad tasks into small tests-first child slices. Keep stable IDs. Device-pending tasks do not block unrelated dependencies. Infrastructure scripts require their own validation tests; feature production behavior always requires recorded RED.",
+  "tasks": [
+    {
+      "id": "T00",
+      "priority": 0,
+      "milestone": "M0",
+      "title": "Bootstrap GitHub and initial documentation commit",
+      "kind": "bootstrap",
+      "status": "TODO",
+      "dependsOn": [],
+      "requirements": [
+        "R01"
+      ],
+      "tddRequired": false,
+      "acceptance": [
+        "Verify workspace, authenticated owner, identity and intended visibility.",
+        "Create empty intended repository, initial reviewed documentation commit, push and verify HEAD.",
+        "Persist repository URL and bootstrap SHA without fabricated values."
+      ],
+      "childTasks": [],
+      "redEvidence": [],
+      "greenEvidence": [],
+      "deviceEvidence": [],
+      "blockers": [],
+      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
+    },
+    {
+      "id": "T01",
+      "priority": 1,
+      "milestone": "M0",
+      "title": "Verify environment, budget guard and toolchain strategy",
+      "kind": "infrastructure",
+      "status": "TODO",
+      "dependsOn": [
+        "T00"
+      ],
+      "requirements": [
+        "R01",
+        "R03"
+      ],
+      "tddRequired": true,
+      "acceptance": [
+        "Record Windows tools, free CI allowance/cost guard and source references.",
+        "Resolve a supported hosted runner/Xcode combination; no paid service.",
+        "Block only affected execution when credentials/budget are unverifiable."
+      ],
+      "childTasks": [],
+      "redEvidence": [],
+      "greenEvidence": [],
+      "deviceEvidence": [],
+      "blockers": [],
+      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
+    },
+    {
+      "id": "T02",
+      "priority": 2,
+      "milestone": "M1",
+      "title": "Establish real test discovery and RED/GREEN harness",
+      "kind": "infrastructure",
+      "status": "TODO",
+      "dependsOn": [
+        "T01"
+      ],
+      "requirements": [
+        "R02"
+      ],
+      "tddRequired": true,
+      "acceptance": [
+        "Demonstrate intended assertion failure then actual success on compatible CI.",
+        "Require executed expected tests, correct exit codes and stored evidence.",
+        "Create deterministic clock, fixture and evidence infrastructure."
+      ],
+      "childTasks": [],
+      "redEvidence": [],
+      "greenEvidence": [],
+      "deviceEvidence": [],
+      "blockers": [],
+      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
+    },
+    {
+      "id": "T03",
+      "priority": 3,
+      "milestone": "M1",
+      "title": "Implement recording domain state machine tests first",
+      "kind": "feature",
+      "status": "TODO",
+      "dependsOn": [
+        "T02"
+      ],
+      "requirements": [
+        "R02",
+        "R04"
+      ],
+      "tddRequired": true,
+      "acceptance": [
+        "Test transitions, duplicate/concurrent starts and stops, cancellation and interrupted states.",
+        "Capture real RED before implementing coordinator behavior."
+      ],
+      "childTasks": [],
+      "redEvidence": [],
+      "greenEvidence": [],
+      "deviceEvidence": [],
+      "blockers": [],
+      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
+    },
+    {
+      "id": "T04",
+      "priority": 4,
+      "milestone": "M1",
+      "title": "Generate app/extension project and unsigned IPA pipeline",
+      "kind": "infrastructure",
+      "status": "TODO",
+      "dependsOn": [
+        "T02"
+      ],
+      "requirements": [
+        "R03"
+      ],
+      "tddRequired": true,
+      "acceptance": [
+        "Compile original minimal app plus extension for device and simulator.",
+        "Test Info.plist, bundle IDs, architecture, Payload structure and checksums.",
+        "Produce candidate unsigned artifact with no Apple credentials."
+      ],
+      "childTasks": [],
+      "redEvidence": [],
+      "greenEvidence": [],
+      "deviceEvidence": [],
+      "blockers": [],
+      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
+    },
+    {
+      "id": "T05",
+      "priority": 5,
+      "milestone": "M2",
+      "title": "Implement real microphone capture and minimal durable writer",
+      "kind": "feature",
+      "status": "TODO",
+      "dependsOn": [
+        "T03",
+        "T04"
+      ],
+      "requirements": [
+        "R04",
+        "R08"
+      ],
+      "tddRequired": true,
+      "acceptance": [
+        "Test capture adapter contract, formats, first-buffer success signal and stop flush.",
+        "Integrate real AVAudioEngine and nonblocking owned-buffer handoff."
+      ],
+      "childTasks": [],
+      "redEvidence": [],
+      "greenEvidence": [],
+      "deviceEvidence": [],
+      "blockers": [],
+      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
+    },
+    {
+      "id": "T06",
+      "priority": 6,
+      "milestone": "M2",
+      "title": "Implement Live Activity and recording App Intents",
+      "kind": "feature",
+      "status": "TODO",
+      "dependsOn": [
+        "T05"
+      ],
+      "requirements": [
+        "R06"
+      ],
+      "tddRequired": true,
+      "acceptance": [
+        "Test activity lifecycle, intent idempotency, denied states and main-process routing.",
+        "Expose start/stop/toggle and truthful foreground fallback."
+      ],
+      "childTasks": [],
+      "redEvidence": [],
+      "greenEvidence": [],
+      "deviceEvidence": [],
+      "blockers": [],
+      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
+    },
+    {
+      "id": "T07",
+      "priority": 7,
+      "milestone": "M2",
+      "title": "Run early free-signing and device-control feasibility gate",
+      "kind": "device",
+      "status": "TODO",
+      "dependsOn": [
+        "T06"
+      ],
+      "requirements": [
+        "R03",
+        "R04",
+        "R06"
+      ],
+      "tddRequired": false,
+      "acceptance": [
+        "User signs with free account and verifies installed extension.",
+        "Record app start, locked continuation, Action Button warm/cold start and Live Activity stop.",
+        "Leave unobserved results pending; independent code tasks may proceed."
+      ],
+      "childTasks": [],
+      "redEvidence": [],
+      "greenEvidence": [],
+      "deviceEvidence": [],
+      "blockers": [],
+      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
+    },
+    {
+      "id": "T08",
+      "priority": 8,
+      "milestone": "M3",
+      "title": "Implement SQLite, segment journal and crash recovery",
+      "kind": "feature",
+      "status": "TODO",
+      "dependsOn": [
+        "T05"
+      ],
+      "requirements": [
+        "R07",
+        "R08"
+      ],
+      "tddRequired": true,
+      "acceptance": [
+        "Tests cover migrations, transaction failures, damaged tails, idempotent recovery and gaps.",
+        "Protect database sidecars and newly rotated files for intended locked access."
+      ],
+      "childTasks": [],
+      "redEvidence": [],
+      "greenEvidence": [],
+      "deviceEvidence": [],
+      "blockers": [],
+      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
+    },
+    {
+      "id": "T09",
+      "priority": 9,
+      "milestone": "M3",
+      "title": "Implement verified model lifecycle manager",
+      "kind": "feature",
+      "status": "TODO",
+      "dependsOn": [
+        "T02",
+        "T04"
+      ],
+      "requirements": [
+        "R09",
+        "R12"
+      ],
+      "tddRequired": true,
+      "acceptance": [
+        "Test downloads/imports, hashes, disk space, cancellation, atomic install and in-use deletion.",
+        "Lock actual filenames/revisions/licenses without placeholders."
+      ],
+      "childTasks": [],
+      "redEvidence": [],
+      "greenEvidence": [],
+      "deviceEvidence": [],
+      "blockers": [],
+      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
+    },
+    {
+      "id": "T10",
+      "priority": 10,
+      "milestone": "M3",
+      "title": "Integrate real CPU streaming ASR native runtime",
+      "kind": "feature",
+      "status": "TODO",
+      "dependsOn": [
+        "T09"
+      ],
+      "requirements": [
+        "R05",
+        "R09"
+      ],
+      "tddRequired": true,
+      "acceptance": [
+        "Pin and build compatible sherpa/ONNX dependencies.",
+        "Real licensed audio fixture loads the actual model and produces nonempty measured output.",
+        "Release build has no fake recognizer fallback."
+      ],
+      "childTasks": [],
+      "redEvidence": [],
+      "greenEvidence": [],
+      "deviceEvidence": [],
+      "blockers": [],
+      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
+    },
+    {
+      "id": "T11",
+      "priority": 11,
+      "milestone": "M3",
+      "title": "Implement streaming transcript assembly and global timing",
+      "kind": "feature",
+      "status": "TODO",
+      "dependsOn": [
+        "T08",
+        "T10"
+      ],
+      "requirements": [
+        "R05",
+        "R08"
+      ],
+      "tddRequired": true,
+      "acceptance": [
+        "Test partial replacement, endpoints, no duplicated resets, monotonic time and final flush.",
+        "Integrate capture, bounded queue, CPU recognizer, persistence and UI projections."
+      ],
+      "childTasks": [],
+      "redEvidence": [],
+      "greenEvidence": [],
+      "deviceEvidence": [],
+      "blockers": [],
+      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
+    },
+    {
+      "id": "T12",
+      "priority": 12,
+      "milestone": "M4",
+      "title": "Implement locked-operation interruption and pressure resilience",
+      "kind": "feature",
+      "status": "TODO",
+      "dependsOn": [
+        "T06",
+        "T11"
+      ],
+      "requirements": [
+        "R05",
+        "R07",
+        "R08"
+      ],
+      "tddRequired": true,
+      "acceptance": [
+        "Test interruption/route change/overflow/low-storage/thermal responses.",
+        "Use real protected files and preserve capture priority; never hide recognition lag."
+      ],
+      "childTasks": [],
+      "redEvidence": [],
+      "greenEvidence": [],
+      "deviceEvidence": [],
+      "blockers": [],
+      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
+    },
+    {
+      "id": "T13",
+      "priority": 13,
+      "milestone": "M4",
+      "title": "Implement endurance metrics and diagnostic export",
+      "kind": "feature",
+      "status": "TODO",
+      "dependsOn": [
+        "T12"
+      ],
+      "requirements": [
+        "R07",
+        "R12"
+      ],
+      "tddRequired": true,
+      "acceptance": [
+        "Test metric accuracy, bounded storage, redaction and evidence schema.",
+        "Package real-device instructions for 125-minute locked tests and fault runs."
+      ],
+      "childTasks": [],
+      "redEvidence": [],
+      "greenEvidence": [],
+      "deviceEvidence": [],
+      "blockers": [],
+      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
+    },
+    {
+      "id": "T14",
+      "priority": 14,
+      "milestone": "M4",
+      "title": "Complete two-hour locked device and accuracy validation",
+      "kind": "device",
+      "status": "TODO",
+      "dependsOn": [
+        "T07",
+        "T13"
+      ],
+      "requirements": [
+        "R05",
+        "R06",
+        "R07",
+        "R08",
+        "R09"
+      ],
+      "tddRequired": false,
+      "acceptance": [
+        "Two real long runs satisfy thresholds with exact build/model records.",
+        "Measure battery/memory/backlog/accuracy; no simulated or post-unlock substitute.",
+        "Record cold-start behavior and any owner decision about a limitation."
+      ],
+      "childTasks": [],
+      "redEvidence": [],
+      "greenEvidence": [],
+      "deviceEvidence": [],
+      "blockers": [],
+      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
+    },
+    {
+      "id": "T15",
+      "priority": 15,
+      "milestone": "M5",
+      "title": "Build meeting history, transcript, search and persistence UI",
+      "kind": "feature",
+      "status": "TODO",
+      "dependsOn": [
+        "T08",
+        "T11"
+      ],
+      "requirements": [
+        "R08",
+        "R12"
+      ],
+      "tddRequired": true,
+      "acceptance": [
+        "Test empty/loading/error states, search isolation, rename/delete and transcript presentation.",
+        "Implement native accessible UI and full local history without login."
+      ],
+      "childTasks": [],
+      "redEvidence": [],
+      "greenEvidence": [],
+      "deviceEvidence": [],
+      "blockers": [],
+      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
+    },
+    {
+      "id": "T16",
+      "priority": 16,
+      "milestone": "M5",
+      "title": "Implement manual notes, playback and exports",
+      "kind": "feature",
+      "status": "TODO",
+      "dependsOn": [
+        "T15"
+      ],
+      "requirements": [
+        "R08",
+        "R12"
+      ],
+      "tddRequired": true,
+      "acceptance": [
+        "Tests cover autosaved notes, source timing, playback gaps and export privacy.",
+        "Keep originals separate from later generated summaries."
+      ],
+      "childTasks": [],
+      "redEvidence": [],
+      "greenEvidence": [],
+      "deviceEvidence": [],
+      "blockers": [],
+      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
+    },
+    {
+      "id": "T17",
+      "priority": 17,
+      "milestone": "M6",
+      "title": "Integrate llama.cpp and actual local summary model",
+      "kind": "feature",
+      "status": "TODO",
+      "dependsOn": [
+        "T09",
+        "T04"
+      ],
+      "requirements": [
+        "R09",
+        "R10"
+      ],
+      "tddRequired": true,
+      "acceptance": [
+        "Pin native artifact and real Qwen model; verify device/simulator integration.",
+        "Test resource ownership, cancellation, unload and no concurrent ASR/LLM requirement."
+      ],
+      "childTasks": [],
+      "redEvidence": [],
+      "greenEvidence": [],
+      "deviceEvidence": [],
+      "blockers": [],
+      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
+    },
+    {
+      "id": "T18",
+      "priority": 18,
+      "milestone": "M6",
+      "title": "Implement evidence-linked summary and action pipeline",
+      "kind": "feature",
+      "status": "TODO",
+      "dependsOn": [
+        "T16",
+        "T17"
+      ],
+      "requirements": [
+        "R10"
+      ],
+      "tddRequired": true,
+      "acceptance": [
+        "Tests cover tokenizer chunks, schema, citations, missing owners/dates and checkpoint resume.",
+        "Run actual-model semantic evaluation and preserve editing/provenance."
+      ],
+      "childTasks": [],
+      "redEvidence": [],
+      "greenEvidence": [],
+      "deviceEvidence": [],
+      "blockers": [],
+      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
+    },
+    {
+      "id": "T19",
+      "priority": 19,
+      "milestone": "M6",
+      "title": "Implement locally grounded questions",
+      "kind": "feature",
+      "status": "TODO",
+      "dependsOn": [
+        "T18",
+        "T15"
+      ],
+      "requirements": [
+        "R10"
+      ],
+      "tddRequired": true,
+      "acceptance": [
+        "Test selected-meeting retrieval isolation and unsupported-answer refusal.",
+        "Run real model with bounded excerpts and source navigation; no network/tools."
+      ],
+      "childTasks": [],
+      "redEvidence": [],
+      "greenEvidence": [],
+      "deviceEvidence": [],
+      "blockers": [],
+      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
+    },
+    {
+      "id": "T20",
+      "priority": 20,
+      "milestone": "M7",
+      "title": "Complete accessibility, privacy and dependency hardening",
+      "kind": "validation",
+      "status": "TODO",
+      "dependsOn": [
+        "T16",
+        "T18",
+        "T19",
+        "T13"
+      ],
+      "requirements": [
+        "R09",
+        "R10",
+        "R12"
+      ],
+      "tddRequired": true,
+      "acceptance": [
+        "Run security/privacy/accessibility negatives and dependency/license review.",
+        "Ensure release contains no fixture adapters, secrets or unfinished mandatory states."
+      ],
+      "childTasks": [],
+      "redEvidence": [],
+      "greenEvidence": [],
+      "deviceEvidence": [],
+      "blockers": [],
+      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
+    },
+    {
+      "id": "T21",
+      "priority": 21,
+      "milestone": "M7",
+      "title": "Create reproducible release candidate and full handover",
+      "kind": "validation",
+      "status": "TODO",
+      "dependsOn": [
+        "T20"
+      ],
+      "requirements": [
+        "R01",
+        "R02",
+        "R03",
+        "R12"
+      ],
+      "tddRequired": true,
+      "acceptance": [
+        "Run complete automated gates at candidate SHA and package unsigned IPA/checksum/manifest.",
+        "Write Windows installation, models, Action Button, privacy and recovery docs.",
+        "Declare pending device evidence honestly."
+      ],
+      "childTasks": [],
+      "redEvidence": [],
+      "greenEvidence": [],
+      "deviceEvidence": [],
+      "blockers": [],
+      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
+    },
+    {
+      "id": "T22",
+      "priority": 22,
+      "milestone": "M7",
+      "title": "Validate offline use and in-place signing renewal",
+      "kind": "device",
+      "status": "TODO",
+      "dependsOn": [
+        "T07",
+        "T21"
+      ],
+      "requirements": [
+        "R09",
+        "R11",
+        "R12"
+      ],
+      "tddRequired": false,
+      "acceptance": [
+        "Run actual app without internet after model setup.",
+        "Renew existing installation without deleting; verify data/models/settings/shortcut.",
+        "Log evidence against exact signing/build environment with sensitive fields redacted."
+      ],
+      "childTasks": [],
+      "redEvidence": [],
+      "greenEvidence": [],
+      "deviceEvidence": [],
+      "blockers": [],
+      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
+    },
+    {
+      "id": "T23",
+      "priority": 23,
+      "milestone": "M7",
+      "title": "Final independent verification and completion audit",
+      "kind": "validation",
+      "status": "TODO",
+      "dependsOn": [
+        "T14",
+        "T21",
+        "T22"
+      ],
+      "requirements": [
+        "R01",
+        "R02",
+        "R03",
+        "R04",
+        "R05",
+        "R06",
+        "R07",
+        "R08",
+        "R09",
+        "R10",
+        "R11",
+        "R12"
+      ],
+      "tddRequired": true,
+      "acceptance": [
+        "Check requirement-to-test-to-artifact traceability and actual device evidence.",
+        "Resolve critical blockers; rerun invalidated device gates after native/runtime changes.",
+        "Set VERIFIED_COMPLETE only when all mandatory gates pass, otherwise report accurate status."
+      ],
+      "childTasks": [],
+      "redEvidence": [],
+      "greenEvidence": [],
+      "deviceEvidence": [],
+      "blockers": [],
+      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
+    }
+  ]
+}

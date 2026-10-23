@@ -1,0 +1,57 @@
+# Build output and generated projects
+build/
+DerivedData/
+.build/
+.swiftpm/
+*.xcodeproj/
+*.xcworkspace/
+*.xcresult/
+*.xcarchive/
+*.ipa
+*.dSYM/
+
+# Models, downloaded native binaries and caches
+models-downloaded/
+Native/Artifacts/
+*.gguf
+*.onnx
+*.xcframework/
+*.framework/
+*.a
+*.dylib
+.cache/
+
+# Credentials, signing materials and local agent state
+.env
+.env.*
+!.env.example
+*.p12
+*.p8
+*.mobileprovision
+*.pem
+*.key
+secrets/
+.agent-local/
+
+# Real meeting/device data: never commit
+recordings/
+transcripts/
+private-data/
+device-evidence/
+diagnostics-raw/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite3
+*.db
+*.caf
+*.m4a
+*.wav
+!Tests/Fixtures/**/*.wav
+
+# System/editor artifacts
+.DS_Store
+Thumbs.db
+.vs/
+*.tmp
+~$*.docx

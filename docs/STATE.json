@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "project": "LocalMinutes",
+  "specVersion": "1.0",
+  "state": "NOT_STARTED",
+  "lastUpdated": "2026-10-23",
+  "repositoryUrl": null,
+  "bootstrapCommit": null,
+  "currentBranch": null,
+  "currentTask": "T00",
+  "lastVerifiedCommit": null,
+  "lastVerifiedCIRun": null,
+  "candidateArtifact": null,
+  "nextAction": "Read contract; inspect workspace and Git/GitHub authentication; create intended repository and initial documentation commit before feature implementation.",
+  "blockedItems": [],
+  "deviceGates": {
+    "freeSigningAndExtension": "NOT_RUN",
+    "actionButtonWarmStart": "NOT_RUN",
+    "actionButtonLockedColdStart": "NOT_RUN",
+    "lockedLiveTranscription": "NOT_RUN",
+    "twoHourRun1": "NOT_RUN",
+    "twoHourRun2": "NOT_RUN",
+    "offlineInference": "NOT_RUN",
+    "inPlaceRenewal": "NOT_RUN"
+  },
+  "verifiedComplete": false
+}

@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "projectName": "LocalMinutes",
+  "specVersion": "1.0",
+  "github": {
+    "owner": "resolve-from-authenticated-account",
+    "repository": "localminutes-ios",
+    "visibility": "private",
+    "publicationApproved": false,
+    "allowCreateNewPrivateRepository": true,
+    "preferHttps": true,
+    "allowForcePush": false
+  },
+  "budget": {
+    "maximumAdditionalSpendEUR": 0,
+    "allowPaidAppleDeveloper": false,
+    "allowPaidInference": false,
+    "allowRentedMac": false,
+    "allowLargerRunners": false,
+    "allowBillingChanges": false,
+    "codingAgentSubscriptionOutOfScope": true
+  },
+  "ci": {
+    "costGuardVerified": false,
+    "costGuardEvidence": null,
+    "maxNewRunsPerInvocation": 6,
+    "maxConcurrentRunsPerBranch": 1,
+    "jobTimeoutMinutes": 45,
+    "artifactRetentionDays": 1,
+    "allowAppleCredentials": false
+  },
+  "execution": {
+    "maxFixAttemptsPerRootCause": 3,
+    "maxTransientRetries": 2,
+    "oneTaskBranchAtATime": true,
+    "requireRecordedRedBeforeImplementation": true,
+    "requireExactCommitGreen": true,
+    "requireDeviceEvidenceForCompletion": true
+  },
+  "device": {
+    "expectedModel": "iPhone 17 Pro",
+    "actualModel": null,
+    "actualIOSVersion": null,
+    "minimumMeetingMinutes": 120,
+    "enduranceTestMinutes": 125,
+    "minimumLongPasses": 2,
+    "language": "en",
+    "lockedColdStartStatus": "UNVERIFIED"
+  },
+  "models": {
+    "asrCandidate": "csukuangfj/sherpa-onnx-streaming-zipformer-en-2023-06-26",
+    "asrProvider": "cpu",
+    "summaryCandidate": "Qwen/Qwen2.5-1.5B-Instruct-GGUF",
+    "summaryQuantization": "Q4_K_M",
+    "pinnedManifestStatus": "NOT_CREATED"
+  },
+  "safety": {
+    "allowMeetingUploads": false,
+    "allowCredentialCollection": false,
+    "allowSecurityBypass": false,
+    "allowAcceptanceWaiversWithoutOwner": false
+  }
+}
