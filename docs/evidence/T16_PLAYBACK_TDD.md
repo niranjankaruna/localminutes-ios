@@ -24,3 +24,5 @@ All eight names are required by the strict native reporter, together with the
 two new transcript-finalization owner cases and seven privacy cases. Expected
 native total56. Compatible compile/RED and exact pushed source are pending.
 No prior test/assertion was changed; no physical-device result is claimed.
+
+Test-first sourcecdf4a06f6a4a9cd226e306941fd0199a18bf418c pushed and remoteHEAD verified before implementation. Hosted run40038154279 active; compatible assertion RED remains pending.

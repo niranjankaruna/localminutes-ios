@@ -521,3 +521,12 @@ Three bounded agents resumed for test-first SQLite/notes/owned-deletion, native 
 
 
 Prior run40036438183 is now terminalFAILED. App/extension device+simulator products compiled successfully at7659a19. The new privacy test fixture had two incorrect FileManager.setAttributes argument labels;0native/UI cases executed, NOT behavioralRED. Labels corrected without changing assertions; policy stillnotImplemented. No privacy behavior authorized yet. Next source adds25core tests (8recovery,10deletion/notes/rename,7canonicalformatter) and8native playback tests, with minimal no-op interfaces. Expected224core/56native; native job independent so new coreRED cannot suppress SDKRED. Allthreejobs and original4actualQwen semantic assertions remain mandatory. No new CI dispatched at this checkpoint.
+
+
+## Owner-requested pause — 2026-10-23T23:14:31.300Z
+
+Owner explicitly requested pausing work and continuing later. All three agents are stopped; no candidate download/inference/subprocess is active. Local gh watch was stopped. Existing hosted run40038154279 atcdf4a06 remains live within its configured limits and may finish; no replacement/cancellation/newworkflow was requested or dispatched. Continuation07 dispatched1/6 new runs. The25newcore/8newnative cases and minimalstubs are pushed test-first, with no behavioralimplementation beforeRED. Last completed core evidence remains7659a19:199+59+85 GREEN, actualQwen2/4 pass; app/extension device/simulator compiled but privacyfixturetestbundlefailed0cases and labelswerecorrected. Currentnew results areunread/pending.
+
+Project state remainsIN_PROGRESS; goalexecution is pausedbyowner. No baseline/device/artifact completion claimed. All free-signing/extension, ActionButton, lockedcontinuation/coldstart, offlinephone, renewal and both owner-run125minute gates remainNOT_RUN. Separateartifactstorageheadroom and internal summaryquality concerns remain. Candidate research pause evidence:T17_CANDIDATE_PAUSE.md; no modelreplacement made.
+
+Exactresume: On explicit owner resume, read required docs and actual Git/public cost guard; inspect existing run40038154279 at exactcdf4a06f6a4a9cd226e306941fd0199a18bf418c before starting any workflow. Record224core/56native/4actualsummary results. Compiler/tool failures are notRED. Only after genuine assertions implement recovery/deletion/boundnotes/rename/playback/privacy/formatter, preserving original tests. Then regress/review/push/exactSHA GREEN. No candidate/signing/locking/endurance/renewal pass exists.

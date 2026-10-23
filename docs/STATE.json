@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-23T23:10:15.967Z",
+  "lastUpdated": "2026-10-23T23:14:31.300Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -11,9 +11,9 @@
   "lastVerifiedCommit": "40100fdb9a8349acdbf2d22c63eb25ce959e9388",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017962923",
   "candidateArtifact": null,
-  "nextAction": "Push reviewed test-first source for224core/56native plusunchanged4actualsummaryquality. Native andcore run independently torecordactualRED inoneworkflow; everyjobmandatory. Sevenprivacycases stillneedactualRED; donotimplementpolicynow. After terminalassertions, implementonlyprovenmissingbehavior withboundedagents; regression/exactSHA GREEN thencheckpoint.",
+  "nextAction": "On explicit owner resume, read required docs and actual Git/public cost guard; inspect existing run40038154279 at exactcdf4a06f6a4a9cd226e306941fd0199a18bf418c before starting any workflow. Record224core/56native/4actualsummary results. Compiler/tool failures are notRED. Only after genuine assertions implement recovery/deletion/boundnotes/rename/playback/privacy/formatter, preserving original tests. Then regress/review/push/exactSHA GREEN. No candidate/signing/locking/endurance/renewal pass exists.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "aed1c8a96838eda8fe467612bd6fd6ba80efd59d",
+  "remoteBranchHead": "cdf4a06f6a4a9cd226e306941fd0199a18bf418c",
   "localScriptGreen": {
     "sourceCommit": "6b5fd0c074672c467f0d26c5797683b706ec8263",
     "platform": "Windows 11 / Node 24.21.0",
@@ -31,7 +31,9 @@
   "ciInvocation": {
     "id": "2026-10-24-continuation-07",
     "maxNewRuns": 6,
-    "newRunIds": [],
+    "newRunIds": [
+      40038154279
+    ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-23T23:04:43.760Z",
     "costGuardBasis": "Live PUBLIC repo and owner ADMIN verified. Official GitHub billing page rechecked: standard public hosted runners free; larger runners prohibited; no artifacts uploaded without storage headroom.",
@@ -42,52 +44,12 @@
     }
   },
   "latestCIRun": {
-    "sourceCommit": "7659a1980b53fc17d624973c6666d83084234ab6",
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40036438183",
-    "status": "completed",
-    "ordinal": 6,
-    "conclusion": "failure",
-    "core": {
-      "status": "completed",
-      "conclusion": "success",
-      "executed": 199,
-      "passed": 199,
-      "failed": 0,
-      "assertionFailures": 0,
-      "skipped": 0
-    },
-    "actualSummary": {
-      "status": "completed",
-      "conclusion": "failure",
-      "executed": 4,
-      "passed": 2,
-      "failed": 2,
-      "assertionFailures": 4,
-      "skipped": 0
-    },
-    "native": {
-      "status": "completed",
-      "conclusion": "failure",
-      "jobId": 120699362489,
-      "deviceCompilation": true,
-      "simulatorCompilation": true,
-      "testBundleCompilation": false,
-      "executed": 0,
-      "reason": "New privacy fixture setAttributes argument labels incorrect; actualSDKrequiresofItemAtPath. Not behavioralRED."
-    },
-    "scripts": {
-      "executed": 59,
-      "passed": 59,
-      "failed": 0,
-      "skipped": 0
-    },
-    "threadSanitizer": {
-      "executed": 85,
-      "passed": 85,
-      "failed": 0,
-      "skipped": 0,
-      "reportedRaces": 0
-    }
+    "sourceCommit": "cdf4a06f6a4a9cd226e306941fd0199a18bf418c",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40038154279",
+    "status": "in_progress",
+    "conclusion": null,
+    "lastObservedAt": "2026-10-23T23:14:31.300Z",
+    "observation": "Allthreejobs were live; resultmustberead onresume. Localwatch stopped; hostedworkflow bounded15/15/25minutes remains running."
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -156,7 +118,7 @@
     "T06.2.1",
     "T06.2.2.1"
   ],
-  "remoteBranchHeadScope": "Live exact branch HEAD verified; predecessor7659a19 is still running its existing native job. No push may cancel it.",
+  "remoteBranchHeadScope": "Exact local/remote test-first source verified afterpush; no production implementation of new behaviors.",
   "nativeCompileRepair": {
     "status": "CODE_COMPLETE_PENDING_DEVICE",
     "candidatePath": "docs/drafts/T06.1/ActivityKitOperations.swift.pending",
@@ -256,7 +218,12 @@
     "latestSourceCommit": "6b5fd0c074672c467f0d26c5797683b706ec8263",
     "latestRunUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40027966192"
   },
-  "activeCIRun": null,
+  "activeCIRun": {
+    "sourceCommit": "cdf4a06f6a4a9cd226e306941fd0199a18bf418c",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40038154279",
+    "status": "in_progress",
+    "ordinal": 1
+  },
   "pendingPushScope": null,
   "repositoryVisibility": "PUBLIC",
   "publication": {
@@ -293,11 +260,7 @@
     "scope": "ASR/live buffer and native C ownership reviewed with no further blocker; meeting integration review found three untested P1 scheduling issues requiring regression RED before repair.",
     "nativeExecutionPending": true
   },
-  "parallelTasks": [
-    "T16 test-first real SQLite rename/bound notes and owned CAF deletion",
-    "Native test-first playback versus start resource admission",
-    "Summary root-cause diagnosis; privacy implementation only after actual native assertion RED"
-  ],
+  "parallelTasks": [],
   "oneHourPush": {
     "startedAt": "2026-10-23T22:06:40Z",
     "targetCheckpointAt": "2026-10-23T23:06:40Z",
@@ -372,7 +335,9 @@
     "expectedCore": 224,
     "expectedNative": 56,
     "productionImplemented": false,
-    "redVerified": false
+    "redVerified": false,
+    "sourceCommit": "cdf4a06f6a4a9cd226e306941fd0199a18bf418c",
+    "runId": 40038154279
   },
   "nativeASRTestFirst": {
     "testCount": 10,
@@ -461,7 +426,8 @@
       "failed": 2,
       "assertionFailures": 4,
       "skipped": 0
-    }
+    },
+    "candidateResearchPause": "docs/evidence/T17_CANDIDATE_PAUSE.md"
   },
   "nativePrivacyTestFirst": {
     "testCount": 7,
@@ -527,5 +493,17 @@
       "classification": "progress",
       "result": "Actual199core+59scripts+85TSAN GREEN and failed native semantic quality preserved at7659a19; privacy tests activated and three P1 integration findings persisted/pushed in aed1c8a. Prior native job still confirmed live."
     }
-  ]
+  ],
+  "executionPause": {
+    "requestedByOwner": true,
+    "paused": true,
+    "requestedAtUTC": "2026-10-23T23:14:31.300Z",
+    "reason": "Owner asks to pause work and continue later.",
+    "agentsStopped": true,
+    "candidateResearchSubprocessesActive": false,
+    "localCIWatchStopped": true,
+    "existingHostedWorkflowMayFinish": true,
+    "hostedRunId": 40038154279,
+    "resumeAction": "On explicit owner resume, read required docs and actual Git/public cost guard; inspect existing run40038154279 at exactcdf4a06f6a4a9cd226e306941fd0199a18bf418c before starting any workflow. Record224core/56native/4actualsummary results. Compiler/tool failures are notRED. Only after genuine assertions implement recovery/deletion/boundnotes/rename/playback/privacy/formatter, preserving original tests. Then regress/review/push/exactSHA GREEN. No candidate/signing/locking/endurance/renewal pass exists."
+  }
 }

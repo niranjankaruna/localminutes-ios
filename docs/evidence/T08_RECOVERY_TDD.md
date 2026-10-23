@@ -28,3 +28,5 @@ metrics and physical crash/device validation remain separate pending gates.
 The additional journal case closes the actual SQLite connection after quarantine,
 requires a durable plan preceding the move, and finishes idempotently with a new
 coordinator/connection. No fake storage failure or in-memory-only recovery.
+
+Test-first sourcecdf4a06f6a4a9cd226e306941fd0199a18bf418c pushed and remoteHEAD verified before implementation. Hosted run40038154279 active; compatible assertion RED remains pending.
