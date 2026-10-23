@@ -29,7 +29,7 @@ from that source. Added `testStopDuringActivationFlushesOnceAndRejectsLateReadin
 before implementation: after activation is emitted, stop must emit exactly one
 stopAndFlush, ignore late callbacks, and block a replacement until cleanup.
 Pre-activation cancellation remains cancelPreparation. Expanded native RED is
-required before implementing this distinction; no production behavior exists yet.
+was required before implementing this distinction; no transition behavior existed at that RED revision.
 
 Expanded test-first source: `bc71753f82ad71a55eca3f4f171a3cf661ee3b94`.
 Run [39975336692](https://github.com/niranjankaruna/localminutes-ios/actions/runs/39975336692)
@@ -94,8 +94,10 @@ task history can be fast-forwarded. Core tests now run on task pushes only to
 avoid a redundant metered run when an already-tested SHA is fast-forwarded to
 main. Local merge policy: inspect the exact tested source, preserve RED commits,
 fast-forward only after required checks pass; no server-side protection claimed.
-The six-run limit remains shared across this invocation (2 used so far).
+The six-run limit is shared across this invocation; all six runs are now used.
 
 Tests assert observable state and the only commands a real adapter can execute,
 not fake transcripts or model outputs. No native APIs, model or device claim.
-Next: inspect actual RED before implementing transitions.
+Next invocation: fix T03.1 using its recorded interruption-during-activation RED,
+verify all 20 XCTest and 8 reporting tests GREEN at the exact new source SHA,
+review, then close T03 and proceed to T04.

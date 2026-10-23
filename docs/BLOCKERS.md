@@ -1,6 +1,6 @@
 # Blockers
 
-No confirmed external blocker prevents the next harness task. T00 authentication
+No confirmed external blocker prevents the next T03.1 code fix. T00 authentication
 and repository bootstrap succeeded. A sandbox-only network error was resolved
 by an authorized direct check; account billing read access was available in the
 signed-in browser despite insufficient CLI billing scope.

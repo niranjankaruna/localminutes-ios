@@ -84,3 +84,7 @@ Exact next task: T03.1, update `RecordingCoordinator.interrupt(for:)` to handle
 activation-in-flight, emit one cleanup command, reject late readiness and retain
 interrupted status; require all 20 XCTest and 8 reporting tests GREEN at the new
 source SHA, review, then finish T03 and proceed to T04. Project stays IN_PROGRESS.
+
+Final independent checkpoint audit confirmed state, backlog, run ledger and
+verification consistency; corrected stale continuation wording. No CI was
+dispatched for this documentation-only correction.
