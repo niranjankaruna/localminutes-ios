@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-23T16:25:21Z",
+  "lastUpdated": "2026-10-23T16:28:12Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t04-ios-build",
@@ -27,11 +27,11 @@
   "lastVerifiedNativeBuildCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/39983105414",
   "blockedItems": ["ARTIFACT_STORAGE_HEADROOM_UNVERIFIED"],
   "ciInvocation": {
-    "id": "2026-10-23-continuation-01",
+    "id": "2026-10-23-continuation-02",
     "maxNewRuns": 6,
-    "newRunIds": [39978171921, 39979891163, 39981007435, 39981859388, 39983105414, 39985432474],
-    "limitReached": true,
-    "costGuardObservedAt": "2026-10-23T15:25:34Z"
+    "newRunIds": [],
+    "limitReached": false,
+    "costGuardObservedAt": "2026-10-23T16:28:12Z"
   },
   "latestCIRun": {
     "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/39985432474",

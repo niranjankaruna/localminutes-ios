@@ -106,3 +106,14 @@ execution; recheck account usage before another invocation. No unlimited free
 macOS allowance is assumed.
 Artifact uploads remain blocked on headroom verification; logs-only tests and
 native builds may proceed. Existing runner/action pins remain unchanged.
+
+## Continuation-02 cost observation — 23 October 2026
+
+Read-only authenticated account inspection showed GitHub Free, **457.7 / 2,000
+Actions minutes used**, 1,542.3 displayed remaining, Actions billable usage **$0**,
+and account-wide Actions budget **$0.00 / $0.00, Usage blocked**. Included storage
+still displayed **0.5 / 0.5 GB, 100%**, so artifact upload remains blocked. No
+settings or unrelated artifacts were changed. Bounded standard-runner execution
+may resume; start with the saved native packaging fix. Maximum six new runs,
+one active run per branch, existing 10-minute core / 15-minute native timeouts.
+Do not assume the entire remaining allowance is reserved for this project.
