@@ -96,8 +96,13 @@ Read-only authenticated account inspection again showed GitHub Free,
 **261.3 / 2,000 included Actions minutes used** (1,738.7 displayed remaining),
 billable Actions usage **$0**, storage **0.5 / 0.5 GB**, and the account-wide
 Actions budget **$0.00 / $0.00, Usage blocked**. No account setting was changed.
-The next bounded invocation may use at most six standard-runner runs; a
-25-minute single-job ceiling would consume at most 1,500 weighted included
-minutes across six macOS runs, below the displayed remaining allowance.
+The invocation may use at most six standard-runner runs. The earlier planning
+estimate of 1,500 weighted minutes assumed a tenfold multiplier; current pricing
+documentation does not establish that exact multiplier, so it is not a verified
+upper bound. Three initial core-only runs are now complete; the remaining three
+planned runs have a combined core/native timeout of 25 runner minutes each.
+The observed allowance and enforced $0 stop permit bounded standard-runner
+execution; recheck account usage before another invocation. No unlimited free
+macOS allowance is assumed.
 Artifact uploads remain blocked on headroom verification; logs-only tests and
 native builds may proceed. Existing runner/action pins remain unchanged.

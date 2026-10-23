@@ -47,3 +47,34 @@ Boundary limitation: archive entry strings validate names and structure, not
 ZIP entry types or symlink targets. T04.3 must test the real packaging input
 for links, then inspect the actual created archive; these fixtures do not
 establish native-build or symlink safety.
+
+Hosted expanded RED: source `5f962d6d72eab6a35eb378771cda64e473da77b3`,
+run [39981007435](https://github.com/niranjankaruna/localminutes-ios/actions/runs/39981007435),
+completed 15:48:22 UTC. **20 XCTest passed; 43 Node executed, 8 passed,
+35 failed, 0 skipped.** No validation behavior existed in this source.
+
+## T04.1 implementation / T04.2 native RED preparation
+
+After the pushed RED above, implemented metadata validation, canonical archive
+names, bounded direct native-tool invocation without a shell, and streaming
+SHA-256 verification. Windows regression command
+`node --test --test-reporter=tap scripts/tests/*.test.mjs`: **43 passed,
+0 failed, 0 skipped**. This is local script GREEN only; exact source hosted
+GREEN remains pending.
+
+T04.2 requirement R03 observable acceptance: two native tests must inspect
+real processed app/extension plists and Mach-O build-platform load commands,
+matching versions and subordinate stable bundle IDs. Both device Release and
+simulator Debug builds must actually succeed. The device test must then fail
+with `Compiled app must enable Live Activities before this native gate can pass`
+because the minimal configuration has `NSSupportsLiveActivities: false`.
+The second test rejects real simulator products for device packaging. Native
+missing-tool/compile failures will not be recorded as RED.
+
+Minimal compiling interfaces only: app-owned coordinator, SwiftUI text entry,
+shared Codable/Hashable ActivityAttributes and WidgetBundle/ActivityConfiguration
+presentation. There is no recording adapter, Action Button, Stop control,
+inference, meeting UI, signing, installation or runtime activity proof yet.
+XcodeGen archive is pinned to publisher SHA and size, verified before execution.
+Native job is bounded to 15 minutes after the 10-minute core job; no upload or
+cache allocation. Existing included quota and $0 hard stop remain in force.

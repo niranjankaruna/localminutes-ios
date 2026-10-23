@@ -9,6 +9,8 @@ DerivedData/
 *.xcarchive/
 *.ipa
 *.dSYM/
+App/Info.plist
+LiveActivityExtension/Info.plist
 
 # Models, downloaded native binaries and caches
 models-downloaded/
