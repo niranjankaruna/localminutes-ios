@@ -63,6 +63,29 @@ readiness event to publish recording. Added
 This regression requires a separate native RED; it prevents closing T03 even
 if the existing 19-case implementation run passes. The fix is not implemented.
 
+## T03.1 regression RED — verified
+
+Test-first source: `33cd7c6a88195998b6a5f15bb62cc9c6c415045a`, committed and
+pushed before any interruption fix. Run
+[39976742123](https://github.com/niranjankaruna/localminutes-ios/actions/runs/39976742123)
+completed 23 October 2026, 15:16:59 UTC, **failure**. XCTest executed 20 cases:
+**19 passed, 1 failed, 6 assertion failures, 0 skipped**. The domain suite ran
+18 cases; harness/reporting regressions remained green (2 XCTest and 8 Node).
+Compilation and discovery succeeded; both test execution and verification exited 1.
+
+`testInterruptionDuringActivationRejectsLateRecordingSuccess` observed:
+
+- nil rather than stopAndFlush for the interrupted activation;
+- recording rather than interrupted after late readiness;
+- cleanupPending false and firstBufferAccepted true;
+- recording still present after cleanup acknowledgement;
+- replacement preparation missing because the interrupted capture still owns state.
+
+This proves the actual missing behavior, rather than a toolchain failure. No
+fix, GREEN or successful native adapter result is claimed for T03.1. The failing
+CI result is intentionally retained. All six permitted invocation runs are used;
+the next invocation must start with this fix and exact-source GREEN.
+
 ## Review and continuation
 
 The harness branch history is retained as the parent of this single active task

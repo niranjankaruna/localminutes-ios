@@ -99,7 +99,7 @@
         "Test transitions, duplicate/concurrent starts and stops, cancellation and interrupted states.",
         "Capture real RED before implementing coordinator behavior."
       ],
-      "childTasks": [{"id":"T03.1","title":"Reject late readiness after interruption during activation","status":"IN_PROGRESS"}],
+      "childTasks": [{"id":"T03.1","title":"Reject late readiness after interruption during activation","status":"IN_PROGRESS","redEvidence":["docs/evidence/T03_TDD.md#t031-regression-red--verified"],"greenEvidence":[]}],
       "redEvidence": ["docs/evidence/T03_TDD.md"],
       "greenEvidence": ["docs/evidence/T03_TDD.md#green--initial-domain-set-passed-review-regression-pending"],
       "deviceEvidence": [],

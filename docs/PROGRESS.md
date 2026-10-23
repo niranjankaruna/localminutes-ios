@@ -59,3 +59,28 @@ No app/IPA, microphone, real model or device evidence exists. Main is preserved
 at the bootstrap documentation checkpoint; task history is not merged while
 the review issue remains. T04 upstream research was saved without installing
 dependencies or implementing a scaffold.
+
+## 23 October 2026, 16:18 Europe/Dublin — invocation checkpoint
+
+Completed task IDs: T00, T01, T02 (including T02.1). T03/T03.1 remain IN_PROGRESS.
+Final test-first source `33cd7c6a88195998b6a5f15bb62cc9c6c415045a`, run
+39976742123, proved the startup-interruption regression RED: **20 XCTest,
+19 passed, 1 failed, 6 assertion failures, 0 skipped**. All 8 reporting tests
+passed. No fix has been implemented before recording this RED.
+
+Latest prior GREEN is `9c39e5f6a44904dc5746fc31c6a1c5e3c9373fc2` / run
+39975791505 (19 XCTest + 8 reporting tests passed), with the newly exposed
+race explicitly unresolved. Full run ledger: `docs/evidence/CI_INVOCATIONS.md`.
+Six of six new CI runs completed; no seventh run or background/recursive session
+was launched. Current branch: `task/t03-recording-coordinator`; main preserves
+the bootstrap documentation checkpoint. The failed RED remains visible.
+
+Artifact blocker: included Actions storage headroom is unverified (display 100%);
+no upload/deletion/billing change attempted. No candidate IPA exists. All physical
+device gates, real-model inference, microphone capture, Action Button, locked
+transcription, two endurance runs and signing/renewal remain NOT_RUN.
+
+Exact next task: T03.1, update `RecordingCoordinator.interrupt(for:)` to handle
+activation-in-flight, emit one cleanup command, reject late readiness and retain
+interrupted status; require all 20 XCTest and 8 reporting tests GREEN at the new
+source SHA, review, then finish T03 and proceed to T04. Project stays IN_PROGRESS.
