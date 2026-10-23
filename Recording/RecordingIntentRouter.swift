@@ -46,13 +46,16 @@ public final class RecordingIntentRouter {
         let before = await owner.snapshot()
         let wasActive = before.cleanupPending ||
             [.preparing, .recording, .stopping].contains(before.phase)
-        let canComplete: Bool
+        let completionSessionID: UUID?
+        let controlledSessionID: UUID?
         switch action {
         case .start(let sessionID):
-            canComplete = false
+            completionSessionID = nil
+            controlledSessionID = nil
             await owner.start(sessionID: sessionID)
         case .stop(let expectedSessionID):
-            canComplete = wasActive
+            completionSessionID = wasActive ? before.sessionID : nil
+            controlledSessionID = expectedSessionID ?? before.sessionID
             if let expectedSessionID {
                 guard before.sessionID == expectedSessionID else { return .staleSession }
                 // The owner repeats the epoch guard and closes admission before
@@ -62,12 +65,17 @@ public final class RecordingIntentRouter {
                 await owner.stop()
             }
         case .toggle(let sessionID):
-            canComplete = wasActive
+            completionSessionID = wasActive ? before.sessionID : nil
+            controlledSessionID = completionSessionID
             await owner.toggle(sessionID: sessionID)
         }
 
         await afterOperation?()
         let state = await owner.snapshot()
+        if let controlledSessionID, let currentSessionID = state.sessionID,
+           controlledSessionID != currentSessionID {
+            return .staleSession
+        }
         if state.cleanupPending { return .cleanupPending }
         if let failure = state.failure {
             switch failure {
@@ -84,7 +92,8 @@ public final class RecordingIntentRouter {
         case .completed:
             // A prior saved recording does not turn an idle/duplicate stop into
             // a new completion. Only the completed matching media can do so.
-            if canComplete, let manifest = owner.completedManifest,
+            if let completionSessionID, let manifest = owner.completedManifest,
+               manifest.sessionID == completionSessionID,
                manifest.sessionID == state.sessionID, manifest.totalFrames > 0 {
                 return .stopped
             }

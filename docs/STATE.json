@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-23T20:10:30.3431835Z",
+  "lastUpdated": "2026-10-23T20:16:24.2472182Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -11,7 +11,7 @@
   "lastVerifiedCommit": "9eeaa25c53ba7e22b32ae4c1f3f65034edcbc48f",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40013807701",
   "candidateArtifact": null,
-  "nextAction": "T06.2.2: first router implementation follows recorded11-case RED. Independent review found replacement-manifest attribution race; new deterministic actual-owner regression and scheduling hook must run RED before repair. Next run2/6; all native app/intent behavior still unwired.",
+  "nextAction": "T06.2.2: replacement-attribution RED proven at01531f5/run40017195075 (115 executed114pass1fail2assertions0skip, original114pass). First epoch-anchored mapping repair implemented only after RED; require exact-source full GREEN next. Native SDK app/intent test drafts separate and uncompiled. Current2/6runs terminal.",
   "pendingPushCommit": null,
   "remoteBranchHead": "9eeaa25c53ba7e22b32ae4c1f3f65034edcbc48f",
   "localScriptGreen": {
@@ -32,19 +32,20 @@
     "id": "2026-10-23-continuation-05",
     "maxNewRuns": 6,
     "newRunIds": [
-      40016043242
+      40016043242,
+      40017195075
     ],
     "limitReached": false,
-    "costGuardObservedAt": "2026-10-23T20:10:30.3431835Z"
+    "costGuardObservedAt": "2026-10-23T20:16:24.2472182Z"
   },
   "latestCIRun": {
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40016043242",
-    "sourceCommit": "b561558052a1909c4899cb5cab3891e6f72bde0f",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017195075",
+    "sourceCommit": "01531f590c5de43c912c865f3ec8d3584f2d9421",
     "conclusion": "failure",
-    "executedXCTests": 114,
-    "passedXCTests": 103,
-    "failedXCTests": 11,
-    "assertionFailures": 61,
+    "executedXCTests": 115,
+    "passedXCTests": 114,
+    "failedXCTests": 1,
+    "assertionFailures": 2,
     "skippedXCTests": 0,
     "executedNodeTests": 0,
     "nativeBuildJobConclusion": "skipped",
@@ -146,6 +147,6 @@
     "inActiveBuildPaths": true,
     "compiled": true,
     "redVerified": true,
-    "productionBehaviorImplemented": false
+    "productionBehaviorImplemented": true
   }
 }

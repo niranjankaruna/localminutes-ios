@@ -296,3 +296,25 @@ staleSession, never the replacement's saved success. Both stop and toggle are
 covered; no mocked domain snapshot or inference. This is a new regression RED
 step, not a GREEN claim. Pre-dispatch cost:1,305/2,000 used,695 remaining,$0billable,
 existing Actions$0hard stop; storage100%, no uploads.
+## T06.2.2 replacement-attribution regression RED — verified
+
+Test-first01531f590c5de43c912c865f3ec8d3584f2d9421,
+[run40017195075](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017195075):
+`swift test --enable-code-coverage` on hosted macos-15-intel/Xcode26.2 executed
+115XCTest,114passed,1newfailed,2assertions,0skipped. All previous103 and original11
+router cases pass. New test forces both stop and toggle delayed-response
+interleavings; actual A cleanup and replacement B CAF save/decode complete,
+then each earlier response returns stopped instead of expected staleSession.
+Toolchain/discovery and actual media checks passed. Full ignored local log
+.agent-local/T06.2.2-01531f5-regression-red.log; strict reporter confirmed115/114/1/2/0.
+Node/TSAN/native not run after Swift RED. Repair starts only after this evidence:
+anchor terminal result to controlled/completing epoch and reject replacement
+state before mapping its success/failure. No physical/model evidence is inferred.
+First attribution repair now anchors the completing and controlled session IDs.
+It rejects replacement state before reading its outcome and requires the saved
+manifest to match both the completing ID and final snapshot. Original/new
+regression assertions unchanged. Independent real-diff review found this resolves
+the reported race, with no additional concrete blocker in tested router scope.
+Exact-source full GREEN remains required. Pre-run3 cost observation:1,325.7/2,000
+included minutes used,674.3 remaining,$0billable, storage100%; existing Actions
+$0hard stop rechecked read-only. No artifact upload/billing/publication change.
