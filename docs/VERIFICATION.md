@@ -114,3 +114,5 @@ T08/T09 actual behavioral RED verified at9cb7639/run40032742242:153XCTest,116pas
 T10actualRED4c520bd/run40033589101:10ASRcases11assertions0skip afteractualfixture/nativecompile. Full163cases148pass15fail18assertions. T08.1realSQLite15/15pass. T09installer18/23pass; coherentreplacementfixturecorrection preservesassertions. T11/T15/T16/T09.2/T17new39test-firstcases notyetRED; nofeature-completeclaim.
 
 T11/T15/T16/T09.2/T17 RED b0cdd8b/run40034410554:202actualtests,153pass49fail104assert0skip; fixtureandnativeframeworksetupsuccess. All23modelinstaller casesGREEN. Threeagents/rootimplementedonlyafterpersistedRED; GREENpending. Addedlarge-converted-bufferregressionbeforefix; actualnewREDpending.
+
+Actual2eaa5d6/run40035569538 verifies10/10nativeCPUASR,2/2positiveASR/SQLitecompositions andnotes/library/transport/export/CAFmapping. Combinedcore199/198pass/1fail/13assert/0skip;newlarge-bufferREDpreservedbeforelocalfix. Actualb5046Qwen4/2pass/2fail/4assert/0skip, semanticqualityFAILED. NativeUI/device/signing/endurance remainNOT_RUN.

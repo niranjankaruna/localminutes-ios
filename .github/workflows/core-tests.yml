@@ -109,6 +109,14 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          config = json.loads(Path('project-config.json').read_text())
+          assert config['ci']['costGuardVerified'] is True
+          assert config['budget']['maximumAdditionalSpendEUR'] == 0
+          assert config['budget']['allowLargerRunners'] is False
+          PY
           python3 docs/drafts/T17/prepare_native_summary.py
       - name: Execute all mandatory real-model summary quality tests
         shell: bash
@@ -243,6 +251,7 @@ jobs:
             testActivityTerminalTimerRemainsFixedAndCannotEndBeforeItsStart \
             testFailedPreparationHasNoRecordingTimerAndDefaultPayloadContainsNoMeetingText \
             testNativeScopedActivityStopDeclaresBackgroundExecution
+          node scripts/verify-test-log.mjs .agent-local/native-app-tests.log testDefaultServicesUseProtectedExcludedApplicationSupportRoots testExistingModelAndMetadataTreeIsProtectedWithoutChangingBytes testNewVerifiedModelImportReceivesPersistentPrivacyInsteadOfSourceProtection testActualSQLiteDatabaseWALAndSHMAreProtectedAndRowsSurviveReopen testSQLiteSidecarsRecreatedAfterReopenRetainPersistentPrivacy testNewCAFSegmentsAndAtomicManifestStayPrivateBeforeAndAfterFinish testRecursivePrivacyPolicyRejectsSymlinksWithoutChangingOutsideFiles
       - name: Execute actual recording-control UI test
         id: native-ui
         if: ${{ !cancelled() && (steps.native-app.outcome == 'success' || steps.native-app.outcome == 'failure') }}

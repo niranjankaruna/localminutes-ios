@@ -563,7 +563,9 @@
         "Integrate capture, bounded queue, CPU recognizer, persistence and UI projections."
       ],
       "childTasks": [],
-      "redEvidence": [],
+      "redEvidence": [
+        "docs/evidence/T10_T11_TDD.md"
+      ],
       "greenEvidence": [],
       "deviceEvidence": [],
       "blockers": [],
@@ -575,7 +577,7 @@
       "milestone": "M4",
       "title": "Implement locked-operation interruption and pressure resilience",
       "kind": "feature",
-      "status": "TODO",
+      "status": "IN_PROGRESS",
       "dependsOn": [
         "T06",
         "T11"
@@ -590,7 +592,17 @@
         "Test interruption/route change/overflow/low-storage/thermal responses.",
         "Use real protected files and preserve capture priority; never hide recognition lag."
       ],
-      "childTasks": [],
+      "childTasks": [
+        {
+          "id": "T12.1",
+          "title": "Actual native persistent-file protection and backup exclusion metadata",
+          "status": "IN_PROGRESS",
+          "redEvidence": [],
+          "greenEvidence": [],
+          "deviceEvidence": [],
+          "testCount": 7
+        }
+      ],
       "redEvidence": [],
       "greenEvidence": [],
       "deviceEvidence": [],
@@ -675,7 +687,9 @@
         "Implement native accessible UI and full local history without login."
       ],
       "childTasks": [],
-      "redEvidence": [],
+      "redEvidence": [
+        "docs/evidence/T10_T11_TDD.md"
+      ],
       "greenEvidence": [],
       "deviceEvidence": [],
       "blockers": [],
@@ -701,7 +715,9 @@
         "Keep originals separate from later generated summaries."
       ],
       "childTasks": [],
-      "redEvidence": [],
+      "redEvidence": [
+        "docs/evidence/T10_T11_TDD.md"
+      ],
       "greenEvidence": [],
       "deviceEvidence": [],
       "blockers": [],
@@ -728,7 +744,9 @@
         "Test resource ownership, cancellation, unload and no concurrent ASR/LLM requirement."
       ],
       "childTasks": [],
-      "redEvidence": [],
+      "redEvidence": [
+        "docs/evidence/T10_T11_TDD.md"
+      ],
       "greenEvidence": [],
       "deviceEvidence": [],
       "blockers": [],

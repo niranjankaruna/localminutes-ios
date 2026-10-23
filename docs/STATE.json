@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-23T22:44:42.218Z",
+  "lastUpdated": "2026-10-23T22:53:17.891Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -11,7 +11,7 @@
   "lastVerifiedCommit": "40100fdb9a8349acdbf2d22c63eb25ce959e9388",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017962923",
   "candidateArtifact": null,
-  "nextAction": "Push implemented real native ASR/live pipeline/SQLite notes/search/export/playback mapping and initial native screens plus203rd test-first large-buffer regression; require actualRED for >3200 input before splitting. Core199 and actualQwen4 execute in separate mandatory jobs at sameSHA, no ignored failures; fullCI remainsfailed ifqualityfails. Owner-runphonegatesNOT_RUN.",
+  "nextAction": "Final permitted run6: verify large-buffer repair/all199core regressions,85repeatedTSAN, actualsummary4 quality (stillrequired), iOSdevice/simulator builds+48native cases including7newprivacyRED cases and3UIcases. FixprivacyONLYafteractualSDKRED; checkpointlocalrepairifbudgetused. No seventh run this invocation, no skippedqualitytests/publicrelease/upload. Fullbaseline,summary/Q&A,recovery,continuousplayback,deletion,privacy/devicegatesremainunfinished.",
   "pendingPushCommit": null,
   "remoteBranchHead": "4c520bdb82f6147ae667181bb0b534cadedb960a",
   "localScriptGreen": {
@@ -35,7 +35,8 @@
       40032541662,
       40032742242,
       40033589101,
-      40034410554
+      40034410554,
+      40035569538
     ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-23T22:28:30.200Z",
@@ -46,14 +47,23 @@
     }
   },
   "latestCIRun": {
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40034410554",
-    "sourceCommit": "b0cdd8ba4fdb3e3eb67d8f812937e50777db612b",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40035569538",
+    "sourceCommit": "2eaa5d607dd00d36e6c4ab90aef089b84d4bdbd3",
     "conclusion": "failure",
-    "executedXCTests": 202,
-    "passed": 153,
-    "failed": 49,
-    "assertionFailures": 104,
-    "skipped": 0
+    "core": {
+      "executed": 199,
+      "passed": 198,
+      "failed": 1,
+      "assertionFailures": 13,
+      "skipped": 0
+    },
+    "actualSummary": {
+      "executed": 4,
+      "passed": 2,
+      "failed": 2,
+      "assertionFailures": 4,
+      "skipped": 0
+    }
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -353,7 +363,9 @@
     "redVerified": true,
     "productionImplemented": true,
     "actualWindowsCandidateRecognized": true,
-    "implementationAuthorizedAfterTerminalLog": true
+    "implementationAuthorizedAfterTerminalLog": true,
+    "greenVerified": true,
+    "greenSourceCommit": "2eaa5d607dd00d36e6c4ab90aef089b84d4bdbd3"
   },
   "componentGreen": {
     "verifiedModelInstaller": {
@@ -369,6 +381,28 @@
       "executed": 15,
       "passed": 15,
       "skipped": 0
+    },
+    "nativeASR": {
+      "sourceCommit": "2eaa5d607dd00d36e6c4ab90aef089b84d4bdbd3",
+      "runId": 40035569538,
+      "executed": 10,
+      "passed": 10,
+      "skipped": 0
+    },
+    "liveComposition": {
+      "sourceCommit": "2eaa5d607dd00d36e6c4ab90aef089b84d4bdbd3",
+      "runId": 40035569538,
+      "positiveActualSpeechCases": 2,
+      "passed": 2,
+      "skipped": 0,
+      "largeBufferRegression": "RED then fixed locally; GREEN pending"
+    },
+    "notesLibraryTransport": {
+      "sourceCommit": "2eaa5d607dd00d36e6c4ab90aef089b84d4bdbd3",
+      "runId": 40035569538,
+      "passed": true,
+      "skipped": 0,
+      "scope": "ActualSQLite notes/migration,history/search/screenstate,exports,realCAFmapper,URLSessiontransport; nativeUIKit/audibleplaybacknotverified"
     }
   },
   "summaryQuality": {
@@ -377,7 +411,35 @@
     "ownerAttribution": "FAILED",
     "boundedWindowsPromptRepairs": 3,
     "retryStopped": true,
-    "actualHostedB5046Inference": "NOT_RUN",
-    "nextAction": "Actual native test; then diagnose measured candidate or a new test-first general grounding pipeline, never hardcode fictional owners."
-  }
+    "actualHostedB5046Inference": "EXECUTED",
+    "nextAction": "Actual native test; then diagnose measured candidate or a new test-first general grounding pipeline, never hardcode fictional owners.",
+    "nativeTests": {
+      "executed": 4,
+      "passed": 2,
+      "failed": 2,
+      "assertionFailures": 4,
+      "skipped": 0
+    }
+  },
+  "nativePrivacyTestFirst": {
+    "testCount": 7,
+    "redVerified": false,
+    "productionImplemented": false,
+    "evidence": "docs/evidence/T12_PRIVACY_TDD.md"
+  },
+  "remainingBaseline": [
+    "T08 crash/segment recovery and gaps",
+    "T12 privacy metadata and interruption/route/pressure handling",
+    "T13 redacted diagnostics",
+    "T14 owner-run two125minute tests",
+    "T15 native UI coverage/history navigation",
+    "T16 complete owned deletion/continuous playback/full exports",
+    "T17 summary accuracy/resource validation",
+    "T18 tokenizer chunked grounded summaries",
+    "T19 grounded questions",
+    "T20 accessibility/privacy/dependencies",
+    "T21 retained artifact/handover",
+    "T22 offline iPhone/renewal",
+    "T23 completion audit"
+  ]
 }

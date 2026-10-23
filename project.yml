@@ -90,6 +90,7 @@ targets:
       - Tests/NativeAppTests
     dependencies:
       - target: LocalMinutes
+      - sdk: libsqlite3.tbd
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.niranjankaruna.localminutes.AppTests
