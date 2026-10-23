@@ -55,8 +55,8 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p .build
-          node --test scripts/tests/verify-test-log.test.mjs
           swift test --enable-code-coverage 2>&1 | tee .build/test-output.log
+          node --test scripts/tests/*.test.mjs
       - name: Require discovered tests and report evidence
         if: always()
         shell: bash
