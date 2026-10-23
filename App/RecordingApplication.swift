@@ -31,6 +31,8 @@ final class RecordingApplication {
     private let router: RecordingIntentRouter
     @ObservationIgnored
     private var toggleOperation: (id: UUID, task: Task<RecordingIntentOutcome, Never>)?
+    @ObservationIgnored
+    private var preparationStop: (id: UUID, task: Task<RecordingIntentOutcome, Never>)?
 
     private init() {
         let owner = RecordingSessionOwner(
@@ -53,16 +55,45 @@ final class RecordingApplication {
         let outcome: RecordingIntentOutcome
         if case .toggle = action {
             if let operation = toggleOperation {
-                // Cancelling a duplicate waiter must not cancel the creator's
-                // operation. Keep only one bounded in-flight toggle slot.
-                outcome = await operation.task.value
+                if let stop = preparationStop, stop.id == operation.id {
+                    outcome = await stop.task.value
+                } else {
+                    let state = await owner?.snapshot()
+                    // Recheck after the actor hop: another toggle may already
+                    // have admitted the same scoped preparation cancellation.
+                    if let stop = preparationStop, stop.id == operation.id {
+                        outcome = await stop.task.value
+                    } else if state?.phase == .preparing, let sessionID = state?.sessionID {
+                        let router = self.router
+                        let task = Task { @MainActor in
+                            await router.perform(.stop(expectedSessionID: sessionID))
+                        }
+                        if toggleOperation?.id == operation.id {
+                            preparationStop = (operation.id, task)
+                        }
+                        outcome = await task.value
+                    } else {
+                        // Concurrent stops share their existing barrier. A
+                        // duplicate waiter's cancellation cannot cancel it.
+                        outcome = await operation.task.value
+                    }
+                }
             } else {
                 let operationID = UUID()
                 let router = self.router
                 let task = Task { @MainActor in
                     let result = await router.perform(action)
+                    let settled: RecordingIntentOutcome
+                    if let stop = self.preparationStop, stop.id == operationID {
+                        // A cancelled preflight may return before its cleanup
+                        // task settles. Both native callers await that barrier.
+                        settled = await stop.task.value
+                    } else {
+                        settled = result
+                    }
                     if self.toggleOperation?.id == operationID { self.toggleOperation = nil }
-                    return result
+                    if self.preparationStop?.id == operationID { self.preparationStop = nil }
+                    return settled
                 }
                 toggleOperation = (operationID, task)
                 // Unstructured coalescing tasks do not inherit cancellation.
