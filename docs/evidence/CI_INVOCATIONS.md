@@ -182,3 +182,13 @@ The owner explicitly approved public visibility; authenticated and unauthenticat
 GitHub API checks confirm PUBLIC. Standard macos-15-intel is officially free for
 public repositories; native time bound restored to25min for the next invocation.
 See T01_PUBLIC_REPOSITORY.md. No billing settings or spending guard changed.
+
+## 2026-10-23-continuation-06
+
+Prior turn classification: progress. Live GitHub checks at22:14UTC confirm
+PUBLIC niranjankaruna/localminutes-ios, authenticated owner and no active run.
+Standard macos-15-intel is the verified free cost basis; zero-spend/standard-only,
+six-run cap, one active/branch and6/25minute bounds remain. No artifact upload.
+First source activates23 model-installation and15 SQLite tests with no-op
+interfaces. Require actual153-case discovery and assertion RED before behavior.
+Native runtime/model experiment is real but remains separate desktop evidence.

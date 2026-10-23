@@ -23,7 +23,7 @@
   },
   "ci": {
     "costGuardVerified": true,
-    "costGuardEvidence": "docs/evidence/T01_ENVIRONMENT.md#ci-cost-observation",
+    "costGuardEvidence": "docs/evidence/T01_PUBLIC_REPOSITORY.md",
     "maxNewRunsPerInvocation": 6,
     "maxConcurrentRunsPerBranch": 1,
     "jobTimeoutMinutes": 45,

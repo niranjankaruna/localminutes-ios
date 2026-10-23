@@ -6,13 +6,19 @@ let package = Package(
     platforms: [.macOS(.v15), .iOS(.v18)],
     products: [
         .library(name: "LocalMinutesCore", targets: ["LocalMinutesCore"]),
-        .library(name: "LocalMinutesRecording", targets: ["LocalMinutesRecording"])
+        .library(name: "LocalMinutesRecording", targets: ["LocalMinutesRecording"]),
+        .library(name: "LocalMinutesModels", targets: ["LocalMinutesModels"]),
+        .library(name: "LocalMinutesPersistence", targets: ["LocalMinutesPersistence"])
     ],
     targets: [
         .target(name: "LocalMinutesCore", path: "Core"),
         .target(name: "LocalMinutesRecording", dependencies: ["LocalMinutesCore"], path: "Recording"),
+        .target(name: "LocalMinutesModels", path: "Models"),
+        .target(name: "LocalMinutesPersistence", path: "Persistence", linkerSettings: [.linkedLibrary("sqlite3")]),
         .testTarget(name: "HarnessTests", path: "Tests/HarnessTests"),
         .testTarget(name: "CoreTests", dependencies: ["LocalMinutesCore"], path: "Tests/CoreTests"),
-        .testTarget(name: "RecordingTests", dependencies: ["LocalMinutesRecording", "LocalMinutesCore"], path: "Tests/RecordingTests")
+        .testTarget(name: "RecordingTests", dependencies: ["LocalMinutesRecording", "LocalMinutesCore"], path: "Tests/RecordingTests"),
+        .testTarget(name: "ModelTests", dependencies: ["LocalMinutesModels"], path: "Tests/ModelTests"),
+        .testTarget(name: "PersistenceTests", dependencies: ["LocalMinutesPersistence"], path: "Tests/PersistenceTests", linkerSettings: [.linkedLibrary("sqlite3")])
     ]
 )

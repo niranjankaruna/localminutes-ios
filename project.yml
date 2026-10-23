@@ -19,6 +19,8 @@ targets:
       - App
       - Core
       - Recording
+      - Models
+      - Persistence
       - Shared
     info:
       path: App/Info.plist
@@ -40,6 +42,7 @@ targets:
         Debug:
           ENABLE_TESTABILITY: 'YES'
     dependencies:
+      - sdk: libsqlite3.tbd
       - target: LocalMinutesLiveActivity
         embed: true
         codeSign: false

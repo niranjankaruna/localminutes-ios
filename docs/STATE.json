@@ -3,15 +3,15 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-23T22:13:39.102Z",
+  "lastUpdated": "2026-10-23T22:15:38.574Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "T10.1",
+  "currentTask": "T09.1",
   "lastVerifiedCommit": "40100fdb9a8349acdbf2d22c63eb25ce959e9388",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017962923",
   "candidateArtifact": null,
-  "nextAction": "Continue owner-prioritized one-hour real transcription push. Read three active agent outputs (bootstrap_review T10, verified_models T09, meeting_storage T08). Next legitimate invocation verify actual refs/PUBLIC standard macos-15-intel guard, activate coherent tests plus minimal stubs, push saved local HEAD and prove actual hosted RED before any new model/storage production behavior. Saved695b99b Toggle repair already has RED; fold it into exact-source full GREEN with39native/3UI/115Swift/59Node/81TSAN/native-package regressions. No seventh dispatch in continuation-05. Root alone commits/dispatches. Physical125minute checks are owner-run, two passes remain pending.",
+  "nextAction": "Push this test-first model/storage activation and prove actual macOS assertion RED before authorizing the two agents to implement. Native runtime agent prepares actual model tests; prioritize real iPhone transcription within owner hour. Preserve all pending physical gates.",
   "pendingPushCommit": "4dfacf696a1fded2c39dcc49eb561535bf3e0017",
   "remoteBranchHead": "1718b09ebc91f74341a0770fc1aea1d8a9fffc97",
   "localScriptGreen": {
@@ -29,30 +29,15 @@
     "ARTIFACT_STORAGE_HEADROOM_UNVERIFIED"
   ],
   "ciInvocation": {
-    "id": "2026-10-23-continuation-05",
+    "id": "2026-10-23-continuation-06",
     "maxNewRuns": 6,
-    "newRunIds": [
-      40016043242,
-      40017195075,
-      40017962923,
-      40020680067,
-      40024451125,
-      40027966192
-    ],
-    "limitReached": true,
-    "costGuardObservedAt": "2026-10-23T21:34:25.676Z",
-    "finalRunLimits": {
+    "newRunIds": [],
+    "limitReached": false,
+    "costGuardObservedAt": "2026-10-23T22:15:38.574Z",
+    "costGuardBasis": "Live PUBLIC repo verified; standard macos-15-intel officially free; no uploads/paid runners",
+    "jobLimits": {
       "coreMinutes": 6,
-      "nativeMinutes": 15,
-      "observedIncludedMinutesRemaining": 219.7,
-      "blockedOverage": true
-    },
-    "allRunsTerminal": true,
-    "visibilityChangedAfterFinalRun": true,
-    "nextRunLimits": {
-      "coreMinutes": 6,
-      "nativeMinutes": 25,
-      "maximumJobMinutes": 45
+      "nativeMinutes": 25
     }
   },
   "latestCIRun": {
@@ -376,5 +361,16 @@
     "docs/drafts/T08/MeetingStoreInterfaces.swift",
     "docs/drafts/T08/SQLiteMeetingStoreTests.swift",
     "docs/drafts/T08/ACTIVATION.md"
-  ]
+  ],
+  "currentTestFirstSlice": {
+    "tasks": [
+      "T09.1",
+      "T08.1"
+    ],
+    "expectedSwiftCases": 153,
+    "newModelCases": 23,
+    "newPersistenceCases": 15,
+    "behaviorImplemented": false,
+    "redVerified": false
+  }
 }
