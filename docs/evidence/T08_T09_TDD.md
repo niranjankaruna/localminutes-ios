@@ -41,3 +41,26 @@ failed compilation: XCTestCase.record shadows the test-only global record
 fixture helper. Zero tests executed; this is NOT RED. Rename only that helper
 and its calls to meetingFixtureRecord; all assertions/no-op production unchanged.
 Next run must actually execute the153-case suite before implementation.
+
+## RED — verified before implementation
+
+Source9cb7639fca2d9d50c2e3106a678e267ad104974f,
+[run40032742242](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40032742242),
+standard macos-15-intel/Xcode26.2:153 actual XCTest executed,116passed,
+37failed,77 failure assertions (12 uncaught notImplemented errors),0skipped.
+All prior115 cases plus immutable-manifest metadata passed. All22 installer
+behavior cases and all15 SQLite cases failed. Strict reporter required their
+complete named inventory and agrees with the aggregate. The helper collision
+was corrected only by renaming record to meetingFixtureRecord; no assertion
+was removed or changed.
+
+Examples of observable RED: actual database file is absent; reopened meeting
+is nil; ordered transcript rows are empty; conflicting batches are accepted;
+installer returns notImplemented instead of typed checksum/missing-file errors
+or a persistent verified installation. These are missing behaviors after
+successful compilation, not a tool or zero-test failure. Model bytes remain
+synthetic integrity fixtures; no inference claim is derived from them.
+Command: swift test --enable-code-coverage. Ignored full log:
+.agent-local/T08_T09-9cb7639-red.log. Node/TSAN/native jobs did not execute after
+the Swift assertion failure. Root may now authorize implementation in Models
+and Persistence only, then require focused and full exact-source GREEN.
