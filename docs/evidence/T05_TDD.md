@@ -118,3 +118,10 @@ finish marks completion before its throwing native drain. A repeated finish can
 then return an empty success after a lost tail. A deterministic native-boundary
 fault test must prove RED before changing that state. Successful signal tests
 continue to require real AVAudioConverter; the fault double is test-only.
+
+Two regression tests now require native append/drain failure to remain explicit
+on every later call without reentering the damaged SDK stream. A small internal
+conversion-engine boundary permits deterministic SDK-error injection; the public
+initializer always uses real AVAudioConverter. Failure-state behavior is unchanged
+before this RED run. All 5 signal/format tests still use the actual native engine.
+Expected count: 56 XCTest. Next is invocation run 4 of 6; assertions unverified.

@@ -5,17 +5,49 @@ public enum PCMConversionError: Error, Equatable {
     case unsupportedFormat, formatMismatch, finished, conversionFailed
 }
 
+/// Native conversion boundary. Fault tests can exercise SDK error handling;
+/// the public initializer always constructs the real AVFoundation engine.
+protocol PCMConversionEngine: AnyObject {
+    func convert(into output: AVAudioPCMBuffer, input: @escaping AVAudioConverterInputBlock) throws -> AVAudioConverterOutputStatus
+}
+
+private final class AVFoundationPCMConversionEngine: PCMConversionEngine {
+    private let converter: AVAudioConverter
+
+    init(input: AVAudioFormat, output: AVAudioFormat) throws {
+        guard let converter = AVAudioConverter(from: input, to: output) else {
+            throw PCMConversionError.unsupportedFormat
+        }
+        converter.primeMethod = .normal
+        self.converter = converter
+    }
+
+    func convert(into output: AVAudioPCMBuffer, input: @escaping AVAudioConverterInputBlock) throws -> AVAudioConverterOutputStatus {
+        var error: NSError?
+        let status = converter.convert(to: output, error: &error, withInputFrom: input)
+        guard error == nil, status != .error else { throw PCMConversionError.conversionFailed }
+        return status
+    }
+}
+
 /// Single conversion-worker ownership. Never call from the engine tap.
 /// One converter lives for the entire fixed-format epoch; no per-chunk reset.
 public final class PCMStreamConverter {
     public let outputFormat: AVAudioFormat
     private let inputFormat: AVAudioFormat
     private let monoFormat: AVAudioFormat
-    private let converter: AVAudioConverter?
+    private let converter: (any PCMConversionEngine)?
     private var didFinish = false
     private var hasInput = false
 
-    public init(inputFormat: AVAudioFormat) throws {
+    public convenience init(inputFormat: AVAudioFormat) throws {
+        try self.init(inputFormat: inputFormat, engineFactory: { input, output in
+            try AVFoundationPCMConversionEngine(input: input, output: output)
+        })
+    }
+
+    init(inputFormat: AVAudioFormat,
+         engineFactory: (AVAudioFormat, AVAudioFormat) throws -> any PCMConversionEngine) throws {
         guard inputFormat.commonFormat == .pcmFormatFloat32,
               !inputFormat.isInterleaved, inputFormat.channelCount > 0,
               inputFormat.sampleRate.isFinite, inputFormat.sampleRate > 0,
@@ -29,11 +61,7 @@ public final class PCMStreamConverter {
         if inputFormat.sampleRate == output.sampleRate {
             converter = nil
         } else {
-            guard let native = AVAudioConverter(from: mono, to: output) else {
-                throw PCMConversionError.unsupportedFormat
-            }
-            native.primeMethod = .normal
-            converter = native
+            converter = try engineFactory(mono, output)
         }
     }
 
@@ -81,9 +109,8 @@ public final class PCMStreamConverter {
             guard let output = AVAudioPCMBuffer(pcmFormat: outputFormat, frameCapacity: 4_096) else {
                 throw PCMConversionError.conversionFailed
             }
-            var nativeError: NSError?
             var failedToSupply = false
-            let status = converter.convert(to: output, error: &nativeError) { requested, state in
+            let status = try converter.convert(into: output) { requested, state in
                 guard let input, inputOffset < inputFrames else {
                     state.pointee = ending ? .endOfStream : .noDataNow
                     return nil
@@ -103,7 +130,7 @@ public final class PCMStreamConverter {
                 state.pointee = .haveData
                 return slice
             }
-            guard !failedToSupply, nativeError == nil else { throw PCMConversionError.conversionFailed }
+            guard !failedToSupply else { throw PCMConversionError.conversionFailed }
             if output.frameLength > 0 { outputs.append(output) }
             switch status {
             case .haveData:

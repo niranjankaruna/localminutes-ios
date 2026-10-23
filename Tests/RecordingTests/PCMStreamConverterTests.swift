@@ -3,7 +3,60 @@ import Foundation
 import XCTest
 @testable import LocalMinutesRecording
 
+// Only the SDK error boundary is doubled. All signal/format tests below use
+// the public initializer and real AVAudioConverter, never this fault engine.
+private final class FaultingPCMEngine: PCMConversionEngine {
+    let failAppend: Bool
+    var calls = 0
+    var endCalls = 0
+    init(failAppend: Bool = false) { self.failAppend = failAppend }
+
+    func convert(into output: AVAudioPCMBuffer, input: @escaping AVAudioConverterInputBlock) throws -> AVAudioConverterOutputStatus {
+        calls += 1
+        var state = AVAudioConverterInputStatus.noDataNow
+        _ = input(4_096, &state)
+        if state == .endOfStream {
+            endCalls += 1
+            throw PCMConversionError.conversionFailed
+        }
+        if failAppend { throw PCMConversionError.conversionFailed }
+        while state == .haveData { _ = input(4_096, &state) }
+        output.frameLength = 0
+        return .inputRanDry
+    }
+}
+
 final class PCMStreamConverterTests: XCTestCase {
+    func testFailedNativeDrainRemainsAnExplicitTerminalFailure() throws {
+        let input = signal(rate: 48_000, frames: 256) { _, _ in 0.2 }
+        let engine = FaultingPCMEngine()
+        let converter = try PCMStreamConverter(inputFormat: input.format, engineFactory: { _, _ in engine })
+        _ = try converter.append(input)
+        for _ in 0..<3 {
+            XCTAssertThrowsError(try converter.finish()) {
+                XCTAssertEqual($0 as? PCMConversionError, .conversionFailed, "A failed tail cannot become an empty success")
+            }
+        }
+        XCTAssertThrowsError(try converter.append(input)) {
+            XCTAssertEqual($0 as? PCMConversionError, .conversionFailed)
+        }
+        XCTAssertEqual(engine.calls, 2, "A failed native stream must not be entered again")
+        XCTAssertEqual(engine.endCalls, 1)
+    }
+
+    func testNativeAppendFailureCannotBeFinishedAsSuccessOrReentered() throws {
+        let input = signal(rate: 48_000, frames: 256) { _, _ in 0.2 }
+        let engine = FaultingPCMEngine(failAppend: true)
+        let converter = try PCMStreamConverter(inputFormat: input.format, engineFactory: { _, _ in engine })
+        for _ in 0..<2 {
+            XCTAssertThrowsError(try converter.append(input)) { XCTAssertEqual($0 as? PCMConversionError, .conversionFailed) }
+        }
+        for _ in 0..<2 {
+            XCTAssertThrowsError(try converter.finish()) { XCTAssertEqual($0 as? PCMConversionError, .conversionFailed) }
+        }
+        XCTAssertEqual(engine.calls, 1)
+    }
+
     func testRealConversionProduces16kMonoAndPreservesDuration() throws {
         for rate in [8_000.0, 44_100.0, 48_000.0] {
             let input = signal(rate: rate, channels: 2, frames: Int(rate)) { frame, _ in

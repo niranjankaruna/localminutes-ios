@@ -182,3 +182,9 @@ failed against the stub as intended. After preserving both RED results, queue,
 real conversion and CAF writer implementations are prepared for GREEN run 4 of 6.
 Queue regression will also run under Thread Sanitizer. No native GREEN or real
 microphone/device result is claimed from static review.
+
+Independent review found converter finish can hide an earlier native drain error.
+Implementation commit `55423fa` remains unverified; two SDK-boundary fault tests
+are added before fixing the failure state. Existing signal tests still exercise
+real conversion. Next push proves this regression RED (56 XCTest expected),
+current invocation run 4 of 6, then the minimal fix and full native GREEN follow.
