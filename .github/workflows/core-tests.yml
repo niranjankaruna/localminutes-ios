@@ -72,8 +72,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          swift test --sanitize=thread --filter '(OwnedPCMQueueTests|CaptureCallbackAdmissionTests|MicrophoneCaptureRuntimeTests)' 2>&1 | tee .build/queue-tsan.log
-          node scripts/verify-test-log.mjs .build/queue-tsan.log testParallelSPSCStressPreservesAcceptedSamplesOrderAndAllDroppedFrames testFinishDrainsQueuedFIFOAndReportsTrailingLossExactlyOnce testConcurrentCloseWaitsForAdmittedWorkAndPublishesItToTheStopper testSequentialAdmissionsOnDifferentThreadsPublishThePreviousCallbacksWork testStopWaitsForAnAdmittedCallbackThenDrainsBeforeDeactivationAndAcknowledgement
+          swift test --sanitize=thread --filter '(OwnedPCMQueueTests|CaptureCallbackAdmissionTests|MicrophoneCaptureRuntimeTests|LiveActivityControllerTests)' 2>&1 | tee .build/queue-tsan.log
+          node scripts/verify-test-log.mjs .build/queue-tsan.log testParallelSPSCStressPreservesAcceptedSamplesOrderAndAllDroppedFrames testFinishDrainsQueuedFIFOAndReportsTrailingLossExactlyOnce testConcurrentCloseWaitsForAdmittedWorkAndPublishesItToTheStopper testSequentialAdmissionsOnDifferentThreadsPublishThePreviousCallbacksWork testStopWaitsForAnAdmittedCallbackThenDrainsBeforeDeactivationAndAcknowledgement testRetiredHandleCallbacksCannotTerminateAReplacementWithTheSameID testEndSettlesAdmittedUpdateAndRejectsLaterUpdatesBeforeAcknowledgement
 
   native-build:
     needs: core

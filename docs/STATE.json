@@ -6,12 +6,12 @@
   "lastUpdated": "2026-10-23T18:17:11Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
-  "currentBranch": "task/t05-capture",
+  "currentBranch": "task/t06-activity",
   "currentTask": "T06.1",
   "lastVerifiedCommit": "c12bd9cde402e9529ad4fb5fbcb35624bbf744f1",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40001047762",
   "candidateArtifact": null,
-  "nextAction": "T06.1: activate and push9 reviewed Live Activity resource tests/no-op interface for run5 meaningful RED, then actual ActivityKit implementation and run6 GREEN. T05 capture component code complete pending physical microphone/device proof; UI/service/intent composition remains T06.2. Two new CI runs remain.",
+  "nextAction": "T06.1 push nine lifecycle contracts and no-op stub for run5 native RED, expected87 unique XCTest (unverified). No controller/ActivityKit behavior before recorded RED; one final run6 slot then remains for GREEN.",
   "pendingPushCommit": null,
   "remoteBranchHead": "c12bd9cde402e9529ad4fb5fbcb35624bbf744f1",
   "localScriptGreen": {
@@ -38,7 +38,7 @@
       40001047762
     ],
     "limitReached": false,
-    "costGuardObservedAt": "2026-10-23T17:59:00Z"
+    "costGuardObservedAt": "2026-10-23T18:21:08Z"
   },
   "latestCIRun": {
     "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40001047762",
@@ -112,5 +112,12 @@
     "redVerified": true,
     "productionBehaviorImplemented": true,
     "greenVerifiedCommit": "c12bd9cde402e9529ad4fb5fbcb35624bbf744f1"
+  },
+  "activityTestFirst": {
+    "testCount": 9,
+    "inActiveBuildPaths": true,
+    "compiled": false,
+    "redVerified": false,
+    "productionBehaviorImplemented": false
   }
 }

@@ -269,3 +269,9 @@ T05.3 RED verified before behavior atf6e2b6d/run39999604752:78 XCTest,56 passed,
 ## 23 October2026,18:17 UTC — T05.3 hosted GREEN
 
 T05 capture component is CODE_COMPLETE_PENDING_DEVICE at c12bd9cde402e9529ad4fb5fbcb35624bbf744f1/run40001047762:78 XCTest+59 Node+44 repeated TSAN+15 native checks passed,0 failures/skips; device/simulator app+extension compile. Actual127,963-byte unsigned IPA ephemeral only. No usable capture screen yet; T06.2 owns composition/intents. Real microphone, class-C/crash recovery, ASR, signing/extension, Action Button, locked capture, two125-minute passes and renewal remain pending. Four of six runs terminal. Next:T06.1 nine activity resource tests with no-op interface for run5 RED, then actual SDK adapter/run6 GREEN. Overall IN_PROGRESS; storage delivery still separately blocked.
+
+T06.1 nine resource contracts and no-op interface activated on task/t06-activity;
+expected87 total XCTest uncompiled. No controller/SDK behavior before RED.
+Pre-run5 account check933/2,000 included minutes used,1,067 remaining,$0 billable,
+existing Actions$0/$0 Usage blocked, storage100%. Last two invocation slots
+are run5 RED and run6 GREEN, bounded standard runners only.
