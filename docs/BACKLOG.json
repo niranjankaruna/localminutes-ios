@@ -138,7 +138,7 @@
       "milestone": "M2",
       "title": "Implement real microphone capture and minimal durable writer",
       "kind": "feature",
-      "status": "IN_PROGRESS",
+      "status": "CODE_COMPLETE_PENDING_DEVICE",
       "dependsOn": [
         "T03",
         "T04.1",
@@ -154,7 +154,7 @@
         "Test capture adapter contract, formats, first-buffer success signal and stop flush.",
         "Integrate real AVAudioEngine and nonblocking owned-buffer handoff."
       ],
-      "childTasks": [{"id":"T05.1","title":"Bounded owned PCM handoff and explicit loss reporting","status":"VERIFIED_COMPLETE"},{"id":"T05.2","title":"Real audio conversion and minimal durable CAF writer","status":"VERIFIED_COMPLETE"},{"id":"T05.2.1","title":"Report strict filtered XCTest sanitizer summaries","status":"VERIFIED_COMPLETE","redEvidence":["docs/evidence/T05_TDD.md"]},{"id":"T05.3","title":"Real iOS microphone adapter and capture lifecycle","status":"IN_PROGRESS","draftEvidence":["docs/drafts/T05.3/README.md"],"redEvidence":[],"greenEvidence":[]}],
+      "childTasks": [{"id":"T05.1","title":"Bounded owned PCM handoff and explicit loss reporting","status":"VERIFIED_COMPLETE"},{"id":"T05.2","title":"Real audio conversion and minimal durable CAF writer","status":"VERIFIED_COMPLETE"},{"id":"T05.2.1","title":"Report strict filtered XCTest sanitizer summaries","status":"VERIFIED_COMPLETE","redEvidence":["docs/evidence/T05_TDD.md"]},{"id":"T05.3","title":"Real iOS microphone adapter and capture lifecycle","status":"CODE_COMPLETE_PENDING_DEVICE","draftEvidence":["docs/drafts/T05.3/README.md"],"redEvidence":["docs/evidence/T05_TDD.md#t053-red--verified-native-assertions-before-implementation"],"greenEvidence":["docs/evidence/T05_TDD.md#t053-green--verified-hosted-capture-component"]}],
       "redEvidence": ["docs/evidence/T05_TDD.md"],
       "greenEvidence": [],
       "deviceEvidence": [],
@@ -167,7 +167,7 @@
       "milestone": "M2",
       "title": "Implement Live Activity and recording App Intents",
       "kind": "feature",
-      "status": "TODO",
+      "status": "IN_PROGRESS",
       "dependsOn": [
         "T05"
       ],
@@ -179,7 +179,7 @@
         "Test activity lifecycle, intent idempotency, denied states and main-process routing.",
         "Expose start/stop/toggle and truthful foreground fallback."
       ],
-      "childTasks": [],
+      "childTasks": [{"id":"T06.1","title":"Live Activity resource lifecycle and actual SDK adapter","status":"IN_PROGRESS"},{"id":"T06.2","title":"App-owned composition and recording App Intents","status":"NOT_STARTED"}],
       "redEvidence": [],
       "greenEvidence": [],
       "deviceEvidence": [],
