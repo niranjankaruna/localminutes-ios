@@ -78,3 +78,8 @@ The full portable suite at local test-first35074aa is59 executed/54 passed/5 fai
 0 skipped. These are the same selected-suite regressions; production is unchanged.
 
 Continuation-03 resolved the prior reporter boundary: full run39997623318 at4b63907 passed56 XCTest,59 Node,22 repeated TSAN and15 native checks. T05 development continues; artifact retention remains the separate external blocker.
+
+
+## Continuation-03 execution boundary — not an external blocker
+
+Six of six runs are terminal. T05 component full GREEN is c12bd9c/run40001047762. T06.1 e2876e8/run40004059233 passed87 XCTest+59 Node+53 repeated TSAN but failed actual iOS SDK update/end isolation compilation;0 native checks/no new IPA. This is an internal compile repair, not a credential/device/cost-permission failure. No owner action is needed for current code. A checked ID-only SDK operation candidate is outside active sources; missing-lookup cleanup policy must have regression RED before integration. Resume T06.1.1 after next invocation cost/Git check and require full native GREEN. No seventh dispatch/re-run or weakened concurrency/test gate. Separate ARTIFACT_STORAGE_HEADROOM_UNVERIFIED remains active: final storage100%; no artifact upload.

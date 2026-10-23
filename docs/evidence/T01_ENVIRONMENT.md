@@ -140,3 +140,5 @@ allowance or exclusive reservation is inferred.
 Continuation-03 pre-run3 read-only recheck,23 October2026 about17:59 UTC: Actions809/2,000 minutes used,1,191 displayed remaining; billable$0; existing account-wide Actions$0/$0 Usage blocked. Storage0.5/0.5GB,100%, no upload. No budget/billing/visibility setting changed. Two runs terminal; run3 uses standard macos-15-intel only with10/15-minute job bounds.
 
 Pre-run5 read-only continuation-03 observation23 October2026 about18:21 UTC:933/2,000 included minutes used,1,067 displayed remaining; Actions billable$0 and storage0.5/0.5GB (100%). Existing account-wide$0 budget remains the required guard; no upload/billing/visibility changes. Four runs terminal; maximum two additional standard bounded runs this invocation.
+
+Final continuation-03 read-only account observation:1,026/2,000 included Actions minutes used,974 displayed remaining; Actions billable$0, storage0.5/0.5GB (100%). Existing account-wide$0 hard stop was verified before runs5/6; no settings changed. Six runs terminal, no uploads or seventh dispatch. Recheck guard/allowance before the next invocation dispatch.

@@ -277,3 +277,18 @@ existing Actions$0/$0 Usage blocked, storage100%. Last two invocation slots
 are run5 RED and run6 GREEN, bounded standard runners only.
 
 T06.1 RED atb95de19/run40002877757:87 XCTest,78 pass,9 fail,47 assertions,0 skipped; all prior78 pass. Implement controller/actual SDK backend now; one final run6 slot remains, no seventh run.
+
+Final run6/40004059233 at e2876e8 is active after strict87-case RED; no implementation GREEN yet. Six of six invocation slots used; no additional run/re-run permitted. Observe same run and checkpoint exact verdict.
+
+
+## Continuation-03 final checkpoint
+
+Completed **T05.1,T05.2,T05.2.1**; T05/T05.3 are **CODE_COMPLETE_PENDING_DEVICE** within microphone-component scope. Actual full native GREEN atc12bd9c/run40001047762:78 XCTest+59 Node+44 repeated TSAN+15 native checks,0 failures/skips; device/simulator app+extension compile. Its127,963-byte unsigned IPA was ephemeral and not retained/delivered. Main is held at documentation checkpointa1f8a4a atop that verified implementation.
+
+T06.1 stays **IN_PROGRESS**. Test-firstb95de19/run40002877757 proved87 executed,78 pass,9 fail,47 assertions,0 skipped before behavior. Productione2876e8/run40004059233 passed87 XCTest+59 Node+53 repeated TSAN,0 failures/skips, but FAILED iOS device compilation at stored ActivityKit receiver async update/end isolation. Simulator/native product/package checks did not complete;0 native checks and no new IPA at e2876e8. The failed CI is preserved.
+
+Diagnosis and concrete ID-only SDK operation candidate are saved in docs/drafts/T06.1/NATIVE_REPAIR.md and ActivityKitOperations.swift.pending, outside active paths. No production fix is applied and no repair was compiled. Missing lookup remains an explicit outcome; its cleanup/failure contract needs regression RED before integration. Exact next task **T06.1.1**: new invocation rechecks Git/cost guard, writes/proves/pushes that regression RED, integrates the checked native boundary, and requires full exact-source native GREEN before T06.2 app composition/intents. No owner action is needed for this code issue.
+
+Six of six CI runs are terminal; no seventh run/re-run. Final displayed1,026/2,000 included minutes used,974 remaining,$0 Actions billable; existing$0 hard stop last checked before final dispatches. Storage100% still blocks retained artifact delivery. No paid resource, publication, billing change, Apple credential or artifact upload occurred. Overall **IN_PROGRESS**, verifiedComplete=false. Usable recording screens, real ASR/summaries/product features and all physical signing/extension, Action Button warm/locked-cold, locked live transcription, both125-minute runs and in-place renewal remain pending/NOT_RUN.
+
+Final independent checkpoint audit checked actual Git refs/status, six terminal runs, state/backlog/verification and the two draft files. No contradictory completion, native-package or device claim found; active sources remain e2876e8, unmerged to main. Save/push only this documentation checkpoint.

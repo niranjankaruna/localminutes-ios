@@ -57,3 +57,15 @@ Source **b95de19545db9619b770bdc5fc75aaffb2c28e45**, [run40002877757](https://gi
 T06.1 implementation after recorded RED: MainActor controller owns actual backend handles, checks real active state after observer installation, serializes admitted updates and async end, coalesces duplicate end requests, and ignores retired ownership identities. The iOS-only backend forwards actual ActivityAuthorizationInfo/request/update/end and observes activityStateUpdates in a cancellable Task. No framework concurrency suppression, push server, private content, model substitution, UI or intent behavior is introduced. All nine tests remain unchanged. Native SDK compilation and actual OS/phone effects are pending.
 
 Independent read-only review of controller and actual backend found no blocking contract, ownership, callback-retirement or update/end-order defect. No tests changed. Native Swift6 compilation remains authoritative for ActivityKit isolation and observation-task deinit. Final invocation run6 follows; no seventh run permitted.
+
+
+## Unit/sanitizer GREEN; exact-source native build FAILED
+
+Implementation **e2876e830c8f54c605875e0808dd5d0cb6329e8e**, [run40004059233](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40004059233), completed23 October2026 at18:37 UTC. Actual **87 XCTest,59 Node and53 repeated XCTest under Thread Sanitizer passed,0 failures/skips**. All nine RED contracts are unchanged. Overall CI FAILED during device Release compilation: App/IOSLiveActivityBackend.swift67 and71 send MainActor-stored self.activity to nonisolated SDK async update/end. Swift6 reports data-race risk. Device/simulator/native product/package GREEN is not established;0 native checks and no new IPA at this SHA. This compiler error is not behavioral RED. Last full native GREEN remainsc12bd9c/run40001047762.
+
+No @preconcurrency, unchecked Sendable conformance, disabled concurrency check, skipped test or retry is used to hide the error. Primary Apple Activity metadata lists Identifiable and no Sendable conformance. A safe first compile repair is being diagnosed for local save only. Six of six invocation runs are terminal; no seventh dispatch. T06.1 stays IN_PROGRESS, and T06.2 follows only after exact-source full native GREEN.
+
+
+## T06.1.1 repair preparation — not applied or compiled
+
+Concrete candidate docs/drafts/T06.1/ActivityKitOperations.swift.pending uses only immutable ID/status arguments, exact SDK lookup and local content/SDK receiver across await. It explicitly returns notFound without claiming an SDK end. The current Void handle API cannot discard that outcome safely; docs/drafts/T06.1/NATIVE_REPAIR.md defines the next regression RED before integration. No active source was changed after run6, no native repair attempt was validated and no new result is inferred. T06.1 remains IN_PROGRESS. Final checkpoint holds all87+59+53 passing execution evidence and the exact iOS compiler failure; last full native GREEN is c12bd9c.

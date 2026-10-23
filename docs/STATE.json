@@ -3,17 +3,17 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-23T18:26:06Z",
+  "lastUpdated": "2026-10-23T18:50:48.937Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "T06.1",
+  "currentTask": "T06.1.1",
   "lastVerifiedCommit": "c12bd9cde402e9529ad4fb5fbcb35624bbf744f1",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40001047762",
   "candidateArtifact": null,
-  "nextAction": "Push T06.1 controller and real ActivityKit backend for final run6 after verified87-test RED. Require87 XCTest,59 scripts,53 repeated TSAN cases,actual device/simulator app+extension builds and15 native checks; no seventh run this invocation. No current implementation GREEN yet.",
+  "nextAction": "T06.1.1: next invocation rechecks private Git/CI and free allowance; write/prove/push regression RED for checked missing/mismatched SDK operation outcomes before integrating the ID-only ActivityKit async boundary. Then require87 existing cases plus regressions, scripts, TSAN and exact-source device/simulator/native-package GREEN. All6 current runs terminal; no seventh run/re-run. T06.2 composition/intents follows full native GREEN.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "b95de19545db9619b770bdc5fc75aaffb2c28e45",
+  "remoteBranchHead": "e2876e830c8f54c605875e0808dd5d0cb6329e8e",
   "localScriptGreen": {
     "sourceCommit": "14a988604c05e2484e9d08bf5d4d11e04d217e73",
     "platform": "Windows 11 / Node 24.21.0",
@@ -36,23 +36,36 @@
       39997623318,
       39999604752,
       40001047762,
-      40002877757
+      40002877757,
+      40004059233
     ],
-    "limitReached": false,
+    "limitReached": true,
     "costGuardObservedAt": "2026-10-23T18:21:08Z"
   },
   "latestCIRun": {
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40002877757",
-    "sourceCommit": "b95de19545db9619b770bdc5fc75aaffb2c28e45",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40004059233",
+    "sourceCommit": "e2876e830c8f54c605875e0808dd5d0cb6329e8e",
     "conclusion": "failure",
     "executedXCTests": 87,
-    "passedXCTests": 78,
-    "failedXCTests": 9,
-    "assertionFailures": 47,
+    "passedXCTests": 87,
+    "failedXCTests": 0,
     "skippedXCTests": 0,
-    "nativeBuildJobConclusion": "skipped",
+    "executedNodeTests": 59,
+    "passedNodeTests": 59,
+    "failedNodeTests": 0,
+    "skippedNodeTests": 0,
+    "nativeBuildJobConclusion": "failure",
+    "nativeBuildFailure": "Swift6 rejects sending MainActor-stored non-Sendable Activity reference to nonisolated async update/end",
+    "executedNativeTests": 0,
+    "passedNativeTests": 0,
+    "failedNativeTests": 0,
+    "skippedNativeTests": 0,
     "sanitizer": {
-      "conclusion": "not_run_after_RED"
+      "executed": 53,
+      "passed": 53,
+      "failed": 0,
+      "skipped": 0,
+      "conclusion": "success"
     }
   },
   "localReporterRed": {
@@ -108,6 +121,26 @@
     "inActiveBuildPaths": true,
     "compiled": true,
     "redVerified": true,
-    "productionBehaviorImplemented": true
+    "productionBehaviorImplemented": true,
+    "unitGreenCommit": "e2876e830c8f54c605875e0808dd5d0cb6329e8e",
+    "fullNativeGreenVerified": false
+  },
+  "completedThisInvocation": [
+    "T05.1",
+    "T05.2",
+    "T05.2.1"
+  ],
+  "codeCompletePendingDevice": [
+    "T05",
+    "T05.3"
+  ],
+  "remoteBranchHeadScope": "Last implementation source before the final documentation-only checkpoint; inspect actual Git refs for the checkpoint HEAD.",
+  "nativeCompileRepair": {
+    "status": "IN_PROGRESS",
+    "candidatePath": "docs/drafts/T06.1/ActivityKitOperations.swift.pending",
+    "notesPath": "docs/drafts/T06.1/NATIVE_REPAIR.md",
+    "appliedToActiveSources": false,
+    "validatedRepairAttempts": 0,
+    "missingLookupPolicyNeedsRegressionRed": true
   }
 }

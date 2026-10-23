@@ -1,0 +1,44 @@
+// UNCOMPILED REPAIR CANDIDATE, outside all active build paths.
+// Before integration, add/prove regression tests for missing-lookup outcomes.
+// Never turn notFound into an acknowledgement that SDK end was executed.
+#if os(iOS)
+import ActivityKit
+
+enum ActivityKitOperationOutcome: Sendable, Equatable {
+    case applied
+    case notFound
+}
+
+/// No actor-owned SDK object crosses this boundary. Parameters and outcome are
+/// checked Sendable values; the exact SDK handle/content stay local to the call.
+/// Native compilation and actual SDK/device semantics remain unverified.
+enum ActivityKitOperations {
+    nonisolated static func update(
+        activityID: String, status: LiveActivityStatus
+    ) async -> ActivityKitOperationOutcome {
+        guard let activity = Activity<RecordingActivityAttributes>.activities.first(where: {
+            $0.id == activityID
+        }) else { return .notFound }
+        let content = ActivityContent(
+            state: RecordingActivityAttributes.ContentState(status: status.rawValue),
+            staleDate: nil
+        )
+        await activity.update(content)
+        return .applied
+    }
+
+    nonisolated static func end(
+        activityID: String, status: LiveActivityStatus
+    ) async -> ActivityKitOperationOutcome {
+        guard let activity = Activity<RecordingActivityAttributes>.activities.first(where: {
+            $0.id == activityID
+        }) else { return .notFound }
+        let content = ActivityContent(
+            state: RecordingActivityAttributes.ContentState(status: status.rawValue),
+            staleDate: nil
+        )
+        await activity.end(content, dismissalPolicy: .immediate)
+        return .applied
+    }
+}
+#endif
