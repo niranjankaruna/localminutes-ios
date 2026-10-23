@@ -91,3 +91,4 @@ at zero for this invocation; prior six-run ledger remains intact.
 | Run | Source | Actual result |
 |---|---|---|
 | [39996675578](https://github.com/niranjankaruna/localminutes-ios/actions/runs/39996675578) | `b04e9a4d3db270c4592bddee3566ffbd6f7d56dd` | Reporter RED verified:56 XCTest passed;59 Node,54 passed,5 failed,0 skipped. Sanitizer/native not run after Node RED |
+| [39997623318](https://github.com/niranjankaruna/localminutes-ios/actions/runs/39997623318) | 4b639078337bd37e408cd1a4b58f268db35b2987 | GREEN:56 XCTest,59 Node,22 repeated queue TSAN,2 native product and13 packaging checks; device/simulator app+extension compiled; ephemeral IPA84,620 bytes, no upload |

@@ -217,3 +217,10 @@ failure consistency checks remain intact. Full Windows regression:59/59 passed,
 sanitizer log from run39994364160 and returns22 passed/0 failed/0 skipped with
 both required stress/drain names. This is log parsing, not a new native run.
 Exact-source hosted full GREEN is still pending; push invocation run2 next.
+
+
+## T05.1 / T05.2 / T05.2.1 full GREEN — verified
+
+Source 4b639078337bd37e408cd1a4b58f268db35b2987, [run39997623318](https://github.com/niranjankaruna/localminutes-ios/actions/runs/39997623318), completed successfully 23 October 2026 at17:51 UTC. Committed workflow commands executed **56 XCTest,59 Node,22 repeated queue XCTest under Thread Sanitizer,2 native product checks and13 real packaging tests: all passed, zero failures/skips**. Converter fault regressions are unchanged. Device Release and simulator Debug app plus extension compiled with Xcode26.2/SDK26.2. Strict reporting now accepts the real Selected tests root without weakening validation.
+
+Actual ephemeral unsigned IPA84,620 bytes, SHA256 583e42ac6560960b41c0cb23de0c80a4d5d44824ed4f3608bb2ad1253b3e1c9f, created17:50:56.825Z on runner; not uploaded, retained, delivered, signed or installed. This validates bounded owned handoff, real AVAudioConverter and CAF/manifest helpers within their tested scopes. Microphone lifecycle, locked capture, recovery, real inference and all phone gates remain pending. Parent T05 remains IN_PROGRESS; next T05.3 is test-first callback admission and real microphone runtime.

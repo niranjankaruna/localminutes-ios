@@ -255,3 +255,8 @@ Reporter hosted RED verified at b04e9a4/run39996675578:56 XCTest passed;
 59 Node,54 passed,5 failed,0 skipped. Only then changed the strict aggregate
 root alternative; all59 Windows script tests pass and the actual archived
 22-case sanitizer log parses correctly. Next: run2 exact-source full native GREEN.
+
+
+## 23 October 2026,17:51 UTC — continuation-03 GREEN checkpoint
+
+Completed **T05.1,T05.2,T05.2.1** at 4b639078337bd37e408cd1a4b58f268db35b2987/run39997623318:56 XCTest,59 Node,22 repeated queue TSAN and15 native product/packaging tests passed,0 failures/skips; device/simulator app and extension compile. Ephemeral84,620-byte IPA verified on runner only, not retained; artifact storage blocker unchanged. Real microphone/ASR, free signing/extension, Action Button, locked capture, both125-minute runs and renewal remain NOT_RUN. Two of six new CI runs used, both terminal. Next:T05.3 activate reviewed callback and runtime contract tests for run3 meaningful native RED before implementation. Overall IN_PROGRESS; no current code action needs user input.
