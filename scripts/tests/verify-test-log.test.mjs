@@ -45,3 +45,47 @@ test('rejects mismatched case and aggregate counts', () => {
 test('rejects contradictory success and failure counts', () => {
   assert.throws(() => summarizeXCTestLog(fixture({ failed: true }).replace('with 3 failures', 'with 0 failures')), /failure|contradict/i);
 });
+
+// The filtered Thread Sanitizer execution in run39994364160 produced a
+// Selected tests root. Inner suite summaries are not aggregate substitutes.
+function selectedFixture(options = {}) {
+  return fixture(options).replace("Test Suite 'All tests'", "Test Suite 'Selected tests'");
+}
+
+test('accepts the actual Selected tests root used by filtered XCTest', () => {
+  const log = selectedFixture() + 'Test run with 0 tests in 0 suites passed after 0.007 seconds.\n';
+  assert.deepEqual(summarizeXCTestLog(log, ['testExample0', 'testExample1']),
+    { executed: 2, passed: 2, failed: 0, assertionFailures: 0, skipped: 0 });
+});
+
+test('counts failures in a Selected tests root without treating it as success', () => {
+  assert.deepEqual(summarizeXCTestLog(selectedFixture({ failed: true }), ['testExample1']),
+    { executed: 2, passed: 0, failed: 2, assertionFailures: 3, skipped: 0 });
+});
+
+test('selected tests still require matching aggregate and case counts', () => {
+  assert.throws(() => summarizeXCTestLog(selectedFixture().replace('Executed 2 tests', 'Executed 3 tests')),
+    /count|mismatch/i);
+});
+
+test('selected tests still require every mandatory test name', () => {
+  assert.throws(() => summarizeXCTestLog(selectedFixture(), ['testMissing']), /missing.*testMissing/i);
+});
+
+test('selected tests reject contradictory success and failure status', () => {
+  assert.throws(() => summarizeXCTestLog(selectedFixture({ failed: true }).replace('with 3 failures', 'with 0 failures')),
+    /failure|contradict/i);
+});
+
+test('selected tests reject mandatory skips', () => {
+  assert.throws(() => summarizeXCTestLog(selectedFixture({ skipped: true })), /skip/i);
+});
+
+test('selected tests do not accept an inner suite in place of a truncated root', () => {
+  const innerOnly = selectedFixture().replace("Test Suite 'Selected tests'", "Test Suite 'OwnedPCMQueueTests'");
+  assert.throws(() => summarizeXCTestLog(innerOnly), /summary|incomplete/i);
+});
+
+test('selected tests reject zero executed cases', () => {
+  assert.throws(() => summarizeXCTestLog(selectedFixture({ count: 0 })), /zero|no.*cases/i);
+});
