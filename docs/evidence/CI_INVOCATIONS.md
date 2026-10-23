@@ -66,3 +66,4 @@ GREEN, then continue T05 after actual evidence.
 | Run | Source | Actual result |
 |---|---|---|
 | [39987058071](https://github.com/niranjankaruna/localminutes-ios/actions/runs/39987058071) | `ca803757573b5f98ff502494f5526b1db620b7d5` | GREEN: 20 XCTest + 51 Node + 2 native product + 13 real packaging passed; actual ephemeral IPA 42,332 bytes, no upload |
+| [39990764814](https://github.com/niranjankaruna/localminutes-ios/actions/runs/39990764814) | `818481cc11d0c92b8a8d361d9441f82590f4ca98` | T05.1/T05.2 RED: 53 XCTest executed, 20 passed, 33 failed, 139 assertions, 0 skipped. Node/native jobs not run after Swift RED |

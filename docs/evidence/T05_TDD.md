@@ -17,6 +17,11 @@ Five conversion tests and six writer tests use original generated tones/samples
 in `Tests/RecordingTests/`. No microphone recording, private audio, model or mock
 recognizer is involved. Writer tests open the real resulting CAF through AVAudioFile
 and decode its PCM and persisted manifest; filesystem error uses an actual file.
+Independent review additionally strengthened the cross-append sample comparison
+and bounded a failed-count comparison to avoid unsafe fixture pointer access.
+The test-only follow-up additionally verifies a closed CAF and persisted checkpoint
+before final finish (rather than waiting until the whole meeting ends). It has
+not yet been observed on hosted macOS. Expected follow-up count: 54 XCTest.
 
 `Core/OwnedPCMQueue.swift` and `Recording/*.swift` contain only minimal interfaces
 and deliberately missing behavior. No production queue, resampling or persistence
@@ -43,3 +48,25 @@ require GREEN including real device/simulator compilation and existing archive
 regressions. Microphone adapter T05.3 follows. Interruption/recovery, on-device
 protection, models, signing, Lock Screen, Action Button, two long runs and renewal
 remain NOT_RUN. No retained candidate artifact exists.
+
+## RED — verified native execution, 23 October 2026 16:59 UTC
+
+Source: `818481cc11d0c92b8a8d361d9441f82590f4ca98`, committed and pushed
+test-first before any queue/converter/writer algorithm.
+[Run 39990764814](https://github.com/niranjankaruna/localminutes-ios/actions/runs/39990764814)
+completed with failure. Actual `swift test --enable-code-coverage` on
+macos-15-intel / Xcode26.2 compiled and discovered all 53 XCTest: 20 passed,
+33 failed, 139 assertion failures, 0 skipped. Existing coordinator/harness tests
+all passed. Expected new test names were verified by the evidence reporter.
+
+Examples: `testAcceptedPCMIsOwnedAndSurvivesSourceMutation` expected `.accepted`
+but observed `.invalidBuffer`, then expected its chunk but observed `.empty`.
+`testCapacityMustBeAPositivePowerOfTwo` expected a configuration error but none
+was thrown. Conversion/writer positive paths caught `.notImplemented`, while
+format and filesystem rejection assertions observed the wrong/no error. This
+is executable missing behavior, not a toolchain or compilation failure.
+
+Swift RED stopped the following Node command and skipped the native-build job.
+There is no script-regression, native app, microphone, model or device result
+from this run. The expanded 54-test writer follow-up must also be pushed before
+implementation; it changes no production behavior and preserves this RED.

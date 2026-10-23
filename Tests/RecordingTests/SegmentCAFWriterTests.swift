@@ -35,7 +35,7 @@ final class SegmentCAFWriterTests: XCTestCase {
                 samples += monoSamples([decoded])
             }
             XCTAssertEqual(samples.count, 450)
-            for (index, sample) in samples.enumerated() {
+            for (index, sample) in samples.prefix(Int(input.frameLength)).enumerated() {
                 XCTAssertEqual(sample, input.floatChannelData![0][index], accuracy: 0.0002)
             }
             let persisted = try JSONDecoder().decode(AudioCaptureManifest.self,
@@ -52,6 +52,18 @@ final class SegmentCAFWriterTests: XCTestCase {
             let manifest = try writer.finish()
             XCTAssertEqual(manifest.totalFrames, 8)
             XCTAssertEqual(manifest.segments.map(\.frameCount), [4, 4])
+            var samples: [Float] = []
+            for segment in manifest.segments {
+                let file = try AVAudioFile(forReading: root.appendingPathComponent("meeting").appendingPathComponent(segment.relativePath))
+                let decoded = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: AVAudioFrameCount(file.length))!
+                try file.read(into: decoded)
+                samples += monoSamples([decoded])
+            }
+            let expected: [Float] = [0.2, 0.2, 0.2, -0.2, -0.2, -0.2, -0.2, -0.2]
+            XCTAssertEqual(samples.count, expected.count)
+            for (actual, intended) in zip(samples, expected) {
+                XCTAssertEqual(actual, intended, accuracy: 0.0002)
+            }
             XCTAssertEqual(try writer.finish(), manifest)
             XCTAssertThrowsError(try writer.append(signal(rate: 16_000, frames: 1) { _, _ in 0 })) {
                 XCTAssertEqual($0 as? SegmentWriterError, .finished)
@@ -66,6 +78,32 @@ final class SegmentCAFWriterTests: XCTestCase {
             let manifest = try writer.finish()
             XCTAssertEqual(manifest.totalFrames, 0)
             XCTAssertTrue(manifest.segments.isEmpty)
+        }
+    }
+
+    func testCompletedSegmentIsReadableAndCheckpointedBeforeFinish() throws {
+        try withAudioDirectory { root in
+            let directory = root.appendingPathComponent("meeting")
+            let writer = try SegmentCAFWriter(directory: directory, sessionID: sessionID, maximumSegmentFrames: 4)
+            try writer.append(signal(rate: 16_000, frames: 6) { frame, _ in Float(frame) / 10 })
+            let checkpoint = try JSONDecoder().decode(AudioCaptureManifest.self,
+                from: Data(contentsOf: directory.appendingPathComponent("capture-manifest.json")))
+            XCTAssertEqual(checkpoint.totalFrames, 4, "Only closed durable segments belong in a recording checkpoint")
+            XCTAssertEqual(checkpoint.segments.map(\.frameCount), [4])
+            if let segment = checkpoint.segments.first {
+                let file = try AVAudioFile(forReading: directory.appendingPathComponent(segment.relativePath))
+                XCTAssertEqual(file.length, 4)
+                let decoded = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: 4)!
+                try file.read(into: decoded)
+                let actual = monoSamples([decoded])
+                XCTAssertEqual(actual.count, 4)
+                for (sample, expected) in zip(actual, [Float(0), 0.1, 0.2, 0.3]) {
+                    XCTAssertEqual(sample, expected, accuracy: 0.0002)
+                }
+            }
+            let final = try writer.finish()
+            XCTAssertEqual(final.totalFrames, 6)
+            XCTAssertEqual(final.segments.map(\.frameCount), [4, 2])
         }
     }
 

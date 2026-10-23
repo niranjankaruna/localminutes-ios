@@ -168,3 +168,10 @@ and 6 real CAF writer tests plus minimal no-behavior interfaces are reviewed for
 hosted RED. Expected total 53 XCTest; actual compilation/discovery/assertions
 remain unverified. No production queue/resampler/writer behavior was written.
 Next dispatch is current invocation run 2 of 6, before any implementation.
+
+Actual T05 native RED at `818481c`, run39990764814: 53 XCTest executed,
+20 passed, 33 failed, 139 assertions, 0 skipped; compile and discovery succeeded.
+The empty queue rejected valid PCM, and conversion/writing remained unimplemented.
+Node/native-build did not run after Swift RED. Review strengthened cross-append
+PCM checks and added a before-finish durable checkpoint case (54 tests expected).
+Push that test-only follow-up next, then implement after native RED is preserved.
