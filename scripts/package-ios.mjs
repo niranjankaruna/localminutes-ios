@@ -22,8 +22,8 @@ export function auditInputTree(appPath) {
     const name = basename(path);
     assert.ok(name !== '_CodeSignature' && !/\.mobileprovision$/i.test(name), 'Signing or provisioning material is forbidden');
     assert.ok(!/^\.env(?:\.|$)/i.test(name)
-      && !['.git', '.agent-local', 'private-data', 'secrets'].includes(name)
-      && !/\.(?:onnx|gguf|caf|wav|m4a|sqlite(?:3)?(?:-shm|-wal)?|db|p12|p8|pem|key)$/i.test(name),
+      && !['.git', '.agent-local', 'private-data', 'secrets', 'transcripts', 'recordings', 'device-evidence', 'diagnostics-raw'].includes(name.toLowerCase())
+      && !/\.(?:onnx|gguf|caf|wav|m4a|(?:sqlite(?:3)?|db)(?:-shm|-wal)?|p12|p8|pem|key)$/i.test(name),
     'Private data, model weights or local secrets are forbidden in the IPA');
     const suffix = relative(appPath, path).split(sep).join('/');
     entries.push(`Payload/LocalMinutes.app${suffix ? `/${suffix}` : ''}${info.isDirectory() ? '/' : ''}`);
@@ -77,6 +77,10 @@ export function validatePackagePaths({ appPath, outputDirectory }) {
   assert.ok(isInside(workspace, realpathSync(input)), 'Resolved input escaped the workspace');
   const outputParent = realpathSync(dirname(output));
   assert.ok(outputParent === workspace || isInside(workspace, outputParent), 'Resolved output parent escaped the workspace');
+  const canonicalInput = realpathSync(input);
+  const canonicalOutput = join(outputParent, basename(output));
+  assert.ok(canonicalOutput !== canonicalInput && !isInside(canonicalInput, canonicalOutput),
+    'Output directory must be outside the resolved input bundle');
   return { workspace, input, output, outputParent };
 }
 

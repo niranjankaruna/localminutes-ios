@@ -176,3 +176,22 @@ follow only its push. Native archive GREEN and actual IPA creation may therefore
 remain pending the next invocation; no seventh run is authorized here. The
 partial implementation has not produced an IPA or passed the 13 native archive
 tests. Preserve all failed runs and continue from this precise checkpoint.
+
+## T04.3 regression fix — local GREEN, native archive still pending
+
+Regression source `bafe949cf3768fc9ae82868e502a8bd48474d388` was pushed before
+fixing the seven observed exceptions. Sixth run:
+[39985432474](https://github.com/niranjankaruna/localminutes-ios/actions/runs/39985432474).
+After that push, fixed .db sidecars and the four private-directory names, then
+compared canonical input/output paths before staging. Command
+`node --test --test-reporter=tap scripts/tests/*.test.mjs` on Windows11 /
+Node24.21.0 actually passed **51/51, 0 failed, 0 skipped**, exit 0. The owned
+junction was exercised, not skipped. No native tool, IPA creation or physical
+device result is implied by that local GREEN.
+
+The fix will be committed locally without pushing a seventh CI-triggering
+change in this invocation. Next invocation must recheck the actual repository,
+run status and cost guard, push the saved fix, then require all 20 XCTest,
+51 Node, 2 native configuration and 13 native packaging tests plus actual
+unsigned IPA creation GREEN at that exact source. Do not call T04.3 complete
+or set candidateArtifact before those results and separate retention evidence.
