@@ -45,8 +45,26 @@ private final class OwnerTestPreparation: RecordingPreparationSource {
     private(set) var requests: [UUID] = []
     private var waiters: [CheckedContinuation<RecordingPreparationResult, Never>] = []
     var isWaiting: Bool { !waiters.isEmpty }
+    var holdFinish = false
+    var finishFailure: RecordingFailure?
+    private var finishWaiter: CheckedContinuation<RecordingFailure?, Never>?
+    var finishIsWaiting: Bool { finishWaiter != nil }
+    private(set) var finishes: [UUID] = []
 
     init(directory: URL) { result = .ready(directory: directory) }
+
+    func finish(sessionID: UUID, manifest: AudioCaptureManifest?) async -> RecordingFailure? {
+        finishes.append(sessionID)
+        if holdFinish { return await withCheckedContinuation { finishWaiter = $0 } }
+        return finishFailure
+    }
+
+    func resolveFinish() {
+        holdFinish = false
+        let pending = finishWaiter
+        finishWaiter = nil
+        pending?.resume(returning: finishFailure)
+    }
 
     func prepare(sessionID: UUID) async -> RecordingPreparationResult {
         requests.append(sessionID)
@@ -277,6 +295,7 @@ private final class OwnerTestHarness {
     }
 
     func cleanup(file: StaticString = #filePath, line: UInt = #line) async {
+        preparation.resolveFinish()
         preparation.resolve(.rejected(.modelUnavailable))
         permission.resolve()
         hardware.deactivationFailures = 0
@@ -317,6 +336,40 @@ private final class OwnerTestHarness {
 
 @MainActor
 final class RecordingSessionOwnerTests: XCTestCase {
+    func testOwnerWaitsForTranscriptFinalizationBeforeAcknowledgingSavedAudio() async throws {
+        try await withHarness { h in
+            try await recordOneBuffer(h)
+            h.preparation.holdFinish = true
+            let returned = OwnerTestProbe()
+            let stopping = Task { await h.owner.stop(); returned.finished = true }
+            let entered = await ownerEventually { h.preparation.finishIsWaiting || returned.finished }
+            XCTAssertTrue(entered)
+            XCTAssertTrue(h.preparation.finishIsWaiting, "Stop must enter the actual transcript persistence barrier")
+            XCTAssertFalse(returned.finished, "Saved cannot precede finalized transcript persistence")
+            let pending = await h.owner.snapshot()
+            XCTAssertTrue(pending.cleanupPending)
+            XCTAssertNil(h.owner.completedManifest)
+            h.preparation.resolveFinish()
+            await stopping.value
+            XCTAssertEqual(h.preparation.finishes, [h.id])
+            XCTAssertNotNil(h.owner.completedManifest)
+        }
+    }
+
+    func testTranscriptFinalizationFailureCannotPublishRecordingSaved() async throws {
+        try await withHarness { h in
+            try await recordOneBuffer(h)
+            h.preparation.finishFailure = .writeFailed
+            try await complete { await h.owner.stop() }
+            let final = await h.owner.snapshot()
+            XCTAssertEqual(h.preparation.finishes, [h.id])
+            XCTAssertEqual(final.failure, .writeFailed)
+            XCTAssertNotEqual(final.phase, .completed)
+            XCTAssertFalse(final.cleanupPending)
+            XCTAssertNil(h.owner.completedManifest)
+        }
+    }
+
     private func withHarness(
         rate: Double = 16_000, channels: AVAudioChannelCount = 1,
         beforeReservation: (@MainActor @Sendable () async -> Void)? = nil,

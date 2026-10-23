@@ -8,6 +8,24 @@ import XCTest
 
 // UNCOMPILED TEST-FIRST DRAFT. Only permission and microphone hardware are
 // doubles. Queue ownership, native conversion, CAF files and manifests are real.
+private final class RuntimeNormalizedSink: NormalizedCaptureSink {
+    struct Facts: Sendable { var frames: Int64 = 0; var valid = true; var ranOnMain = false }
+    let state = Mutex(Facts())
+    let reject: Bool
+    init(reject: Bool = false) { self.reject = reject }
+    func offer(_ buffer: AVAudioPCMBuffer, sourceStartSample: Int64) -> Bool {
+        if reject { return false }
+        return state.withLock { facts in
+            facts.valid = facts.valid && buffer.format.sampleRate == 16_000
+                && buffer.format.channelCount == 1 && buffer.floatChannelData != nil
+                && sourceStartSample == facts.frames && buffer.frameLength > 0
+            facts.ranOnMain = facts.ranOnMain || Thread.isMainThread
+            facts.frames += Int64(buffer.frameLength)
+            return true
+        }
+    }
+}
+
 private enum RuntimeTestError: Error {
     case hardwareFailure, timedOut, unsafeFixture, unexpectedAudio
 }
@@ -161,6 +179,7 @@ private final class RuntimeHarness {
         rate: Double = 16_000,
         channels: AVAudioChannelCount = 1,
         configuration: CaptureRuntimeTestConfiguration? = nil,
+        normalizedSink: (any NormalizedCaptureSink)? = nil,
         afterAdmission: (@Sendable () -> Void)? = nil
     ) throws {
         let fixtureParent = FileManager.default.temporaryDirectory
@@ -186,6 +205,7 @@ private final class RuntimeHarness {
             precondition(afterAdmission == nil, "Hooks require the internal test initializer")
             captureRuntime = MicrophoneCaptureRuntime(
                 permission: permissionSource, hardware: hardwareBoundary,
+                normalizedSink: normalizedSink,
                 onEvent: { eventProbe.record($0) }
             )
         }
@@ -249,6 +269,43 @@ private final class RuntimeCallbackPause: Sendable {
 
 @MainActor
 final class MicrophoneCaptureRuntimeTests: XCTestCase {
+    func testConvertedAudioReachesBoundedLiveSinkBeforeStopAndFlushesItsTail() async throws {
+        let sink = RuntimeNormalizedSink()
+        let h = try RuntimeHarness(rate: 48_000, channels: 2, normalizedSink: sink)
+        defer { h.cleanupIfQuiescent() }
+        try await start(h)
+        for i in 0..<6 {
+            let buffer = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: h.hardware.format, frameCapacity: 960))
+            buffer.frameLength = 960
+            let planes = try XCTUnwrap(buffer.floatChannelData)
+            planes[0].update(repeating: 0.2, count: 960)
+            planes[1].update(repeating: 0.4, count: 960)
+            try h.hardware.emit(buffer, time: AVAudioTime(sampleTime: Int64(i * 960), atRate: 48_000))
+        }
+        let streaming = await waitUntil { sink.state.withLock { $0.frames > 0 } }
+        XCTAssertTrue(streaming, "Converted audio must feed live recognition while capture is running")
+        XCTAssertTrue(h.hardware.engineRunning)
+        try await stop(h)
+        let facts = sink.state.withLock { $0 }
+        let manifest = try XCTUnwrap(h.probe.successfulManifest(h.id))
+        XCTAssertGreaterThan(manifest.totalFrames, 0)
+        XCTAssertEqual(facts.frames, manifest.totalFrames, "The final conversion tail must also reach recognition")
+        XCTAssertTrue(facts.valid)
+        XCTAssertFalse(facts.ranOnMain)
+    }
+
+    func testRejectedLiveSinkFailsCaptureWithoutASuccessfulManifest() async throws {
+        let sink = RuntimeNormalizedSink(reject: true)
+        let h = try RuntimeHarness(normalizedSink: sink)
+        defer { h.cleanupIfQuiescent() }
+        try await start(h)
+        try h.hardware.emit(signal(frames: 3_200), time: AVAudioTime(sampleTime: 0, atRate: 16_000))
+        let failed = await waitUntil { h.runtime.snapshot().failure != nil }
+        XCTAssertTrue(failed, "Lost live recognition input must be an explicit failure")
+        try await stop(h)
+        XCTAssertEqual(h.runtime.snapshot().failure, .queueLoss)
+        XCTAssertNil(h.probe.successfulManifest(h.id))
+    }
     private func waitUntil(
         timeout: Duration = .seconds(1),
         _ predicate: @MainActor () -> Bool

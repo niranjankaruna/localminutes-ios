@@ -490,3 +490,7 @@ passed. This establishes candidate inference on desktop only. iPhone/runtime
 integration and phone performance remain pending. Actual ignored result:
 .agent-local/asr-evaluation/actual-result.json. The agent is preparing sanitized
 evidence and Swift test-first interfaces. No speech/weights were committed.
+
+Continuation-06: actual T08/T09 RED at9cb7639/run40032742242:153 executed,116pass,37fail,77assertions,0skip. Implementation follows in7ea1d71. Native ASR10mandatory real-model tests pushed4c520bd/run40033589101; awaiting RED before native behavior. Actual fixed licensed speech recognized correctly on Windows; native app live transcription is not ready yet. Owner-run125minute physical checks remain NOT_RUN. Next: finish actual ASR then connect bounded converted audio, SQLite finalization and meeting screens.
+
+Actual T10RED:4c520bd/run40033589101 compiled/executed163cases,148pass15fail18assertions0skip. All10ASRcasesfailed againstno-op; nativeimplementationauthorizedafterterminal log. All15SQLitecasespass. Installer18/23pass; five replacementtests had mismatched syntheticrevision/URLs. Testhelper nowmakesURLs coherent, preservingallassertions and productionvalidation. New39tests target actual livepipeline, notes migration/export/playback/screenstate, HTTPStransport and realQwen. Schema expectation evolves1→2 before migration implementation, with explicitv1preservationtest. Next prove202-caseRED; thenparallelimplementation.

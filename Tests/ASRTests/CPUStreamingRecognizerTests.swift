@@ -276,7 +276,7 @@ private func wordDistance(_ reference: [String], _ actual: [String]) -> Int {
 }
 
 @MainActor
-private struct NativeASRFixture {
+struct NativeASRFixture {
     static let revision = "672fbf1b30579d6585301139bb363f42a0ad4a24"
     static let reference = "CONCORD RETURNED TO ITS PLACE AMIDST THE TENTS"
     static let trailingSilence = [Float](repeating: 0, count: 48_000)

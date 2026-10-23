@@ -70,11 +70,21 @@ private final class ModelFixture {
 
     func replacing(artifacts: [ModelArtifact]? = nil, modelID: String? = nil,
                    revision: String? = nil, license: String? = nil) -> ModelManifest {
-        ModelManifest(modelID: modelID ?? manifest.modelID, purpose: manifest.purpose,
+        // A replacement fixture must pin its URLs to its replacement revision.
+        // Preserve every behavioral assertion; do not weaken coherent-set validation.
+        let replacementArtifacts = artifacts ?? manifest.artifacts.map { artifact in
+            guard let revision else { return artifact }
+            return ModelArtifact(role: artifact.role, fileName: artifact.fileName,
+                byteCount: artifact.byteCount, sha256: artifact.sha256,
+                downloadURL: URL(string: artifact.downloadURL.absoluteString.replacingOccurrences(
+                    of: "/resolve/\(manifest.revision)/", with: "/resolve/\(revision)/"))!,
+                digestProvenance: artifact.digestProvenance)
+        }
+        return ModelManifest(modelID: modelID ?? manifest.modelID, purpose: manifest.purpose,
             upstreamRepository: manifest.upstreamRepository, revision: revision ?? manifest.revision,
             licenseIdentifier: license ?? manifest.licenseIdentifier, licenseNotice: manifest.licenseNotice,
             runtimeVersion: manifest.runtimeVersion, sampleRate: manifest.sampleRate,
-            featureDimension: manifest.featureDimension, artifacts: artifacts ?? manifest.artifacts)
+            featureDimension: manifest.featureDimension, artifacts: replacementArtifacts)
     }
 
     func assertInstalled(_ handle: VerifiedModel, manifest expected: ModelManifest? = nil,

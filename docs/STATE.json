@@ -3,17 +3,17 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-23T22:19:07.872Z",
+  "lastUpdated": "2026-10-23T22:33:41.577Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "T09.1",
+  "currentTask": "T11",
   "lastVerifiedCommit": "40100fdb9a8349acdbf2d22c63eb25ce959e9388",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017962923",
   "candidateArtifact": null,
-  "nextAction": "Follow exact run40032541662; no model/store implementation until meaningful actual153-case RED. Native runtime drafts9cases are ready for review and activation while run1 executes.",
+  "nextAction": "Push202-case test-first composition/library/transport/actualQwen suite; prove behavioralRED before implementation. ASRagent already implementing against verified10-caseRED. T08 SQLite15casesGREEN at4c520bd; installer18/23pass, replacementfixture URLs corrected without weakening assertions/validation.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "9cb7639fca2d9d50c2e3106a678e267ad104974f",
+  "remoteBranchHead": "4c520bdb82f6147ae667181bb0b534cadedb960a",
   "localScriptGreen": {
     "sourceCommit": "6b5fd0c074672c467f0d26c5797683b706ec8263",
     "platform": "Windows 11 / Node 24.21.0",
@@ -33,22 +33,26 @@
     "maxNewRuns": 6,
     "newRunIds": [
       40032541662,
-      40032742242
+      40032742242,
+      40033589101
     ],
     "limitReached": false,
-    "costGuardObservedAt": "2026-10-23T22:15:38.574Z",
+    "costGuardObservedAt": "2026-10-23T22:28:30.200Z",
     "costGuardBasis": "Live PUBLIC repo verified; standard macos-15-intel officially free; no uploads/paid runners",
     "jobLimits": {
-      "coreMinutes": 6,
+      "coreMinutes": 15,
       "nativeMinutes": 25
     }
   },
   "latestCIRun": {
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40032541662",
-    "sourceCommit": "f6fb5247bae80aea20a915a00f78634457888d01",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40033589101",
+    "sourceCommit": "4c520bdb82f6147ae667181bb0b534cadedb960a",
     "conclusion": "failure",
-    "executedXCTests": 0,
-    "failureCategory": "test helper name collision with XCTestCase.record; not behavioral RED"
+    "executedXCTests": 163,
+    "passed": 148,
+    "failed": 15,
+    "assertionFailures": 18,
+    "skipped": 0
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -117,7 +121,7 @@
     "T06.2.1",
     "T06.2.2.1"
   ],
-  "remoteBranchHeadScope": "Verified remote task branch HEAD. Local repair and approved-public configuration/checkpoint remain unpushed to preserve continuation-05 six-run cap.",
+  "remoteBranchHeadScope": "Verified exact remote task-branch push; local integration tests not pushed yet.",
   "nativeCompileRepair": {
     "status": "CODE_COMPLETE_PENDING_DEVICE",
     "candidatePath": "docs/drafts/T06.1/ActivityKitOperations.swift.pending",
@@ -261,9 +265,10 @@
     "nativeExecutionPending": true
   },
   "parallelTasks": [
-    "T10.1",
-    "T09.1",
-    "T08.1"
+    "T10.1 native implementation",
+    "T11 app-owned actual live pipeline",
+    "T15/T16 notes/library/export/playback",
+    "T09.2 transport/T17 actualQwen"
   ],
   "oneHourPush": {
     "startedAt": "2026-10-23T22:06:40Z",
@@ -326,13 +331,23 @@
   ],
   "currentTestFirstSlice": {
     "tasks": [
-      "T09.1",
-      "T08.1"
+      "T11",
+      "T15",
+      "T16",
+      "T09.2",
+      "T17"
     ],
-    "expectedSwiftCases": 153,
-    "newModelCases": 23,
-    "newPersistenceCases": 15,
-    "behaviorImplemented": false,
+    "testCount": 39,
+    "productionImplemented": false,
     "redVerified": false
+  },
+  "nativeASRTestFirst": {
+    "testCount": 10,
+    "sourceCommit": "4c520bdb82f6147ae667181bb0b534cadedb960a",
+    "runId": 40033589101,
+    "redVerified": true,
+    "productionImplemented": false,
+    "actualWindowsCandidateRecognized": true,
+    "implementationAuthorizedAfterTerminalLog": true
   }
 }

@@ -26,6 +26,8 @@ targets:
       - Models
       - Persistence
       - Transcription
+      - MeetingLibrary
+      - Summaries
       - Shared
     info:
       path: App/Info.plist
@@ -47,6 +49,9 @@ targets:
         Debug:
           ENABLE_TESTABILITY: 'YES'
     dependencies:
+      - framework: .agent-local/native-llm/llama.xcframework
+        embed: true
+        codeSign: false
       - package: sherpa-onnx
         product: sherpa-onnx
       - sdk: libsqlite3.tbd

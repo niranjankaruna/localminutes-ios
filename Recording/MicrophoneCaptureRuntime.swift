@@ -120,6 +120,7 @@ public final class MicrophoneCaptureRuntime {
     public convenience init(
         permission: any CapturePermissionSource,
         hardware: any CaptureHardware,
+        normalizedSink: (any NormalizedCaptureSink)? = nil,
         onEvent: @escaping @MainActor @Sendable (CaptureRuntimeEvent) -> Void
     ) {
         self.init(

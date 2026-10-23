@@ -13,7 +13,14 @@ public enum RecordingPreparationResult: Sendable, Equatable {
 
 @MainActor
 public protocol RecordingPreparationSource: AnyObject {
+    var normalizedSink: (any NormalizedCaptureSink)? { get }
     func prepare(sessionID: UUID) async -> RecordingPreparationResult
+    func finish(sessionID: UUID, manifest: AudioCaptureManifest?) async -> RecordingFailure?
+}
+
+public extension RecordingPreparationSource {
+    var normalizedSink: (any NormalizedCaptureSink)? { nil }
+    func finish(sessionID: UUID, manifest: AudioCaptureManifest?) async -> RecordingFailure? { nil }
 }
 
 @MainActor
