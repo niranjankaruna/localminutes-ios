@@ -67,27 +67,32 @@ private struct MeetingDetailView: View {
     let id: UUID
     @State private var title = ""
     @State private var search = ""
-    @State private var player: AVAudioPlayer?
+    @State private var controller: MeetingLibraryController
     @State private var playbackMessage: String?
+
+    init(services: LocalMinutesServices, application: RecordingApplication, id: UUID) {
+        self.services = services; self.application = application; self.id = id
+        _controller = State(initialValue: MeetingLibraryController(store: services.store))
+    }
 
     var body: some View {
         List {
-            if let error = services.library.errorMessage { Text(error).foregroundStyle(.red) }
+            if let error = controller.errorMessage { Text(error).foregroundStyle(.red) }
             Section("Meeting name") {
                 TextField("Meeting name", text: $title)
-                    .onSubmit { Task { await services.library.rename(title) } }
-                Button("Save name") { Task { await services.library.rename(title) } }
+                    .onSubmit { Task { await controller.rename(title) } }
+                Button("Save name") { Task { await controller.rename(title) } }
             }
             Section("Original notes") {
-                MeetingNotesEditor(controller: services.library)
+                MeetingNotesEditor(controller: controller)
             }
             Section("Transcript") {
                 TextField("Find in this transcript", text: $search)
-                    .onChange(of: search) { _, query in Task { await services.library.search(query) } }
-                if services.library.transcript.isEmpty {
+                    .onChange(of: search) { _, query in Task { await controller.search(query) } }
+                if controller.transcript.isEmpty {
                     Text("No finalized transcript is available.").foregroundStyle(.secondary)
                 }
-                ForEach(search.isEmpty ? services.library.transcript : services.library.matches) { segment in
+                ForEach(search.isEmpty ? controller.transcript : controller.matches) { segment in
                     VStack(alignment: .leading, spacing: 8) {
                         Text(segment.text).textSelection(.enabled)
                         Button {
@@ -100,24 +105,24 @@ private struct MeetingDetailView: View {
                     .padding(.vertical, 5)
                 }
                 if let playbackMessage { Text(playbackMessage).font(.caption).foregroundStyle(.secondary) }
-                if player != nil { Button("Stop playback") { stopPlayback() } }
+                if services.playback != nil { Button("Stop playback") { stopPlayback() } }
             }
             Section("Export") {
-                if let text = try? services.library.export(markdown: false) {
+                if let text = try? controller.export(markdown: false) {
                     ShareLink("Share text", item: text)
                 }
-                if let markdown = try? services.library.export(markdown: true) {
+                if let markdown = try? controller.export(markdown: true) {
                     ShareLink("Share Markdown", item: markdown)
                 }
                 Text("Sharing sends the selected meeting to the app you choose.")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
-        .navigationTitle(services.library.selected?.title ?? "Meeting")
+        .navigationTitle(controller.selected?.title ?? "Meeting")
         .navigationBarTitleDisplayMode(.inline)
         .task(id: id) {
-            await services.library.open(id: id)
-            title = services.library.selected?.title ?? ""
+            await controller.open(id: id)
+            title = controller.selected?.title ?? ""
         }
         .onDisappear { stopPlayback() }
         .privacySensitive()
@@ -142,15 +147,7 @@ private struct MeetingDetailView: View {
                 meetingID: id, manifest: manifest, meetingDirectory: directory) else {
                 playbackMessage = "Audio is unavailable at this time."; return
             }
-            stopPlayback()
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
-            try AVAudioSession.sharedInstance().setActive(true)
-            let audio = try AVAudioPlayer(contentsOf: location.fileURL)
-            audio.currentTime = Double(location.frameOffset) / 16_000
-            guard audio.prepareToPlay(), audio.play() else {
-                throw MeetingPlaybackError.unreadableAudio
-            }
-            player = audio
+            try services.playAudio(at: location)
             playbackMessage = "Playing the selected audio segment."
         } catch {
             stopPlayback()
@@ -159,10 +156,25 @@ private struct MeetingDetailView: View {
     }
 
     private func stopPlayback() {
-        guard let player else { return }
-        player.stop()
-        self.player = nil
-        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        services.stopPlayback()
+    }
+}
+
+@MainActor
+struct ActiveMeetingNotesView: View {
+    let id: UUID
+    @State private var controller: MeetingLibraryController
+    init(services: LocalMinutesServices, id: UUID) {
+        self.id = id
+        _controller = State(initialValue: MeetingLibraryController(store: services.store))
+    }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Original notes").font(.headline)
+            MeetingNotesEditor(controller: controller)
+            if let error = controller.errorMessage { Text(error).font(.caption).foregroundStyle(.red) }
+        }
+        .task(id: id) { await controller.open(id: id) }
     }
 }
 

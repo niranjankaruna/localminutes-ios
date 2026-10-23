@@ -295,13 +295,35 @@ private final class TranscriptIngress: Sendable {
         }
         defer { _ = admission.leave() }
         let format = buffer.format
+        let frameCount = Int(buffer.frameLength)
+        let (_, sourceOverflow) = source.addingReportingOverflow(Int64(frameCount))
+        // A tap size is only a hint, and resampling can expand its output.
+        // Permit a bounded conversion burst (at most21 queue copies), while
+        // every owned/native chunk remains <=3,200 frames. No buffer is retained.
         guard source >= 0, format.sampleRate == 16_000, format.channelCount == 1,
               format.commonFormat == .pcmFormatFloat32, !format.isInterleaved,
-              queue.enqueue(channelData: buffer.floatChannelData, channelCount: 1,
-                  frameCount: Int(buffer.frameLength), sourceSampleTime: source) == .accepted else {
+              frameCount > 0, frameCount <= 65_536, !sourceOverflow,
+              let samples = buffer.floatChannelData?.pointee else {
             failed.store(true, ordering: .releasing)
             admission.close()
             return false
+        }
+        var offset = 0
+        while offset < frameCount {
+            let count = min(3_200, frameCount - offset)
+            var plane = samples.advanced(by: offset)
+            let result = withUnsafePointer(to: &plane) {
+                queue.enqueue(channelData: $0, channelCount: 1, frameCount: count,
+                              sourceSampleTime: source + Int64(offset))
+            }
+            guard result == .accepted else {
+                // Earlier chunks may already have been durably queued. Reject
+                // the whole offer explicitly; never report a partial success.
+                failed.store(true, ordering: .releasing)
+                admission.close()
+                return false
+            }
+            offset += count
         }
         return true
     }

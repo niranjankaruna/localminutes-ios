@@ -59,6 +59,10 @@ final class RecordingApplication {
     }
 
     func perform(_ action: RecordingIntentAction) async throws -> RecordingIntentOutcome {
+        switch action {
+        case .start, .toggle: services?.stopPlayback()
+        case .stop: break
+        }
         let outcome: RecordingIntentOutcome
         if case .toggle = action {
             if let operation = toggleOperation {

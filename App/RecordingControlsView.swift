@@ -50,7 +50,7 @@ struct RecordingControlsView: View {
                     .controlSize(.large)
                     if let live = application.services?.live,
                        live.transcript.sessionID != nil {
-                        VStack(alignment: .leading, spacing: 14) {
+                        LazyVStack(alignment: .leading, spacing: 14) {
                             Text("Live transcript").font(.headline)
                             Text("\(live.transcript.receivedSampleCount / 16_000) seconds transcribed locally")
                                 .font(.caption).foregroundStyle(.secondary)
@@ -63,6 +63,9 @@ struct RecordingControlsView: View {
                             if live.transcript.failure != nil {
                                 Text("Live transcription stopped with an error. Review this meeting before relying on its transcript.")
                                     .foregroundStyle(.red)
+                            }
+                            if let services = application.services, let id = live.transcript.sessionID {
+                                ActiveMeetingNotesView(services: services, id: id).id(id)
                             }
                         }
                         .privacySensitive()

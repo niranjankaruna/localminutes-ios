@@ -65,3 +65,35 @@ the new actual-v1 preservation/reopen case independently proves required migrati
 No test was weakened/deleted/skipped. New implementation is authorized only
 after this terminal evidence was read and persisted. Full GREEN is pending.
 Ignored actual log: `.agent-local/T11-b0cdd8b-red.log`.
+
+## Native behavior verified and large-buffer regression RED
+
+Source2eaa5d607dd00d36e6c4ab90aef089b84d4bdbd3, hosted run
+https://github.com/niranjankaruna/localminutes-ios/actions/runs/40035569538.
+Core command selects all seven mandatory non-summary test modules; the separate
+mandatory quality job executes all four real-summary cases at the identical SHA.
+No skipped or ignored mandatory tests and no continue-on-error.
+
+Core199executed,198passed,1failed,13assertion failures,0skipped. All10actual CPU
+recognizer cases passed, including evolving actual speech, final plural word,
+native version/CPU config, dedicated off-main worker, reset/cancellation and
+unload/reload. Both positive actual live-ASR/SQLite composition cases passed,
+including pre-stop text, durable reopened rows, global ranges and leased-model
+release. All installer/transport/notes/history/export/real-CAF mapper cases and
+existing regressions passed. The only failure is the new test-first
+`testLargeConvertedBufferIsSplitIntoBoundedNativeChunksWithoutLosingSpeech`:
+nine6400-frameoffers rejected;0received versus56080 expected,0rows versus1,
+captureUnavailable rather than successful flush, missing finalTENTS. This is
+meaningful behavioral RED before chunk-splitting implementation, not tool failure.
+New regression was committed/pushed before any splitting fix; implementation
+is authorized only after this terminal evidence was read and persisted.
+
+Summary quality4executed,2passed,2failed,4assertions,0skipped. Actual b5046 CPU
+Qwen generated valid JSON but assigned Maya/Friday rather than Leo/Thursday and
+the correct task. Unknown-budget/evidence validation and invalid-GGUF cases pass;
+cancel/reuse fails only its unchanged semantic-owner assertion. Native quality
+remains FAILED; no canned correction, changed expected owner or pass is claimed.
+
+These are macOS results. iOS compilation, simulator screens, physical locking,
+endurance and signing remain unverified. Full workflow is correctly FAILED.
+Ignored actual log: `.agent-local/T11-2eaa5d6-validation.log`.

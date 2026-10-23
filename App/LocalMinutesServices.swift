@@ -1,4 +1,5 @@
 #if os(iOS)
+import AVFoundation
 import Foundation
 import Observation
 
@@ -15,6 +16,8 @@ final class LocalMinutesServices {
     private(set) var summaryInstalled = false
     private(set) var operationMessage: String?
     private(set) var modelError: String?
+    private(set) var playback: AVAudioPlayer?
+    @ObservationIgnored private var ownsPlaybackSession = false
     @ObservationIgnored private var operation: Task<Void, Never>?
 
     static let summaryManifest = ModelManifest(
@@ -78,6 +81,29 @@ final class LocalMinutesServices {
     }
 
     func cancelDownload() { operation?.cancel() }
+
+    func playAudio(at location: MeetingPlaybackLocation) throws {
+        stopPlayback()
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playback, mode: .default)
+            try session.setActive(true)
+            ownsPlaybackSession = true
+            let audio = try AVAudioPlayer(contentsOf: location.fileURL)
+            audio.currentTime = Double(location.frameOffset) / 16_000
+            guard audio.prepareToPlay(), audio.play() else { throw MeetingPlaybackError.unreadableAudio }
+            playback = audio
+        } catch { stopPlayback(); throw error }
+    }
+
+    func stopPlayback() {
+        playback?.stop()
+        playback = nil
+        if ownsPlaybackSession {
+            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            ownsPlaybackSession = false
+        }
+    }
 
     func remove(_ manifest: ModelManifest) async {
         guard operation == nil else { return }
