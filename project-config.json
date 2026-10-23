@@ -5,8 +5,9 @@
   "github": {
     "owner": "niranjankaruna",
     "repository": "localminutes-ios",
-    "visibility": "private",
-    "publicationApproved": false,
+    "visibility": "public",
+    "publicationApproved": true,
+    "publicationApprovalEvidence": "docs/evidence/T01_PUBLIC_REPOSITORY.md",
     "allowCreateNewPrivateRepository": true,
     "preferHttps": true,
     "allowForcePush": false
