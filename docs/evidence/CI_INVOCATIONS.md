@@ -24,3 +24,14 @@ This invocation dispatches no seventh run. Subsequent invocations must preserve
 this ledger, reread actual branch/CI state and recheck cost controls before new
 metered execution. T03.1 GREEN is the next required run after its implementation;
 do not confuse the earlier 19-case GREEN with passage of the new 20-case suite.
+
+## 2026-10-23-continuation-01
+
+Previous invocation classified as progress: it changed the repository, code and
+authoritative native test evidence. This continuation resumes the same branch
+and recorded RED; it does not recreate/bootstrap the repository or repeat RED.
+The initial invocation's six runs remain preserved above.
+
+Maximum six new runs in this invocation. New cost observation:
+`T01_ENVIRONMENT.md`, 261.3 / 2,000 included minutes used, existing $0 hard stop,
+no storage headroom for artifact upload. T03.1 implementation GREEN is next.

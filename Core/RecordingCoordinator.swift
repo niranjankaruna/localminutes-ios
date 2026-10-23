@@ -118,7 +118,8 @@ public actor RecordingCoordinator {
     }
 
     public func interrupt(for id: UUID) -> RecordingCommand? {
-        guard id == sessionID, phase == .recording, !cleanupPending else { return nil }
+        guard id == sessionID, !cleanupPending else { return nil }
+        guard phase == .recording || (phase == .preparing && activationIssued) else { return nil }
         phase = .interrupted
         cleanupPending = true
         readiness = .init()

@@ -89,3 +89,15 @@ No artifact capacity is established. Build/testing without uploads may continue;
 IPA delivery must wait for verified included-storage headroom. The owner may
 need to remove their unneeded artifacts or wait for expiration; this run does
 not delete unrelated account data or change billing.
+
+## Continuation cost recheck — 23 October 2026, approximately 16:25 Europe/Dublin
+
+Read-only authenticated account inspection again showed GitHub Free,
+**261.3 / 2,000 included Actions minutes used** (1,738.7 displayed remaining),
+billable Actions usage **$0**, storage **0.5 / 0.5 GB**, and the account-wide
+Actions budget **$0.00 / $0.00, Usage blocked**. No account setting was changed.
+The next bounded invocation may use at most six standard-runner runs; a
+25-minute single-job ceiling would consume at most 1,500 weighted included
+minutes across six macOS runs, below the displayed remaining allowance.
+Artifact uploads remain blocked on headroom verification; logs-only tests and
+native builds may proceed. Existing runner/action pins remain unchanged.

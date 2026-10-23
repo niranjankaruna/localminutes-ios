@@ -28,7 +28,7 @@ Independent review identified an activation-in-flight cancellation case missing
 from that source. Added `testStopDuringActivationFlushesOnceAndRejectsLateReadiness`
 before implementation: after activation is emitted, stop must emit exactly one
 stopAndFlush, ignore late callbacks, and block a replacement until cleanup.
-Pre-activation cancellation remains cancelPreparation. Expanded native RED is
+Pre-activation cancellation remains cancelPreparation. Expanded native RED
 was required before implementing this distinction; no transition behavior existed at that RED revision.
 
 Expanded test-first source: `bc71753f82ad71a55eca3f4f171a3cf661ee3b94`.
@@ -101,3 +101,17 @@ not fake transcripts or model outputs. No native APIs, model or device claim.
 Next invocation: fix T03.1 using its recorded interruption-during-activation RED,
 verify all 20 XCTest and 8 reporting tests GREEN at the exact new source SHA,
 review, then close T03 and proceed to T04.
+
+## T03.1 continuation implementation — hosted GREEN pending
+
+23 October 2026 continuation: reread the contract and actual worktree; verified
+the prior RED run remains completed/failing at its recorded source and no code
+changed between that test-first source and the documentation checkpoint.
+The previous goal turn is classified as progress (repository, code and real
+CI evidence changed), not a repeated blocker or an unverified wait.
+
+After recorded RED, changed only the interruption eligibility guard: a matching
+session with activation issued may enter interrupted before all readiness
+acknowledgements arrive. It shares the existing single cleanup command and
+stale-event rejection path. No test was removed, skipped or weakened.
+Actual new-source GREEN is pending, not inferred from inspection.

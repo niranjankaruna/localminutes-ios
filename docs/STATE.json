@@ -11,14 +11,14 @@
   "lastVerifiedCommit": "9c39e5f6a44904dc5746fc31c6a1c5e3c9373fc2",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/39975791505",
   "candidateArtifact": null,
-  "nextAction": "Next invocation: fix RecordingCoordinator.interrupt(for:) to handle the matching activation-in-flight session, emit one stopAndFlush, reject late readiness and preserve interrupted status. Regression RED is verified at 33cd7c6 / run 39976742123. Require all 20 XCTest and 8 reporting tests GREEN at the exact new SHA, review, then close T03 and proceed to T04. Do not dispatch a seventh CI run in the completed initial invocation.",
+  "nextAction": "T03.1: reverify the included CI allowance and hard zero-overage guard, push the interruption fix based on recorded RED, and require all 20 XCTest plus 8 reporting tests GREEN at the exact source SHA; review, finish T03 and proceed to T04.",
   "blockedItems": ["ARTIFACT_STORAGE_HEADROOM_UNVERIFIED"],
   "ciInvocation": {
-    "id": "2026-10-23-initial",
+    "id": "2026-10-23-continuation-01",
     "maxNewRuns": 6,
-    "newRunIds": [39972652907, 39973529078, 39974793184, 39975336692, 39975791505, 39976742123],
-    "limitReached": true,
-    "costGuardObservedAt": "2026-10-23T14:41:00Z"
+    "newRunIds": [],
+    "limitReached": false,
+    "costGuardObservedAt": "2026-10-23T15:25:34Z"
   },
   "latestCIRun": {
     "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/39976742123",
