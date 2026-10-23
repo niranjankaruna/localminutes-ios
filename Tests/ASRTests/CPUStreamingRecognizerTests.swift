@@ -1,0 +1,350 @@
+import AVFoundation
+import CryptoKit
+import Foundation
+import Synchronization
+import XCTest
+@testable import LocalMinutesTranscription
+
+// Mandatory real-runtime tests. No inference replacement.
+// CI must prepare the pinned local model + fixed licensed LibriSpeech first.
+// Missing fixtures FAIL; these mandatory tests never skip or silently pass.
+@MainActor
+final class CPUStreamingRecognizerTests: XCTestCase {
+    func testUnloadReleasesReadinessAndReloadStartsAFreshNativeModel() async throws {
+        let fixture = try NativeASRFixture.load()
+        let recognizer = try await started(fixture)
+        _ = try await feed(fixture.samples, to: recognizer, at: 0)
+        await recognizer.unload()
+        await recognizer.unload()
+        let unloaded = await recognizer.snapshot()
+        XCTAssertEqual(unloaded.phase, .unloaded)
+        XCTAssertNil(unloaded.provider)
+        XCTAssertNil(unloaded.epochID)
+        await assertError(.noActiveStream) { try await recognizer.start(epochID: UUID()) }
+        try await recognizer.load()
+        try await recognizer.start(epochID: UUID())
+        _ = try await feed(fixture.samples, to: recognizer, at: 0)
+        let final = try await recognizer.finish()
+        assertCorrectSpeech(final.text)
+        await recognizer.unload()
+    }
+    func testLoadsPinnedActualCPUModelAndReportsNativeVersion() async throws {
+        let fixture = try NativeASRFixture.load()
+        let recognizer = CPUStreamingRecognizer(files: fixture.files)
+        let before = await recognizer.snapshot()
+        XCTAssertEqual(before.phase, .unloaded)
+        try await recognizer.load()
+        let loaded = await recognizer.snapshot()
+        XCTAssertEqual(loaded.phase, .ready)
+        XCTAssertEqual(loaded.provider, .cpu)
+        XCTAssertEqual(loaded.runtimeVersion, "1.13.8")
+        XCTAssertEqual(loaded.modelRevision, NativeASRFixture.revision)
+        XCTAssertNil(loaded.epochID)
+        XCTAssertEqual(loaded.acceptedSampleCount, 0)
+    }
+
+    func testRealSpeechChunksProduceEvolvingPartialsAndCorrectFinal() async throws {
+        let fixture = try NativeASRFixture.load()
+        let executions = NativeExecutionRecorder()
+        let recognizer = CPUStreamingRecognizer(files: fixture.files) { operation, main, dedicated in
+            executions.append(operation, main, dedicated)
+        }
+        try await recognizer.load()
+        try await recognizer.start(epochID: UUID())
+        let partials = try await feed(fixture.samples, to: recognizer, at: 0)
+        let nonempty = Set(partials.map(\.text).filter { !$0.isEmpty })
+        XCTAssertGreaterThanOrEqual(nonempty.count, 2, "Actual streaming text must evolve before finish")
+        XCTAssertTrue(partials.allSatisfy { !$0.isFinal })
+        _ = try await feed(NativeASRFixture.trailingSilence, to: recognizer,
+                           at: Int64(fixture.samples.count))
+        let final = try await recognizer.finish()
+        assertCorrectSpeech(final.text)
+        XCTAssertTrue(final.isFinal)
+        XCTAssertTrue(final.tokenTimes.allSatisfy { $0.isFinite && $0 >= 0 })
+        XCTAssertEqual(final.tokenTimes, final.tokenTimes.sorted())
+        let snapshot = await recognizer.snapshot()
+        XCTAssertEqual(snapshot.phase, .finished)
+        XCTAssertEqual(snapshot.acceptedSampleCount,
+                       Int64(fixture.samples.count + NativeASRFixture.trailingSilence.count))
+        let observed = executions.snapshot()
+        XCTAssertTrue(observed.contains { $0.operation == .load })
+        XCTAssertTrue(observed.contains { $0.operation == .decode })
+        XCTAssertTrue(observed.allSatisfy { !$0.main && $0.dedicated },
+                      "Actual native model/decode calls require the dedicated serial worker")
+    }
+
+    func testInputFinishedPreservesLastWordsWithoutEndpointSilence() async throws {
+        let fixture = try NativeASRFixture.load()
+        let recognizer = try await started(fixture)
+        _ = try await feed(fixture.samples, to: recognizer, at: 0)
+        // The adapter's bounded final flush must retain a trailing utterance;
+        // callers need not manufacture an endpoint or append fake transcript.
+        let final = try await recognizer.finish()
+        assertCorrectSpeech(final.text)
+        XCTAssertEqual(words(final.text).last, "tents", "The final plural word must survive decoder lookahead")
+        XCTAssertEqual(words(final.text), words(NativeASRFixture.reference))
+        XCTAssertTrue(final.isFinal)
+        let snapshot = await recognizer.snapshot()
+        XCTAssertEqual(snapshot.acceptedSampleCount, Int64(fixture.samples.count),
+                       "Internal decoder padding is not captured source audio")
+    }
+
+    func testEndpointResetDoesNotRepeatPriorUtterance() async throws {
+        let fixture = try NativeASRFixture.load()
+        let recognizer = try await started(fixture)
+        _ = try await feed(fixture.samples, to: recognizer, at: 0)
+        let silence = try await feed(NativeASRFixture.trailingSilence, to: recognizer,
+                                     at: Int64(fixture.samples.count))
+        let endpoint = try XCTUnwrap(silence.last)
+        XCTAssertTrue(endpoint.isEndpoint, "Real trailing silence must reach the native detector")
+        assertCorrectSpeech(endpoint.text)
+        try await recognizer.resetAfterEndpoint()
+        let offset = Int64(fixture.samples.count + NativeASRFixture.trailingSilence.count)
+        _ = try await feed(fixture.samples, to: recognizer, at: offset)
+        let final = try await recognizer.finish()
+        XCTAssertEqual(words(final.text), words(endpoint.text), "The second utterance must not repeat the first")
+        let snapshot = await recognizer.snapshot()
+        XCTAssertEqual(snapshot.acceptedSampleCount, offset + Int64(fixture.samples.count))
+    }
+
+    func testCancellationRejectsOldAudioAndFreshEpochRecognizes() async throws {
+        let fixture = try NativeASRFixture.load()
+        let firstID = UUID()
+        let recognizer = try await started(fixture, epochID: firstID)
+        let prefix = Array(fixture.samples.prefix(fixture.samples.count / 2))
+        _ = try await feed(prefix, to: recognizer, at: 0)
+        await recognizer.cancel()
+        await recognizer.cancel()
+        let cancelled = await recognizer.snapshot()
+        XCTAssertEqual(cancelled.phase, .cancelled)
+        await assertError(.cancelled) {
+            _ = try await recognizer.accept(samples: [0], sourceStartSample: Int64(prefix.count))
+        }
+        let replacementID = UUID()
+        try await recognizer.start(epochID: replacementID)
+        let fresh = await recognizer.snapshot()
+        XCTAssertEqual(fresh.epochID, replacementID)
+        XCTAssertEqual(fresh.acceptedSampleCount, 0)
+        _ = try await feed(fixture.samples, to: recognizer, at: 0)
+        let final = try await recognizer.finish()
+        XCTAssertEqual(final.epochID, replacementID)
+        XCTAssertNotEqual(final.epochID, firstID)
+        assertCorrectSpeech(final.text)
+    }
+
+    func testFinishedStreamRejectsMoreAudioAndFinishIsIdempotent() async throws {
+        let fixture = try NativeASRFixture.load()
+        let recognizer = try await started(fixture)
+        _ = try await feed(fixture.samples, to: recognizer, at: 0)
+        let first = try await recognizer.finish()
+        assertCorrectSpeech(first.text)
+        let repeated = try await recognizer.finish()
+        XCTAssertEqual(repeated, first, "Repeated completion must not decode/append the utterance again")
+        await assertError(.finished) {
+            _ = try await recognizer.accept(samples: [0], sourceStartSample: Int64(fixture.samples.count))
+        }
+        let after = await recognizer.snapshot()
+        XCTAssertEqual(after.acceptedSampleCount, Int64(fixture.samples.count))
+    }
+
+    func testDiscontinuousAndInvalidSamplesDoNotAdvanceStream() async throws {
+        let fixture = try NativeASRFixture.load()
+        let recognizer = try await started(fixture)
+        await assertError(.discontinuity(expected: 0, actual: 1)) {
+            _ = try await recognizer.accept(samples: [0], sourceStartSample: 1)
+        }
+        await assertError(.invalidSamples) {
+            _ = try await recognizer.accept(samples: [.nan], sourceStartSample: 0)
+        }
+        await assertError(.invalidSamples) {
+            _ = try await recognizer.accept(samples: [], sourceStartSample: 0)
+        }
+        await assertError(.invalidSamples) {
+            _ = try await recognizer.accept(samples: Array(repeating: 0, count: 3_201), sourceStartSample: 0)
+        }
+        let before = await recognizer.snapshot()
+        XCTAssertEqual(before.acceptedSampleCount, 0)
+        _ = try await feed(fixture.samples, to: recognizer, at: 0)
+        let final = try await recognizer.finish()
+        assertCorrectSpeech(final.text)
+    }
+
+    func testDuplicateStartCannotReplaceActiveEpoch() async throws {
+        let fixture = try NativeASRFixture.load()
+        let original = UUID()
+        let recognizer = try await started(fixture, epochID: original)
+        await assertError(.alreadyStarted) { try await recognizer.start(epochID: UUID()) }
+        let retained = await recognizer.snapshot()
+        XCTAssertEqual(retained.epochID, original)
+        XCTAssertEqual(retained.phase, .streaming)
+        _ = try await feed(fixture.samples, to: recognizer, at: 0)
+        let final = try await recognizer.finish()
+        XCTAssertEqual(final.epochID, original)
+        assertCorrectSpeech(final.text)
+    }
+
+    func testMissingModelFilesFailExplicitlyWithoutReadinessOrFallback() async throws {
+        let absent = FileManager.default.temporaryDirectory
+            .appendingPathComponent("localminutes-absent-model-\(UUID().uuidString)", isDirectory: true)
+        let files = StreamingASRModelFiles(encoder: absent.appendingPathComponent("encoder.onnx"),
+            decoder: absent.appendingPathComponent("decoder.onnx"),
+            joiner: absent.appendingPathComponent("joiner.onnx"),
+            tokens: absent.appendingPathComponent("tokens.txt"),
+            revision: NativeASRFixture.revision, runtimeVersion: "sherpa-onnx-1.13.8")
+        let recognizer = CPUStreamingRecognizer(files: files)
+        await assertError(.invalidModel) { try await recognizer.load() }
+        let snapshot = await recognizer.snapshot()
+        XCTAssertEqual(snapshot.phase, .unloaded)
+        XCTAssertNil(snapshot.provider)
+        XCTAssertNil(snapshot.runtimeVersion)
+        await assertError(.noActiveStream) {
+            _ = try await recognizer.accept(samples: [0], sourceStartSample: 0)
+        }
+    }
+
+    private func started(_ fixture: NativeASRFixture, epochID: UUID = UUID()) async throws -> CPUStreamingRecognizer {
+        let recognizer = CPUStreamingRecognizer(files: fixture.files)
+        try await recognizer.load()
+        try await recognizer.start(epochID: epochID)
+        return recognizer
+    }
+
+    private func feed(_ samples: [Float], to recognizer: CPUStreamingRecognizer,
+                      at offset: Int64) async throws -> [StreamingASRResult] {
+        var results: [StreamingASRResult] = []
+        for start in stride(from: 0, to: samples.count, by: 3_200) {
+            let end = min(samples.count, start + 3_200)
+            results.append(try await recognizer.accept(samples: Array(samples[start..<end]),
+                                                       sourceStartSample: offset + Int64(start)))
+        }
+        return results
+    }
+
+    private func assertError(_ expected: StreamingASRError,
+                             file: StaticString = #filePath, line: UInt = #line,
+                             operation: () async throws -> Void) async {
+        do {
+            try await operation()
+            XCTFail("Expected explicit \(expected)", file: file, line: line)
+        } catch {
+            XCTAssertEqual(error as? StreamingASRError, expected, file: file, line: line)
+        }
+    }
+
+    private func assertCorrectSpeech(_ actual: String, file: StaticString = #filePath, line: UInt = #line) {
+        let reference = words(NativeASRFixture.reference)
+        let recognized = words(actual)
+        XCTAssertFalse(recognized.isEmpty, "Actual inference returned no speech", file: file, line: line)
+        XCTAssertTrue(Set(["concord", "returned", "place", "tents"]).isSubset(of: Set(recognized)),
+                      "Expected known licensed speech content", file: file, line: line)
+        let errors = wordDistance(reference, recognized)
+        XCTAssertLessThanOrEqual(Double(errors) / Double(reference.count), 0.15,
+                                "Real clean-speech WER must be <=15%", file: file, line: line)
+    }
+}
+
+private final class NativeExecutionRecorder: Sendable {
+    struct Observation: Sendable {
+        let operation: StreamingASRNativeOperation
+        let main: Bool
+        let dedicated: Bool
+    }
+    private let values = Mutex<[Observation]>([])
+
+    func append(_ operation: StreamingASRNativeOperation, _ main: Bool, _ dedicated: Bool) {
+        values.withLock { $0.append(.init(operation: operation, main: main, dedicated: dedicated)) }
+    }
+
+    func snapshot() -> [Observation] { values.withLock { $0 } }
+}
+
+private func words(_ text: String) -> [String] {
+    text.lowercased().split { !$0.isLetter && $0 != "'" }.map(String.init)
+}
+
+private func wordDistance(_ reference: [String], _ actual: [String]) -> Int {
+    var previous = Array(0...actual.count)
+    for (i, expected) in reference.enumerated() {
+        var next = [i + 1]
+        for (j, found) in actual.enumerated() {
+            next.append(min(next[j] + 1, previous[j + 1] + 1,
+                            previous[j] + (expected == found ? 0 : 1)))
+        }
+        previous = next
+    }
+    return previous[actual.count]
+}
+
+@MainActor
+private struct NativeASRFixture {
+    static let revision = "672fbf1b30579d6585301139bb363f42a0ad4a24"
+    static let reference = "CONCORD RETURNED TO ITS PLACE AMIDST THE TENTS"
+    static let trailingSilence = [Float](repeating: 0, count: 48_000)
+    private static var cached: NativeASRFixture?
+    let files: StreamingASRModelFiles
+    let samples: [Float]
+
+    static func load() throws -> NativeASRFixture {
+        if let cached { return cached }
+        let environment = ProcessInfo.processInfo.environment
+        guard let modelPath = environment["LOCALMINUTES_ASR_MODEL_DIRECTORY"],
+              let fixturePath = environment["LOCALMINUTES_ASR_FIXTURE_PATH"],
+              modelPath.hasPrefix("/"), fixturePath.hasPrefix("/") else {
+            XCTFail("Required actual ASR model/audio paths are missing; mandatory inference cannot skip")
+            throw FixtureError.missingEnvironment
+        }
+        let directory = URL(fileURLWithPath: modelPath, isDirectory: true)
+        let expected: [(String, Int, String)] = [
+            ("encoder-epoch-99-avg-1-chunk-16-left-128.int8.onnx", 71_083_163,
+             "563fde436d16cf7607cf408cd6b30909819d03162652ef389c2450ced3f45ac1"),
+            ("decoder-epoch-99-avg-1-chunk-16-left-128.int8.onnx", 1_307_236,
+             "98da299f471e38bb4e1a8df579b8cc9122d6039576a77e357b3c60f17dd83b02"),
+            ("joiner-epoch-99-avg-1-chunk-16-left-128.int8.onnx", 259_335,
+             "d944208d660d67c8d72cd2acaeac971fa5ceb8c80e76c1968148846fedd6e297"),
+            ("tokens.txt", 5_048,
+             "49e3c2646595fd907228b3c6787069658f67b17377c60aeb8619c4551b2316fb")
+        ]
+        for (name, count, digest) in expected {
+            let data = try Data(contentsOf: directory.appendingPathComponent(name))
+            let actual = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+            guard data.count == count, actual == digest else {
+                XCTFail("Pinned model fixture integrity failed for \(name)")
+                throw FixtureError.invalidModel
+            }
+        }
+        let fixtureURL = URL(fileURLWithPath: fixturePath)
+        let fixtureData = try Data(contentsOf: fixtureURL)
+        let fixtureDigest = SHA256.hash(data: fixtureData).map { String(format: "%02x", $0) }.joined()
+        guard fixtureData.count == 74_138,
+              fixtureDigest == "9ce35224156f071ab58eb7feb8a5ceae600f6f9f353da2a6cbf797b6b1ac8a23" else {
+            XCTFail("Exact CC-BY LibriSpeech6930-75918-0000 fixture integrity failed")
+            throw FixtureError.invalidAudio
+        }
+        let audio = try AVAudioFile(forReading: fixtureURL,
+                                    commonFormat: .pcmFormatFloat32, interleaved: false)
+        guard audio.processingFormat.sampleRate == 16_000,
+              audio.processingFormat.channelCount == 1,
+              audio.length > 0, audio.length <= 16_000 * 30,
+              let buffer = AVAudioPCMBuffer(pcmFormat: audio.processingFormat,
+                                            frameCapacity: AVAudioFrameCount(audio.length)) else {
+            XCTFail("Actual licensed fixture must be nonempty <=30s, mono16kHz")
+            throw FixtureError.invalidAudio
+        }
+        try audio.read(into: buffer)
+        guard let channel = buffer.floatChannelData?.pointee, buffer.frameLength > 0 else {
+            XCTFail("Actual speech PCM unavailable")
+            throw FixtureError.invalidAudio
+        }
+        let fixture = NativeASRFixture(files: .init(
+            encoder: directory.appendingPathComponent(expected[0].0),
+            decoder: directory.appendingPathComponent(expected[1].0),
+            joiner: directory.appendingPathComponent(expected[2].0),
+            tokens: directory.appendingPathComponent(expected[3].0),
+            revision: revision, runtimeVersion: "sherpa-onnx-1.13.8"),
+            samples: Array(UnsafeBufferPointer(start: channel, count: Int(buffer.frameLength))))
+        cached = fixture
+        return fixture
+    }
+
+    private enum FixtureError: Error { case missingEnvironment, invalidModel, invalidAudio }
+}

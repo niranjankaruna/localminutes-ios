@@ -9,6 +9,7 @@ on:
       - 'Recording/**'
       - 'Models/**'
       - 'Persistence/**'
+      - 'Transcription/**'
       - 'Tests/**'
       - 'scripts/**'
       - 'project.yml'
@@ -28,7 +29,7 @@ concurrency:
 jobs:
   core:
     runs-on: macos-15-intel
-    timeout-minutes: 6
+    timeout-minutes: 15
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     steps:
@@ -57,6 +58,13 @@ jobs:
           xcodebuild -showsdks
           swift --version
           xcrun simctl list devices available
+      - name: Prepare verified licensed real speech and pinned model fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 docs/drafts/T10/prepare_native_fixture.py
+          printf 'LOCALMINUTES_ASR_MODEL_DIRECTORY=%s/.agent-local/asr-evaluation/native-fixtures/model\n' "$PWD" >> "$GITHUB_ENV"
+          printf 'LOCALMINUTES_ASR_FIXTURE_PATH=%s/.agent-local/asr-evaluation/native-fixtures/6930-75918-0000.flac\n' "$PWD" >> "$GITHUB_ENV"
       - name: Execute XCTest assertions
         shell: bash
         run: |
@@ -70,6 +78,7 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/verify-test-log.mjs .build/test-output.log testHarnessExecutesAnAssertion testControlledClockAdvancesWithoutSleeping testConcurrentStartsEmitExactlyOnePreparation testConcurrentStopsEmitExactlyOneFlushAndCompleteOnlyAfterAcknowledgement testInterruptionDuringActivationRejectsLateRecordingSuccess testAcceptedPCMIsOwnedAndSurvivesSourceMutation testSequenceCountersWrapWithoutLosingFullEmptyFIFOOrLossState testParallelSPSCStressPreservesAcceptedSamplesOrderAndAllDroppedFrames testRealConversionProduces16kMonoAndPreservesDuration testRealCAFSegmentsContain16BitMonoSamplesAndPersistManifest testCompletedSegmentIsReadableAndCheckpointedBeforeFinish testFailedNativeDrainRemainsAnExplicitTerminalFailure testNativeAppendFailureCannotBeFinishedAsSuccessOrReentered testConcurrentCloseWaitsForAdmittedWorkAndPublishesItToTheStopper testSequentialAdmissionsOnDifferentThreadsPublishThePreviousCallbacksWork testActualQueueResamplingAndSixteenBitCAFDecodePreserveTheSignal testStopWaitsForAnAdmittedCallbackThenDrainsBeforeDeactivationAndAcknowledgement testMissingEndDoesNotAcknowledgeCleanupAndCanBeRetried testQueuedUpdateCannotReuseResourceAfterEarlierLookupFails testActualOwnedAudioReachesRecordingOnlyWithAllThreeFactsAndProducesRealCAF testHeldActivityEndKeepsCleanupPendingAfterRealAudioFlushAndDeactivation testToggleDuringDomainReservationCancelsTheAdmittedStart testCancellingStartDuringPermissionReleasesTheActivityAndOwner testIntentStopAcknowledgesActualSavedCAFOnlyAfterCleanup testIntentStaleLockScreenStopCannotStopAReplacementAndMatchingOwnerStopWorks testIntentCannotAttributeAReplacementManifestToAnEarlierStopOrToggle testPinnedSpeechManifestHasOneImmutableCompatibleSetAndHonestDigestProvenance testValidLocalImportCopiesHashesAndPersistsLicenseWithoutChangingSource testReopenedManagerReturnsTheSameVerifiedPersistentInstallation testMissingRequiredFileIsRejectedWithoutPublishingAPointer testTruncatedRequiredFileIsRejectedBeforePublishing testSameSizeCorruptionFailsActualSHA256Verification testUnexpectedFileCannotBeImportedAlongsideModelWeights testSymlinkedRequiredFileIsRejectedWithoutReadingOutsideImport testUnsafeModelAndArtifactNamesCannotEscapePersistentRoot testUnpinnedRevisionMissingLicenseAndMalformedDigestAreRejected testDuplicateRolesAndDuplicateNamesCannotCreateAmbiguousVerifiedHandle testInsufficientDiskSpaceDoesNotCreatePartialInstallation testDownloadBoundaryWritesOnlyOwnedStagingAndProducesVerifiedFiles testDownloadFailurePreservesPreviousPointerAndCleansPartialFiles testCancelledReplacementLeavesPreviousUsableInstallationAndNoStaging testInProgressReplacementKeepsCurrentReadableUntilVerifiedAtomicPublication testFailedImportCannotReplacePreviousUsableModel testInstalledModelIsRehashedBeforeItCanBeLeased testLeasePreventsDeletionUntilTheExactLeaseIsReleased testReplacementCannotDeleteFilesStillReferencedByAnOlderLease testDeletingUnusedModelPreservesMeetingFilesOutsideModelRoot testMissingModelCannotProduceAVerifiedLease testCorruptSelectionPointerIsRejectedWithoutReadingAnOutsideModel testCreatesAnActualSQLiteDatabaseWithVersionOneSchema testMeetingMetadataSurvivesCloseAndReopen testHistorySortsNewestFirstWithStableUUIDTieBreakAndLimit testConcurrentMeetingWritesAndDuplicateIDCannotOverwriteExistingMetadata testRenamePersistsLiteralTextWithoutChangingIdentityDateOrTranscript testRecordingStateAndCapturedDurationAreDurableAndMissingIDIsAnError testFinalizedTranscriptIsOrderedBySequenceAndSurvivesReopen testReplayingTheSameFinalizedSegmentIsIdempotentAcrossReopen testSegmentIDConflictAndSequenceConflictRollbackTheEntireBatch testUnknownMeetingAndCrossMeetingSegmentsCannotCreateOrphanRecords testSearchIsRestrictedToSelectedMeetingOrderedAndCaseInsensitive testSearchTreatsQuotesAndSQLWildcardsAsLiteralData testDeletingOneMeetingRemovesOnlyItsMetadataAndTranscript testInvalidSegmentValuesAreRejectedWithoutPartialWrites testFutureSchemaIsRejectedWithoutChangingExistingDatabase
+          node scripts/verify-test-log.mjs .build/test-output.log testUnloadReleasesReadinessAndReloadStartsAFreshNativeModel testLoadsPinnedActualCPUModelAndReportsNativeVersion testRealSpeechChunksProduceEvolvingPartialsAndCorrectFinal testInputFinishedPreservesLastWordsWithoutEndpointSilence testEndpointResetDoesNotRepeatPriorUtterance testCancellationRejectsOldAudioAndFreshEpochRecognizes testFinishedStreamRejectsMoreAudioAndFinishIsIdempotent testDiscontinuousAndInvalidSamplesDoNotAdvanceStream testDuplicateStartCannotReplaceActiveEpoch testMissingModelFilesFailExplicitlyWithoutReadinessOrFallback
       - name: Exercise queue under Thread Sanitizer
         shell: bash
         run: |

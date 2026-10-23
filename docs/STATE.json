@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-23T22:18:24.199Z",
+  "lastUpdated": "2026-10-23T22:19:07.872Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -13,7 +13,7 @@
   "candidateArtifact": null,
   "nextAction": "Follow exact run40032541662; no model/store implementation until meaningful actual153-case RED. Native runtime drafts9cases are ready for review and activation while run1 executes.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "f6fb5247bae80aea20a915a00f78634457888d01",
+  "remoteBranchHead": "9cb7639fca2d9d50c2e3106a678e267ad104974f",
   "localScriptGreen": {
     "sourceCommit": "6b5fd0c074672c467f0d26c5797683b706ec8263",
     "platform": "Windows 11 / Node 24.21.0",
@@ -32,7 +32,8 @@
     "id": "2026-10-23-continuation-06",
     "maxNewRuns": 6,
     "newRunIds": [
-      40032541662
+      40032541662,
+      40032742242
     ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-23T22:15:38.574Z",
@@ -218,7 +219,12 @@
     "latestSourceCommit": "6b5fd0c074672c467f0d26c5797683b706ec8263",
     "latestRunUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40027966192"
   },
-  "activeCIRun": null,
+  "activeCIRun": {
+    "sourceCommit": "9cb7639fca2d9d50c2e3106a678e267ad104974f",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40032742242",
+    "status": "queued",
+    "ordinal": 2
+  },
   "pendingPushScope": "Last local implementation/configuration commit; the later local documentation checkpoint is also unpushed. Next invocation must push actual HEAD, not this ancestor alone.",
   "repositoryVisibility": "PUBLIC",
   "publication": {

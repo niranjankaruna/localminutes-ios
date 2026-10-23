@@ -79,9 +79,10 @@ homepage pointing to k2-fsa/sherpa-onnx. Their actual bytes matched PyPI SHA256:
 Sources: [sherpa Python package](https://pypi.org/project/sherpa-onnx/1.13.8/),
 [core package](https://pypi.org/project/sherpa-onnx-core/1.13.8/), and pinned
 [upstream source](https://github.com/k2-fsa/sherpa-onnx/tree/11afbd009a7f8c08f4bcf2fc1b265d0df4670fbf).
-Neither iOS/macOS XCFramework archive nor ONNX dependency archive was downloaded
-or independently hashed by this experiment. Their reported package checksums
-remain separate from the verified Windows wheels and model bytes.
+The later bounded archive inspection below independently verified both static
+XCFramework archives. Their checksum/declarative slice evidence is separate
+from actual native linking or execution. The ONNX dependency archive has not
+been independently downloaded/hashed by this experiment.
 
 ## Local evidence and setup limitations
 
@@ -104,3 +105,74 @@ interfaces, prove/push meaningful hosted RED, implement only afterward, and
 require exact-source native GREEN before connecting production model readiness.
 All model-manager install/lease, app ASR, iOS offline/CPU and physical gates remain
 pending until their own actual evidence exists.
+
+## Licensed fixed native-test fixture: actual second experiment
+
+The [official OpenSLR LibriSpeech resource](https://www.openslr.org/12) declares
+CC BY 4.0. Attribution: LibriSpeech, prepared by Vassil Panayotov with assistance
+from Daniel Povey, derived from LibriVox public-domain audiobooks. Preserve
+[CC BY 4.0 attribution/license](https://creativecommons.org/licenses/by/4.0/).
+Audio remains ignored; no private speech or Windows system-voice audio is
+uploaded. This public corpus fixture is the proposed hosted test input.
+
+A bounded streamed prefix from the official
+[`test-clean.tar.gz`](https://www.openslr.org/resources/12/test-clean.tar.gz)
+provided exactly `LibriSpeech/test-clean/6930/75918/6930-75918-0000.flac`
+and its reference in `6930-75918.trans.txt`. The actual member is 74,138 bytes,
+SHA256 `9ce35224156f071ab58eb7feb8a5ceae600f6f9f353da2a6cbf797b6b1ac8a23`.
+Only 3,645,440 compressed prefix bytes were read; the entire archive was neither
+downloaded nor checksum-verified. The selected member has an independently
+downloaded exact digest. No archive member path was extracted to disk.
+
+Reference and actual final CPU output both equal:
+
+> CONCORD RETURNED TO ITS PLACE AMIDST THE TENTS
+
+Actual decoding: mono 16 kHz, 56,080 samples, 3.505 seconds, same pinned model/
+runtime/CPU/two-thread/200 ms configuration. It produced seven evolving partials
+and **0 / 8 normalized word errors** on this single short sample. This is a
+smoke-test input, not validation of corpus-wide or representative-meeting WER.
+Endpoint/reset and discarding/replacing a partial stream preserved the exact
+reference. A three-second trailing-silence input triggered the real endpoint.
+
+The experiment exposed a real finalization boundary: plain `input_finished()`
+lost `TENTS`; 3,200 decoder-padding frames produced `TENT`; 24,000 padding frames
+(1.5 seconds) preserved exact `TENTS`. Padding must remain bounded and excluded
+from captured source-sample counts. A 1.5-second appended input did not yet
+trigger the endpoint for this short utterance, so the dedicated endpoint test
+uses 48,000 silence frames. These observed native-runtime facts inform failing
+tests; they are not app implementation or hosted RED evidence.
+
+Official PyPI `soundfile==0.13.1` decoded FLAC only for this Windows experiment,
+installed offline into the same ignored target. Actual wheel:
+`soundfile-0.13.1-py2.py3-none-win_amd64.whl`, 1,019,162 bytes, SHA256
+`1e70a05a0626524a69e9f0f4dd2ec174b4e9567f4d8b6c11d38b5c289be36ee9`, matching
+[versioned PyPI metadata](https://pypi.org/project/soundfile/0.13.1/).
+No global installation was made. Recognition ran with local paths and disabled
+Python socket/DNS APIs. Ignored `librispeech/actual-result.json` records outputs;
+`recognize_librispeech.py` reproduces the completed assertions. The separate
+draft fixture-preparation script pins the exact input for hosted use, subject
+to actual macOS setup and compiler verification.
+
+## Actual static native archive integrity and declarations
+
+Both official versioned archives were downloaded into ignored research storage
+and their complete bytes matched the immutable source package's SHA256:
+
+| Official release asset | Actual bytes | Actual SHA256 |
+| --- | ---: | --- |
+| sherpa-onnx-v1.13.8-macos-static.xcframework.zip | 11628310 | 93f7a064abe99e0d6185a88c5b36ce18c4bff35cd0d5e4e81f81151de8e3e7e5 |
+| sherpa-onnx-v1.13.8-ios-static.xcframework.zip | 17013113 | 6b8e769cb153343270fdccbe92e3b3db0d1c421d67fa0989ab01fdf5b2fcf2de |
+
+Sources: official
+[macOS asset](https://github.com/k2-fsa/sherpa-onnx/releases/download/xcframework/sherpa-onnx-v1.13.8-macos-static.xcframework.zip),
+[iOS asset](https://github.com/k2-fsa/sherpa-onnx/releases/download/xcframework/sherpa-onnx-v1.13.8-ios-static.xcframework.zip)
+and pinned
+[package manifest](https://github.com/k2-fsa/sherpa-onnx/blob/11afbd009a7f8c08f4bcf2fc1b265d0df4670fbf/Package.swift).
+Only ZIP-contained module maps and XCFramework Info.plist were read; no binary
+was installed or executed. Every inspected module map declares framework module
+`SherpaOnnxC`, exporting `sherpa-onnx/c-api/c-api.h`. The macOS plist declares
+arm64+x86_64. The iOS plist separately declares device arm64 and simulator
+arm64+x86_64. These are actual archive declarations, not Mach-O verification,
+minimum OS/build-flag proof, SDK compilation, runtime linkage or iPhone evidence.
+Ignored `native-archive-inspection.json` preserves the exact declarations.

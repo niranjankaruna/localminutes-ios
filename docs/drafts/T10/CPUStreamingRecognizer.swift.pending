@@ -1,0 +1,118 @@
+import Foundation
+import SherpaOnnx
+import SherpaOnnxC
+
+// TEST-FIRST DRAFT ONLY. No native recognizer, stream, inference or readiness
+// exists until the committed/pushed tests produce actual hosted behavioral RED.
+// In the app, these files must come from a held verified-model installation
+// lease. This low-level interface does not perform installation verification.
+public struct StreamingASRModelFiles: Equatable, Sendable {
+    public let encoder: URL
+    public let decoder: URL
+    public let joiner: URL
+    public let tokens: URL
+    public let revision: String
+    public let runtimeVersion: String
+
+    public init(encoder: URL, decoder: URL, joiner: URL, tokens: URL,
+                revision: String, runtimeVersion: String) {
+        self.encoder = encoder
+        self.decoder = decoder
+        self.joiner = joiner
+        self.tokens = tokens
+        self.revision = revision
+        self.runtimeVersion = runtimeVersion
+    }
+}
+
+public enum StreamingASRError: Error, Equatable, Sendable {
+    case notImplemented
+    case invalidModel
+    case nativeCreationFailed
+    case noActiveStream
+    case alreadyStarted
+    case finished
+    case cancelled
+    case invalidSamples
+    case discontinuity(expected: Int64, actual: Int64)
+    case endpointRequired
+}
+
+public enum StreamingASRPhase: Equatable, Sendable {
+    case unloaded, ready, streaming, finished, cancelled
+}
+
+public enum StreamingASRProvider: Equatable, Sendable { case cpu }
+
+enum StreamingASRNativeOperation: Equatable, Sendable { case load, decode }
+// Arguments: native operation, actual Thread.isMainThread, actual queue identity.
+typealias StreamingASRExecutionObserver = @Sendable (StreamingASRNativeOperation, Bool, Bool) -> Void
+
+public struct StreamingASRSnapshot: Equatable, Sendable {
+    public let phase: StreamingASRPhase
+    public let epochID: UUID?
+    public let provider: StreamingASRProvider?
+    public let modelRevision: String?
+    public let runtimeVersion: String?
+    public let acceptedSampleCount: Int64
+
+    public init(phase: StreamingASRPhase, epochID: UUID? = nil,
+                provider: StreamingASRProvider? = nil, modelRevision: String? = nil,
+                runtimeVersion: String? = nil, acceptedSampleCount: Int64 = 0) {
+        self.phase = phase
+        self.epochID = epochID
+        self.provider = provider
+        self.modelRevision = modelRevision
+        self.runtimeVersion = runtimeVersion
+        self.acceptedSampleCount = acceptedSampleCount
+    }
+}
+
+public struct StreamingASRResult: Equatable, Sendable {
+    public let epochID: UUID
+    public let text: String
+    public let isFinal: Bool
+    public let isEndpoint: Bool
+    // Actual upstream token times are relative to the current utterance. An
+    // empty array means unavailable; this slice does not invent global timing.
+    public let tokenTimes: [Float]
+
+    public init(epochID: UUID, text: String, isFinal: Bool,
+                isEndpoint: Bool, tokenTimes: [Float] = []) {
+        self.epochID = epochID
+        self.text = text
+        self.isFinal = isFinal
+        self.isEndpoint = isEndpoint
+        self.tokenTimes = tokenTimes
+    }
+}
+
+// The eventual implementation owns all C pointers inside this actor, using a
+// dedicated serial DispatchQueue-backed custom executor, not the shared pool;
+// call from the recognition worker, never from the tap or MainActor. Endpoint
+// reset preserves the epoch's contiguous source timeline. A finished/cancelled
+// stream is destroyed and replaced on the next start, never fed again.
+public actor CPUStreamingRecognizer {
+    public init(files: StreamingASRModelFiles) {}
+
+    // Test-only observation of the actual native-call site. The public
+    // initializer always uses nil; this hook adds no production task/locking.
+    init(files: StreamingASRModelFiles, executionObserver: @escaping StreamingASRExecutionObserver) {}
+
+    public func load() throws { throw StreamingASRError.notImplemented }
+    public func start(epochID: UUID) throws { throw StreamingASRError.notImplemented }
+
+    // Exactly 16 kHz mono normalized Float32; 1...3,200 finite samples per call.
+    // Source positions start at zero per epoch and must remain contiguous.
+    public func accept(samples: [Float], sourceStartSample: Int64) throws -> StreamingASRResult {
+        throw StreamingASRError.notImplemented
+    }
+
+    public func finish() throws -> StreamingASRResult {
+        throw StreamingASRError.notImplemented
+    }
+
+    public func resetAfterEndpoint() throws { throw StreamingASRError.notImplemented }
+    public func cancel() {}
+    public func snapshot() -> StreamingASRSnapshot { .init(phase: .unloaded) }
+}
