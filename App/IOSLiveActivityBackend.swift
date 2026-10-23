@@ -64,23 +64,13 @@ private final class IOSLiveActivityHandle: LiveActivityHandle {
     }
 
     func update(status: LiveActivityStatus) async -> LiveActivityOperationOutcome {
-        await activity.update(content(status))
-        return .applied
+        await ActivityKitOperations.update(activityID: activity.id, status: status)
     }
 
     func end(status: LiveActivityStatus) async -> LiveActivityOperationOutcome {
-        await activity.end(content(status), dismissalPolicy: .immediate)
-        setStateObserver(nil)
-        return .applied
-    }
-
-    private func content(
-        _ status: LiveActivityStatus
-    ) -> ActivityContent<RecordingActivityAttributes.ContentState> {
-        ActivityContent(
-            state: RecordingActivityAttributes.ContentState(status: status.rawValue),
-            staleDate: nil
-        )
+        let outcome = await ActivityKitOperations.end(activityID: activity.id, status: status)
+        if outcome == .applied { setStateObserver(nil) }
+        return outcome
     }
 
     private func deliver(_ nativeState: ActivityState) {

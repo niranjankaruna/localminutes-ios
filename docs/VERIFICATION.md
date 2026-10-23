@@ -27,3 +27,10 @@ Use PASSED / FAILED / NOT_RUN / BLOCKED / OWNER_WAIVED explicitly. Never treat N
 | R04,R08 / T05.1–T05.2 full regression | Owned PCM, real resampling/CAF, fault handling and native products | T05 original and converter regression RED | [Full GREEN](evidence/T05_TDD.md#t051--t052--t0521-full-green--verified), run39997623318:56 XCTest+59 Node+22 repeated TSAN+15 native checks | 4b639078337bd37e408cd1a4b58f268db35b2987 | Hosted macOS/Xcode26.2/SDK26.2 | PASSED | Real microphone, locked capture, recovery, ASR and all phone gates pending; ephemeral IPA not retained |
 | R06 / T06.1 resource unit/sanitizer | Readiness, handle identities and update/end ordering | Run40002877757:87 executed,9 failed,47 assertions | [T06 partial GREEN](evidence/T06_TDD.md#unitsanitizer-green-exact-source-native-build-failed), run40004059233:87 XCTest+59 Node+53 repeated TSAN passed | e2876e830c8f54c605875e0808dd5d0cb6329e8e | Hosted macOS/Xcode26.2 | PASSED | Core behavior only; actual iOS SDK backend fails compilation; no new native package/device proof |
 | R06 / T06.1 iOS SDK adapter compilation | Actual ActivityKit update/end and state observation | Not RED: compiler rejected non-Sendable actor reference | Run40004059233 native job failed; first repair pending | e2876e830c8f54c605875e0808dd5d0cb6329e8e | iOS SDK26.2/Swift6 | FAILED |0 native product/package checks and no new IPA; no seventh run this invocation |
+
+T06.1.1 regression RED: b873d6b081e949b80499217771c705d4445a5a67,
+[run40007944579](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40007944579),
+91XCTest=87pass4fail20assertions0skip. Actual macOS assertion failures, not
+compiler/zero-test failure. No Node/TSAN/native result after Swift RED. Checked
+SDK operation behavior/first native repair now implemented after RED, GREEN
+pending. Details docs/evidence/T06_TDD.md. No phone/model/artifact-retention pass.

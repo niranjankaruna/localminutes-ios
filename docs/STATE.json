@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-23T18:59:38.3551067Z",
+  "lastUpdated": "2026-10-23T19:01:21.4295232Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -11,7 +11,7 @@
   "lastVerifiedCommit": "c12bd9cde402e9529ad4fb5fbcb35624bbf744f1",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40001047762",
   "candidateArtifact": null,
-  "nextAction": "T06.1.1: push checked-outcome test-first commit and prove meaningful hosted RED for four new regression cases; only then implement retry/loss policy and ID-only ActivityKit SDK repair, require exact-SHA full native GREEN. Existing 87 tests stay intact.",
+  "nextAction": "T06.1.1: commit/push checked-outcome implementation and first ID-only native repair attempt; require91XCTest+59scripts+57TSAN+15native checks, device/simulator app+extension and package at exact SHA. No native result claimed yet.",
   "pendingPushCommit": null,
   "remoteBranchHead": "e2876e830c8f54c605875e0808dd5d0cb6329e8e",
   "localScriptGreen": {
@@ -31,7 +31,9 @@
   "ciInvocation": {
     "id": "2026-10-23-continuation-04",
     "maxNewRuns": 6,
-    "newRunIds": [],
+    "newRunIds": [
+      40007944579
+    ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-23T18:59:38.3551067Z"
   },
@@ -128,8 +130,8 @@
     "status": "IN_PROGRESS",
     "candidatePath": "docs/drafts/T06.1/ActivityKitOperations.swift.pending",
     "notesPath": "docs/drafts/T06.1/NATIVE_REPAIR.md",
-    "appliedToActiveSources": false,
+    "appliedToActiveSources": true,
     "validatedRepairAttempts": 0,
-    "missingLookupPolicyNeedsRegressionRed": true
+    "missingLookupPolicyNeedsRegressionRed": false
   }
 }

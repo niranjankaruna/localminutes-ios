@@ -86,3 +86,28 @@ Expected91 discovered XCTest; no result or native GREEN claimed before run.
 Source/CI/assertions will be recorded after actual RED. The prior compile
 failure remains visible and is not behavioral RED. Candidate SDK ID-only
 helper stays outside active sources until new regression RED is proven.
+Test-first source b873d6b081e949b80499217771c705d4445a5a67 pushed and remote verified. Run40007944579 in progress; no RED result yet. Bounded read-only reviewer confirmed old9assertions unchanged and new Core interface logically compileable; overlapping retry finalizer identity must be reviewed, since new retry tests join old callers first. Actual SDK lookup semantics remain a native/device boundary, not established by doubled outcomes.
+
+## T06.1.1 RED — verified before repair
+
+Test-first source **b873d6b081e949b80499217771c705d4445a5a67**,
+[run40007944579](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40007944579),
+23October2026 at19:02:38UTC. Hostedmacos-15-intel/Xcode26.2 command
+swift test --enable-code-coverage. **91 executed,87 passed,4 failed,
+20 assertion failures,0 skipped**. All four new cases fail; old87 pass.
+Missing end wrongly clears ownership/emits ended, failure event is absent,
+retry cannot reach original handle; missing update leaves readiness true and
+queued update reuses it. Compiler/discovery and assertions worked. Node,
+TSAN and native job did not run after Swift RED. Full ignored log archived
+locally at.agent-local/T06.1.1-red.log. No policy/SDK isolation behavior was
+implemented before this result; test-first commit and remote HEAD verified.
+
+Repair approach: single finalizer inside the shared async end task, so duplicate
+waiters never mutate a later retry; sticky end request closes start/update
+admission across failure; explicit notFound preserves ownership/observer and
+emits failure. Missing update revokes resource readiness and reports loss once,
+which requires app-owned recording cleanup. SDK helper receives only checked
+Sendable immutable ID/status, obtains exact matching SDK reference locally,
+awaits real update/end and returns explicit outcome. Native compilation and
+actual phone semantics remain pending. First compile-repair attempt follows.
+Pre-GREEN independent read-only review passed the real diff: state revoked before external callback; end finalizes only inside its coalesced task, duplicate waiters cannot clear retry; sticky cleanup and exact-ID SDK lookup preserved. Tests unchanged since RED. Swift6 native compilation remains authoritative.

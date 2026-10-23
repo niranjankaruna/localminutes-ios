@@ -45,3 +45,11 @@ recording intents and foreground fallback follow only after this gate succeeds.
 Six of six continuation-03 runs are terminal; no seventh run/re-run is allowed.
 Do not reset that ledger during compaction, push active changes that dispatch
 another run, weaken concurrency checking or claim an IPA exists at e2876e8.
+
+Continuation-04 update: after actual b873d6b/run40007944579 RED (91tests,
+87pass4fail20assertions), the candidate was integrated as active
+App/ActivityKitOperations.swift with the Core outcome enum. Controller now
+checks the outcome; shared end task alone finalizes, failed end stays owned
+and retryable, and no old duplicate waiter mutates a newer attempt. No native
+repair result yet. Original candidate above remains an uncompiled historical
+draft; authoritative active sources/evidence supersede its pending status.

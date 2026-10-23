@@ -72,6 +72,7 @@ private final class LiveActivityOwnership {
     let handle: any LiveActivityHandle
     var reportedActive = false
     var reportedLost = false
+    var endRequested = false
     var lastUpdate: Task<Void, Never>?
     var ending: Task<Void, Never>?
 
@@ -81,7 +82,7 @@ private final class LiveActivityOwnership {
     }
 
     var isActive: Bool {
-        guard reportedActive, !reportedLost, ending == nil else { return false }
+        guard reportedActive, !reportedLost, !endRequested else { return false }
         return handle.state == .active || handle.state == .stale
     }
 }
@@ -146,14 +147,21 @@ public final class LiveActivityController {
         let handle = ownership.handle
         let operation = Task {
             await previous?.value
-            _ = await handle.update(status: status)
+            guard self.current === ownership, !ownership.reportedLost else { return }
+            let outcome = await handle.update(status: status)
+            guard self.current === ownership, outcome == .notFound else { return }
+            let reportLoss = !ownership.reportedLost
+            ownership.reportedLost = true
+            self.onEvent(.updateFailed(sessionID))
+            if reportLoss { self.onEvent(.lost(sessionID)) }
         }
         ownership.lastUpdate = operation
         await operation.value
     }
 
     /// Matching duplicate ends share cleanup. Emit ended exactly once and only
-    /// after the real async end settles, even if an ended state arrives earlier.
+    /// after a matching real async end settles, even if a state arrives earlier.
+    /// A missing SDK resource remains owned, with explicit failure and retry.
     /// Retired handle callbacks cannot affect a replacement using the same ID.
     public func end(sessionID: UUID, status: LiveActivityStatus) async {
         guard let ownership = current, ownership.sessionID == sessionID else { return }
@@ -163,23 +171,32 @@ public final class LiveActivityController {
         } else {
             let pendingUpdate = ownership.lastUpdate
             let handle = ownership.handle
+            ownership.endRequested = true
             operation = Task {
                 await pendingUpdate?.value
-                _ = await handle.end(status: status)
+                let outcome = await handle.end(status: status)
+                guard self.current === ownership else { return }
+                // One finalizer per attempt. Duplicate callers only await it;
+                // no retired waiter can clear an attempt started by a retry.
+                ownership.ending = nil
+                switch outcome {
+                case .applied:
+                    handle.setStateObserver(nil)
+                    self.current = nil
+                    self.onEvent(.ended(sessionID))
+                case .notFound:
+                    self.onEvent(.endFailed(sessionID))
+                }
             }
             // Close update/start admission before the first suspension.
             ownership.ending = operation
         }
         await operation.value
-        guard current === ownership else { return }
-        ownership.handle.setStateObserver(nil)
-        current = nil
-        onEvent(.ended(sessionID))
     }
 
     private func receive(_ state: LiveActivityResourceState, from ownership: LiveActivityOwnership) {
         guard current === ownership, ownership.reportedActive,
-              !ownership.reportedLost, ownership.ending == nil else { return }
+              !ownership.reportedLost, !ownership.endRequested else { return }
         switch state {
         case .ended, .dismissed:
             ownership.reportedLost = true

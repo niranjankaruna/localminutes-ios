@@ -292,3 +292,15 @@ Diagnosis and concrete ID-only SDK operation candidate are saved in docs/drafts/
 Six of six CI runs are terminal; no seventh run/re-run. Final displayed1,026/2,000 included minutes used,974 remaining,$0 Actions billable; existing$0 hard stop last checked before final dispatches. Storage100% still blocks retained artifact delivery. No paid resource, publication, billing change, Apple credential or artifact upload occurred. Overall **IN_PROGRESS**, verifiedComplete=false. Usable recording screens, real ASR/summaries/product features and all physical signing/extension, Action Button warm/locked-cold, locked live transcription, both125-minute runs and in-place renewal remain pending/NOT_RUN.
 
 Final independent checkpoint audit checked actual Git refs/status, six terminal runs, state/backlog/verification and the two draft files. No contradictory completion, native-package or device claim found; active sources remain e2876e8, unmerged to main. Save/push only this documentation checkpoint.
+
+## Continuation-04 — T06.1.1 meaningful RED and implementation pending GREEN
+
+Resumed private task/t06-activity, verified auth/refs/latest failed CI and free
+cost guard; previous invocation made code/evidence progress. First new run
+40007944579 atb873d6b:91XCTest,87pass4fail20assertions0skip. Tests show missing
+SDK cleanup cannot be acknowledged and retry/update loss must be observable.
+After RED, added checked operation handling and actual ID-only SDK boundary;
+no native repair/GREEN claimed before CI. Old9contracts preserved. Exact next:
+verify focused/regression/sanitizer and native app+extension/package at new SHA.
+Device/signing/ASR/endurance/renewal remain NOT_RUN; artifact uploads blocked
+by full/unverified storage. Six-run cap current1/6, all prior ledgers preserved.

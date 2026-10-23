@@ -110,3 +110,4 @@ repeated. Read-only account observation:1,026/2,000 included Actions minutes
 used,974 displayed remaining, Actions billable$0; account-wide Actions$0/$0
 Usage blocked. Storage0.5/0.5GB100%, no uploads. No billing/visibility changes.
 Six-run cap starts at0 for this new goal invocation; previous ledgers retained.
+| [40007944579](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40007944579) | b873d6b081e949b80499217771c705d4445a5a67 | Test-first regression in progress; outcome pending |
