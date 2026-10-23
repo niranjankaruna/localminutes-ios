@@ -194,3 +194,12 @@ zero XCTest ran, so it is not regression RED. First bounded repair provides a
 lock-protected, callback-owned input cursor on the conversion worker only.
 The real-time queue remains lock-free. Terminal failure behavior is intentionally
 unchanged until actual assertions execute. Next is run5; two run slots remain.
+
+Verified regression RED at `ef6cad8` / run39993877448: 56 XCTest,54 passed,
+2 failed,5 assertions,0 skips. All real converter/writer and queue tests pass;
+only the new native-error state tests fail. Minimal fix now latches native
+conversion failure and marks finish successful only after drain succeeds.
+Final run6 will require all56 +51 script tests,22 queue sanitizer executions,
+device/simulator builds,15 native product/package tests and actual ephemeral IPA.
+The existing $0 budget and 1,356.3 displayed included minutes remain verified;
+storage upload remains blocked. No seventh run is allowed this invocation.

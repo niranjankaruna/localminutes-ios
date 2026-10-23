@@ -88,6 +88,7 @@ public final class PCMStreamConverter {
     private let converter: (any PCMConversionEngine)?
     private var didFinish = false
     private var hasInput = false
+    private var failed = false
 
     public convenience init(inputFormat: AVAudioFormat) throws {
         try self.init(inputFormat: inputFormat, engineFactory: { input, output in
@@ -115,6 +116,7 @@ public final class PCMStreamConverter {
     }
 
     public func append(_ input: AVAudioPCMBuffer) throws -> [AVAudioPCMBuffer] {
+        guard !failed else { throw PCMConversionError.conversionFailed }
         guard !didFinish else { throw PCMConversionError.finished }
         guard input.format == inputFormat else { throw PCMConversionError.formatMismatch }
         guard input.frameLength > 0 else { return [] }
@@ -132,14 +134,28 @@ public final class PCMStreamConverter {
         }
         hasInput = true
         if converter == nil { return [mono] }
-        return try convert(mono, ending: false)
+        do { return try convert(mono, ending: false) }
+        catch {
+            failed = true
+            throw PCMConversionError.conversionFailed
+        }
     }
 
     public func finish() throws -> [AVAudioPCMBuffer] {
+        guard !failed else { throw PCMConversionError.conversionFailed }
         guard !didFinish else { return [] }
-        didFinish = true
-        guard converter != nil, hasInput else { return [] }
-        return try convert(nil, ending: true)
+        guard converter != nil, hasInput else {
+            didFinish = true
+            return []
+        }
+        do {
+            let tail = try convert(nil, ending: true)
+            didFinish = true
+            return tail
+        } catch {
+            failed = true
+            throw PCMConversionError.conversionFailed
+        }
     }
 
     private func convert(_ input: AVAudioPCMBuffer?, ending: Bool) throws -> [AVAudioPCMBuffer] {

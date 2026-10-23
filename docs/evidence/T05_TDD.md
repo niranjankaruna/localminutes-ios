@@ -139,3 +139,15 @@ lock-protected callback context. The lock is solely on the conversion worker,
 never the engine tap or queue producer. Public conversion remains serial-owned.
 No terminal failure behavior is fixed before the fault tests actually run.
 Next is run 5 of 6; the prior genuine 53/54-test RED remains preserved.
+
+## Converter regression RED — verified, 23 October 2026 17:19 UTC
+
+Source `ef6cad857ce22750ec359fb61cee660de303db62`,
+[run39993877448](https://github.com/niranjankaruna/localminutes-ios/actions/runs/39993877448),
+compiled and executed 56 XCTest: **54 passed, 2 failed, 5 assertion failures,
+0 skipped**. All 22 queue, 5 real conversion/format, 7 real writer and 20 prior
+tests passed. Only the two native-error boundary regression tests failed:
+repeated finish did not throw; append returned `.finished` after drain failure;
+the failed native engine was reentered 3 times instead of once. This is meaningful
+RED after the compiler repair, recorded before the failure-state fix.
+Node, sanitizer and native-build did not run after the Swift regression failure.

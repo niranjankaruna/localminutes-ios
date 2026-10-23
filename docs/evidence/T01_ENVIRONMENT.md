@@ -117,3 +117,12 @@ settings or unrelated artifacts were changed. Bounded standard-runner execution
 may resume; start with the saved native packaging fix. Maximum six new runs,
 one active run per branch, existing 10-minute core / 15-minute native timeouts.
 Do not assume the entire remaining allowance is reserved for this project.
+
+### Continuation-02 recheck, about 17:19 UTC
+
+Before the final bounded CI slot, the authenticated account view showed
+**643.7 / 2,000 Actions minutes used** (1,356.3 displayed remaining), billable
+Actions usage **$0**, storage **0.5 / 0.5 GB, 100%**. The account-wide Actions
+budget was reloaded and still showed **$0.00 / $0.00, Usage blocked**. These were
+read-only observations; no budget, payment, visibility or storage changes.
+Run5 is in flight; only run6 may be dispatched after it terminates. No upload.
