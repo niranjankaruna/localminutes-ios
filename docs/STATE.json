@@ -16,7 +16,7 @@
   "ciInvocation": {
     "id": "2026-10-23-initial",
     "maxNewRuns": 6,
-    "newRunIds": [],
+    "newRunIds": [39972652907],
     "costGuardObservedAt": "2026-10-23T14:41:00Z"
   },
   "deviceGates": {
