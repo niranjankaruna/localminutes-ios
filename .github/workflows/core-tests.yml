@@ -67,7 +67,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node scripts/verify-test-log.mjs .build/test-output.log testHarnessExecutesAnAssertion testControlledClockAdvancesWithoutSleeping testConcurrentStartsEmitExactlyOnePreparation testConcurrentStopsEmitExactlyOneFlushAndCompleteOnlyAfterAcknowledgement testInterruptionDuringActivationRejectsLateRecordingSuccess testAcceptedPCMIsOwnedAndSurvivesSourceMutation testSequenceCountersWrapWithoutLosingFullEmptyFIFOOrLossState testRealConversionProduces16kMonoAndPreservesDuration testRealCAFSegmentsContain16BitMonoSamplesAndPersistManifest
+          node scripts/verify-test-log.mjs .build/test-output.log testHarnessExecutesAnAssertion testControlledClockAdvancesWithoutSleeping testConcurrentStartsEmitExactlyOnePreparation testConcurrentStopsEmitExactlyOneFlushAndCompleteOnlyAfterAcknowledgement testInterruptionDuringActivationRejectsLateRecordingSuccess testAcceptedPCMIsOwnedAndSurvivesSourceMutation testSequenceCountersWrapWithoutLosingFullEmptyFIFOOrLossState testParallelSPSCStressPreservesAcceptedSamplesOrderAndAllDroppedFrames testRealConversionProduces16kMonoAndPreservesDuration testRealCAFSegmentsContain16BitMonoSamplesAndPersistManifest testCompletedSegmentIsReadableAndCheckpointedBeforeFinish
+      - name: Exercise queue under Thread Sanitizer
+        shell: bash
+        run: |
+          set -euo pipefail
+          swift test --sanitize=thread --filter OwnedPCMQueueTests 2>&1 | tee .build/queue-tsan.log
+          node scripts/verify-test-log.mjs .build/queue-tsan.log testParallelSPSCStressPreservesAcceptedSamplesOrderAndAllDroppedFrames testFinishDrainsQueuedFIFOAndReportsTrailingLossExactlyOnce
 
   native-build:
     needs: core

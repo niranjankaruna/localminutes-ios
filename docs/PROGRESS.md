@@ -175,3 +175,10 @@ The empty queue rejected valid PCM, and conversion/writing remained unimplemente
 Node/native-build did not run after Swift RED. Review strengthened cross-append
 PCM checks and added a before-finish durable checkpoint case (54 tests expected).
 Push that test-only follow-up next, then implement after native RED is preserved.
+
+Expanded writer source `bc4e1b7` / run39991627557 compiled and ran 54 XCTest:
+20 passed, 34 failed, 140 assertions, 0 skipped. Closed-segment checkpoint case
+failed against the stub as intended. After preserving both RED results, queue,
+real conversion and CAF writer implementations are prepared for GREEN run 4 of 6.
+Queue regression will also run under Thread Sanitizer. No native GREEN or real
+microphone/device result is claimed from static review.

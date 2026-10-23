@@ -1,6 +1,7 @@
 # ADR 0001: owned bounded audio handoff
 
-Status: selected for T05.1 tests first, not yet implemented or validated.
+Status: implemented after verified native RED; GREEN, sanitizer and real-time
+allocation inspection still pending. No microphone or device result is implied.
 
 The AVAudioEngine callback must copy samples into app-owned, preallocated
 storage and return promptly. The worker converts and persists samples outside

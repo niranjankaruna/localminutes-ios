@@ -70,3 +70,51 @@ Swift RED stopped the following Node command and skipped the native-build job.
 There is no script-regression, native app, microphone, model or device result
 from this run. The expanded 54-test writer follow-up must also be pushed before
 implementation; it changes no production behavior and preserves this RED.
+
+## Expanded writer RED — verified, 23 October 2026 17:03 UTC
+
+Test-only source `bc4e1b7dfd3b09a977826462febcc1263e2cfbae` was pushed before
+any writer behavior. [Run39991627557](https://github.com/niranjankaruna/localminutes-ios/actions/runs/39991627557)
+compiled successfully and executed 54 XCTest: 20 passed, 34 failed, 140 assertion
+failures, 0 skipped. `testCompletedSegmentIsReadableAndCheckpointedBeforeFinish`
+failed with caught `.notImplemented`; the other writer/queue/conversion failures
+remained visible. Node and native-build again did not run after Swift RED.
+The actual result is saved before implementing writer behavior. Queue/converter
+implementation began only after the earlier matching RED was verified.
+
+## Implementation prepared — native GREEN pending
+
+The conversion worker now averages planar channels explicitly and uses one real
+AVAudioConverter per sample-rate epoch, respecting requested input lengths,
+temporary input starvation and once-only final end-of-stream. It never resets
+between chunks. Same-rate input still gets an owned mono copy. Worker allocations
+and conversion are outside the planned real-time callback.
+
+The serial CAF writer uses real AVAudioFile Float32-to-16-bit writes, a bounded
+scratch buffer, approximately one-minute segments by default, explicit close and
+file synchronization, and atomically replaced metadata for closed segments.
+Append/finish/format/I/O state is explicit. No recovery or power-loss guarantee
+is inferred from this code: T08 still needs reconciliation, fault injection,
+database journal and protection-policy tests. The caller must supply an app-owned
+session directory. No model, recording-only fallback success or device pass.
+
+Primary API checks on 23 October: Apple's
+[TN3136 conversion guidance](https://developer.apple.com/documentation/technotes/tn3136-avaudioconverter-performing-sample-rate-conversions)
+and [AVAudioFile.close](https://developer.apple.com/documentation/avfaudio/avaudiofile/close()).
+The latter is available from iOS18/macOS15, matching the project minimum, and
+updates file headers on explicit close. Actual compilation and decoded sample
+assertions, not this documentation observation, must establish native GREEN.
+
+Queue implementation was reviewed against its actual diff and 22 original tests.
+Preallocation covers samples and metadata; no heap-owning payload, collection,
+task, lock, conversion or I/O occurs in enqueue/dequeue. Release/acquire ordering
+includes reloading the write cursor after finish, preventing a stale empty read
+from dropping a final published chunk. This is a code review, not a real-time
+performance measurement. The next hosted run also executes all 22 queue tests
+under Thread Sanitizer with the same strict nonzero/discovery/exit checks.
+
+Independent review found a converter failure-state regression before first GREEN:
+finish marks completion before its throwing native drain. A repeated finish can
+then return an empty success after a lost tail. A deterministic native-boundary
+fault test must prove RED before changing that state. Successful signal tests
+continue to require real AVAudioConverter; the fault double is test-only.

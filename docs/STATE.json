@@ -11,9 +11,9 @@
   "lastVerifiedCommit": "ca803757573b5f98ff502494f5526b1db620b7d5",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/39987058071",
   "candidateArtifact": null,
-  "nextAction": "T05.1/T05.2: preserve actual 53-test native RED, push the strengthened 54-test writer follow-up before production behavior, then implement the tested queue, conversion and CAF persistence. Next is invocation run 3 of 6. T05.3 and all model/device gates remain pending.",
+  "nextAction": "T05.1/T05.2 implementation follows verified 54-test RED. Independent review found native drain errors can be hidden by a later finish; add/push regression tests before fixing that state. Next hosted run is 4 of 6. Queue/native regressions, sanitizer, microphone/model/device gates remain pending.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "818481cc11d0c92b8a8d361d9441f82590f4ca98",
+  "remoteBranchHead": "bc4e1b7dfd3b09a977826462febcc1263e2cfbae",
   "localScriptGreen": {
     "sourceCommit": "14a988604c05e2484e9d08bf5d4d11e04d217e73",
     "platform": "Windows 11 / Node 24.21.0",
@@ -33,18 +33,19 @@
     "maxNewRuns": 6,
     "newRunIds": [
       39987058071,
-      39990764814
+      39990764814,
+      39991627557
     ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-23T16:28:12Z"
   },
   "latestCIRun": {
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/39990764814",
-    "sourceCommit": "818481cc11d0c92b8a8d361d9441f82590f4ca98",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/39991627557",
+    "sourceCommit": "bc4e1b7dfd3b09a977826462febcc1263e2cfbae",
     "conclusion": "failure",
-    "executedXCTests": 53,
+    "executedXCTests": 54,
     "passedXCTests": 20,
-    "failedXCTests": 33,
+    "failedXCTests": 34,
     "skippedXCTests": 0,
     "executedNodeTests": 0,
     "passedNodeTests": 0,
