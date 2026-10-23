@@ -101,3 +101,25 @@ saved outside active paths; recheck cost/Git next invocation, prove RED then
 implement. No seventh run/re-run, no uploads or paid/publication changes.
 Separate ARTIFACT_STORAGE_HEADROOM_UNVERIFIED remains active; all device gates
 remainNOT_RUN, not passed or inferred blocked merely from code completion.
+
+## Continuation-05 checkpoint — execution boundary and approved public builds
+
+All six runs are terminal. Final6b5fd0c/run40027966192 verified new native Toggle
+regression RED (39executed38pass1fail9assertions0skip), then hit the configured
+15minute limit during an incomplete UI suite. Local covered repair695b99b is
+uncompiled; native25minute bound/public configuration4dfacf6 is also local.
+Remote1718b09 preserves RED; main remains known-good. No seventh dispatch or
+source push in this invocation. This boundary is not a credential/device failure.
+
+The owner explicitly authorized public visibility to continue free standard
+hosted builds. Actual PUBLIC status was verified through authenticated and
+unauthenticated GitHub APIs; evidence:T01_PUBLIC_REPOSITORY.md. The private-minute
+allowance concern no longer blocks standard macos-15-intel execution under the
+verified public policy. No billing settings were changed. Artifact retention
+still requires its own verification and remains the separate existing blocker.
+
+The owner requests three sub-agents and a one-hour push focused on actual
+transcription; those agents are running. They must not bypass TDD or start
+recursive sessions. Next invocation can continue from their test-first outputs
+and the saved source history. Physical125minute tests are owner-run/manual and
+remain pending, with no waiver or fabricated result.

@@ -81,3 +81,30 @@ on missing controls,0skip, with .xcresult confirmation; apps launch successfully
 Actual product/test-target compile passes; package0/no IPA. Next UI implementation
 and unexecuted preparing-toggle regression remain unverified, not full CI GREEN.
 All physical/realmodel gates NOT_RUN; no candidate delivered.
+
+Continuation-05 terminal evidence at6b5fd0c/run40027966192: core115Swift,
+59Node and81TSAN passed; native products compiled; native39 executed38pass,
+one new preparing-toggle regression failed9assertions, zero skipped. Its local
+repair695b99b awaits compilation/GREEN. Actual shared Activity Stop UI case
+passed, terminal timer interrupted in teardown, Start case not run. The suite
+has no aggregate/result-bundle verification, so full UI GREEN is NOT_RUN.
+GitHub confirms15m maximum timeout. No packaging/new IPA. Details:T06_TDD.md.
+
+R01 public visibility/cost change: explicit owner approval, historical path/blob
+and document review, then live authenticated+unauthenticated API verification
+of PUBLIC on23October2026 at21:59UTC. PASSED within that account-operation scope;
+see evidence/T01_PUBLIC_REPOSITORY.md. Standard hosted macos-15-intel is free;
+the remaining six-run/job/zero-spend limits are retained.
+
+T09/T10/T08 are now prioritized parallel test-first work. Actual model-file hash
+verification has been reported by the ASR agent; native app inference is NOT_RUN
+and Windows recognition has not yet been reported. Do not infer feature completion.
+Manual125minute iPhone endurance is assigned to the owner. Both required runs
+remain NOT_RUN pending owner reports. No acceptance criterion has been waived.
+
+Later parallel report: actual Windows sherpa-onnx/core1.13.8 CPU streaming
+recognition executed on8.395seconds of original synthetic speech.21 evolving
+partials, reference error2/21words, endpoint/reset/replacement checks passed.
+This is desktop candidate feasibility, not native iPhone integration or quality/
+endurance evidence. Ignored actual-result.json is available locally; sanitized
+T10_CANDIDATE.md is being prepared by the agent. No production-ASR gate passes.

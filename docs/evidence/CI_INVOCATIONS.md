@@ -168,9 +168,17 @@ bound final run to21runner minutes (210 included macOS minutes); prior actual
 durations3m42s/12m22s fit. All tests and failure checks stay mandatory. Shared
 allowance is not reserved. No upload/payment/visibility/budget setting changed.
 
-| [40027966192](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40027966192) | 6b5fd0c074672c467f0d26c5797683b706ec8263 | Final6/6 run active: new native preparing-toggle regression before repair, UI/shared Activity controls after real UI RED. No result claimed yet |
+| [40027966192](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40027966192) | 6b5fd0c074672c467f0d26c5797683b706ec8263 | Terminal cancelled at15m bound after native39 executed38pass1fail9assertions0skip (new Toggle regression RED); core115+59Node+81TSAN pass, actual products/test targets compile. UI2started/1completed-pass/second interrupted in teardown/third not started; no aggregate/package/new IPA |
 
 Six-run dispatch cap reached. Follow this exact live run only; no seventh push
 trigger, manual dispatch or re-run this invocation. Documentation-only checkpoint
 pushes do not trigger the workflow. New behavioral repair must retain its RED
 history and await later exact-source full GREEN; preserve known-good main.
+
+Final run annotation confirms maximum15m0s. No UI aggregate is accepted; the strict
+reporter rejects the incomplete suite. All6/6 runs terminal; no seventh dispatch.
+Covered local repair695b99b and public-build configuration4dfacf6 are unpushed.
+The owner explicitly approved public visibility; authenticated and unauthenticated
+GitHub API checks confirm PUBLIC. Standard macos-15-intel is officially free for
+public repositories; native time bound restored to25min for the next invocation.
+See T01_PUBLIC_REPOSITORY.md. No billing settings or spending guard changed.

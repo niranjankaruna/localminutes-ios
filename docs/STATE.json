@@ -3,17 +3,17 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-23T21:50:13Z",
+  "lastUpdated": "2026-10-23T22:12:56.669Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "T06.2.2.2",
+  "currentTask": "T10.1",
   "lastVerifiedCommit": "40100fdb9a8349acdbf2d22c63eb25ce959e9388",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017962923",
   "candidateArtifact": null,
-  "nextAction": "T06.2.2.2: follow the same live final6/6 run40027966192 at6b5fd0c for3UI. Native39 executed38passed1failed9assertions0skip; preparing-toggle RED is recorded before repair. Implement covered cancellation locally only, then checkpoint actual terminal results and exact pending full GREEN. No seventh dispatch or re-run; preserve known-good main.",
-  "pendingPushCommit": null,
-  "remoteBranchHead": "6b5fd0c074672c467f0d26c5797683b706ec8263",
+  "nextAction": "Continue owner-prioritized one-hour real transcription push. Read three active agent outputs (bootstrap_review T10, verified_models T09, meeting_storage T08). Next legitimate invocation verify actual refs/PUBLIC standard macos-15-intel guard, activate coherent tests plus minimal stubs, push saved local HEAD and prove actual hosted RED before any new model/storage production behavior. Saved695b99b Toggle repair already has RED; fold it into exact-source full GREEN with39native/3UI/115Swift/59Node/81TSAN/native-package regressions. No seventh dispatch in continuation-05. Root alone commits/dispatches. Physical125minute checks are owner-run, two passes remain pending.",
+  "pendingPushCommit": "4dfacf696a1fded2c39dcc49eb561535bf3e0017",
+  "remoteBranchHead": "1718b09ebc91f74341a0770fc1aea1d8a9fffc97",
   "localScriptGreen": {
     "sourceCommit": "6b5fd0c074672c467f0d26c5797683b706ec8263",
     "platform": "Windows 11 / Node 24.21.0",
@@ -46,12 +46,19 @@
       "nativeMinutes": 15,
       "observedIncludedMinutesRemaining": 219.7,
       "blockedOverage": true
+    },
+    "allRunsTerminal": true,
+    "visibilityChangedAfterFinalRun": true,
+    "nextRunLimits": {
+      "coreMinutes": 6,
+      "nativeMinutes": 25,
+      "maximumJobMinutes": 45
     }
   },
   "latestCIRun": {
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40024451125",
-    "sourceCommit": "7c1ae7c6edda4a4ee23b47299e45f22a6fcef409",
-    "conclusion": "failure",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40027966192",
+    "sourceCommit": "6b5fd0c074672c467f0d26c5797683b706ec8263",
+    "conclusion": "cancelled",
     "executedXCTests": 115,
     "passedXCTests": 115,
     "failedXCTests": 0,
@@ -67,33 +74,39 @@
       "skipped": 0,
       "conclusion": "success"
     },
-    "nativeBuildJobConclusion": "failure",
+    "nativeBuildJobConclusion": "cancelled",
     "nativeProductsCompile": true,
     "nativeApp": {
-      "executed": 38,
+      "executed": 39,
       "passed": 38,
-      "failed": 0,
-      "assertionFailures": 0,
+      "failed": 1,
+      "assertionFailures": 9,
       "skipped": 0,
-      "conclusion": "success",
+      "conclusion": "failure",
       "runtime": "iOS26.2",
       "simulator": "iPhone17Pro/x86_64",
       "resultBundleVerified": true
     },
     "nativeUI": {
-      "executed": 3,
-      "passed": 0,
-      "failed": 3,
-      "assertionFailures": 3,
-      "skipped": 0,
-      "conclusion": "failure",
-      "resultBundleVerified": true
+      "expectedCases": 3,
+      "startedCases": 2,
+      "completedCases": 1,
+      "passedCompletedCases": 1,
+      "failedCompletedCases": 0,
+      "observedAssertionFailures": 0,
+      "notStartedCases": 1,
+      "conclusion": "cancelled",
+      "resultBundleVerified": false,
+      "aggregateVerified": false,
+      "completedCase": "testSharedActivityStopControlDispatchesItsExactSessionToTheApplicationOwner",
+      "incompleteCase": "testSharedActivityTerminalTimerIsFixedAndStopIsDisabled",
+      "notStartedCase": "testStartExplainsMissingSpeechModelWithoutClaimingRecording"
     },
     "nativeProductAndPackageChecks": {
       "executed": 0,
       "conclusion": "NOT_RUN"
     },
-    "note": "Actual UI missing-control assertion RED, not startup/compile failure or timeout. No new IPA."
+    "note": "Actual39-case native regression RED verified before repair. GitHub annotation confirms15m0s maximum; UI cancelled during second case teardown, third never started. Strict UI reporter rejects missing aggregate. No full UI GREEN or new IPA."
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -162,7 +175,7 @@
     "T06.2.1",
     "T06.2.2.1"
   ],
-  "remoteBranchHeadScope": "Last implementation source before the final documentation-only checkpoint; inspect actual Git refs for the checkpoint HEAD.",
+  "remoteBranchHeadScope": "Verified remote task branch HEAD. Local repair and approved-public configuration/checkpoint remain unpushed to preserve continuation-05 six-run cap.",
   "nativeCompileRepair": {
     "status": "CODE_COMPLETE_PENDING_DEVICE",
     "candidatePath": "docs/drafts/T06.1/ActivityKitOperations.swift.pending",
@@ -174,7 +187,7 @@
   "codeCompletedThisInvocation": [
     "T06.2.2.1"
   ],
-  "codeCompletionScope": "Tested resource/controller/owner components only. Overall IN_PROGRESS: app composition, native intents, actual models, UI and all physical gates remain unfinished.",
+  "codeCompletionScope": "T06.2.2.1 router component fully GREEN. Native default owner/intents/timing original38 cases pass; added preparing-toggle regression is RED and its local repair awaits compile/GREEN. One shared-view UI test passed; full UI suite, actual ASR, product history/features and all physical gates remain unfinished.",
   "ownerCompositionTestFirst": {
     "testCount": 12,
     "inActiveBuildPaths": true,
@@ -195,7 +208,7 @@
   },
   "nativeIntentTestFirst": {
     "path": "docs/drafts/T06.2.2/native/README.md",
-    "nativeIntentCases": 10,
+    "nativeIntentCases": 11,
     "activityContentCases": 3,
     "appHostExpectedCases": 39,
     "uiExpectedCases": 3,
@@ -215,7 +228,7 @@
     "greenVerifiedCommit": "7c1ae7c6edda4a4ee23b47299e45f22a6fcef409",
     "additionalModeProbeExecuted": true,
     "uiRedVerified": true,
-    "sourceScope": "Original38 app-hosted cases GREEN at7c1ae7c and unchanged/pass again at6b5fd0c. UI3 RED at7c1ae7c before new controls. Added preparing-toggle regression RED verified at6b5fd0c/run40027966192 before repair; UI3 still running.",
+    "sourceScope": "Original38 native cases pass again at6b5fd0c. Added preparing-toggle regression failed9 assertions before local695b99b repair. All39 and all3UI must pass at next exact source; no full native GREEN for repair yet.",
     "originalNativeGreenExecuted": 38,
     "hiddenStopSDKMode": "background, observed iOS26.2; no mode declaration change",
     "uiProductionBehaviorImplemented": true,
@@ -224,11 +237,15 @@
       "inActiveBuildPaths": true,
       "executed": true,
       "redVerified": true,
-      "repaired": false,
+      "repaired": true,
       "redSourceCommit": "6b5fd0c074672c467f0d26c5797683b706ec8263",
       "redRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40027966192",
       "redAssertionFailures": 9,
-      "acceptance": "Second native Toggle during held model preflight must request cleanup before late readiness and cannot start any hardware."
+      "acceptance": "Second native Toggle during held model preflight must request cleanup before late readiness and cannot start any hardware.",
+      "repairCommit": "695b99ba9857488ec759bf3b723feb73f734b3b8",
+      "repairPushed": false,
+      "repairCompiled": false,
+      "greenVerified": false
     }
   },
   "nativeUI": {
@@ -241,12 +258,122 @@
     "skipped": 0,
     "implementationExists": true,
     "greenVerified": false,
-    "physicalExtensionEvidence": false
+    "physicalExtensionEvidence": false,
+    "latestRun": {
+      "expectedCases": 3,
+      "startedCases": 2,
+      "completedCases": 1,
+      "passedCompletedCases": 1,
+      "failedCompletedCases": 0,
+      "observedAssertionFailures": 0,
+      "notStartedCases": 1,
+      "conclusion": "cancelled",
+      "resultBundleVerified": false,
+      "aggregateVerified": false,
+      "completedCase": "testSharedActivityStopControlDispatchesItsExactSessionToTheApplicationOwner",
+      "incompleteCase": "testSharedActivityTerminalTimerIsFixedAndStopIsDisabled",
+      "notStartedCase": "testStartExplainsMissingSpeechModelWithoutClaimingRecording"
+    },
+    "latestSourceCommit": "6b5fd0c074672c467f0d26c5797683b706ec8263",
+    "latestRunUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40027966192"
   },
-  "activeCIRun": {
-    "sourceCommit": "6b5fd0c074672c467f0d26c5797683b706ec8263",
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40027966192",
-    "status": "in_progress",
-    "ordinal": 6
-  }
+  "activeCIRun": null,
+  "pendingPushScope": "Last local implementation/configuration commit; the later local documentation checkpoint is also unpushed. Next invocation must push actual HEAD, not this ancestor alone.",
+  "repositoryVisibility": "PUBLIC",
+  "publication": {
+    "approvedByOwner": true,
+    "approvalEvidence": "docs/evidence/T01_PUBLIC_REPOSITORY.md",
+    "verifiedAt": "2026-10-23T21:59:27Z",
+    "authenticatedAPI": true,
+    "unauthenticatedAPI": true,
+    "scopedRepository": "niranjankaruna/localminutes-ios",
+    "historyReview": {
+      "commits": 56,
+      "objects": 804,
+      "blobs": 416,
+      "historicalPaths": 128,
+      "credentialSignatureFindings": 0,
+      "forbiddenDataPaths": 0,
+      "docxMetadataAndThumbnailReviewed": true
+    },
+    "billingSettingsChanged": false
+  },
+  "ciCostGuard": {
+    "verifiedAt": "2026-10-23T21:59:27Z",
+    "basis": "Verified PUBLIC repository and officially free standard macos-15-intel runner",
+    "evidence": "docs/evidence/T01_PUBLIC_REPOSITORY.md",
+    "standardRunnerOnly": true,
+    "largerRunnersAllowed": false,
+    "extraSpendAllowed": false,
+    "artifactRetentionVerified": false
+  },
+  "localSourceReview": {
+    "commit": "695b99ba9857488ec759bf3b723feb73f734b3b8",
+    "reviewer": "root diff/security review; not independent review",
+    "scope": "Two bounded MainActor operation slots, epoch-scoped cancellation, same settled reply for both callers, no changed tests or new capture/model/extension ownership.",
+    "nativeExecutionPending": true
+  },
+  "parallelTasks": [
+    "T10.1",
+    "T09.1",
+    "T08.1"
+  ],
+  "oneHourPush": {
+    "startedAt": "2026-10-23T22:06:40Z",
+    "targetCheckpointAt": "2026-10-23T23:06:40Z",
+    "requestedByOwner": true,
+    "priority": "Working real offline transcription slice",
+    "agents": [
+      {
+        "name": "/root/bootstrap_review",
+        "scope": "Actual CPU recognizer/model evaluation and test-first native adapter",
+        "status": "running"
+      },
+      {
+        "name": "/root/verified_models",
+        "scope": "Verified installer tests and minimal stubs",
+        "status": "IN_PROGRESS",
+        "stage": "23 installer tests/no-op interfaces ready; reactivate for implementation only after root reports actual hosted RED"
+      },
+      {
+        "name": "/root/meeting_storage",
+        "scope": "Real SQLite/history tests and minimal stubs",
+        "status": "IN_PROGRESS",
+        "stage": "15 SQLite tests/no-op interfaces ready; reactivate for implementation only after root reports actual hosted RED"
+      }
+    ],
+    "rootOwnsGitAndCI": true,
+    "fullVerifiedCompletionClaimed": false
+  },
+  "manualDeviceValidation": {
+    "operator": "owner",
+    "execution": "manual physical iPhone",
+    "agentEnduranceExecutionRequested": false,
+    "enduranceMinutes": 125,
+    "requiredLongPasses": 2,
+    "status": "NOT_RUN",
+    "waived": false,
+    "evidence": []
+  },
+  "modelCandidateProgress": {
+    "actualPinnedFilesDownloaded": true,
+    "actualFileHashesVerified": true,
+    "reportedBy": "/root/bootstrap_review",
+    "nativeAppRecognizerIntegrated": false,
+    "actualRecognitionReported": true,
+    "weightsCommitted": false,
+    "actualRecognitionPlatform": "Windows11 / sherpa-onnx1.13.8 / CPU2threads",
+    "actualRecognitionScope": "8.395second synthetic original SAPI speech; streaming3200frame chunks,21 evolving partials, WER2/21=9.5238%; endpoint/reset/replacement checked. Desktop candidate evidence only, no iPhone performance or production integration pass.",
+    "localEvidence": ".agent-local/asr-evaluation/actual-result.json",
+    "sanitizedEvidence": "docs/evidence/T10_CANDIDATE.md (agent preparing; verify file before citing as complete)"
+  },
+  "pendingTestDrafts": [
+    "docs/drafts/T09/ModelManifest.swift",
+    "docs/drafts/T09/ModelInstallationManager.swift",
+    "docs/drafts/T09/ModelInstallationManagerTests.swift",
+    "docs/drafts/T09/MODEL_INSTALL_TESTS.md",
+    "docs/drafts/T08/MeetingStoreInterfaces.swift",
+    "docs/drafts/T08/SQLiteMeetingStoreTests.swift",
+    "docs/drafts/T08/ACTIVATION.md"
+  ]
 }

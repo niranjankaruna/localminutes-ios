@@ -167,3 +167,15 @@ No setting, payment, visibility, upload or unrelated artifact changed. Four of
 six runs dispatched; run40020680067 remains active. Included minutes are shared
 account-wide, not reserved. No next dispatch before that run is terminal and
 the current guard is rechecked. Artifact delivery remains blocked on headroom.
+
+## Owner-approved public standard-runner guard — 23 October 2026, 21:59 UTC
+
+The owner explicitly approved making niranjankaruna/localminutes-ios public.
+Actual visibility PUBLIC/private:false was confirmed with authenticated and
+unauthenticated GitHub API requests after historical privacy review. Standard
+macos-15-intel is documented free and unlimited for public repositories. Exact
+sources, scope and observations: [Public repository evidence](T01_PUBLIC_REPOSITORY.md).
+No payment, spending-guard, larger-runner or unrelated-repository change occurred.
+Retain6runs/invocation, one active/branch, maximum45minute jobs; next native bound
+25minutes, core6minutes. Public status does not verify artifact retention/device
+behavior. Final continuation-05 used all6runs; do not dispatch a seventh.

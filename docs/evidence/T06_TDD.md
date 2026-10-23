@@ -528,3 +528,55 @@ GREEN or new package is claimed. This is the final6/6 run of continuation-05.
 Next: implement epoch-scoped preflight cancellation, keep overlapping-stop
 coalescing and truthful settled replies, then require later exact-source GREEN.
 No seventh dispatch or re-run this invocation; main remains known-good.
+
+## Continuation-05 final result and local repair
+
+The final run above is terminal, conclusion CANCELLED. Native app-hosted
+execution completed before cancellation: 39 cases, 38 passed, one failed with
+nine assertions, zero skipped. The GitHub check annotation says exactly:
+"The job has exceeded the maximum execution time of 15m0s". This timeout is
+separate from the already verified preparing-toggle RED. Local extraction and
+the unchanged strict reporter confirm the same 39/38/1/9/0 native counts.
+
+The three-case UI suite is INCOMPLETE. The actual shared Activity Stop view
+dispatched its UUID through Button(intent:) to the app owner and its test passed
+in 91.820 seconds. The terminal-timer case started and was cancelled during
+teardown; it has no completed pass record. The Start/model-required case never
+started. There is no UI aggregate or verified result bundle. The unchanged
+reporter correctly rejects this log with "Incomplete XCTest aggregate summary".
+Do not label the suite GREEN or its cancellation behavioral RED. No product/
+package checks followed; no new IPA was created.
+
+Actual device/simulator app and extension products and native test targets
+compiled. Core regressions passed: 115 XCTest, 59 Node and 81 repeated TSAN
+cases, zero failures/skips/reported races. The unchanged 59 Node cases also
+passed locally on Windows after the sandbox-only symlink-fixture denial was
+resolved by an authorized direct run. That initial tool denial is not RED.
+Ignored logs: .agent-local/T06.2.2-6b5fd0c-final-validation.log,
+T06.2.2-6b5fd0c-native-app.log, T06.2.2-6b5fd0c-ui.log and
+T06.2.2-6b5fd0c-windows-node.log.
+
+Only after this recorded RED, local commit
+695b99ba9857488ec759bf3b723feb73f734b3b8 adds epoch-scoped preflight cancellation.
+An overlapping Toggle during preparation admits a scoped Stop, and both native
+callers await that same settled cleanup. Existing overlapping stops still share
+their original operation. Root diff/security review checked two bounded
+MainActor task slots, replacement-session guards, creator cancellation, no test
+changes and no new capture/model/extension ownership. This is root review, not
+independent or executed validation. The repair remains UNCOMPILED and UNVERIFIED.
+
+Documentation-only RED checkpoint1718b09ebc91f74341a0770fc1aea1d8a9fffc97 is
+pushed and remotely verified. Repair695b99b and configuration4dfacf6 are local
+only: pushing their source history now would trigger a prohibited seventh run.
+All six continuation-05 runs are terminal. Main stays at known-good5ec4a3e
+documentation over fully verified40100fd source. A later invocation must verify
+actual refs/public standard-runner guard, push actual saved HEAD and obtain full
+39-native/3-UI/regression/native-package GREEN at that exact source before merge.
+
+The owner has explicitly approved and verified public visibility; evidence is
+T01_PUBLIC_REPOSITORY.md. Native timeout is restored locally to a bounded 25
+minutes for the next run; all assertions/exit/result checks remain mandatory.
+The owner now prioritizes real offline transcription, with three actual agents
+preparing model/runtime, verified installation and SQLite meeting storage. This
+does not imply those features are implemented. Phone endurance is assigned to
+the owner manually; all physical/model integration gates remain pending.

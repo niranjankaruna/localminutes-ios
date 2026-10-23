@@ -428,3 +428,65 @@ docs/drafts/T09/NATIVE_MODEL_RESEARCH.md. It records immutable upstream model
 revision/reported weight checksums, runtime candidate commit and actual tiny
 token-file hash only. No native binary/model weight downloaded, no inference,
 installer or model manifest implemented. It does not markT09/T10 complete.
+
+## 23 October 2026, 22:06 UTC — final controls evidence and transcription priority
+
+T06.2.2.1 is code complete within its tested router scope; no new whole baseline
+task is verified complete. Final continuation-05 run40027966192 at6b5fd0c is
+terminal cancelled at its15minute native bound. Actual native39 cases completed:
+38passed, one preparing-toggle regression failed9assertions, zero skipped.
+Core115Swift+59Node+81TSAN passed; native products/test targets compiled.
+One actual UI case passed shared Button(intent:) dispatch; the timer case was
+interrupted in teardown and the Start case never ran. No UI aggregate, full
+GREEN or new IPA. Full scoped evidence: docs/evidence/T06_TDD.md.
+
+Covered cancellation repair695b99b is saved locally after RED; it is uncompiled
+and awaits exact-source GREEN. Local4dfacf6 records approved public builds and
+restores the native bound to25minutes. Remote task branch1718b09 contains the
+RED evidence. Main remains known-good5ec4a3e over tested40100fd source. All6/6
+runs are terminal; no seventh source push/dispatch/re-run in this invocation.
+
+The owner explicitly approved making only LocalMinutes public. History review
+and authenticated/unauthenticated GitHub API checks verified PUBLIC at21:59UTC.
+Standard macos-15-intel builds are officially free for public repositories.
+No billing, spending guard, larger-runner or unrelated-repository change.
+See docs/evidence/T01_PUBLIC_REPOSITORY.md. Artifact retention remains separately
+unverified and candidateArtifact remains null.
+
+The owner challenged the lack of user-facing progress after more than seven
+hours and directed maximum available agents with a one-hour push. Priority is
+now a working real offline transcription slice. Three actual agents are active:
+bootstrap_review handles real sherpa runtime/model validation and test-first
+adapter contracts; verified_models handles installer tests/stubs; meeting_storage
+handles real SQLite/history tests/stubs. Root alone integrates, commits and runs
+CI. No agent may implement behavior before meaningful hosted RED. Target window:
+22:06:40–23:06:40UTC, not a claim of verified completion within that window.
+
+First tangible T10 progress reported: actual pinned encoder/decoder/joiner and
+token files downloaded and hash/length verified in ignored local storage. The
+official Windows runtime is being brought up; no actual recognition result is
+claimed yet. No weights or speech are staged. Real ASR in the iPhone app,
+summaries/Q&A and complete meeting screens remain unfinished.
+
+The owner will manually run the125minute iPhone endurance checks. Both required
+long passes remain NOT_RUN until actual owner evidence arrives; assigning the
+operator is not a waiver or a pass. Free signing, extension installation, Action
+Button, locked continuation/cold-start, real-model iPhone performance, offline
+use and renewal preservation remain unverified.
+
+Next: next invocation read this checkpoint and agent outputs, verify public
+runner/Git state, activate the smallest complete model/transcription test-first
+slice, prove actual RED, then integrate real runtime behavior and verify GREEN.
+Fold the saved Toggle repair into full regressions. Continue safe independent
+model/storage work; do not spend another slice on control polish.
+
+Parallel checkpoint: T09 now has23 complete installer tests and no-op interfaces;
+T08 has15 complete SQLite tests and no-op interfaces. Both sets are draft-only,
+uncompiled and await hosted RED before implementation. The ASR agent has now
+actually recognized8.395seconds of original synthetic SAPI speech on Windows
+using sherpa-onnx/core1.13.8 CPU,3200frame chunks,21 evolving partial results.
+Reported reference error2/21words (9.5238%); endpoint/reset/replacement checks
+passed. This establishes candidate inference on desktop only. iPhone/runtime
+integration and phone performance remain pending. Actual ignored result:
+.agent-local/asr-evaluation/actual-result.json. The agent is preparing sanitized
+evidence and Swift test-first interfaces. No speech/weights were committed.

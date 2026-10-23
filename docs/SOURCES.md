@@ -49,4 +49,8 @@ Sources below were consulted for this specification on 23 October 2026. Recheck 
 
 [S23] Apple, Enabling Developer Mode: https://developer.apple.com/documentation/xcode/enabling-developer-mode-on-a-device
 
+[S24] GitHub, standard public runners and free usage: https://docs.github.com/en/actions/how-tos/write-workflows/choose-where-workflows-run/choose-the-runner-for-a-job#standard-github-hosted-runners-for-public-repositories and https://docs.github.com/en/billing/concepts/product-billing/github-actions
+
+[S25] GitHub, repository visibility and public Actions history: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/managing-repository-settings/setting-repository-visibility
+
 **Evidence priority:** Actual reproducible results on the target device establish this implementation's behavior. Official documentation defines supported API contracts. Upstream repository/model documentation defines build and artifact requirements. Forum reports guide troubleshooting only. Never treat generated text or a prior assistant's confident description as verification.
