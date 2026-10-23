@@ -312,3 +312,41 @@ delivered. T06.1/T06.1.1codecompletependingdevice; overallIN_PROGRESS. App-owned
 integration tests/minimal interface are being prepared forT06.2.1; no owner
 behavior before their hosted RED. Current2/6runs terminal. All phone/model/
 endurance/renewal gates remain NOT_RUN; upload headroom still blocked.
+
+## Continuation-04 final checkpoint — component GREEN, baseline IN_PROGRESS
+
+Code-completed component IDs:T06.1,T06.1.1,T06.2.1; each remains
+CODE_COMPLETE_PENDING_DEVICE for real OS/device behavior. Fixed Swift6 Activity
+SDK isolation using exact-ID local operations and checked outcomes; failed end
+stays observable/retryable. Added concrete coordinator/capture/activity owner
+with combined audio-drain/deactivate/activity-end barrier. Review found reserved
+start-toggle and caller cancellation races; tests were pushed/proven RED before
+repairs. Valid safety assertions were preserved through a documented transient
+state observation correction and independent review.
+
+REDsources/runs:b873d6b/40007944579=91tests87pass4fail20assertions;
+fdfab89/40010164221=101tests91pass10fail38assertions;
+beca154/40012128846=103tests101pass2fail10assertions;
+refined8ab36fb/40012791771=103tests101pass2fail9assertions; all0skip.
+GREENb6f4bdf/40008712625=91Swift+59Node+57TSAN+15native.
+Final **9eeaa25c53ba7e22b32ae4c1f3f65034edcbc48f/run40013807701**=
+**103Swift+59Node+69repeatedTSAN+15native,allpassed0skip**; actual device and
+simulator app+extension compiled, real CAF/manifest/native package regressions.
+Commands and full scope/evidence in docs/evidence/T06_TDD.md.
+
+Ephemeral unsigned IPA179,956bytes,
+SHA256c91343d090a052226b831550e7f8a04dcb2db98c71321ce802b4713ddcdf4b76,
+not uploaded/retained/delivered/signed/installed. Storage100% still blocks upload;
+no billing/publication/deletion changes. All signing, ActionButton warm/cold,
+locked ASR, both long runs, offline inference and in-place renewal remain NOT_RUN.
+App entry still lacks owner/intent/UI composition; actual speech/summary models,
+persistence recovery/history/notes/export remain unfinished. No inference or
+baseline usability claim is supplied by these component passes.
+
+Six permitted runs terminal; no seventh dispatch. Next precise taskT06.2.2:
+recheck private refs/latestCI/allowance/$0guard, activate11 pending router tests
+and minimal interfaces/scoped owner.stop(sessionID:)/OS activation-failure
+fixture from docs/drafts/T06.2.2, prove hosted RED before dispatch/scoped-stop
+behavior, then implement actual native app/intent/foreground fallback. Drafts
+are uncompiled/outside active paths. Preserve the tested source and all RED
+history; merge only the verified code plus documentation checkpoint to main.

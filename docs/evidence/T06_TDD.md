@@ -223,3 +223,42 @@ commit pushed and remote verified before either repair. Five invocation runs
 terminal; run6 is final full GREEN attempt, no seventh dispatch/re-run.
 After refined RED only: toggle sends an existing admitted reservation through stop when the domain has not entered preparing; capture cancellation enters/awaits the same combined cleanup barrier. Explicit-retry policy after a settled failed cleanup remains unchanged. Tests have no diff since refined RED. Full GREEN and native compile pending final run6.
 Final independent review of the real owner repair diff found no concrete blocker: reserved toggle closes epoch before reservation wait; cancellation joins shared cleanup, with no self-await cycle and no automatic retry after failed cleanup. Tests unchanged since refined RED. Native compilation and complete regressions remain required.
+
+## T06.2.1 GREEN — actual owner and native regressions
+
+Implementation **9eeaa25c53ba7e22b32ae4c1f3f65034edcbc48f**,
+[run40013807701](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40013807701),
+23October2026 about19:49UTC, overall success. **103XCTest,59Node,
+69 repeatedXCTest under ThreadSanitizer,2nativeproduct+13packaging checks**
+passed,0failures/skips/races. Test source unchanged since refined8ab36fb RED.
+Command swift test --enable-code-coverage; swift test --sanitize=thread with
+queue/admission/runtime/activity/owner filter; node --test scripts/tests/*.test.mjs;
+actual Release generic iOS+Debug generic iOSSimulator builds; native product and
+real package tests. Hostedmacos-15-intel/Xcode26.2.
+
+The concrete owner uses the real coordinator, bounded owned PCM, native converter,
+CAF writer/manifest and Activity resource policy. Only permission/hardware/SDK/
+model-preparation boundaries are doubled. Actual converted 16-bit16kmonoCAF is
+decoded/compared after source mutation; actual drain/deactivate precedes Activity
+end and domain completion. Duplicate/coalesced stop, cancellation/preflight/
+reservation races, readiness, failure/loss, retired epoch callbacks and retry
+all pass. No failed cleanup is declared completed, no auto-retry loop, and no
+unchecked concurrency suppression. Independent real-diff review passed.
+
+Actual device arm64 and simulator x86_64/arm64 app+extension compiled. Ephemeral
+unsigned IPA179,956bytes, SHA256c91343d090a052226b831550e7f8a04dcb2db98c71321ce802b4713ddcdf4b76,
+created19:49:20.875UTC. Not uploaded/retained/delivered/signed/installed. Full
+ignored local log.agent-local/T06.2.1-9eeaa-validation.log. candidateArtifact null.
+
+T06.2.1CODE_COMPLETE_PENDING_DEVICE within tested owner-component scope. The
+native app entry is STILL unwired; no native recording intents, full UI or
+real ASR preparation provider exists. Ready preparation in tests is only a
+boundary double, never inference evidence. All realmodel/signing/LockScreen/
+ActionButton/two-hour/renewal gates remain NOT_RUN. Overall IN_PROGRESS.
+
+NextT06.2.2:11 uncompiled router tests/minimal interface are saved outside all
+active paths in docs/drafts/T06.2.2. Recheck cost/Git in next invocation, activate
+only tests/stubs plus scoped-stop interface and activation-failure OS fixture,
+prove/push RED before behavior, then actual native app/intent/foreground fallback.
+Six of six current runs terminal; no seventh dispatch/re-run or active-source
+push after this GREEN. Documentation-only final checkpoint follows.

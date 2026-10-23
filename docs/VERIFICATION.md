@@ -42,3 +42,18 @@ app/extension compiled. Ephemeral unsigned IPA156,390bytes,
 SHA256e8bb24694328c04a8ba5d2bfa89eebdf592ca729f12431bfa562ab8c40df644c,
 not retained/delivered/signed/installed. No actual ActivityKit OS behavior,
 inference, physical LockScreen/ActionButton/endurance or renewal evidence.
+
+T06.2.1 owner/repair exact-source GREEN:
+[run40013807701](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40013807701),
+source9eeaa25c53ba7e22b32ae4c1f3f65034edcbc48f.103XCTest,59Node,
+69repeatedTSAN,15native checks passed0failures/skips/races. Actual device/simulator
+app+extension compiled; real PCM/conversion/CAF/manifest/barrier regressions pass.
+Refined regression RED8ab36fb/run40012791771=103executed101pass2fail9assertions0skip,
+before unchanged tests went GREEN. Full protocol/source chain:T06_TDD.md.
+Unsigned ephemeral IPA179,956bytes,
+SHA256c91343d090a052226b831550e7f8a04dcb2db98c71321ce802b4713ddcdf4b76,
+not retained/delivered/signed/installed. Native app entry still unwired; AppIntents,
+UI tests and actual models are NOT_RUN/unfinished, not covered by native compile.
+All phone/signing/locking/ActionButton/endurance/renewal gates remainNOT_RUN.
+OverallIN_PROGRESS.11future intent-router tests saved as uncompiled drafts only;
+next invocation must prove RED before behavior. Six-run cap terminal, no seventh.

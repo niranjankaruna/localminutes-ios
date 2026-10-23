@@ -3,17 +3,17 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-23T19:42:58.3373117Z",
+  "lastUpdated": "2026-10-23T19:52:23.8012496Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "T06.2.1",
-  "lastVerifiedCommit": "b6f4bdf0231d72d279ae690c5ce20936b8225459",
-  "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40008712625",
+  "currentTask": "T06.2.2",
+  "lastVerifiedCommit": "9eeaa25c53ba7e22b32ae4c1f3f65034edcbc48f",
+  "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40013807701",
   "candidateArtifact": null,
-  "nextAction": "T06.2.1: push the two minimal cancellation repairs after proven refined RED; run6 is final exact-source full GREEN validation (103XCTest,59Node,69TSAN,15native). No seventh run/re-run; native intents remain next task, not implemented.",
+  "nextAction": "T06.2.2: next goal invocation rechecks private Git/CI and included allowance/$0guard; activate11 pending intent-router tests + no-op router/scoped owner.stop(sessionID:) and OS activation-failure fixture from docs/drafts/T06.2.2; prove hosted RED before dispatch/scoped-stop behavior, then wire actual native app/recording intents and truthful foreground fallback. Six current CI runs terminal; no seventh dispatch/re-run. App entry remains unwired and real ASR unavailable.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "b6f4bdf0231d72d279ae690c5ce20936b8225459",
+  "remoteBranchHead": "9eeaa25c53ba7e22b32ae4c1f3f65034edcbc48f",
   "localScriptGreen": {
     "sourceCommit": "14a988604c05e2484e9d08bf5d4d11e04d217e73",
     "platform": "Windows 11 / Node 24.21.0",
@@ -23,8 +23,8 @@
     "skipped": 0,
     "nativePackagingVerified": false
   },
-  "lastVerifiedNativeBuildCommit": "b6f4bdf0231d72d279ae690c5ce20936b8225459",
-  "lastVerifiedNativeBuildCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40008712625",
+  "lastVerifiedNativeBuildCommit": "9eeaa25c53ba7e22b32ae4c1f3f65034edcbc48f",
+  "lastVerifiedNativeBuildCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40013807701",
   "blockedItems": [
     "ARTIFACT_STORAGE_HEADROOM_UNVERIFIED"
   ],
@@ -36,34 +36,35 @@
       40008712625,
       40010164221,
       40012128846,
-      40012791771
+      40012791771,
+      40013807701
     ],
-    "limitReached": false,
+    "limitReached": true,
     "costGuardObservedAt": "2026-10-23T19:44:35.5057409Z"
   },
   "latestCIRun": {
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40012791771",
-    "sourceCommit": "8ab36fb36f0064efaf72ee430ff62eda0459f946",
-    "conclusion": "failure",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40013807701",
+    "sourceCommit": "9eeaa25c53ba7e22b32ae4c1f3f65034edcbc48f",
+    "conclusion": "success",
     "executedXCTests": 103,
-    "passedXCTests": 101,
-    "failedXCTests": 2,
+    "passedXCTests": 103,
+    "failedXCTests": 0,
     "skippedXCTests": 0,
-    "executedNodeTests": 0,
-    "passedNodeTests": 0,
+    "executedNodeTests": 59,
+    "passedNodeTests": 59,
     "failedNodeTests": 0,
     "skippedNodeTests": 0,
-    "nativeBuildJobConclusion": "skipped",
-    "executedNativeTests": 0,
-    "passedNativeTests": 0,
+    "nativeBuildJobConclusion": "success",
+    "executedNativeTests": 15,
+    "passedNativeTests": 15,
     "failedNativeTests": 0,
     "skippedNativeTests": 0,
     "sanitizer": {
-      "executed": 0,
-      "passed": 0,
+      "executed": 69,
+      "passed": 69,
       "failed": 0,
       "skipped": 0,
-      "conclusion": "not_run"
+      "conclusion": "success"
     }
   },
   "localReporterRed": {
@@ -98,12 +99,12 @@
   },
   "verifiedComplete": false,
   "lastEphemeralArtifact": {
-    "sourceCommit": "b6f4bdf0231d72d279ae690c5ce20936b8225459",
-    "runUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40008712625",
-    "name": "LocalMinutes-1.0-b6f4bdf0231d72d279ae690c5ce20936b8225459-unsigned.ipa",
-    "sha256": "e8bb24694328c04a8ba5d2bfa89eebdf592ca729f12431bfa562ab8c40df644c",
-    "sizeBytes": 156390,
-    "createdAt": "2026-10-23T19:12:55.896Z",
+    "sourceCommit": "9eeaa25c53ba7e22b32ae4c1f3f65034edcbc48f",
+    "runUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40013807701",
+    "name": "LocalMinutes-1.0-9eeaa25c53ba7e22b32ae4c1f3f65034edcbc48f-unsigned.ipa",
+    "sha256": "c91343d090a052226b831550e7f8a04dcb2db98c71321ce802b4713ddcdf4b76",
+    "sizeBytes": 179956,
+    "createdAt": "2026-10-23T19:49:20.875Z",
     "retained": false
   },
   "captureRuntimeTestFirst": {
@@ -129,7 +130,8 @@
     "T05",
     "T05.3",
     "T06.1",
-    "T06.1.1"
+    "T06.1.1",
+    "T06.2.1"
   ],
   "remoteBranchHeadScope": "Last implementation source before the final documentation-only checkpoint; inspect actual Git refs for the checkpoint HEAD.",
   "nativeCompileRepair": {
@@ -139,5 +141,28 @@
     "appliedToActiveSources": true,
     "validatedRepairAttempts": 1,
     "missingLookupPolicyNeedsRegressionRed": false
+  },
+  "codeCompletedThisInvocation": [
+    "T06.1",
+    "T06.1.1",
+    "T06.2.1"
+  ],
+  "codeCompletionScope": "Tested resource/controller/owner components only. Overall IN_PROGRESS: app composition, native intents, actual models, UI and all physical gates remain unfinished.",
+  "ownerCompositionTestFirst": {
+    "testCount": 12,
+    "inActiveBuildPaths": true,
+    "compiled": true,
+    "redVerified": true,
+    "greenVerifiedCommit": "9eeaa25c53ba7e22b32ae4c1f3f65034edcbc48f",
+    "appEntryWired": false,
+    "realASRProviderWired": false
+  },
+  "intentRouterTestFirstDraft": {
+    "path": "docs/drafts/T06.2.2/README.md",
+    "testCount": 11,
+    "inActiveBuildPaths": false,
+    "compiled": false,
+    "redVerified": false,
+    "productionBehaviorImplemented": false
   }
 }

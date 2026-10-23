@@ -1,7 +1,12 @@
 # T06.1.1 native compile repair checkpoint
 
-Status: **IN_PROGRESS**, candidate only, outside active source paths. No applied
-production fix, native compilation success or device result is claimed.
+Current status: **CODE_COMPLETE_PENDING_DEVICE** within repair scope. The active
+implementation passed exact-source full native GREEN at b6f4bdf/run40008712625,
+then regressed successfully at9eeaa25/run40013807701. See T06_TDD.md. Actual OS
+lookup/presentation/device behavior remains unverified. The original checkpoint
+and uncompiled candidate below are historical; do not resume them as current work.
+
+## Original uncompiled checkpoint
 
 At e2876e8/run40004059233 the actual Swift6/iOS26.2 compiler rejects sending
 the stored MainActor Activity reference to the SDK's nonisolated async update

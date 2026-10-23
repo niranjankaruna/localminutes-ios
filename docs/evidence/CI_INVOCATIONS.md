@@ -110,7 +110,7 @@ repeated. Read-only account observation:1,026/2,000 included Actions minutes
 used,974 displayed remaining, Actions billable$0; account-wide Actions$0/$0
 Usage blocked. Storage0.5/0.5GB100%, no uploads. No billing/visibility changes.
 Six-run cap starts at0 for this new goal invocation; previous ledgers retained.
-| [40007944579](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40007944579) | b873d6b081e949b80499217771c705d4445a5a67 | Test-first regression in progress; outcome pending |
+| [40007944579](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40007944579) | b873d6b081e949b80499217771c705d4445a5a67 | RED:91XCTest87pass4fail20assertions0skip; old87pass; Node/TSAN/native not run after Swift RED |
 | [40008712625](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40008712625) | b6f4bdf0231d72d279ae690c5ce20936b8225459 | GREEN:91XCTest+59Node+57TSAN+15native passed; actual device/simulator app+extension builds, ephemeral156,390-byte IPA, no upload |
 
 Continuation-04 current2/6 new runs, both terminal. First native compile repair
@@ -118,3 +118,10 @@ succeeded. Regression RED sourceb873d6b:91executed87pass4fail20assertions0skip.
 | [40010164221](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40010164221) | fdfab8905e479c7e1343f394c85ceecc9b52b1e0 | Owner RED:101XCTest91pass10newfail38assertions0skip; old91pass; Node/TSAN/native not run |
 | [40012128846](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40012128846) | beca15403316f4265245820b0693da6299b39592 | Review RED:103XCTest101pass2newfail10assertions0skip; original10owner+old91pass. One transient-state test observation corrected before re-RED; no production repair yet |
 | [40012791771](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40012791771) | 8ab36fb36f0064efaf72ee430ff62eda0459f946 | Refined RED:103XCTest101pass2fail9assertions0skip; valid safety failures persist with production unchanged. Five runs terminal |
+| [40013807701](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40013807701) | 9eeaa25c53ba7e22b32ae4c1f3f65034edcbc48f | GREEN:103XCTest+59Node+69TSAN+15native passed0skip; actual device/simulator app+extension builds and ephemeral179,956-byte IPA, no upload |
+
+Continuation-04 final **6/6**, all terminal. No seventh run/re-run. Owner resource
+component exact-source full GREEN9eeaa25; overall baselineIN_PROGRESS. T06.2.2
+router tests/notes are uncompiled drafts outside active paths, ready for next
+invocation's cost/Git check and test-first activation. No code/CI completion
+is inferred for native intents, models, UI or physical gates.
