@@ -83,3 +83,9 @@ Continuation-03 resolved the prior reporter boundary: full run39997623318 at4b63
 ## Continuation-03 execution boundary — not an external blocker
 
 Six of six runs are terminal. T05 component full GREEN is c12bd9c/run40001047762. T06.1 e2876e8/run40004059233 passed87 XCTest+59 Node+53 repeated TSAN but failed actual iOS SDK update/end isolation compilation;0 native checks/no new IPA. This is an internal compile repair, not a credential/device/cost-permission failure. No owner action is needed for current code. A checked ID-only SDK operation candidate is outside active sources; missing-lookup cleanup policy must have regression RED before integration. Resume T06.1.1 after next invocation cost/Git check and require full native GREEN. No seventh dispatch/re-run or weakened concurrency/test gate. Separate ARTIFACT_STORAGE_HEADROOM_UNVERIFIED remains active: final storage100%; no artifact upload.
+
+Continuation-04 resolved the prior native compile issue atb6f4bdf/run40008712625:
+all91Swift+59scripts+57TSAN+15native checks passed. First ID-only SDK repair
+succeeded. This required no owner action. Resource OS semantics remain pending
+phone evidence; separate artifact storage headroom blocker remains. Current2/6
+new runs terminal; safeT06.2.1 app-owned composition work continues.

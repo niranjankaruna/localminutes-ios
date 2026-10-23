@@ -304,3 +304,11 @@ no native repair/GREEN claimed before CI. Old9contracts preserved. Exact next:
 verify focused/regression/sanitizer and native app+extension/package at new SHA.
 Device/signing/ASR/endurance/renewal remain NOT_RUN; artifact uploads blocked
 by full/unverified storage. Six-run cap current1/6, all prior ledgers preserved.
+
+T06.1.1 GREEN b6f4bdf/run40008712625:91Swift+59Node+57repeatedTSAN+15native
+checks allpassed0skip, actual device/simulator app+extension builds. First native
+repair succeeded. Ephemeral156,390-byte unsigned IPA verified, not retained or
+delivered. T06.1/T06.1.1codecompletependingdevice; overallIN_PROGRESS. App-owned
+integration tests/minimal interface are being prepared forT06.2.1; no owner
+behavior before their hosted RED. Current2/6runs terminal. All phone/model/
+endurance/renewal gates remain NOT_RUN; upload headroom still blocked.

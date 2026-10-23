@@ -34,3 +34,11 @@ T06.1.1 regression RED: b873d6b081e949b80499217771c705d4445a5a67,
 compiler/zero-test failure. No Node/TSAN/native result after Swift RED. Checked
 SDK operation behavior/first native repair now implemented after RED, GREEN
 pending. Details docs/evidence/T06_TDD.md. No phone/model/artifact-retention pass.
+
+T06.1.1 exact-source native GREEN: b6f4bdf0231d72d279ae690c5ce20936b8225459,
+[run40008712625](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40008712625).
+91XCTest,59Node,57TSAN,15native checks passed0skip; actual device+simulator
+app/extension compiled. Ephemeral unsigned IPA156,390bytes,
+SHA256e8bb24694328c04a8ba5d2bfa89eebdf592ca729f12431bfa562ab8c40df644c,
+not retained/delivered/signed/installed. No actual ActivityKit OS behavior,
+inference, physical LockScreen/ActionButton/endurance or renewal evidence.

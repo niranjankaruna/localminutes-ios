@@ -13,6 +13,6 @@ let package = Package(
         .target(name: "LocalMinutesRecording", dependencies: ["LocalMinutesCore"], path: "Recording"),
         .testTarget(name: "HarnessTests", path: "Tests/HarnessTests"),
         .testTarget(name: "CoreTests", dependencies: ["LocalMinutesCore"], path: "Tests/CoreTests"),
-        .testTarget(name: "RecordingTests", dependencies: ["LocalMinutesRecording"], path: "Tests/RecordingTests")
+        .testTarget(name: "RecordingTests", dependencies: ["LocalMinutesRecording", "LocalMinutesCore"], path: "Tests/RecordingTests")
     ]
 )

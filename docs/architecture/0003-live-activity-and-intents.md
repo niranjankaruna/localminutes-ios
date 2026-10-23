@@ -44,3 +44,32 @@ unlock-required foreground fallback are separate device procedures. None is
 proved by these documented protocols. The owner alone can waive the desired
 locked cold-start experience. The two long locked live-transcription runs and
 in-place renewal remain mandatory completion gates.
+
+## SDK fallback research for T06.2 — 23 October2026
+
+Read current official Apple declaration JSON (not device evidence).
+AudioRecordingIntent and LiveActivityIntent inherit SystemIntent/AppIntent;
+LiveActivityIntent documents app-process execution without opening the app.
+Recording state operations must keep a Live Activity active. None of this
+establishes a successful locked cold start or free extension signing.
+
+For iOS26, [supportedModes](https://developer.apple.com/documentation/appintents/appintent/supportedmodes)
+accepts background plus foreground(dynamic). The new
+[needsToContinueInForegroundError(_:alwaysConfirm:)](https://developer.apple.com/documentation/appintents/appintent/needstocontinueinforegrounderror(_:alwaysconfirm:))
+and continueInForeground(_:alwaysConfirm:) are introduced in26.0. Apple says
+check systemContext/current mode before requesting a transition. A foreground
+request can fail and must not be reported as a recording success.
+
+For deployment18, the documented compatibility protocol
+[ForegroundContinuableIntent](https://developer.apple.com/documentation/appintents/foregroundcontinuableintent)
+and needsToContinueInForegroundError(_:continuation:) exist from16.4 and are
+deprecated from26.0. Apple recommends a deprecated conformance extension for
+backward compatibility. Actual dual-path compilation and intent execution
+remain unverified. Use conditional availability; do not call a26-only API
+unguarded or represent missing permission/model/protected files as success.
+
+The next app-owned composition tests use actual coordinator/capture/converter/
+writer/activity policy with only OS/model-preflight boundary doubles. Production
+live start must remain modelUnavailable until the installed model AND real CPU
+streaming adapter are verified and wired. An explicit recording-only feasibility
+path is separate and never satisfies live inference or endurance acceptance.

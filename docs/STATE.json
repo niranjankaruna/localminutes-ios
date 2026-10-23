@@ -3,17 +3,17 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-23T19:01:21.4295232Z",
+  "lastUpdated": "2026-10-23T19:14:46.0271352Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "T06.1.1",
-  "lastVerifiedCommit": "c12bd9cde402e9529ad4fb5fbcb35624bbf744f1",
-  "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40001047762",
+  "currentTask": "T06.2.1",
+  "lastVerifiedCommit": "b6f4bdf0231d72d279ae690c5ce20936b8225459",
+  "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40008712625",
   "candidateArtifact": null,
-  "nextAction": "T06.1.1: commit/push checked-outcome implementation and first ID-only native repair attempt; require91XCTest+59scripts+57TSAN+15native checks, device/simulator app+extension and package at exact SHA. No native result claimed yet.",
+  "nextAction": "T06.2.1: review and push app-owned real coordinator/capture/activity integration tests with no-op interface, prove hosted RED, then implement; preserve modelUnavailable production gate until real CPU ASR wiring. T06.2.2 native intents/Live Activity controls follow.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "e2876e830c8f54c605875e0808dd5d0cb6329e8e",
+  "remoteBranchHead": "b6f4bdf0231d72d279ae690c5ce20936b8225459",
   "localScriptGreen": {
     "sourceCommit": "14a988604c05e2484e9d08bf5d4d11e04d217e73",
     "platform": "Windows 11 / Node 24.21.0",
@@ -23,8 +23,8 @@
     "skipped": 0,
     "nativePackagingVerified": false
   },
-  "lastVerifiedNativeBuildCommit": "c12bd9cde402e9529ad4fb5fbcb35624bbf744f1",
-  "lastVerifiedNativeBuildCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40001047762",
+  "lastVerifiedNativeBuildCommit": "b6f4bdf0231d72d279ae690c5ce20936b8225459",
+  "lastVerifiedNativeBuildCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40008712625",
   "blockedItems": [
     "ARTIFACT_STORAGE_HEADROOM_UNVERIFIED"
   ],
@@ -32,32 +32,32 @@
     "id": "2026-10-23-continuation-04",
     "maxNewRuns": 6,
     "newRunIds": [
-      40007944579
+      40007944579,
+      40008712625
     ],
     "limitReached": false,
-    "costGuardObservedAt": "2026-10-23T18:59:38.3551067Z"
+    "costGuardObservedAt": "2026-10-23T19:16:55.3721457Z"
   },
   "latestCIRun": {
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40004059233",
-    "sourceCommit": "e2876e830c8f54c605875e0808dd5d0cb6329e8e",
-    "conclusion": "failure",
-    "executedXCTests": 87,
-    "passedXCTests": 87,
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40008712625",
+    "sourceCommit": "b6f4bdf0231d72d279ae690c5ce20936b8225459",
+    "conclusion": "success",
+    "executedXCTests": 91,
+    "passedXCTests": 91,
     "failedXCTests": 0,
     "skippedXCTests": 0,
     "executedNodeTests": 59,
     "passedNodeTests": 59,
     "failedNodeTests": 0,
     "skippedNodeTests": 0,
-    "nativeBuildJobConclusion": "failure",
-    "nativeBuildFailure": "Swift6 rejects sending MainActor-stored non-Sendable Activity reference to nonisolated async update/end",
-    "executedNativeTests": 0,
-    "passedNativeTests": 0,
+    "nativeBuildJobConclusion": "success",
+    "executedNativeTests": 15,
+    "passedNativeTests": 15,
     "failedNativeTests": 0,
     "skippedNativeTests": 0,
     "sanitizer": {
-      "executed": 53,
-      "passed": 53,
+      "executed": 57,
+      "passed": 57,
       "failed": 0,
       "skipped": 0,
       "conclusion": "success"
@@ -95,12 +95,12 @@
   },
   "verifiedComplete": false,
   "lastEphemeralArtifact": {
-    "sourceCommit": "c12bd9cde402e9529ad4fb5fbcb35624bbf744f1",
-    "runUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40001047762",
-    "name": "LocalMinutes-1.0-c12bd9cde402e9529ad4fb5fbcb35624bbf744f1-unsigned.ipa",
-    "sha256": "77130d9a5463bd70703b5799626c4ec08de4b47525416ae4a5540bedb589ddaa",
-    "sizeBytes": 127963,
-    "createdAt": "2026-10-23T18:17:11.815Z",
+    "sourceCommit": "b6f4bdf0231d72d279ae690c5ce20936b8225459",
+    "runUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40008712625",
+    "name": "LocalMinutes-1.0-b6f4bdf0231d72d279ae690c5ce20936b8225459-unsigned.ipa",
+    "sha256": "e8bb24694328c04a8ba5d2bfa89eebdf592ca729f12431bfa562ab8c40df644c",
+    "sizeBytes": 156390,
+    "createdAt": "2026-10-23T19:12:55.896Z",
     "retained": false
   },
   "captureRuntimeTestFirst": {
@@ -118,20 +118,23 @@
     "redVerified": true,
     "productionBehaviorImplemented": true,
     "unitGreenCommit": "e2876e830c8f54c605875e0808dd5d0cb6329e8e",
-    "fullNativeGreenVerified": false
+    "fullNativeGreenVerified": true,
+    "fullNativeGreenCommit": "b6f4bdf0231d72d279ae690c5ce20936b8225459"
   },
   "completedThisInvocation": [],
   "codeCompletePendingDevice": [
     "T05",
-    "T05.3"
+    "T05.3",
+    "T06.1",
+    "T06.1.1"
   ],
   "remoteBranchHeadScope": "Last implementation source before the final documentation-only checkpoint; inspect actual Git refs for the checkpoint HEAD.",
   "nativeCompileRepair": {
-    "status": "IN_PROGRESS",
+    "status": "CODE_COMPLETE_PENDING_DEVICE",
     "candidatePath": "docs/drafts/T06.1/ActivityKitOperations.swift.pending",
     "notesPath": "docs/drafts/T06.1/NATIVE_REPAIR.md",
     "appliedToActiveSources": true,
-    "validatedRepairAttempts": 0,
+    "validatedRepairAttempts": 1,
     "missingLookupPolicyNeedsRegressionRed": false
   }
 }

@@ -111,3 +111,47 @@ Sendable immutable ID/status, obtains exact matching SDK reference locally,
 awaits real update/end and returns explicit outcome. Native compilation and
 actual phone semantics remain pending. First compile-repair attempt follows.
 Pre-GREEN independent read-only review passed the real diff: state revoked before external callback; end finalizes only inside its coalesced task, duplicate waiters cannot clear retry; sticky cleanup and exact-ID SDK lookup preserved. Tests unchanged since RED. Swift6 native compilation remains authoritative.
+
+## T06.1.1 GREEN — exact-source native repair
+
+Implementation **b6f4bdf0231d72d279ae690c5ce20936b8225459**,
+[run40008712625](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40008712625),
+23October2026 about19:13UTC, overall success. Actual **91XCTest,59Node,
+57 repeatedXCTest under ThreadSanitizer,2nativeproduct+13packaging checks**
+passed,0failures/skips/races. Existing87 and four new RED tests unchanged.
+Command swift test --enable-code-coverage; swift test --sanitize=thread with
+queue/admission/runtime/activity filter; node --test scripts/tests/*.test.mjs;
+actual xcodebuild Release generic iOS and Debug generic iOSSimulator; native
+product/package tests. Hostedmacos-15-intel/Xcode26.2. First native repair
+attempt succeeded without unsafe isolation conformance or disabled checking.
+
+Actual app+extension compile with the real ActivityKit SDK backend, stable IDs,
+arm64device and x86_64/arm64simulator products. Ephemeral unsigned IPA156,390bytes,
+SHA256e8bb24694328c04a8ba5d2bfa89eebdf592ca729f12431bfa562ab8c40df644c,
+created19:12:55.896UTC. Not uploaded, retained, signed, installed or delivered;
+candidateArtifact remains null. Full ignored log.agent-local/T06.1.1-b6f4-validation.log.
+
+Review passed the real diff and unchanged RED tests. Only SDK calls are doubled
+in lifecycle tests; actual ActivityKit calls compile but OS presentation/lookup
+semantics are not exercised on a phone. T06.1/T06.1.1CODE_COMPLETE_PENDING_DEVICE
+within resource/repair scope. App composition/intents, models, UI and all physical
+gates remain unfinished. No inference, LockScreen, ActionButton/endurance or
+renewal claim. NextT06.2.1 real app-owned command/event composition RED.
+
+## T06.2.1 owner composition — RED pending
+
+RequirementsR02,R04,R06,R07. Ten new RecordingSessionOwnerTests exercise concrete
+coordinator/capture/activity composition, actual owned PCM/converter/16-bitCAF
+and manifest. Only permission/hardware/ActivityKit/model-preparation boundaries
+are doubled. No inference result is supplied by a ready preparation double.
+Tests cover missing-model rejection, late preparation after stop, duplicate
+commands, all-three readiness, disabled/inactive Activity, denied microphone,
+audio-flush-before-heldActivityend, failed deactivation/end retry, authoritative
+toggle and retired callback isolation. Minimal RecordingSessionOwner interface
+has no behavior and delegates snapshot to an unmodified real coordinator.
+
+Direct Core test dependency and mandatory discovery names added; TSAN now also
+selects owner tests. Expected101XCTest and67sanitizer repeats after GREEN, not
+actual results yet. Command swift test --enable-code-coverage on hostedmacOS.
+No owner behavior before meaningful RED. Production live start remains gated
+until real installed CPU ASR is wired; no recording-only/inference substitution.
