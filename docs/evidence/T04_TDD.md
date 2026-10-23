@@ -112,3 +112,67 @@ signing/private fixtures and existing outputs. Archive inspection uses a real
 ZIP standard-library reader, CRC checks and executable hashes compared with
 actual compiled device binaries. All added fixture content is synthetic.
 The exact source and native RED counts will be recorded after the hosted run.
+
+## T04.2 GREEN / T04.3 RED — verified
+
+Test-first source `a3f5849d882dbb4bb1dea43028e12f5ed7e63837`, run
+[39983105414](https://github.com/niranjankaruna/localminutes-ios/actions/runs/39983105414),
+completed 16:04:56 UTC. Both real device/simulator builds and **both native
+configuration tests passed**. Core regressions also passed (20 XCTest and
+43 Node). Packaging command `node --test scripts/native-tests/package.test.mjs`
+executed **13 tests, 0 passed, 13 failed, 0 skipped**, exit 1. Actual failures
+were `T04.3 not implemented` from the minimal interface, including the positive
+real-archive case and specific error assertions. Real build files were available;
+this was not a missing SDK, fixture, compile or discovery failure.
+
+The tests-first commit was pushed before any packaging behavior. Review added
+independent device Info.plist byte hashes, exact archive byte size, nested
+extension links/private files, output containment and recursive-output rejection.
+T04.3 implementation begins only after this recorded native RED. No IPA exists
+from this failing run. T04.4 retention is still blocked by storage headroom.
+
+## T04.3 implementation prepared after RED
+
+Added actual app-tree audit with recursive link/private/signing rejection,
+workspace/output containment, source verification against Git and processed
+app/extension stamps, direct unsigned-signature inspection, device validation,
+staged copying, ZIP creation and central-directory/CRC inspection, then an
+archive SHA-256, companion checksum and source/build manifest. Only owned,
+resolved workspace directories may be cleaned up. Native processes use direct
+argument arrays, bounded timeouts and no shell interpolation. No meeting/model
+files, Apple credentials, entitlement changes or artifact uploads were added.
+
+Source stamp settings are passed to both actual Xcode builds; old/misattributed
+products are rejected. Windows script regressions remain **43/43 passed**;
+syntax inspection is not native packaging GREEN. Exact-source macOS validation
+is pending the sixth allowed run. The final workflow step creates a real IPA
+on the ephemeral runner and logs only its manifest/checksum; no retained
+artifact or download link is claimed.
+
+`docs/WINDOWS_INSTALL.md` was drafted from current official Sideloadly and Apple
+sources and independently checked. It is installation guidance, not observed
+signing/device evidence. Extension and renewal gates remain NOT_RUN.
+
+## T04.3 review regressions — meaningful Windows RED before fixes
+
+Independent review found missing database sidecar/private-directory rejection
+and canonical output containment through an ancestor alias. Added
+`scripts/tests/package-audit.test.mjs` before fixing either. Existing audit/path
+logic was exposed as a portable boundary without changing its behavior.
+Fixtures are ordinary synthetic files, not plists/binaries or native evidence.
+
+Command: `node --test --test-reporter=tap scripts/tests/package-audit.test.mjs`,
+Windows 11 / Node24.21.0. Actual **8 executed, 1 passed, 7 failed, 0 skipped**.
+Every failure is `Missing expected exception`: .db-wal/.db-shm, transcripts,
+recordings, device-evidence, diagnostics-raw, and an output ancestor junction
+resolving into the input app. The initial sandbox denied junction creation;
+that tool error was NOT RED. Authorized execution outside the sandbox created
+and removed only the owned workspace fixture junction and proved the actual
+alias assertion failure. Full script suite: **51 executed, 44 passed, 7 failed,
+0 skipped**, exit 1. No tests were skipped or weakened.
+
+This regression test-first change will be the sixth/final new CI run. Fixes
+follow only its push. Native archive GREEN and actual IPA creation may therefore
+remain pending the next invocation; no seventh run is authorized here. The
+partial implementation has not produced an IPA or passed the 13 native archive
+tests. Preserve all failed runs and continue from this precise checkpoint.

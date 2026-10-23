@@ -125,7 +125,7 @@
         "Test Info.plist, bundle IDs, architecture, Payload structure and checksums.",
         "Produce candidate unsigned artifact with no Apple credentials."
       ],
-      "childTasks": [{"id":"T04.1","title":"Validate device bundle metadata, archive paths and checksums","status":"VERIFIED_COMPLETE"},{"id":"T04.2","title":"Compile app and Live Activity extension for device and simulator","status":"IN_PROGRESS"},{"id":"T04.3","title":"Create and verify unsigned device archive","status":"IN_PROGRESS"},{"id":"T04.4","title":"Retain and deliver checksummed candidate artifact","status":"BLOCKED_EXTERNAL","blockers":["ARTIFACT_STORAGE_HEADROOM_UNVERIFIED"]}],
+      "childTasks": [{"id":"T04.1","title":"Validate device bundle metadata, archive paths and checksums","status":"VERIFIED_COMPLETE"},{"id":"T04.2","title":"Compile app and Live Activity extension for device and simulator","status":"VERIFIED_COMPLETE"},{"id":"T04.3","title":"Create and verify unsigned device archive","status":"IN_PROGRESS"},{"id":"T04.4","title":"Retain and deliver checksummed candidate artifact","status":"BLOCKED_EXTERNAL","blockers":["ARTIFACT_STORAGE_HEADROOM_UNVERIFIED"]}],
       "redEvidence": ["docs/evidence/T04_TDD.md"],
       "greenEvidence": ["docs/evidence/T04_TDD.md#t041-green--t042-red--verified-native-products"],
       "deviceEvidence": [],

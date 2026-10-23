@@ -1,8 +1,9 @@
 # T04 upstream research only
 
 23 October 2026. A bounded read-only reviewer checked official upstream sources.
-No LocalMinutes iOS target, dependency installation, device build, IPA or signing
-result is supplied by this document. T04 remains NOT_STARTED.
+No LocalMinutes build or signing result is supplied by this research document.
+Subsequent actual native build/test evidence is recorded in `T04_TDD.md`;
+the original T04 research preceded those results.
 
 XcodeGen release **2.46.0**, source tag commit
 `8445e778451c7e44237b90281bde622d764b0084`.

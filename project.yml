@@ -25,6 +25,7 @@ targets:
         CFBundleDisplayName: LocalMinutes
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LocalMinutesSourceCommit: $(LOCALMINUTES_SOURCE_COMMIT)
         NSMicrophoneUsageDescription: Record meetings you explicitly start and transcribe them on this iPhone.
         UIBackgroundModes: [audio]
         NSSupportsLiveActivities: true
@@ -50,6 +51,7 @@ targets:
         CFBundleDisplayName: LocalMinutes
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LocalMinutesSourceCommit: $(LOCALMINUTES_SOURCE_COMMIT)
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
