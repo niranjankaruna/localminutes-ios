@@ -196,3 +196,24 @@ the selected-suite regressions fail. Sanitized local output is in ignored
 run39994364160 at c5b45a5. The parser file is unchanged. No source fix, test skip,
 CI suppression, seventh run or remote push occurs after the six-run boundary.
 The checkpoint follows this commit; a future push must include both.
+
+## T05.2.1 hosted RED — verified, continuation-03
+
+Saved test-first35074aa/checkpoint were pushed unchanged with current cost
+observation at **b04e9a4d3db270c4592bddee3566ffbd6f7d56dd**.
+[Run39996675578](https://github.com/niranjankaruna/localminutes-ios/actions/runs/39996675578)
+completed with failure on 23 October 2026 at about17:42 UTC: **56 XCTest passed;
+59 Node tests executed,54 passed,5 failed,0 skipped**. Both valid selected-root
+fixtures incorrectly throw `Incomplete XCTest aggregate summary`; count/name/
+failure checks stop at that same wrong error. Compiler and test discovery work.
+This confirms the saved Windows RED on hosted macOS before the production fix.
+Sanitizer/native build did not run after the Node RED; no new artifact/device
+result is inferred. Existing failed run39994364160 remains visible.
+
+After that recorded/pushed RED, the one-line production change accepts exactly
+`All tests` or `Selected tests` as aggregate roots. All case/name/count/skip and
+failure consistency checks remain intact. Full Windows regression:59/59 passed,
+0 failures/skips. The repaired parser also reads the actual archived22-case
+sanitizer log from run39994364160 and returns22 passed/0 failed/0 skipped with
+both required stress/drain names. This is log parsing, not a new native run.
+Exact-source hosted full GREEN is still pending; push invocation run2 next.

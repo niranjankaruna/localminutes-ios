@@ -5,7 +5,7 @@ export function summarizeXCTestLog(log, requiredNames = []) {
   const cases = [...log.matchAll(/^Test Case '([^'\r\n]+)' (passed|failed|skipped)\b[^\r\n]*$/gm)];
   if (cases.length === 0) throw new Error('Zero executed XCTest cases');
   if (cases.some(c => c[2] === 'skipped')) throw new Error('Mandatory XCTest case skipped');
-  const summaries = [...log.matchAll(/^Test Suite 'All tests' (passed|failed) at[^\r\n]*\r?\n\s*Executed (\d+) tests?, with (\d+) failures? \(\d+ unexpected\)[^\r\n]*$/gm)];
+  const summaries = [...log.matchAll(/^Test Suite '(?:All|Selected) tests' (passed|failed) at[^\r\n]*\r?\n\s*Executed (\d+) tests?, with (\d+) failures? \(\d+ unexpected\)[^\r\n]*$/gm)];
   if (!summaries.length) throw new Error('Incomplete XCTest aggregate summary');
   const [, status, count, failures] = summaries.at(-1);
   if (Number(count) !== cases.length) throw new Error('XCTest case count mismatch');

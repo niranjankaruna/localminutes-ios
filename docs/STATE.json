@@ -11,9 +11,9 @@
   "lastVerifiedCommit": "ca803757573b5f98ff502494f5526b1db620b7d5",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/39987058071",
   "candidateArtifact": null,
-  "nextAction": "Continuation-03: repository, authentication, terminal CI and cost guard are reverified. Push saved T05.2.1 tests/checkpoint for run1 hosted RED (59 Node tests,5 currently fail locally), then fix strict Selected tests root and require exact-SHA full GREEN/native packaging. Keep callback drafts inactive until reporter GREEN. No microphone/model/device gate is passed.",
-  "pendingPushCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
-  "remoteBranchHead": "c5b45a548afc445306b4eb04ec2af16eb20fd11b",
+  "nextAction": "T05.2.1 hosted RED verified at b04e9a4/run39996675578:56 XCTest pass,Node59/54pass/5fail. Minimal strict aggregate fix passes all59 Windows scripts and reparses actual archived22-case sanitizer log. Push run2 and require exact-source full CI, sanitizer, native builds and packaging GREEN before activating callback/runtime drafts.",
+  "pendingPushCommit": null,
+  "remoteBranchHead": "b04e9a4d3db270c4592bddee3566ffbd6f7d56dd",
   "localScriptGreen": {
     "sourceCommit": "14a988604c05e2484e9d08bf5d4d11e04d217e73",
     "platform": "Windows 11 / Node 24.21.0",
@@ -31,36 +31,35 @@
   "ciInvocation": {
     "id": "2026-10-23-continuation-03",
     "maxNewRuns": 6,
-    "newRunIds": [],
+    "newRunIds": [
+      39996675578
+    ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-23T17:37:57Z"
   },
   "latestCIRun": {
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/39994364160",
-    "sourceCommit": "c5b45a548afc445306b4eb04ec2af16eb20fd11b",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/39996675578",
+    "sourceCommit": "b04e9a4d3db270c4592bddee3566ffbd6f7d56dd",
     "conclusion": "failure",
     "executedXCTests": 56,
     "passedXCTests": 56,
     "failedXCTests": 0,
     "skippedXCTests": 0,
-    "executedNodeTests": 51,
-    "passedNodeTests": 51,
-    "failedNodeTests": 0,
+    "executedNodeTests": 59,
+    "passedNodeTests": 54,
+    "failedNodeTests": 5,
     "skippedNodeTests": 0,
     "nativeBuildJobConclusion": "skipped",
     "executedNativeTests": 0,
     "passedNativeTests": 0,
     "failedNativeTests": 0,
     "skippedNativeTests": 0,
-    "failureStep": "Selected XCTest aggregate evidence parser after successful sanitizer execution",
     "sanitizer": {
-      "command": "swift test --sanitize=thread --filter OwnedPCMQueueTests",
-      "executed": 22,
-      "passed": 22,
+      "executed": 0,
+      "passed": 0,
       "failed": 0,
       "skipped": 0,
-      "reportedRaces": 0,
-      "reportingGatePassed": false
+      "conclusion": "not_run_after_Node_RED"
     }
   },
   "localReporterRed": {
@@ -71,8 +70,8 @@
     "passed": 54,
     "failed": 5,
     "skipped": 0,
-    "testFirstPushPending": true,
-    "productionFixImplemented": false
+    "testFirstPushPending": false,
+    "productionFixImplemented": true
   },
   "captureAdmissionDraft": {
     "path": "docs/drafts/T05.3/README.md",

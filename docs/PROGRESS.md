@@ -250,3 +250,8 @@ the prior turn as progress, and reverified private Git identity/authentication,
 terminal CI and the existing$0 hard stop with1,304.7 displayed included minutes
 remaining. New runs0of6; storage delivery still blocked. Push test-first RED next,
 then minimal parser fix and full exact-source native GREEN; no feature scaffold.
+
+Reporter hosted RED verified at b04e9a4/run39996675578:56 XCTest passed;
+59 Node,54 passed,5 failed,0 skipped. Only then changed the strict aggregate
+root alternative; all59 Windows script tests pass and the actual archived
+22-case sanitizer log parses correctly. Next: run2 exact-source full native GREEN.
