@@ -193,5 +193,17 @@ The fix will be committed locally without pushing a seventh CI-triggering
 change in this invocation. Next invocation must recheck the actual repository,
 run status and cost guard, push the saved fix, then require all 20 XCTest,
 51 Node, 2 native configuration and 13 native packaging tests plus actual
-unsigned IPA creation GREEN at that exact source. Do not call T04.3 complete
-or set candidateArtifact before those results and separate retention evidence.
+unsigned IPA creation GREEN at that exact source before T04.3 is complete.
+Setting candidateArtifact additionally requires T04.4 retention/delivery evidence.
+
+Hosted regression confirmation: run 39985432474 completed **16:17:38 UTC** at
+`bafe949cf3768fc9ae82868e502a8bd48474d388`. **20 XCTest passed; 51 Node tests,
+44 passed, 7 failed, 0 skipped**; all seven failures were the intended missing
+exceptions. Native-build job was skipped because core was RED, so no native
+packaging result exists for that source. This skip is not counted as a pass.
+
+Saved local fix: `14a988604c05e2484e9d08bf5d4d11e04d217e73`. Independent
+read-only review confirmed both fixes and fixture cleanup with no new issue.
+All 51 Windows script tests passed after fixes; no native GREEN is claimed.
+Task branch is ahead of its pushed test-first commit. Next invocation's first
+CI action is to push the fix/checkpoint after rechecking the account guard.

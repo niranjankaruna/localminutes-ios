@@ -103,3 +103,48 @@ Continuation runs: 1 of 6. Next: T04 artifact-validator tests, then real native
 app/extension configuration RED/GREEN and unsigned packaging. Artifact delivery
 remains blocked by unverified included-storage headroom; build/tests without
 uploads continue. No iOS app/IPA, microphone/model or device success is claimed.
+
+## 23 October 2026, 17:19 Europe/Dublin — continuation-01 checkpoint
+
+Completed in this invocation: **T03/T03.1, T04.1 and T04.2**. Parent T04 stays
+IN_PROGRESS: T04.3 native archive GREEN is pending and T04.4 artifact retention
+is blocked by unverified included-storage headroom. Full application remains
+IN_PROGRESS; these are domain/build milestones, not baseline completion.
+
+Actual evidence: T03 source `809f653` / run 39978171921 passed 20 XCTest + 8 Node. T04.1
+source `2711186` / run 39981859388 passed 20 XCTest + 43 Node. T04.2 source `a3f5849` /
+run 39983105414 compiled the real device+simulator app/extension and passed 2
+compiled-product checks, while the 13 new packaging tests honestly failed against
+the stub. Review then found sidecar/private-directory and path-alias gaps.
+Regression test-first commit **bafe949cf3768fc9ae82868e502a8bd48474d388**,
+run **39985432474**, proved 7 missing-exception assertions on hosted macOS:
+20 XCTest passed; Node 51 executed, 44 passed, 7 failed, 0 skipped. Native job was
+skipped after core RED and provides no packaging result.
+
+Fix **14a988604c05e2484e9d08bf5d4d11e04d217e73** is committed locally,
+reviewed and passes **all 51 Windows script tests**, including a real temporary
+junction. Initial sandbox junction denial was not counted as RED; authorized
+workspace-contained testing proved both RED and GREEN. No native packaging
+GREEN, IPA, device result or offline inference is claimed. Windows installation
+and renewal guidance is drafted from official sources and remains unexecuted.
+
+Six of six CI runs are complete, no active run or seventh dispatch remains.
+Task branch `task/t04-ios-build` has local fix/checkpoint work ahead of remote
+bafe949. No force push, artifact upload/deletion, billing change, credentials or
+private meeting/model data were involved. Main retains the completed T03 history.
+All signing/extension installation, Action Button warm/locked cold-start,
+locked live transcription, two 125-minute runs, real-model and in-place renewal
+gates remain NOT_RUN. Candidate artifact remains null.
+
+Exact next action: in a new invocation, recheck actual branch/remote/latest CI and
+included allowance/$0 guard, then push the saved fix/checkpoint. Require GREEN
+at the exact pushed commit for 20 XCTest, 51 Node, 2 compiled-product tests,
+13 native packaging tests and actual unsigned IPA creation. Preserve the RED
+history. If GREEN, complete T04.3 and begin T05 capture tests; separate T04.4
+retention does not block capture development, and its acceptance is unchanged.
+
+Final independent checkpoint audit reconciled task status, counts, Git refs,
+CI cap and pending gates. Clarified that T04.3 needs native packaging GREEN;
+candidateArtifact additionally needs T04.4 retention/delivery. No acceptance
+criterion or failed test was removed. The final documentation checkpoint is
+saved locally alongside the fix; pushing waits for the next invocation.

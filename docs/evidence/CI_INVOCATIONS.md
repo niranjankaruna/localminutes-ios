@@ -43,3 +43,10 @@ no storage headroom for artifact upload. T03.1 implementation GREEN is next.
 | [39981007435](https://github.com/niranjankaruna/localminutes-ios/actions/runs/39981007435) | `5f962d6d72eab6a35eb378771cda64e473da77b3` | Expanded T04.1 RED: 20 XCTest passed; Node 43 executed, 8 passed, 35 failed, 0 skipped |
 | [39981859388](https://github.com/niranjankaruna/localminutes-ios/actions/runs/39981859388) | `2711186a6ed71de089838900ee4c63cbe78397ce` | T04.1 GREEN: 20 XCTest + 43 Node passed. Both native builds succeeded; T04.2 RED: 2 native executed, 1 passed, 1 failed (Live Activities false), 0 skipped |
 | [39983105414](https://github.com/niranjankaruna/localminutes-ios/actions/runs/39983105414) | `a3f5849d882dbb4bb1dea43028e12f5ed7e63837` | T04.2 GREEN: both builds + 2 native checks passed; 20 XCTest + 43 Node passed. T04.3 RED: 13 actual packaging tests failed, 0 skipped (stub only) |
+| [39985432474](https://github.com/niranjankaruna/localminutes-ios/actions/runs/39985432474) | `bafe949cf3768fc9ae82868e502a8bd48474d388` | Review regression RED: 20 XCTest passed; Node 51 executed, 44 passed, 7 failed, 0 skipped. Native job skipped after core failure; no native result |
+
+Continuation-01 final count: **6 of 6**, all terminal. No seventh run was
+launched. Local fix `14a988604c05e2484e9d08bf5d4d11e04d217e73` passes all
+51 Windows script tests but is intentionally not pushed until a new invocation
+rechecks the cost guard and resumes the exact native packaging GREEN action.
+No artifacts/caches were uploaded, and no billing/publication setting changed.

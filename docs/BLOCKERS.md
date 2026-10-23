@@ -44,3 +44,14 @@ review passed; exact tested history was fast-forwarded and verified on main.
 No owner action or credential was needed. T03/T03.1 are complete as domain work.
 
 For each blocker record: ID, first observed time, affected tasks/gates, exact sanitized error/evidence, hypotheses already tried, retry count, safe independent work, owner action if required, and resolution evidence. Missing authentication, unknown budget guard, and unavailable physical device must not trigger an endless retry loop.
+
+## Continuation-01 execution boundary — not an external blocker
+
+Six of six permitted new CI runs are complete. The sixth preserved actual
+filesystem regression RED, rather than suppressing it. Local fix
+`14a988604c05e2484e9d08bf5d4d11e04d217e73` passes 51 Windows script tests and
+has passed independent review; it is saved locally without triggering run7.
+No native archive or IPA has been produced yet. Resume T04.3 exact-source
+macOS GREEN after the next invocation's repository/cost check. Project remains
+IN_PROGRESS; this per-invocation boundary requires no owner credential or billing
+change. Artifact retention remains the separate headroom blocker above.

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "specVersion": "1.0",
-  "policy": "Split broad tasks into small tests-first child slices. Keep stable IDs. Device-pending tasks do not block unrelated dependencies. Infrastructure scripts require their own validation tests; feature production behavior always requires recorded RED.",
+  "policy": "Split broad tasks into small tests-first child slices. Keep stable IDs. Device-pending tasks do not block unrelated dependencies. Capture development depends on validated T04 build/package children, not separate artifact retention; T04's full delivery acceptance remains mandatory. Infrastructure scripts require their own validation tests; feature production behavior always requires recorded RED.",
   "tasks": [
     {
       "id": "T00",
@@ -141,7 +141,9 @@
       "status": "TODO",
       "dependsOn": [
         "T03",
-        "T04"
+        "T04.1",
+        "T04.2",
+        "T04.3"
       ],
       "requirements": [
         "R04",
