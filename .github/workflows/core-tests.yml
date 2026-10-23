@@ -7,6 +7,7 @@ on:
       - 'Package.swift'
       - 'Core/**'
       - 'Tests/**'
+      - 'scripts/**'
       - '.github/workflows/core-tests.yml'
   workflow_dispatch:
 
@@ -54,25 +55,11 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p .build
-          swift test --enable-code-coverage --xunit-output .build/test-results.xml 2>&1 | tee .build/test-output.log
+          node --test scripts/tests/verify-test-log.test.mjs
+          swift test --enable-code-coverage 2>&1 | tee .build/test-output.log
       - name: Require discovered tests and report evidence
         if: always()
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          import os
-          import xml.etree.ElementTree as ET
-          from pathlib import Path
-          cases = list(ET.parse('.build/test-results.xml').getroot().iter('testcase'))
-          assert cases, 'Zero executed XCTest cases is not validation'
-          assert not any(c.find('skipped') is not None for c in cases), 'Mandatory skips are forbidden'
-          names = [c.attrib.get('name', '') for c in cases]
-          assert any('testHarnessExecutesAnAssertion' in n for n in names), names
-          assert any('testControlledClockAdvancesWithoutSleeping' in n for n in names), names
-          failed = sum(c.find('failure') is not None or c.find('error') is not None for c in cases)
-          summary = f"Source: {os.environ['GITHUB_SHA']}\nExecuted: {len(cases)}; failed: {failed}; skipped: 0\n"
-          print(summary)
-          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as out:
-              out.write(summary)
-          PY
+          node scripts/verify-test-log.mjs .build/test-output.log testHarnessExecutesAnAssertion testControlledClockAdvancesWithoutSleeping

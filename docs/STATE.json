@@ -11,7 +11,7 @@
   "lastVerifiedCommit": null,
   "lastVerifiedCIRun": null,
   "candidateArtifact": null,
-  "nextAction": "T02: create task/t02-harness, push the minimal harness with an intentional XCTest assertion failure, verify actual RED on macos-15-intel/Xcode 26.2, then correct only the harness demonstration and verify GREEN.",
+  "nextAction": "T02: run local reporting regression tests, push the harness/report correction, then verify GREEN at the exact source SHA before starting T03.",
   "blockedItems": [],
   "ciInvocation": {
     "id": "2026-10-23-initial",

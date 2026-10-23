@@ -34,9 +34,20 @@ Child T02.1: local reporting regression tests precede parser implementation.
 missing, truncated, inconsistent and contradictory results; minimal parser
 stub exists only to obtain meaningful assertion failures.
 
-## GREEN — NOT_RUN
+Observed local RED: Node v24.21.0 on Windows,
+`node --test scripts/tests/verify-test-log.test.mjs`: **8 tests, 0 pass,
+8 fail, 0 skipped**, exit 1. Deep equality expected 2 executed cases but the
+stub returned 0; rejection tests observed missing expected exceptions.
+Test-first source committed and pushed as
+`b12ac5cab52bdb7797948e3554556d7ce8ac4da3` before parser implementation.
+No new CI run was dispatched for that scripts-only commit under the old filter.
 
-No implementation or successful test execution is claimed. No app exists.
+## GREEN — local reporting passed; hosted harness pending
+
+Parser regression command on Windows: `node --test scripts/tests/verify-test-log.test.mjs`.
+Actual result: **8 passed, 0 failed, 0 skipped**, exit 0. The correction rejects
+zero/skipped/missing/incomplete/inconsistent results. Hosted harness GREEN is
+still pending and no app exists.
 The workflow uses logs/summary only, no artifact upload or cache allocation.
 
 ## Review and continuation
