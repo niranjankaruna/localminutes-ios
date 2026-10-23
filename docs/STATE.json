@@ -11,12 +11,12 @@
   "lastVerifiedCommit": "87dadb4c030a24f5206a7658ea51c49d09579966",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/39973529078",
   "candidateArtifact": null,
-  "nextAction": "T03: prove expanded 17-case domain RED including activation-in-flight cancellation before implementing any transitions; 3 of 6 CI runs used.",
+  "nextAction": "T03: push the transition implementation after recorded expanded RED; require 19 XCTest plus 8 reporting tests GREEN at the exact SHA. Four of six invocation CI runs used.",
   "blockedItems": [],
   "ciInvocation": {
     "id": "2026-10-23-initial",
     "maxNewRuns": 6,
-    "newRunIds": [39972652907, 39973529078, 39974793184],
+    "newRunIds": [39972652907, 39973529078, 39974793184, 39975336692],
     "costGuardObservedAt": "2026-10-23T14:41:00Z"
   },
   "deviceGates": {

@@ -79,3 +79,13 @@ image `20260824.0482.1`, x86_64, Xcode **26.2 / 17C52**, Apple Swift **6.2.3**
 and iPhoneOS/iPhoneSimulator SDK **26.2**. It enumerated available simulators;
 no simulator tests or device build ran. The package compiled and executed two
 XCTest cases. This verifies the hosted selection, not an iOS application.
+
+## Storage follow-up before artifact work
+
+At approximately 16:07 Europe/Dublin, a second read-only account observation
+showed **199.3 / 2,000 minutes used**, billable **$0**, and storage still
+**0.5 / 0.5 GB**. The rendered storage progress indicator was **100%**.
+No artifact capacity is established. Build/testing without uploads may continue;
+IPA delivery must wait for verified included-storage headroom. The owner may
+need to remove their unneeded artifacts or wait for expiration; this run does
+not delete unrelated account data or change billing.

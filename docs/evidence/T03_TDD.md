@@ -4,7 +4,7 @@ Task: T03. Requirements: R02, R04. Acceptance: one authoritative session,
 single preparation/activation/flush commands under concurrency, cancellation,
 stale-event rejection, truthful readiness, explicit interruption/failure states.
 
-## RED — initial set observed; expanded set awaiting execution
+## RED — initial and expanded sets observed
 
 File: `Tests/CoreTests/RecordingCoordinatorTests.swift`, initially 16 named XCTest cases.
 Minimal interface: domain types and `RecordingCoordinator` returning idle/no
@@ -31,9 +31,22 @@ stopAndFlush, ignore late callbacks, and block a replacement until cleanup.
 Pre-activation cancellation remains cancelPreparation. Expanded native RED is
 required before implementing this distinction; no production behavior exists yet.
 
-## GREEN — NOT_RUN
+Expanded test-first source: `bc71753f82ad71a55eca3f4f171a3cf661ee3b94`.
+Run [39975336692](https://github.com/niranjankaruna/localminutes-ios/actions/runs/39975336692)
+completed 23 October 2026, 15:07:17 UTC: **19 XCTest cases executed, 4 passed,
+15 failed, 43 assertion failures, 0 skipped**, exit 1. The new test executed
+and observed nil rather than stopAndFlush, idle rather than stopping, and a
+missing cleanup-pending flag. All code compiled; 8 reporting tests passed.
+Both RED commits remain pushed and auditable before behavior implementation.
 
-No transition behavior has been implemented before native RED.
+## GREEN — pending exact-source hosted execution
+
+Implemented the smallest command/event actor after both RED observations:
+serialized session ownership, idempotent commands, activation gating, startup
+cancellation, acknowledgement-dependent completion, stale-session rejection,
+and sanitized explicit interruption/failure outcomes. Adapter work runs outside
+the actor. Real AVFoundation, ActivityKit, storage and inference are not integrated
+in this slice, and adapter lifetime/cleanup contracts still need T05+ integration.
 
 ## Review and continuation
 
