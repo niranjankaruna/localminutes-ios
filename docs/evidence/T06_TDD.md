@@ -69,3 +69,20 @@ No @preconcurrency, unchecked Sendable conformance, disabled concurrency check, 
 ## T06.1.1 repair preparation — not applied or compiled
 
 Concrete candidate docs/drafts/T06.1/ActivityKitOperations.swift.pending uses only immutable ID/status arguments, exact SDK lookup and local content/SDK receiver across await. It explicitly returns notFound without claiming an SDK end. The current Void handle API cannot discard that outcome safely; docs/drafts/T06.1/NATIVE_REPAIR.md defines the next regression RED before integration. No active source was changed after run6, no native repair attempt was validated and no new result is inferred. T06.1 remains IN_PROGRESS. Final checkpoint holds all87+59+53 passing execution evidence and the exact iOS compiler failure; last full native GREEN is c12bd9c.
+
+## T06.1.1 checked-outcome regression — RED pending
+
+Requirements R02,R04,R06. Four new tests in LiveActivityControllerTests cover
+missing exact SDK lookup returning notFound: no cleanup acknowledgement,
+observable failure and matching-ID retry; duplicate failed ends coalesce once;
+missing update revokes readiness/loss once; already-queued content cannot
+reuse the missing resource. Existing nine contracts keep their assertions.
+Only the ActivityKit boundary is doubled. Protocol outcome/event declarations
+and conforming return values are interface-only; controller explicitly ignores
+the result as before, so no new policy/SDK isolation repair is implemented.
+
+Command swift test --enable-code-coverage, hostedmacos-15-intel/Xcode26.2.
+Expected91 discovered XCTest; no result or native GREEN claimed before run.
+Source/CI/assertions will be recorded after actual RED. The prior compile
+failure remains visible and is not behavioral RED. Candidate SDK ID-only
+helper stays outside active sources until new regression RED is proven.

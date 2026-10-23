@@ -10,6 +10,7 @@ private enum ActivityTestError: Error { case requestRejected, timedOut }
 private final class ActivityTestProbe {
     var events: [LiveActivityResourceEvent] = []
     var finished = false
+    var started = false
 }
 
 @MainActor
@@ -21,6 +22,8 @@ private final class ActivityTestHandle: LiveActivityHandle {
     private(set) var trace: [String] = []
     var blockUpdate = false
     var blockEnd = false
+    var updateOutcome: LiveActivityOperationOutcome = .applied
+    var endOutcome: LiveActivityOperationOutcome = .applied
     private var updateWaiters: [CheckedContinuation<Void, Never>] = []
     private var endWaiters: [CheckedContinuation<Void, Never>] = []
     var updateIsWaiting: Bool { !updateWaiters.isEmpty }
@@ -32,23 +35,25 @@ private final class ActivityTestHandle: LiveActivityHandle {
         self.observer = observer
     }
 
-    func update(status: LiveActivityStatus) async {
+    func update(status: LiveActivityStatus) async -> LiveActivityOperationOutcome {
         trace.append("update-begin")
         updates.append(status)
         if blockUpdate {
             await withCheckedContinuation { updateWaiters.append($0) }
         }
         trace.append("update-settled")
+        return updateOutcome
     }
 
-    func end(status: LiveActivityStatus) async {
+    func end(status: LiveActivityStatus) async -> LiveActivityOperationOutcome {
         trace.append("end-begin")
         endings.append(status)
         if blockEnd {
             await withCheckedContinuation { endWaiters.append($0) }
         }
-        emit(.ended)
+        if endOutcome == .applied { emit(.ended) }
         trace.append("end-settled")
+        return endOutcome
     }
 
     func emit(_ state: LiveActivityResourceState) {
@@ -323,6 +328,123 @@ final class LiveActivityControllerTests: XCTestCase {
         let endBegan = try XCTUnwrap(h.first.trace.firstIndex(of: "end-begin"))
         XCTAssertLessThan(updateSettled, endBegan)
         XCTAssertEqual(h.probe.events.filter { $0 == .active(h.id) }.count, 1)
+        XCTAssertEqual(h.probe.events.filter { $0 == .ended(h.id) }.count, 1)
+    }
+
+    func testMissingEndDoesNotAcknowledgeCleanupAndCanBeRetried() async throws {
+        let h = ActivityTestHarness()
+        defer { h.releaseAll() }
+        XCTAssertEqual(h.controller.start(sessionID: h.id, status: .preparing), .active)
+        h.first.endOutcome = .notFound
+        try await complete { await h.controller.end(sessionID: h.id, status: .finished) }
+        XCTAssertEqual(h.controller.snapshot().sessionID, h.id,
+                       "A missing exact SDK ID is not a performed end")
+        XCTAssertFalse(h.controller.snapshot().isActive)
+        XCTAssertFalse(h.controller.snapshot().isEnding, "The failed attempt has settled")
+        XCTAssertEqual(h.probe.events.filter { $0 == .endFailed(h.id) }.count, 1)
+        XCTAssertFalse(h.probe.events.contains(.ended(h.id)))
+        XCTAssertNotNil(h.first.observer, "Keep terminal-state observation through retry")
+        XCTAssertEqual(h.controller.start(sessionID: h.id, status: .recording), .busy)
+        XCTAssertEqual(h.controller.start(sessionID: UUID(), status: .preparing), .busy)
+        try await complete { await h.controller.update(sessionID: h.id, status: .recording) }
+        XCTAssertTrue(h.first.updates.isEmpty, "End closes content updates even after a failure")
+        h.first.endOutcome = .applied
+        try await complete { await h.controller.end(sessionID: h.id, status: .finished) }
+        XCTAssertEqual(h.first.endings, [.finished, .finished])
+        XCTAssertEqual(h.probe.events.filter { $0 == .ended(h.id) }.count, 1)
+        XCTAssertNil(h.controller.snapshot().sessionID)
+        XCTAssertNil(h.first.observer)
+    }
+
+    func testCoalescedMissingEndsReportOneFailureThenRetryUsesANewAttempt() async throws {
+        let h = ActivityTestHarness()
+        defer { h.releaseAll() }
+        XCTAssertEqual(h.controller.start(sessionID: h.id, status: .preparing), .active)
+        h.first.endOutcome = .notFound
+        h.first.blockEnd = true
+        let one = ActivityTestProbe()
+        let two = ActivityTestProbe()
+        let first = Task {
+            await h.controller.end(sessionID: h.id, status: .finished)
+            one.finished = true
+        }
+        let waiting = await waitUntil { h.first.endIsWaiting }
+        XCTAssertTrue(waiting)
+        let second = Task {
+            two.started = true
+            await h.controller.end(sessionID: h.id, status: .failed)
+            two.finished = true
+        }
+        defer { first.cancel(); second.cancel() }
+        let duplicateEntered = await waitUntil { two.started }
+        XCTAssertTrue(duplicateEntered)
+        h.first.releaseEnd()
+        let returned = await waitUntil { one.finished && two.finished }
+        XCTAssertTrue(returned)
+        if returned { await first.value; await second.value }
+        XCTAssertEqual(h.first.endings, [.finished])
+        XCTAssertEqual(h.probe.events.filter { $0 == .endFailed(h.id) }.count, 1)
+        XCTAssertFalse(h.probe.events.contains(.ended(h.id)))
+        XCTAssertEqual(h.controller.snapshot().sessionID, h.id)
+        h.first.endOutcome = .applied
+        try await complete { await h.controller.end(sessionID: h.id, status: .failed) }
+        XCTAssertEqual(h.first.endings, [.finished, .failed])
+        XCTAssertEqual(h.probe.events.filter { $0 == .ended(h.id) }.count, 1)
+    }
+
+    func testMissingUpdateRevokesReadinessOnceAndCannotBecomeAnEndSuccess() async throws {
+        let h = ActivityTestHarness()
+        defer { h.releaseAll() }
+        XCTAssertEqual(h.controller.start(sessionID: h.id, status: .preparing), .active)
+        h.first.updateOutcome = .notFound
+        try await complete { await h.controller.update(sessionID: h.id, status: .recording) }
+        XCTAssertFalse(h.controller.snapshot().isActive)
+        XCTAssertEqual(h.probe.events.filter { $0 == .updateFailed(h.id) }.count, 1)
+        XCTAssertEqual(h.probe.events.filter { $0 == .lost(h.id) }.count, 1)
+        h.first.emit(.dismissed)
+        try await complete { await h.controller.update(sessionID: h.id, status: .recording) }
+        XCTAssertEqual(h.first.updates, [.recording])
+        XCTAssertEqual(h.probe.events.filter { $0 == .lost(h.id) }.count, 1)
+        h.first.endOutcome = .notFound
+        try await complete { await h.controller.end(sessionID: h.id, status: .failed) }
+        XCTAssertEqual(h.probe.events.filter { $0 == .endFailed(h.id) }.count, 1)
+        XCTAssertFalse(h.probe.events.contains(.ended(h.id)))
+        XCTAssertEqual(h.controller.snapshot().sessionID, h.id)
+        h.first.endOutcome = .applied
+        try await complete { await h.controller.end(sessionID: h.id, status: .failed) }
+        XCTAssertEqual(h.probe.events.filter { $0 == .ended(h.id) }.count, 1)
+    }
+
+    func testQueuedUpdateCannotReuseResourceAfterEarlierLookupFails() async throws {
+        let h = ActivityTestHarness()
+        defer { h.releaseAll() }
+        XCTAssertEqual(h.controller.start(sessionID: h.id, status: .preparing), .active)
+        h.first.blockUpdate = true
+        h.first.updateOutcome = .notFound
+        let one = ActivityTestProbe()
+        let two = ActivityTestProbe()
+        let first = Task {
+            await h.controller.update(sessionID: h.id, status: .recording)
+            one.finished = true
+        }
+        let waiting = await waitUntil { h.first.updateIsWaiting }
+        XCTAssertTrue(waiting)
+        let second = Task {
+            two.started = true
+            await h.controller.update(sessionID: h.id, status: .stopping)
+            two.finished = true
+        }
+        defer { first.cancel(); second.cancel() }
+        let queued = await waitUntil { two.started }
+        XCTAssertTrue(queued)
+        h.first.releaseUpdate()
+        let returned = await waitUntil { one.finished && two.finished }
+        XCTAssertTrue(returned)
+        if returned { await first.value; await second.value }
+        XCTAssertEqual(h.first.updates, [.recording])
+        XCTAssertEqual(h.probe.events.filter { $0 == .updateFailed(h.id) }.count, 1)
+        XCTAssertEqual(h.probe.events.filter { $0 == .lost(h.id) }.count, 1)
+        try await complete { await h.controller.end(sessionID: h.id, status: .failed) }
         XCTAssertEqual(h.probe.events.filter { $0 == .ended(h.id) }.count, 1)
     }
 }

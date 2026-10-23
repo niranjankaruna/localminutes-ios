@@ -63,13 +63,15 @@ private final class IOSLiveActivityHandle: LiveActivityHandle {
         }
     }
 
-    func update(status: LiveActivityStatus) async {
+    func update(status: LiveActivityStatus) async -> LiveActivityOperationOutcome {
         await activity.update(content(status))
+        return .applied
     }
 
-    func end(status: LiveActivityStatus) async {
+    func end(status: LiveActivityStatus) async -> LiveActivityOperationOutcome {
         await activity.end(content(status), dismissalPolicy: .immediate)
         setStateObserver(nil)
+        return .applied
     }
 
     private func content(

@@ -13,14 +13,20 @@ public enum LiveActivityResourceState: Sendable, Equatable {
 public typealias LiveActivityStateObserver =
     @MainActor @Sendable (LiveActivityResourceState) -> Void
 
+/// Applied means the matching SDK call returned, not that presentation or
+/// physical-device behavior has been verified. Missing resources are explicit.
+public enum LiveActivityOperationOutcome: Sendable, Equatable {
+    case applied, notFound
+}
+
 /// ActivityKit handle boundary only. The actual adapter will observe the real
 /// activityStateUpdates sequence and call real async update/end SDK methods.
 @MainActor
 public protocol LiveActivityHandle: AnyObject {
     var state: LiveActivityResourceState { get }
     func setStateObserver(_ observer: LiveActivityStateObserver?)
-    func update(status: LiveActivityStatus) async
-    func end(status: LiveActivityStatus) async
+    func update(status: LiveActivityStatus) async -> LiveActivityOperationOutcome
+    func end(status: LiveActivityStatus) async -> LiveActivityOperationOutcome
 }
 
 @MainActor
@@ -42,6 +48,8 @@ public enum LiveActivityResourceEvent: Sendable, Equatable {
     case active(UUID)
     case unavailable(UUID, LiveActivityResourceFailure)
     case lost(UUID)
+    case updateFailed(UUID)
+    case endFailed(UUID)
     /// Resource cleanup acknowledgement, never recording completion.
     case ended(UUID)
 }
@@ -138,7 +146,7 @@ public final class LiveActivityController {
         let handle = ownership.handle
         let operation = Task {
             await previous?.value
-            await handle.update(status: status)
+            _ = await handle.update(status: status)
         }
         ownership.lastUpdate = operation
         await operation.value
@@ -157,7 +165,7 @@ public final class LiveActivityController {
             let handle = ownership.handle
             operation = Task {
                 await pendingUpdate?.value
-                await handle.end(status: status)
+                _ = await handle.end(status: status)
             }
             // Close update/start admission before the first suspension.
             ownership.ending = operation

@@ -98,3 +98,15 @@ at zero for this invocation; prior six-run ledger remains intact.
 | [40004059233](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40004059233) | e2876e830c8f54c605875e0808dd5d0cb6329e8e | 87 XCTest+59 Node+53 repeated TSAN passed; overall FAILED at iOS ActivityKit update/end isolation compilation.0 native product/package checks and no new IPA. Six-run cap terminal; no seventh dispatch |
 
 Continuation-03 used6of6 new runs, all terminal. Latest full native GREEN remainsc12bd9c/run40001047762. T06.1 checked SDK-operation candidate is saved outside active paths; regression RED and native repair validation follow next invocation; no new run/re-run is permitted here.
+
+## 2026-10-23-continuation-04
+
+Previous goal turn classified as progress: verified core/activity RED and GREEN,
+localized a real native SDK isolation failure, and saved an uncompiled repair
+candidate with a concrete checked-outcome regression next step. Verified clean
+private task/t06-activity at3c3d8ff, authenticated owner/identity and terminal
+run40004059233 at e2876e8. Last full native GREEN remainsc12bd9c. No bootstrap
+repeated. Read-only account observation:1,026/2,000 included Actions minutes
+used,974 displayed remaining, Actions billable$0; account-wide Actions$0/$0
+Usage blocked. Storage0.5/0.5GB100%, no uploads. No billing/visibility changes.
+Six-run cap starts at0 for this new goal invocation; previous ledgers retained.

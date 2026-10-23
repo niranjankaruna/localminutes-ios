@@ -142,3 +142,12 @@ Continuation-03 pre-run3 read-only recheck,23 October2026 about17:59 UTC: Action
 Pre-run5 read-only continuation-03 observation23 October2026 about18:21 UTC:933/2,000 included minutes used,1,067 displayed remaining; Actions billable$0 and storage0.5/0.5GB (100%). Existing account-wide$0 budget remains the required guard; no upload/billing/visibility changes. Four runs terminal; maximum two additional standard bounded runs this invocation.
 
 Final continuation-03 read-only account observation:1,026/2,000 included Actions minutes used,974 displayed remaining; Actions billable$0, storage0.5/0.5GB (100%). Existing account-wide$0 hard stop was verified before runs5/6; no settings changed. Six runs terminal, no uploads or seventh dispatch. Recheck guard/allowance before the next invocation dispatch.
+
+## Continuation-04 cost observation — 23 October 2026 about19:00 UTC
+
+Read-only authenticated billing overview:1,026/2,000 included Actions minutes
+used,974 displayed remaining; billable Actions$0; storage0.5/0.5GB100%. Existing
+account-wide Actions budget$0/$0, Usage blocked was observed on budgets page.
+No settings changed. At most six new standard bounded runs, one active per
+branch, existing10/15-minute timeouts; no artifact/cache upload. The displayed
+allowance is account-wide and is not exclusively reserved for this project.
