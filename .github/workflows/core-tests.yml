@@ -1,0 +1,78 @@
+name: Core tests
+
+on:
+  push:
+    branches: [main, 'task/**']
+    paths:
+      - 'Package.swift'
+      - 'Core/**'
+      - 'Tests/**'
+      - '.github/workflows/core-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: localminutes-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core:
+    runs-on: macos-15-intel
+    timeout-minutes: 10
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+    steps:
+      - name: Check out exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Verify source and record actual toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          config = json.loads(Path('project-config.json').read_text())
+          assert config['ci']['costGuardVerified'] is True, 'CI cost guard is unverified'
+          assert config['budget']['maximumAdditionalSpendEUR'] == 0
+          assert config['budget']['allowLargerRunners'] is False
+          assert Path(config['ci']['costGuardEvidence'].split('#')[0]).is_file()
+          PY
+          printf 'SOURCE_SHA=%s\nRUNNER_IMAGE=%s\nRUNNER_OS=%s\n' "$GITHUB_SHA" "$ImageVersion" "$RUNNER_OS"
+          sw_vers
+          uname -m
+          xcodebuild -version
+          xcodebuild -showsdks
+          swift --version
+          xcrun simctl list devices available
+      - name: Execute XCTest assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .build
+          swift test --enable-code-coverage --xunit-output .build/test-results.xml 2>&1 | tee .build/test-output.log
+      - name: Require discovered tests and report evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+          cases = list(ET.parse('.build/test-results.xml').getroot().iter('testcase'))
+          assert cases, 'Zero executed XCTest cases is not validation'
+          assert not any(c.find('skipped') is not None for c in cases), 'Mandatory skips are forbidden'
+          names = [c.attrib.get('name', '') for c in cases]
+          assert any('testHarnessExecutesAnAssertion' in n for n in names), names
+          assert any('testControlledClockAdvancesWithoutSleeping' in n for n in names), names
+          failed = sum(c.find('failure') is not None or c.find('error') is not None for c in cases)
+          summary = f"Source: {os.environ['GITHUB_SHA']}\nExecuted: {len(cases)}; failed: {failed}; skipped: 0\n"
+          print(summary)
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as out:
+              out.write(summary)
+          PY

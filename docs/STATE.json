@@ -6,13 +6,19 @@
   "lastUpdated": "2026-10-23",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
-  "currentBranch": "main",
+  "currentBranch": "task/t02-harness",
   "currentTask": "T02",
   "lastVerifiedCommit": null,
   "lastVerifiedCIRun": null,
   "candidateArtifact": null,
   "nextAction": "T02: create task/t02-harness, push the minimal harness with an intentional XCTest assertion failure, verify actual RED on macos-15-intel/Xcode 26.2, then correct only the harness demonstration and verify GREEN.",
   "blockedItems": [],
+  "ciInvocation": {
+    "id": "2026-10-23-initial",
+    "maxNewRuns": 6,
+    "newRunIds": [],
+    "costGuardObservedAt": "2026-10-23T14:41:00Z"
+  },
   "deviceGates": {
     "freeSigningAndExtension": "NOT_RUN",
     "actionButtonWarmStart": "NOT_RUN",
