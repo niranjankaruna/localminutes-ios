@@ -3,17 +3,17 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-23T16:28:12Z",
+  "lastUpdated": "2026-10-23T16:38:32Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
-  "currentBranch": "task/t04-ios-build",
-  "currentTask": "T04.3",
-  "lastVerifiedCommit": "809f653c8b3cb52c1c04943401eb42d166d7e94b",
-  "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/39978171921",
+  "currentBranch": "main",
+  "currentTask": "T05.1",
+  "lastVerifiedCommit": "ca803757573b5f98ff502494f5526b1db620b7d5",
+  "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/39987058071",
   "candidateArtifact": null,
-  "nextAction": "New invocation: recheck branch/remote, latest CI and cost guard, then push saved local fix 14a988604c05e2484e9d08bf5d4d11e04d217e73 with its checkpoint. Require macOS GREEN on the exact pushed commit for 20 XCTest, 51 Node, 2 compiled-product checks, 13 real packaging tests and actual unsigned IPA creation. No seventh run in continuation-01. After T04.3 passes, proceed to T05 while T04.4 retention stays gated by storage headroom.",
-  "pendingPushCommit": "14a988604c05e2484e9d08bf5d4d11e04d217e73",
-  "remoteBranchHead": "bafe949cf3768fc9ae82868e502a8bd48474d388",
+  "nextAction": "T05.1: create the capture task branch, write bounded owned PCM handoff tests and minimal interfaces, prove meaningful hosted RED, push test-first, then implement. T04.3 has exact-source native GREEN; T04.4 retention remains gated by included-storage headroom. No microphone/model/device gate is passed.",
+  "pendingPushCommit": null,
+  "remoteBranchHead": "ca803757573b5f98ff502494f5526b1db620b7d5",
   "localScriptGreen": {
     "sourceCommit": "14a988604c05e2484e9d08bf5d4d11e04d217e73",
     "platform": "Windows 11 / Node 24.21.0",
@@ -23,34 +23,37 @@
     "skipped": 0,
     "nativePackagingVerified": false
   },
-  "lastVerifiedNativeBuildCommit": "a3f5849d882dbb4bb1dea43028e12f5ed7e63837",
-  "lastVerifiedNativeBuildCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/39983105414",
-  "blockedItems": ["ARTIFACT_STORAGE_HEADROOM_UNVERIFIED"],
+  "lastVerifiedNativeBuildCommit": "ca803757573b5f98ff502494f5526b1db620b7d5",
+  "lastVerifiedNativeBuildCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/39987058071",
+  "blockedItems": [
+    "ARTIFACT_STORAGE_HEADROOM_UNVERIFIED"
+  ],
   "ciInvocation": {
     "id": "2026-10-23-continuation-02",
     "maxNewRuns": 6,
-    "newRunIds": [],
+    "newRunIds": [
+      39987058071
+    ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-23T16:28:12Z"
   },
   "latestCIRun": {
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/39985432474",
-    "sourceCommit": "bafe949cf3768fc9ae82868e502a8bd48474d388",
-    "conclusion": "failure",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/39987058071",
+    "sourceCommit": "ca803757573b5f98ff502494f5526b1db620b7d5",
+    "conclusion": "success",
     "executedXCTests": 20,
     "passedXCTests": 20,
     "failedXCTests": 0,
-    "assertionFailures": 0,
     "skippedXCTests": 0,
     "executedNodeTests": 51,
-    "passedNodeTests": 44,
-    "failedNodeTests": 7,
+    "passedNodeTests": 51,
+    "failedNodeTests": 0,
     "skippedNodeTests": 0,
-    "nativeBuildJobConclusion": "skipped",
-    "executedNativeTests": 0,
-    "passedNativeTests": null,
-    "failedNativeTests": null,
-    "skippedNativeTests": null
+    "nativeBuildJobConclusion": "success",
+    "executedNativeTests": 15,
+    "passedNativeTests": 15,
+    "failedNativeTests": 0,
+    "skippedNativeTests": 0
   },
   "deviceGates": {
     "freeSigningAndExtension": "NOT_RUN",
@@ -62,5 +65,14 @@
     "offlineInference": "NOT_RUN",
     "inPlaceRenewal": "NOT_RUN"
   },
-  "verifiedComplete": false
+  "verifiedComplete": false,
+  "lastEphemeralArtifact": {
+    "sourceCommit": "ca803757573b5f98ff502494f5526b1db620b7d5",
+    "runUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/39987058071",
+    "name": "LocalMinutes-1.0-ca803757573b5f98ff502494f5526b1db620b7d5-unsigned.ipa",
+    "sha256": "0c8a531e68d0e9b32b04a2a1b3a70687715d88ac07de135f54f0c41a7d637905",
+    "sizeBytes": 42332,
+    "createdAt": "2026-10-23T16:33:49.330Z",
+    "retained": false
+  }
 }

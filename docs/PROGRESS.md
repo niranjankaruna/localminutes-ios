@@ -148,3 +148,17 @@ CI cap and pending gates. Clarified that T04.3 needs native packaging GREEN;
 candidateArtifact additionally needs T04.4 retention/delivery. No acceptance
 criterion or failed test was removed. The final documentation checkpoint is
 saved locally alongside the fix; pushing waits for the next invocation.
+
+## 23 October 2026 — T04.3 verified; T05 starting
+
+Continuation-02 classified the previous turn as progress and resumed its exact
+saved fix after verifying Git, private remote, CI and the existing $0 hard stop.
+Run 39987058071 at source `ca80375` passed 20 XCTest, 51 Node, 2 native product and 13 real
+packaging tests (0 failures/skips). Both device and simulator targets compiled.
+Actual unsigned IPA, 42,332 bytes, with checksum/manifest was created only on the
+runner; SHA `0c8a531e68d0e9b32b04a2a1b3a70687715d88ac07de135f54f0c41a7d637905`.
+No upload/retention, signed extension, microphone, model or device result is
+claimed. T04.3 is complete; T04.4 storage blocker and overall IN_PROGRESS remain.
+Main was fast-forwarded to tested `ca80375` and pushed/verified. Full TDD evidence
+and invocation ledger are updated. New runs 1 of 6. Next task T05.1: write PCM
+handoff tests first, then native RED/GREEN; retain T05's real capture/writer scope.

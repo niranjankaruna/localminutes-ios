@@ -125,9 +125,9 @@
         "Test Info.plist, bundle IDs, architecture, Payload structure and checksums.",
         "Produce candidate unsigned artifact with no Apple credentials."
       ],
-      "childTasks": [{"id":"T04.1","title":"Validate device bundle metadata, archive paths and checksums","status":"VERIFIED_COMPLETE"},{"id":"T04.2","title":"Compile app and Live Activity extension for device and simulator","status":"VERIFIED_COMPLETE"},{"id":"T04.3","title":"Create and verify unsigned device archive","status":"IN_PROGRESS"},{"id":"T04.4","title":"Retain and deliver checksummed candidate artifact","status":"BLOCKED_EXTERNAL","blockers":["ARTIFACT_STORAGE_HEADROOM_UNVERIFIED"]}],
+      "childTasks": [{"id":"T04.1","title":"Validate device bundle metadata, archive paths and checksums","status":"VERIFIED_COMPLETE"},{"id":"T04.2","title":"Compile app and Live Activity extension for device and simulator","status":"VERIFIED_COMPLETE"},{"id":"T04.3","title":"Create and verify unsigned device archive","status":"VERIFIED_COMPLETE"},{"id":"T04.4","title":"Retain and deliver checksummed candidate artifact","status":"BLOCKED_EXTERNAL","blockers":["ARTIFACT_STORAGE_HEADROOM_UNVERIFIED"]}],
       "redEvidence": ["docs/evidence/T04_TDD.md"],
-      "greenEvidence": ["docs/evidence/T04_TDD.md#t041-green--t042-red--verified-native-products"],
+      "greenEvidence": ["docs/evidence/T04_TDD.md#t043-green--verified"],
       "deviceEvidence": [],
       "blockers": [],
       "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
@@ -138,7 +138,7 @@
       "milestone": "M2",
       "title": "Implement real microphone capture and minimal durable writer",
       "kind": "feature",
-      "status": "TODO",
+      "status": "IN_PROGRESS",
       "dependsOn": [
         "T03",
         "T04.1",
@@ -154,7 +154,7 @@
         "Test capture adapter contract, formats, first-buffer success signal and stop flush.",
         "Integrate real AVAudioEngine and nonblocking owned-buffer handoff."
       ],
-      "childTasks": [],
+      "childTasks": [{"id":"T05.1","title":"Bounded owned PCM handoff and explicit loss reporting","status":"IN_PROGRESS"},{"id":"T05.2","title":"Real audio conversion and minimal durable CAF writer","status":"NOT_STARTED"},{"id":"T05.3","title":"Real iOS microphone adapter and capture lifecycle","status":"NOT_STARTED"}],
       "redEvidence": [],
       "greenEvidence": [],
       "deviceEvidence": [],

@@ -55,3 +55,9 @@ No native archive or IPA has been produced yet. Resume T04.3 exact-source
 macOS GREEN after the next invocation's repository/cost check. Project remains
 IN_PROGRESS; this per-invocation boundary requires no owner credential or billing
 change. Artifact retention remains the separate headroom blocker above.
+
+Continuation-02 resolved the prior CI boundary: run 39987058071 verified the
+saved fix and actual unsigned packaging; all test groups passed. T04.3 is complete.
+The IPA was ephemeral, not uploaded or delivered; storage headroom is still
+unverified (457.7 / 2,000 minutes used and 100% storage at the new cost observation).
+T05 capture development can continue. No owner action is needed for current code.

@@ -207,3 +207,32 @@ read-only review confirmed both fixes and fixture cleanup with no new issue.
 All 51 Windows script tests passed after fixes; no native GREEN is claimed.
 Task branch is ahead of its pushed test-first commit. Next invocation's first
 CI action is to push the fix/checkpoint after rechecking the account guard.
+
+## T04.3 GREEN — verified
+
+Source **ca803757573b5f98ff502494f5526b1db620b7d5**, run
+[39987058071](https://github.com/niranjankaruna/localminutes-ios/actions/runs/39987058071),
+completed **16:33:56 UTC**, 23 October 2026. Actual **20 XCTest, 51 Node,
+2 native product checks and 13 real packaging tests passed; 0 failures/skips**.
+Commands are the committed workflow: swift test with coverage, Node unit files,
+both xcodebuild device/simulator builds, native device-build.test.mjs and
+package.test.mjs, followed by createUnsignedIPA on the real device build.
+
+Actual Xcode26.2/17C52, SDK26.2, macos-15-intel image20260824.0482.1;
+XcodeGen2.46.0 archive SHA/size verified. Real codesign inspection confirmed the
+app/extension unsigned; ZIP CRC/types, device executable and plist byte hashes,
+stable IDs, source stamps, privacy/link rejection and output safety all passed.
+Native tests used actual Apple-tool products. Synthetic data was used only for
+explicit fault fixtures. No inference or phone behavior was exercised.
+
+The final step created an actual ephemeral IPA:
+`LocalMinutes-1.0-ca803757573b5f98ff502494f5526b1db620b7d5-unsigned.ipa`,
+**42,332 bytes**, SHA-256
+`0c8a531e68d0e9b32b04a2a1b3a70687715d88ac07de135f54f0c41a7d637905`,
+manifest timestamp2026-10-23T16:33:49.330Z. It was not uploaded or retained.
+No download/candidateArtifact or device signing result is claimed. T04.3 is
+complete; parent T04 retains the T04.4 delivery blocker. Independent review
+preceded this run and found no further issue after the tested regression fixes.
+Main was fast-forwarded to this exact GREEN source, pushed and remote-verified.
+Next highest unblocked work is T05 capture, starting with owned bounded PCM
+handoff. All phone, real-model and full-product gates remain NOT_RUN.
