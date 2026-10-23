@@ -39,7 +39,7 @@ and observed nil rather than stopAndFlush, idle rather than stopping, and a
 missing cleanup-pending flag. All code compiled; 8 reporting tests passed.
 Both RED commits remain pushed and auditable before behavior implementation.
 
-## GREEN — pending exact-source hosted execution
+## GREEN — initial domain set passed; review regression pending
 
 Implemented the smallest command/event actor after both RED observations:
 serialized session ownership, idempotent commands, activation gating, startup
@@ -47,6 +47,21 @@ cancellation, acknowledgement-dependent completion, stale-session rejection,
 and sanitized explicit interruption/failure outcomes. Adapter work runs outside
 the actor. Real AVFoundation, ActivityKit, storage and inference are not integrated
 in this slice, and adapter lifetime/cleanup contracts still need T05+ integration.
+
+Implementation source: `9c39e5f6a44904dc5746fc31c6a1c5e3c9373fc2`.
+Run [39975791505](https://github.com/niranjankaruna/localminutes-ios/actions/runs/39975791505)
+completed 23 October 2026, 15:10:31 UTC, **success**. XCTest: 19 executed
+(17 domain + 2 harness), 19 passed, 0 failures/skips; Node reporting tests: 8/8
+passed. Command: `swift test --enable-code-coverage`; strict log verification
+also passed on the exact source. This does not close T03 because review found
+the additional interruption race below.
+
+Review of the actual implementation found a separate interruption race during
+activation: interrupt is ignored while phase is preparing, allowing a later
+readiness event to publish recording. Added
+`testInterruptionDuringActivationRejectsLateRecordingSuccess` before fixing it.
+This regression requires a separate native RED; it prevents closing T03 even
+if the existing 19-case implementation run passes. The fix is not implemented.
 
 ## Review and continuation
 

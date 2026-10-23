@@ -99,9 +99,9 @@
         "Test transitions, duplicate/concurrent starts and stops, cancellation and interrupted states.",
         "Capture real RED before implementing coordinator behavior."
       ],
-      "childTasks": [],
-      "redEvidence": [],
-      "greenEvidence": [],
+      "childTasks": [{"id":"T03.1","title":"Reject late readiness after interruption during activation","status":"IN_PROGRESS"}],
+      "redEvidence": ["docs/evidence/T03_TDD.md"],
+      "greenEvidence": ["docs/evidence/T03_TDD.md#green--initial-domain-set-passed-review-regression-pending"],
       "deviceEvidence": [],
       "blockers": [],
       "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."

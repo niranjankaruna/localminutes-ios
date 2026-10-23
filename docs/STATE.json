@@ -8,15 +8,15 @@
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t03-recording-coordinator",
   "currentTask": "T03",
-  "lastVerifiedCommit": "87dadb4c030a24f5206a7658ea51c49d09579966",
-  "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/39973529078",
+  "lastVerifiedCommit": "9c39e5f6a44904dc5746fc31c6a1c5e3c9373fc2",
+  "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/39975791505",
   "candidateArtifact": null,
-  "nextAction": "T03: push the transition implementation after recorded expanded RED; require 19 XCTest plus 8 reporting tests GREEN at the exact SHA. Four of six invocation CI runs used.",
+  "nextAction": "T03.1: use the final sixth run to prove interruption-during-activation regression RED; checkpoint. Next invocation must fix interrupt handling only after recorded RED, verify all tests GREEN, review, and then proceed to T04.",
   "blockedItems": [],
   "ciInvocation": {
     "id": "2026-10-23-initial",
     "maxNewRuns": 6,
-    "newRunIds": [39972652907, 39973529078, 39974793184, 39975336692],
+    "newRunIds": [39972652907, 39973529078, 39974793184, 39975336692, 39975791505],
     "costGuardObservedAt": "2026-10-23T14:41:00Z"
   },
   "deviceGates": {

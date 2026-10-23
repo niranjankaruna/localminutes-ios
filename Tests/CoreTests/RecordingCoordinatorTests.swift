@@ -210,6 +210,29 @@ final class RecordingCoordinatorTests: XCTestCase {
         XCTAssertEqual(next, .prepare(secondID))
     }
 
+    func testInterruptionDuringActivationRejectsLateRecordingSuccess() async {
+        let coordinator = RecordingCoordinator()
+        _ = await coordinator.start(sessionID: firstID)
+        _ = await coordinator.preparationSucceeded(for: firstID)
+        let command = await coordinator.interrupt(for: firstID)
+        let repeated = await coordinator.interrupt(for: firstID)
+        let replacement = await coordinator.start(sessionID: secondID)
+        await coordinator.updateReadiness(ready, for: firstID)
+        let interrupted = await coordinator.snapshot()
+        XCTAssertEqual(command, .stopAndFlush(firstID))
+        XCTAssertNil(repeated)
+        XCTAssertNil(replacement)
+        XCTAssertEqual(interrupted.phase, .interrupted)
+        XCTAssertTrue(interrupted.cleanupPending)
+        XCTAssertFalse(interrupted.readiness.firstBufferAccepted)
+        await coordinator.captureStopped(for: firstID)
+        let stopped = await coordinator.snapshot()
+        XCTAssertEqual(stopped.phase, .interrupted)
+        XCTAssertFalse(stopped.cleanupPending)
+        let next = await coordinator.start(sessionID: secondID)
+        XCTAssertEqual(next, .prepare(secondID))
+    }
+
     func testDeniedPreparationHasAnExplicitFailureAndCancelsResources() async {
         let coordinator = RecordingCoordinator()
         _ = await coordinator.start(sessionID: firstID)

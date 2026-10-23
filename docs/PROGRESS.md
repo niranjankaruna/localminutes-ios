@@ -40,3 +40,22 @@ Swift 6.2.3, x86_64. Independent review found no actionable issues.
 
 Evidence: `docs/evidence/T02_TDD.md`; runs: 2 of 6. No IPA/app/model/device
 result exists. Next: T03 recording domain tests, prove RED before behavior.
+
+## 23 October 2026, 16:12 Europe/Dublin — T03 partial GREEN; review regression
+
+T03 test-first commit `16995e0b34fda8b57e36a95d1ce58c28b63aa735`, run
+39974793184: 18 total XCTest, 39 assertion failures. Review added activation
+cancellation before implementation; commit `bc71753f82ad71a55eca3f4f171a3cf661ee3b94`,
+run 39975336692: 19 XCTest, 43 assertion failures. Both compiled and executed.
+Implemented the command/event recording actor at
+`9c39e5f6a44904dc5746fc31c6a1c5e3c9373fc2`; run 39975791505 passed all
+19 XCTest and 8 reporting tests, no skips. This is domain state only.
+
+Independent review found a separate interruption-during-activation race. Added
+its regression before fixing; T03 remains IN_PROGRESS. The sixth/final run
+will prove its native RED, then the invocation checkpoints. Next invocation:
+fix T03.1 after RED, verify exact-SHA GREEN and regressions, review, then T04.
+No app/IPA, microphone, real model or device evidence exists. Main is preserved
+at the bootstrap documentation checkpoint; task history is not merged while
+the review issue remains. T04 upstream research was saved without installing
+dependencies or implementing a scaffold.
