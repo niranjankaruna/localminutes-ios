@@ -495,3 +495,36 @@ app-held router; scene/view cancellation never stops capture. Shared Stop uses
 the exact UUID, generic Activity content has no meeting text, and Release omits
 all synthetic preview switches. No raw media/model assets, credentials or signed
 products are staged. Exact-source native/UI results remain required.
+
+## T06.2.2.2 preparing-toggle regression RED — verified
+
+Task/requirements: T06.2.2.2 / R04,R06. Test-first source
+6b5fd0c074672c467f0d26c5797683b706ec8263 was pushed before this execution.
+[Run40027966192](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40027966192),
+hosted macos-15-intel/Xcode26.2/iPhone17Pro iOS26.2 x86_64 Simulator.
+Test: Tests/RecordingTests/RecordingSessionOwnerTests.swift,
+testNativeSecondToggleCancelsHeldPreparationInsteadOfCoalescingAStart.
+
+Actual command: xcodebuild test -project LocalMinutes.xcodeproj -scheme
+LocalMinutes -configuration Debug -destination platform=iOS\ Simulator,id=C15FAC2A-CB46-4F16-B882-3970BD44CFAD
+-destination-timeout 120 -parallel-testing-enabled NO -collect-test-diagnostics never
+-only-testing:LocalMinutesAppTests -derivedDataPath build/native-tests
+-resultBundlePath .agent-local/native-app.xcresult CODE_SIGNING_ALLOWED=NO
+LOCALMINUTES_SOURCE_COMMIT=6b5fd0c074672c467f0d26c5797683b706ec8263.
+The workflow retains the destination as one quoted argument.
+
+Actual native result:39 executed,38 passed,1 failed,9 assertion failures,
+0 skipped. The result-bundle summary and strict log reporter agree. Observed
+XCTAssertEqual failures include Optional("Preparing recording.") instead of
+Optional("No recording is active.") for both actual native calls and a resource
+call count1 instead of0. The second toggle incorrectly joined the admitted
+start; its held preflight later activated resources. This is behavioral RED,
+not a compile/startup/zero-test failure. Existing38 cases passed unchanged.
+Production coalescing is still unchanged at this evidence checkpoint.
+
+Core115Swift+59Node+81repeatedTSAN passed. Actual device/simulator products and
+native test targets compile. The separate3 UI cases are still running; no UI
+GREEN or new package is claimed. This is the final6/6 run of continuation-05.
+Next: implement epoch-scoped preflight cancellation, keep overlapping-stop
+coalescing and truthful settled replies, then require later exact-source GREEN.
+No seventh dispatch or re-run this invocation; main remains known-good.

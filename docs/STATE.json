@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-23T21:34:25.676Z",
+  "lastUpdated": "2026-10-23T21:50:13Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -11,14 +11,14 @@
   "lastVerifiedCommit": "40100fdb9a8349acdbf2d22c63eb25ce959e9388",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017962923",
   "candidateArtifact": null,
-  "nextAction": "T06.2.2.2: dispatch/follow final allowed run6 for new recording/shared Activity UI after actual7c1ae7c UI RED and new native preparing-toggle regression before its repair. Expect39 app-hosted+3UI. Leave production toggle coalescing unchanged until that regression has meaningful actual RED. No seventh dispatch/re-run. Preserve known-good main40100fd source; checkpoint exact pending repair/GREEN if cap is reached.",
+  "nextAction": "T06.2.2.2: follow the same live final6/6 run40027966192 at6b5fd0c for3UI. Native39 executed38passed1failed9assertions0skip; preparing-toggle RED is recorded before repair. Implement covered cancellation locally only, then checkpoint actual terminal results and exact pending full GREEN. No seventh dispatch or re-run; preserve known-good main.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "7c1ae7c6edda4a4ee23b47299e45f22a6fcef409",
+  "remoteBranchHead": "6b5fd0c074672c467f0d26c5797683b706ec8263",
   "localScriptGreen": {
-    "sourceCommit": "14a988604c05e2484e9d08bf5d4d11e04d217e73",
+    "sourceCommit": "6b5fd0c074672c467f0d26c5797683b706ec8263",
     "platform": "Windows 11 / Node 24.21.0",
-    "executed": 51,
-    "passed": 51,
+    "executed": 59,
+    "passed": 59,
     "failed": 0,
     "skipped": 0,
     "nativePackagingVerified": false
@@ -36,9 +36,10 @@
       40017195075,
       40017962923,
       40020680067,
-      40024451125
+      40024451125,
+      40027966192
     ],
-    "limitReached": false,
+    "limitReached": true,
     "costGuardObservedAt": "2026-10-23T21:34:25.676Z",
     "finalRunLimits": {
       "coreMinutes": 6,
@@ -214,16 +215,19 @@
     "greenVerifiedCommit": "7c1ae7c6edda4a4ee23b47299e45f22a6fcef409",
     "additionalModeProbeExecuted": true,
     "uiRedVerified": true,
-    "sourceScope": "Original38 app-hosted cases GREEN at7c1ae7c. Three UI cases RED there before new controls. One added native preparing-toggle regression is unexecuted; coalescing repair must wait for its RED.",
+    "sourceScope": "Original38 app-hosted cases GREEN at7c1ae7c and unchanged/pass again at6b5fd0c. UI3 RED at7c1ae7c before new controls. Added preparing-toggle regression RED verified at6b5fd0c/run40027966192 before repair; UI3 still running.",
     "originalNativeGreenExecuted": 38,
     "hiddenStopSDKMode": "background, observed iOS26.2; no mode declaration change",
     "uiProductionBehaviorImplemented": true,
     "pendingRegression": {
       "test": "testNativeSecondToggleCancelsHeldPreparationInsteadOfCoalescingAStart",
       "inActiveBuildPaths": true,
-      "executed": false,
-      "redVerified": false,
+      "executed": true,
+      "redVerified": true,
       "repaired": false,
+      "redSourceCommit": "6b5fd0c074672c467f0d26c5797683b706ec8263",
+      "redRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40027966192",
+      "redAssertionFailures": 9,
       "acceptance": "Second native Toggle during held model preflight must request cleanup before late readiness and cannot start any hardware."
     }
   },
@@ -238,5 +242,11 @@
     "implementationExists": true,
     "greenVerified": false,
     "physicalExtensionEvidence": false
+  },
+  "activeCIRun": {
+    "sourceCommit": "6b5fd0c074672c467f0d26c5797683b706ec8263",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40027966192",
+    "status": "in_progress",
+    "ordinal": 6
   }
 }

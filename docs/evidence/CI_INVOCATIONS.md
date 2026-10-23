@@ -167,3 +167,10 @@ billable$0, Actions$0/$0 Usageblocked confirmed; storage100%. Core6min/native15m
 bound final run to21runner minutes (210 included macOS minutes); prior actual
 durations3m42s/12m22s fit. All tests and failure checks stay mandatory. Shared
 allowance is not reserved. No upload/payment/visibility/budget setting changed.
+
+| [40027966192](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40027966192) | 6b5fd0c074672c467f0d26c5797683b706ec8263 | Final6/6 run active: new native preparing-toggle regression before repair, UI/shared Activity controls after real UI RED. No result claimed yet |
+
+Six-run dispatch cap reached. Follow this exact live run only; no seventh push
+trigger, manual dispatch or re-run this invocation. Documentation-only checkpoint
+pushes do not trigger the workflow. New behavioral repair must retain its RED
+history and await later exact-source full GREEN; preserve known-good main.
