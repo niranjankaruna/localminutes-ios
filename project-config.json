@@ -3,7 +3,7 @@
   "projectName": "LocalMinutes",
   "specVersion": "1.0",
   "github": {
-    "owner": "resolve-from-authenticated-account",
+    "owner": "niranjankaruna",
     "repository": "localminutes-ios",
     "visibility": "private",
     "publicationApproved": false,
@@ -21,8 +21,8 @@
     "codingAgentSubscriptionOutOfScope": true
   },
   "ci": {
-    "costGuardVerified": false,
-    "costGuardEvidence": null,
+    "costGuardVerified": true,
+    "costGuardEvidence": "docs/evidence/T01_ENVIRONMENT.md#ci-cost-observation",
     "maxNewRunsPerInvocation": 6,
     "maxConcurrentRunsPerBranch": 1,
     "jobTimeoutMinutes": 45,

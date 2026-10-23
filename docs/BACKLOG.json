@@ -9,7 +9,7 @@
       "milestone": "M0",
       "title": "Bootstrap GitHub and initial documentation commit",
       "kind": "bootstrap",
-      "status": "TODO",
+      "status": "VERIFIED_COMPLETE",
       "dependsOn": [],
       "requirements": [
         "R01"
@@ -22,7 +22,7 @@
       ],
       "childTasks": [],
       "redEvidence": [],
-      "greenEvidence": [],
+      "greenEvidence": ["docs/evidence/T00_BOOTSTRAP.md"],
       "deviceEvidence": [],
       "blockers": [],
       "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
@@ -33,7 +33,7 @@
       "milestone": "M0",
       "title": "Verify environment, budget guard and toolchain strategy",
       "kind": "infrastructure",
-      "status": "TODO",
+      "status": "VERIFIED_COMPLETE",
       "dependsOn": [
         "T00"
       ],
@@ -49,7 +49,7 @@
       ],
       "childTasks": [],
       "redEvidence": [],
-      "greenEvidence": [],
+      "greenEvidence": ["docs/evidence/T01_ENVIRONMENT.md"],
       "deviceEvidence": [],
       "blockers": [],
       "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
@@ -60,7 +60,7 @@
       "milestone": "M1",
       "title": "Establish real test discovery and RED/GREEN harness",
       "kind": "infrastructure",
-      "status": "TODO",
+      "status": "IN_PROGRESS",
       "dependsOn": [
         "T01"
       ],
