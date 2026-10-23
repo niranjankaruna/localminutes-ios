@@ -18,6 +18,7 @@ targets:
     sources:
       - App
       - Core
+      - Recording
       - Shared
     info:
       path: App/Info.plist

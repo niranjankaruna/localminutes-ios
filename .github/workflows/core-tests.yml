@@ -6,6 +6,7 @@ on:
     paths:
       - 'Package.swift'
       - 'Core/**'
+      - 'Recording/**'
       - 'Tests/**'
       - 'scripts/**'
       - 'project.yml'
@@ -66,7 +67,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node scripts/verify-test-log.mjs .build/test-output.log testHarnessExecutesAnAssertion testControlledClockAdvancesWithoutSleeping testConcurrentStartsEmitExactlyOnePreparation testConcurrentStopsEmitExactlyOneFlushAndCompleteOnlyAfterAcknowledgement testInterruptionDuringActivationRejectsLateRecordingSuccess
+          node scripts/verify-test-log.mjs .build/test-output.log testHarnessExecutesAnAssertion testControlledClockAdvancesWithoutSleeping testConcurrentStartsEmitExactlyOnePreparation testConcurrentStopsEmitExactlyOneFlushAndCompleteOnlyAfterAcknowledgement testInterruptionDuringActivationRejectsLateRecordingSuccess testAcceptedPCMIsOwnedAndSurvivesSourceMutation testSequenceCountersWrapWithoutLosingFullEmptyFIFOOrLossState testRealConversionProduces16kMonoAndPreservesDuration testRealCAFSegmentsContain16BitMonoSamplesAndPersistManifest
 
   native-build:
     needs: core

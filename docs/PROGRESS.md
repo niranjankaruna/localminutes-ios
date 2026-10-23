@@ -162,3 +162,9 @@ claimed. T04.3 is complete; T04.4 storage blocker and overall IN_PROGRESS remain
 Main was fast-forwarded to tested `ca80375` and pushed/verified. Full TDD evidence
 and invocation ledger are updated. New runs 1 of 6. Next task T05.1: write PCM
 handoff tests first, then native RED/GREEN; retain T05's real capture/writer scope.
+
+T05.1/T05.2 preparation on `task/t05-capture`: 22 owned-queue, 5 real conversion
+and 6 real CAF writer tests plus minimal no-behavior interfaces are reviewed for
+hosted RED. Expected total 53 XCTest; actual compilation/discovery/assertions
+remain unverified. No production queue/resampler/writer behavior was written.
+Next dispatch is current invocation run 2 of 6, before any implementation.
