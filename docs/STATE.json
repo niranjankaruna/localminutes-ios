@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-23T19:14:46.0271352Z",
+  "lastUpdated": "2026-10-23T19:22:58.2719107Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -11,7 +11,7 @@
   "lastVerifiedCommit": "b6f4bdf0231d72d279ae690c5ce20936b8225459",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40008712625",
   "candidateArtifact": null,
-  "nextAction": "T06.2.1: review and push app-owned real coordinator/capture/activity integration tests with no-op interface, prove hosted RED, then implement; preserve modelUnavailable production gate until real CPU ASR wiring. T06.2.2 native intents/Live Activity controls follow.",
+  "nextAction": "T06.2.1: push first owner implementation plus two new review regression tests for meaningful expanded RED103; do not repair admitted-toggle/caller-cancellation races before actual RED. Then require exact-source full GREEN. Current3/6terminal.",
   "pendingPushCommit": null,
   "remoteBranchHead": "b6f4bdf0231d72d279ae690c5ce20936b8225459",
   "localScriptGreen": {
@@ -33,34 +33,35 @@
     "maxNewRuns": 6,
     "newRunIds": [
       40007944579,
-      40008712625
+      40008712625,
+      40010164221
     ],
     "limitReached": false,
-    "costGuardObservedAt": "2026-10-23T19:16:55.3721457Z"
+    "costGuardObservedAt": "2026-10-23T19:31:47.2055971Z"
   },
   "latestCIRun": {
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40008712625",
-    "sourceCommit": "b6f4bdf0231d72d279ae690c5ce20936b8225459",
-    "conclusion": "success",
-    "executedXCTests": 91,
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40010164221",
+    "sourceCommit": "fdfab8905e479c7e1343f394c85ceecc9b52b1e0",
+    "conclusion": "failure",
+    "executedXCTests": 101,
     "passedXCTests": 91,
-    "failedXCTests": 0,
+    "failedXCTests": 10,
     "skippedXCTests": 0,
-    "executedNodeTests": 59,
-    "passedNodeTests": 59,
+    "executedNodeTests": 0,
+    "passedNodeTests": 0,
     "failedNodeTests": 0,
     "skippedNodeTests": 0,
-    "nativeBuildJobConclusion": "success",
-    "executedNativeTests": 15,
-    "passedNativeTests": 15,
+    "nativeBuildJobConclusion": "skipped",
+    "executedNativeTests": 0,
+    "passedNativeTests": 0,
     "failedNativeTests": 0,
     "skippedNativeTests": 0,
     "sanitizer": {
-      "executed": 57,
-      "passed": 57,
+      "executed": 0,
+      "passed": 0,
       "failed": 0,
       "skipped": 0,
-      "conclusion": "success"
+      "conclusion": "not_run"
     }
   },
   "localReporterRed": {

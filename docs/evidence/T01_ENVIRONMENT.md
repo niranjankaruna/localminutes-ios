@@ -152,3 +152,4 @@ No settings changed. At most six new standard bounded runs, one active per
 branch, existing10/15-minute timeouts; no artifact/cache upload. The displayed
 allowance is account-wide and is not exclusively reserved for this project.
 Continuation-04 pre-run3 read-only recheck:1,139.7/2,000 included Actions minutes used,860.3 displayed remaining; Actions billable$0; storage0.5/0.5GB100%. Existing account-wide Actions$0/$0 Usage blocked re-observed. No settings changed, no artifact upload. Two prior runs terminal; new owner RED uses standard bounded runner.
+Continuation-04 pre-run4 read-only account observation:1,170.7/2,000 included Actions minutes used,829.3 displayed remaining; Actions billable$0; storage0.5/0.5GB100%. Existing account-wide Actions$0 hard stop retained; budgets page reloaded for verification. No upload or setting changes. Three runs terminal; expanded review regression RED is next.

@@ -66,10 +66,32 @@ private final class OwnerTestPreparation: RecordingPreparationSource {
 @MainActor
 private final class OwnerTestPermission: CapturePermissionSource {
     var granted = true
+    var hold = false
     private(set) var requests = 0
+    private var continuation: CheckedContinuation<Bool, Never>?
+    var isWaiting: Bool { continuation != nil }
     func requestRecordPermission() async -> Bool {
         requests += 1
+        if hold { return await withCheckedContinuation { continuation = $0 } }
         return granted
+    }
+    func resolve() {
+        hold = false
+        let pending = continuation
+        continuation = nil
+        pending?.resume(returning: granted)
+    }
+}
+
+@MainActor
+private final class OwnerTestReservationGate {
+    private var continuation: CheckedContinuation<Void, Never>?
+    var isWaiting: Bool { continuation != nil }
+    func wait() async { await withCheckedContinuation { continuation = $0 } }
+    func release() {
+        let pending = continuation
+        continuation = nil
+        pending?.resume()
     }
 }
 
@@ -211,7 +233,8 @@ private final class OwnerTestHarness {
     let owner: RecordingSessionOwner
     private let parent: URL
 
-    init(rate: Double = 16_000, channels: AVAudioChannelCount = 1) throws {
+    init(rate: Double = 16_000, channels: AVAudioChannelCount = 1,
+         beforeReservation: (@MainActor @Sendable () async -> Void)? = nil) throws {
         let fixtureParent = FileManager.default.temporaryDirectory
             .resolvingSymlinksInPath().standardizedFileURL
         let fixtureRoot = fixtureParent.appendingPathComponent("localminutes-owner-test-\(UUID().uuidString)")
@@ -230,14 +253,23 @@ private final class OwnerTestHarness {
         permission = permissionBoundary
         hardware = hardwareBoundary
         activity = activityBoundary
-        owner = RecordingSessionOwner(
-            permission: permissionBoundary, hardware: hardwareBoundary,
-            activityBackend: activityBoundary, preparation: modelBoundary
-        )
+        if let beforeReservation {
+            owner = RecordingSessionOwner(
+                permission: permissionBoundary, hardware: hardwareBoundary,
+                activityBackend: activityBoundary, preparation: modelBoundary,
+                beforeReservation: beforeReservation
+            )
+        } else {
+            owner = RecordingSessionOwner(
+                permission: permissionBoundary, hardware: hardwareBoundary,
+                activityBackend: activityBoundary, preparation: modelBoundary
+            )
+        }
     }
 
     func cleanup(file: StaticString = #filePath, line: UInt = #line) async {
         preparation.resolve(.rejected(.modelUnavailable))
+        permission.resolve()
         hardware.deactivationFailures = 0
         for handle in activity.handles {
             handle.endOutcome = .applied
@@ -278,9 +310,11 @@ private final class OwnerTestHarness {
 final class RecordingSessionOwnerTests: XCTestCase {
     private func withHarness(
         rate: Double = 16_000, channels: AVAudioChannelCount = 1,
+        beforeReservation: (@MainActor @Sendable () async -> Void)? = nil,
         _ body: @MainActor (OwnerTestHarness) async throws -> Void
     ) async throws {
-        let harness = try OwnerTestHarness(rate: rate, channels: channels)
+        let harness = try OwnerTestHarness(rate: rate, channels: channels,
+                                          beforeReservation: beforeReservation)
         do { try await body(harness) }
         catch {
             await harness.cleanup()
@@ -687,6 +721,81 @@ final class RecordingSessionOwnerTests: XCTestCase {
             XCTAssertEqual(manifest.sessionID, nextID)
             XCTAssertEqual(manifest.totalFrames, 64)
             XCTAssertEqual(try decode(manifest, directory: nextDirectory).count, 64)
+        }
+    }
+
+    func testToggleDuringDomainReservationCancelsTheAdmittedStart() async throws {
+        let gate = OwnerTestReservationGate()
+        defer { gate.release() }
+        try await withHarness(beforeReservation: { await gate.wait() }) { h in
+            h.preparation.hold = true
+            let one = OwnerTestProbe()
+            let two = OwnerTestProbe()
+            let starting = Task {
+                await h.owner.start(sessionID: h.id)
+                one.finished = true
+            }
+            defer { starting.cancel() }
+            let reserved = await ownerEventually { gate.isWaiting }
+            XCTAssertTrue(reserved)
+            let toggling = Task {
+                two.started = true
+                await h.owner.toggle(sessionID: UUID())
+                two.finished = true
+            }
+            defer { toggling.cancel() }
+            let entered = await ownerEventually { two.started }
+            XCTAssertTrue(entered)
+            // Let the toggle consume the real actor's idle snapshot while the
+            // already-admitted reservation is deliberately suspended.
+            let vanished = await ownerEventually(timeout: .milliseconds(100)) { two.finished }
+            XCTAssertFalse(vanished, "The admitted toggle cannot vanish into an ignored second start")
+            gate.release()
+            let closing = await ownerEventually {
+                let state = await h.owner.snapshot()
+                return state.phase == .stopping && state.cleanupPending
+            }
+            XCTAssertTrue(closing)
+            h.preparation.resolve(.ready(directory: h.directory))
+            let returned = await ownerEventually { one.finished && two.finished }
+            XCTAssertTrue(returned)
+            if returned { await starting.value; await toggling.value }
+            let final = await h.owner.snapshot()
+            XCTAssertEqual(final.phase, .idle)
+            XCTAssertNil(final.sessionID)
+            XCTAssertFalse(final.cleanupPending)
+            XCTAssertEqual(h.permission.requests, 0)
+            XCTAssertTrue(h.activity.requests.isEmpty)
+            XCTAssertNil(h.owner.completedManifest)
+        }
+    }
+
+    func testCancellingStartDuringPermissionReleasesTheActivityAndOwner() async throws {
+        try await withHarness { h in
+            h.permission.hold = true
+            let completion = OwnerTestProbe()
+            let starting = Task {
+                await h.owner.start(sessionID: h.id)
+                completion.finished = true
+            }
+            defer { starting.cancel(); h.permission.resolve() }
+            let waiting = await ownerEventually { h.permission.isWaiting }
+            XCTAssertTrue(waiting)
+            XCTAssertEqual(h.activity.requests, [h.id])
+            starting.cancel()
+            h.permission.resolve()
+            let returned = await ownerEventually { completion.finished }
+            XCTAssertTrue(returned)
+            if returned { await starting.value }
+            let final = await h.owner.snapshot()
+            XCTAssertEqual(final.phase, .idle)
+            XCTAssertNil(final.sessionID)
+            XCTAssertFalse(final.cleanupPending)
+            XCTAssertEqual(h.activity.handles[0].endCalls, 1)
+            XCTAssertEqual(h.activity.handles[0].state, .ended)
+            XCTAssertFalse(h.hardware.sessionActive)
+            XCTAssertFalse(h.hardware.engineRunning)
+            XCTAssertNil(h.owner.completedManifest)
         }
     }
 }

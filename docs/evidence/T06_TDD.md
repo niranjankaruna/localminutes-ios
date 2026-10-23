@@ -155,3 +155,33 @@ selects owner tests. Expected101XCTest and67sanitizer repeats after GREEN, not
 actual results yet. Command swift test --enable-code-coverage on hostedmacOS.
 No owner behavior before meaningful RED. Production live start remains gated
 until real installed CPU ASR is wired; no recording-only/inference substitution.
+
+## T06.2.1 RED — verified before owner behavior
+
+Test-first **fdfab8905e479c7e1343f394c85ceecc9b52b1e0**,
+[run40010164221](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40010164221),
+23October2026 at19:19:25UTC. Hostedmacos-15-intel/Xcode26.2,
+swift test --enable-code-coverage. **101executed,91passed,10failed,
+38assertion failures,0skipped**. All ten new owner cases fail; old91pass.
+Observed no preflight/resource ownership, idle instead of failed/preparing,
+missing real tap and media, cancellation not entering stopping, missing cleanup
+barrier/retry. Compilation/discovery/assertions succeeded; meaningful RED.
+Node/TSAN/native not run after Swift RED. Full ignored local log
+.agent-local/T06.2.1-red.log. Test-first pushed and remote SHA verified.
+No owner production behavior was written before this evidence.
+Owner implementation after RED composes the concrete coordinator, capture runtime and activity controller. Epoch reservation precedes awaits; cancellation closes admission immediately; failures latch before async reconciliation; cleanup awaits preflight, actual audio stopped/deactivated fact, then actual activity ended fact before domain acknowledgement. Only the shared cleanup task finalizes, and late callbacks cannot auto-retry a failed attempt. No tests changed; full native GREEN pending.
+
+## T06.2.1 review regressions — RED pending
+
+Independent review found two concrete races in the first owner implementation,
+before any GREEN claim: toggle may read domain idle while a start reservation
+already exists and silently no-op; cancelling the caller during permission may
+leave the Activity/domain owner retained after capture cancellation. Added
+regression tests BEFORE repairing either path. A package-internal deterministic
+reservation scheduling hook delays the real coordinator call; public production
+construction always supplies nil. Permission is held at its existing OS boundary.
+Both tests still use actual coordinator/capture/activity policy. Original ten
+assertion bodies remain; only harness boundary scheduling support is extended.
+Expected103discovered tests, with new failures and prior behavior measured by CI.
+No regression fix/meaningful RED claimed until actual results. Next run4 is the
+expanded regression RED; the first owner implementation remains unverified.
