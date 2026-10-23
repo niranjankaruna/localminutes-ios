@@ -203,3 +203,44 @@ Final run6 will require all56 +51 script tests,22 queue sanitizer executions,
 device/simulator builds,15 native product/package tests and actual ephemeral IPA.
 The existing $0 budget and 1,356.3 displayed included minutes remain verified;
 storage upload remains blocked. No seventh run is allowed this invocation.
+
+## 23 October 2026, 17:29 UTC — continuation-02 checkpoint
+
+Completed task this invocation: **T04.3**, verified native packaging at ca80375/
+run39987058071. T00–T03 and T04.1/2 were already complete. Parent T04 still needs
+retained artifact delivery. T05.1/T05.2 implementations now pass actual native
+unit execution but remain IN_PROGRESS pending full CI/native regression.
+
+Final run39994364160/source `c5b45a548afc445306b4eb04ec2af16eb20fd11b`:
+**56 XCTest +51 Node passed**, plus **22 repeated queue tests under Thread
+Sanitizer passed**, no failures/skips/reported race. Overall CI **FAILED** solely
+at evidence parsing of the valid filtered `Selected tests` root. The native-build
+job was skipped. No new native app/archive/IPA or microphone/model/device success
+is claimed at this source. Earlier ca80375's 42,332-byte IPA was ephemeral and
+unretained; candidateArtifact remains null.
+
+Saved reporter test-first commit `35074aaf5009de2897ba7bf8d7fd3a48ceab624e`
+locally, not pushed. At that exact source Windows11/Node24.21.0 portable suite:
+**59 executed,54 passed,5 failed,0 skipped**, exit1. Eight new cases preserve
+strict counts, names, failures, skips and complete aggregate checks. The parser
+production file is unchanged. No failing CI was hidden or acceptance removed.
+
+Six of six new CI runs are terminal; no active job/seventh dispatch remains.
+Last account observation643.7/2,000 included minutes used, billable$0, existing
+account-wide$0 hard stop; storage100%/headroom unverified. No artifact upload,
+unrelated deletion, billing change, public publication or Apple credential action.
+All physical signing/extension, Action Button warm/locked cold-start, locked live
+transcription, real-model, two125-minute runs and renewal gates remain NOT_RUN.
+
+Exact next action **T05.2.1**: new invocation rechecks private Git/CI and cost
+guard, pushes saved test-first/checkpoint for hosted RED, then fixes strict
+selected-root reporting and requires exact-SHA full regression, sanitizer and
+device/simulator/packaging GREEN. T05.3 real microphone follows. Callback gate
+tests/interfaces are preserved as uncompiled drafts outside active Core/Tests;
+do not activate them before reporter RED or they would mask that failure.
+Project stays IN_PROGRESS. No user action is needed for current code.
+
+Final independent audit examined actual diffs, CI/local test logs, Git refs,
+state/backlog/evidence and the pending drafts; no inconsistency found. Production
+parser remains unchanged and the active native source remains c5b45a5. Save the
+checkpoint locally after test-first35074aa; pushing waits for the next invocation.

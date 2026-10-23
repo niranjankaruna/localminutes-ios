@@ -154,7 +154,7 @@
         "Test capture adapter contract, formats, first-buffer success signal and stop flush.",
         "Integrate real AVAudioEngine and nonblocking owned-buffer handoff."
       ],
-      "childTasks": [{"id":"T05.1","title":"Bounded owned PCM handoff and explicit loss reporting","status":"IN_PROGRESS"},{"id":"T05.2","title":"Real audio conversion and minimal durable CAF writer","status":"IN_PROGRESS"},{"id":"T05.3","title":"Real iOS microphone adapter and capture lifecycle","status":"NOT_STARTED"}],
+      "childTasks": [{"id":"T05.1","title":"Bounded owned PCM handoff and explicit loss reporting","status":"IN_PROGRESS"},{"id":"T05.2","title":"Real audio conversion and minimal durable CAF writer","status":"IN_PROGRESS"},{"id":"T05.2.1","title":"Report strict filtered XCTest sanitizer summaries","status":"IN_PROGRESS","redEvidence":["docs/evidence/T05_TDD.md"]},{"id":"T05.3","title":"Real iOS microphone adapter and capture lifecycle","status":"IN_PROGRESS","draftEvidence":["docs/drafts/T05.3/README.md"],"redEvidence":[],"greenEvidence":[]}],
       "redEvidence": ["docs/evidence/T05_TDD.md"],
       "greenEvidence": [],
       "deviceEvidence": [],

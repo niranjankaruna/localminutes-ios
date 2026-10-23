@@ -151,3 +151,48 @@ repeated finish did not throw; append returned `.finished` after drain failure;
 the failed native engine was reentered 3 times instead of once. This is meaningful
 RED after the compiler repair, recorded before the failure-state fix.
 Node, sanitizer and native-build did not run after the Swift regression failure.
+
+## Unit and sanitizer execution GREEN; overall CI FAILED
+
+Fix source `c5b45a548afc445306b4eb04ec2af16eb20fd11b`,
+[run39994364160](https://github.com/niranjankaruna/localminutes-ios/actions/runs/39994364160),
+completed 23 October 2026 17:24 UTC. Actual results: **56 XCTest passed**, including
+the two unchanged native-error regression tests; **51 Node tests passed**; **22
+queue XCTest passed under Thread Sanitizer**, with no reported race or skip.
+The 22 sanitizer cases are repeated executions, not additional unique tests.
+
+The CI run nevertheless **failed**: its evidence parser accepts only the
+`All tests` root while `swift test --filter` emits `Selected tests`. After the
+successful 22-case sanitizer execution, it reported `Incomplete XCTest aggregate
+summary`. The native-build job was skipped. No exact-source native app/archive
+GREEN, new IPA, microphone, inference or device result exists at this source.
+The last fully GREEN CI remains ca80375/run39987058071, with its older ephemeral
+minimal IPA. T05.1/T05.2 remain IN_PROGRESS until the reporting gate and native
+regression succeed. No acceptance or sanitizer check is removed.
+
+## T05.2.1 selected-suite reporter regression — local test-first RED
+
+Acceptance: recognize the actual filtered XCTest root while retaining strict
+nonzero case count, required test names, skip rejection, matching counts,
+failure status/assertions and complete aggregate checks. Never accept an inner
+suite as a missing aggregate or mistake separate zero Swift Testing output for
+XCTest success.
+
+Eight new cases in `scripts/tests/verify-test-log.test.mjs` reproduce the observed
+format. Windows11/Node24.21.0 command `node --test scripts/tests/verify-test-log.test.mjs`
+executed 16 tests: **11 passed, 5 failed, 0 skipped**. Two valid selected roots
+incorrectly throw `Incomplete XCTest aggregate summary`; name/count/failure
+validation also stops at that wrong error. No parser production behavior is
+changed. The exact committed source and repeat result will be recorded in the
+checkpoint. Test-first changes cannot be pushed now without exceeding six runs;
+push and preserve their hosted RED in the next invocation before implementing.
+
+Committed test-first source: `35074aaf5009de2897ba7bf8d7fd3a48ceab624e`
+(local only). Repeated the full portable suite at that exact source on Windows11,
+Node24.21.0: `node --test scripts/tests/*.test.mjs` executed **59,54 passed,5
+failed,0 skipped**, exit1. Existing filesystem and reporting checks pass; only
+the selected-suite regressions fail. Sanitized local output is in ignored
+`.agent-local/T05-reporter-local-red.log`. Matching native observation remains
+run39994364160 at c5b45a5. The parser file is unchanged. No source fix, test skip,
+CI suppression, seventh run or remote push occurs after the six-run boundary.
+The checkpoint follows this commit; a future push must include both.

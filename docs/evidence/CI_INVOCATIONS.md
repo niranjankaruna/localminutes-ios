@@ -70,3 +70,9 @@ GREEN, then continue T05 after actual evidence.
 | [39991627557](https://github.com/niranjankaruna/localminutes-ios/actions/runs/39991627557) | `bc4e1b7dfd3b09a977826462febcc1263e2cfbae` | Expanded T05.2 RED: 54 XCTest executed, 20 passed, 34 failed, 140 assertions, 0 skipped; compiler/discovery succeeded, Node/native not run |
 | [39993142381](https://github.com/niranjankaruna/localminutes-ios/actions/runs/39993142381) | `e072a6f6b335313736780a89398391f868f39093` | Compilation failed on SDK Sendable input-block captures; zero XCTest, not RED. No sanitizer/Node/native result. First bounded compile repair follows |
 | [39993877448](https://github.com/niranjankaruna/localminutes-ios/actions/runs/39993877448) | `ef6cad857ce22750ec359fb61cee660de303db62` | Regression RED: 56 XCTest, 54 passed, 2 failed, 5 assertions, 0 skipped. All real conversion/writer and queue tests passed; Node/sanitizer/native not run after Swift RED |
+| [39994364160](https://github.com/niranjankaruna/localminutes-ios/actions/runs/39994364160) | `c5b45a548afc445306b4eb04ec2af16eb20fd11b` | 56 XCTest +51 Node +22 repeated queue TSAN cases passed. Overall FAILED: reporter rejects valid Selected tests aggregate; native-build skipped, no new IPA |
+
+Continuation-02 has used **6 of 6** runs; all are terminal. No seventh dispatch
+or re-run is permitted. Last read-only account check:643.7/2,000 minutes used,
+billable$0, existing$0 hard stop, storage100%. A local reporter regression suite
+is saved for next invocation; no skip or workflow change hides the failed run.

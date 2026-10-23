@@ -1,6 +1,6 @@
 # Blockers
 
-No confirmed external blocker prevents T04 code/build validation. T00 authentication
+No confirmed external blocker prevents current code/test development. T00 authentication
 and repository bootstrap succeeded. A sandbox-only network error was resolved
 by an authorized direct check; account billing read access was available in the
 signed-in browser despite insufficient CLI billing scope.
@@ -61,3 +61,18 @@ saved fix and actual unsigned packaging; all test groups passed. T04.3 is comple
 The IPA was ephemeral, not uploaded or delivered; storage headroom is still
 unverified (457.7 / 2,000 minutes used and 100% storage at the new cost observation).
 T05 capture development can continue. No owner action is needed for current code.
+
+## Continuation-02 execution boundary — not an external blocker
+
+Six of six new CI runs are terminal. Final sourcec5b45a5/run39994364160 passed
+56 XCTest +51 Node +22 repeated queue tests under Thread Sanitizer. CI failed
+only because its parser rejects the valid filtered `Selected tests` root;
+native-build was skipped and no new IPA exists. This is a small implementation
+issue, not a credential, device or cost-control failure. No owner action needed.
+Local reporter regression tests prove16 executed/11 passed/5 failed; do not fix
+before the required test-first push. Next invocation must recheck the cost guard,
+push the saved tests for hosted RED, fix strict selected-suite support and require
+exact-source full CI/native GREEN. No seventh run, test skip, parser weakening,
+upload, publication or billing change is authorized by this boundary.
+The full portable suite at local test-first35074aa is59 executed/54 passed/5 failed,
+0 skipped. These are the same selected-suite regressions; production is unchanged.
