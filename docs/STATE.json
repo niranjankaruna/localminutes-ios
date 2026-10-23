@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-23T19:22:58.2719107Z",
+  "lastUpdated": "2026-10-23T19:42:58.3373117Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -11,7 +11,7 @@
   "lastVerifiedCommit": "b6f4bdf0231d72d279ae690c5ce20936b8225459",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40008712625",
   "candidateArtifact": null,
-  "nextAction": "T06.2.1: push refined cancellation scheduling assertion for re-RED before either production repair; owner original10 tests passed atbeca154. Then final invocation run6 requires103XCTest+59Node+69TSAN+15native exact-source GREEN; no seventh run.",
+  "nextAction": "T06.2.1: push the two minimal cancellation repairs after proven refined RED; run6 is final exact-source full GREEN validation (103XCTest,59Node,69TSAN,15native). No seventh run/re-run; native intents remain next task, not implemented.",
   "pendingPushCommit": null,
   "remoteBranchHead": "b6f4bdf0231d72d279ae690c5ce20936b8225459",
   "localScriptGreen": {
@@ -35,14 +35,15 @@
       40007944579,
       40008712625,
       40010164221,
-      40012128846
+      40012128846,
+      40012791771
     ],
     "limitReached": false,
-    "costGuardObservedAt": "2026-10-23T19:36:55.6372289Z"
+    "costGuardObservedAt": "2026-10-23T19:44:35.5057409Z"
   },
   "latestCIRun": {
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40012128846",
-    "sourceCommit": "beca15403316f4265245820b0693da6299b39592",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40012791771",
+    "sourceCommit": "8ab36fb36f0064efaf72ee430ff62eda0459f946",
     "conclusion": "failure",
     "executedXCTests": 103,
     "passedXCTests": 101,

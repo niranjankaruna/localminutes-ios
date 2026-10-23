@@ -207,3 +207,19 @@ relaxation. Production bugs remain unchanged. Push/run refined tests for RED
 again BEFORE repairing either bug; expected both still fail on actual valid
 assertions. Full ignored log.agent-local/T06.2.1-review-red.log preserved.
 Refined test-only diff independently reviewed: transient scheduling condition corrected, valid early-return/noOS/final-state assertions preserved, nilfailure strengthened. No production diff since beca154. Re-RED is next, before production repairs.
+Refined test-only source8ab36fb36f0064efaf72ee430ff62eda0459f946 pushed/remote verified; run40012791771 active. No production repair before its valid RED. Current invocation5/6dispatched; run6 reserved for checked full GREEN, no seventh run.
+
+## T06.2.1 refined regression RED — verified before repairs
+
+Test-only **8ab36fb36f0064efaf72ee430ff62eda0459f946**,
+[run40012791771](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40012791771),
+23October2026 at19:38:58UTC: **103executed,101passed,2failed,
+9assertion failures,0skip**. Valid early-return, unwantedOS-start/final-state
+and cancellation Activity-leak assertions all failed. The transient-state
+correction did not hide either bug. Original ten owner cases and old91 still
+pass. Swift compiler/discovery/assertions worked; Node/TSAN/native not run.
+Full local ignored log.agent-local/T06.2.1-refined-red.log. Refined test-only
+commit pushed and remote verified before either repair. Five invocation runs
+terminal; run6 is final full GREEN attempt, no seventh dispatch/re-run.
+After refined RED only: toggle sends an existing admitted reservation through stop when the domain has not entered preparing; capture cancellation enters/awaits the same combined cleanup barrier. Explicit-retry policy after a settled failed cleanup remains unchanged. Tests have no diff since refined RED. Full GREEN and native compile pending final run6.
+Final independent review of the real owner repair diff found no concrete blocker: reserved toggle closes epoch before reservation wait; cancellation joins shared cleanup, with no self-await cycle and no automatic retry after failed cleanup. Tests unchanged since refined RED. Native compilation and complete regressions remain required.

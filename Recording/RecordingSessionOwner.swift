@@ -156,7 +156,11 @@ public final class RecordingSessionOwner {
         switch state.phase {
         case .preparing, .recording, .stopping: await stop()
         case .idle, .completed, .interrupted, .recoverableFailure, .failed:
-            await start(sessionID: sessionID)
+            // A resource epoch may already reserve a start whose actor command
+            // has not run yet. Stop closes it immediately and waits for that
+            // reservation; silently attempting another start loses the toggle.
+            if current != nil { await stop() }
+            else { await start(sessionID: sessionID) }
         }
     }
 
@@ -226,7 +230,16 @@ public final class RecordingSessionOwner {
             // Late facts must never create an automatic retry loop.
             return
         }
-        guard !epoch.cancelled else { return }
+        if epoch.cancelled {
+            // Capture cancellation is a cleanup request, not a failure or a
+            // completed meeting. Await the same barrier as an explicit stop.
+            if !epoch.cleanupRequested {
+                await requestCleanup(epoch)
+            } else if let pending = epoch.cleanup {
+                await pending.value
+            }
+            return
+        }
         await coordinator.updateReadiness(RecordingReadiness(
             audioSessionActive: epoch.audioSessionActive,
             firstBufferAccepted: epoch.firstBufferAccepted,

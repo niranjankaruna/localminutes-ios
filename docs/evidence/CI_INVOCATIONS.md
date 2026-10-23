@@ -117,3 +117,4 @@ Continuation-04 current2/6 new runs, both terminal. First native compile repair
 succeeded. Regression RED sourceb873d6b:91executed87pass4fail20assertions0skip.
 | [40010164221](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40010164221) | fdfab8905e479c7e1343f394c85ceecc9b52b1e0 | Owner RED:101XCTest91pass10newfail38assertions0skip; old91pass; Node/TSAN/native not run |
 | [40012128846](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40012128846) | beca15403316f4265245820b0693da6299b39592 | Review RED:103XCTest101pass2newfail10assertions0skip; original10owner+old91pass. One transient-state test observation corrected before re-RED; no production repair yet |
+| [40012791771](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40012791771) | 8ab36fb36f0064efaf72ee430ff62eda0459f946 | Refined RED:103XCTest101pass2fail9assertions0skip; valid safety failures persist with production unchanged. Five runs terminal |
