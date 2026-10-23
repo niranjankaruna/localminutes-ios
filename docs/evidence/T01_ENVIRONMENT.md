@@ -126,3 +126,13 @@ Actions usage **$0**, storage **0.5 / 0.5 GB, 100%**. The account-wide Actions
 budget was reloaded and still showed **$0.00 / $0.00, Usage blocked**. These were
 read-only observations; no budget, payment, visibility or storage changes.
 Run5 is in flight; only run6 may be dispatched after it terminates. No upload.
+
+## Continuation-03 cost observation — 23 October 2026
+
+Authenticated read-only account settings now show **695.3 / 2,000 Actions minutes
+used** (1,304.7 displayed remaining), billable Actions usage **$0**, and the existing
+account-wide Actions budget **$0.00 / $0.00, Usage blocked**. Included storage still
+shows **0.5 / 0.5 GB,100%**; uploads remain blocked. No settings, billing, visibility
+or unrelated artifacts changed. Start with saved reporter RED; at most six new
+standard-runner runs, one active per branch, existing timeouts. No unlimited
+allowance or exclusive reservation is inferred.

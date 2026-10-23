@@ -76,3 +76,17 @@ Continuation-02 has used **6 of 6** runs; all are terminal. No seventh dispatch
 or re-run is permitted. Last read-only account check:643.7/2,000 minutes used,
 billable$0, existing$0 hard stop, storage100%. A local reporter regression suite
 is saved for next invocation; no skip or workflow change hides the failed run.
+
+## 2026-10-23-continuation-03
+
+Previous turn classified as progress: actual audio/unit/sanitizer evidence,
+converter regression repair and a saved reporter test-first checkpoint changed
+the next action. Verified clean task/t05-capture at c601c9c, two local commits
+ahead of private remote c5b45a5 and terminal run39994364160. Current auth/identity
+and repository verified. Cost observation:695.3/2,000 minutes used, billable$0,
+existing account-wide$0 hard stop, no storage headroom. Resume saved tests;
+no bootstrap or production parser change before hosted RED. Six-run cap starts
+at zero for this invocation; prior six-run ledger remains intact.
+
+| Run | Source | Actual result |
+|---|---|---|

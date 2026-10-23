@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-23T17:34:05Z",
+  "lastUpdated": "2026-10-23T17:37:57Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t05-capture",
@@ -11,7 +11,7 @@
   "lastVerifiedCommit": "ca803757573b5f98ff502494f5526b1db620b7d5",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/39987058071",
   "candidateArtifact": null,
-  "nextAction": "Next invocation: recheck Git/private remote/latest CI and included allowance/$0 guard, then push saved T05.2.1 reporter test-first commit for hosted RED (16 reporter tests,5 currently fail locally). Only then accept strict Selected tests root in parser, run all56 XCTest +59 Node +22 queue sanitizer cases and native builds/package GREEN at exact SHA. Run6 c5b45a5 had passing unit/sanitizer executions but failed reporting; no seventh run. T05.3 microphone adapter follows verified native GREEN.",
+  "nextAction": "Continuation-03: repository, authentication, terminal CI and cost guard are reverified. Push saved T05.2.1 tests/checkpoint for run1 hosted RED (59 Node tests,5 currently fail locally), then fix strict Selected tests root and require exact-SHA full GREEN/native packaging. Keep callback drafts inactive until reporter GREEN. No microphone/model/device gate is passed.",
   "pendingPushCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
   "remoteBranchHead": "c5b45a548afc445306b4eb04ec2af16eb20fd11b",
   "localScriptGreen": {
@@ -29,18 +29,11 @@
     "ARTIFACT_STORAGE_HEADROOM_UNVERIFIED"
   ],
   "ciInvocation": {
-    "id": "2026-10-23-continuation-02",
+    "id": "2026-10-23-continuation-03",
     "maxNewRuns": 6,
-    "newRunIds": [
-      39987058071,
-      39990764814,
-      39991627557,
-      39993142381,
-      39993877448,
-      39994364160
-    ],
-    "limitReached": true,
-    "costGuardObservedAt": "2026-10-23T17:19:09Z"
+    "newRunIds": [],
+    "limitReached": false,
+    "costGuardObservedAt": "2026-10-23T17:37:57Z"
   },
   "latestCIRun": {
     "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/39994364160",
