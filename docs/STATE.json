@@ -16,7 +16,7 @@
   "ciInvocation": {
     "id": "2026-10-23-continuation-01",
     "maxNewRuns": 6,
-    "newRunIds": [39978171921],
+    "newRunIds": [39978171921, 39979891163],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-23T15:25:34Z"
   },

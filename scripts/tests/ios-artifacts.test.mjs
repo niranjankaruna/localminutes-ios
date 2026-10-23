@@ -53,6 +53,20 @@ for (const target of ['app', 'extension']) {
     const value = bundles(); value[target].platforms = [];
     assert.throws(() => validateDeviceBundles(value), /platform/i);
   });
+  for (const platforms of [['IOS', 'IOSSIMULATOR'], ['IOS', 'MACOS'], ['MACOS']]) {
+    test(`rejects mixed or non-iOS Mach-O platforms ${platforms.join(',')} for ${target}`, () => {
+      const value = bundles(); value[target].platforms = platforms;
+      assert.throws(() => validateDeviceBundles(value), /device|platform/i);
+    });
+  }
+  test(`requires the correct package type and executable for ${target}`, () => {
+    const type = bundles(); type[target].info.CFBundlePackageType = 'BNDL';
+    assert.throws(() => validateDeviceBundles(type), /package|type/i);
+    for (const executable of ['', '../outside', '/absolute', 'bad\\path', 'OtherExecutable']) {
+      const value = bundles(); value[target].info.CFBundleExecutable = executable;
+      assert.throws(() => validateDeviceBundles(value), /executable/i);
+    }
+  });
 }
 
 test('rejects changed app or extension identifiers', () => {
@@ -99,6 +113,7 @@ test('rejects executable traversal before running native tools', () => {
 
 test('collects actual-tool boundary output without confusing simulator and device', () => {
   const calls = [];
+  const bundlePath = join(resolve('.agent-local'), 'Local Minutes & $unexpanded.app');
   const info = bundles().app.info;
   const run = (tool, args) => {
     calls.push([tool, args]);
@@ -107,18 +122,21 @@ test('collects actual-tool boundary output without confusing simulator and devic
     if (tool.endsWith('xcrun')) return 'Load command 10\n cmd LC_BUILD_VERSION\n platform IOS\n minos 18.0\n';
     throw new Error('Unexpected native tool');
   };
-  assert.deepEqual(inspectNativeBundle('/owned/LocalMinutes.app', run), {
+  assert.deepEqual(inspectNativeBundle(bundlePath, run), {
     info, architectures: ['arm64'], platforms: ['IOS']
   });
-  assert.equal(calls.length, 3);
-  assert.ok(calls.every(([, args]) => args.every(x => !x.includes('../'))));
+  assert.deepEqual(calls, [
+    ['/usr/bin/plutil', ['-convert', 'json', '-o', '-', join(bundlePath, 'Info.plist')]],
+    ['/usr/bin/lipo', ['-archs', join(bundlePath, 'LocalMinutes')]],
+    ['/usr/bin/xcrun', ['vtool', '-show-build', join(bundlePath, 'LocalMinutes')]]
+  ]);
 });
 
 test('accepts only the intended Payload archive structure', () => {
   assert.doesNotThrow(() => validateArchiveEntries(archiveEntries));
 });
 
-for (const bad of ['../outside', '/absolute', 'C:/absolute', 'Payload/../outside', 'Payload/LocalMinutes.app/../../outside', 'Payload\\outside', 'Payload/LocalMinutes.app/bad\nname']) {
+for (const bad of ['../outside', '/absolute', 'C:/absolute', 'Payload/../outside', 'Payload/LocalMinutes.app/../../outside', 'Payload\\outside', 'Payload/LocalMinutes.app/bad\nname', 'Payload/LocalMinutes.app/./Info.plist', 'Payload//LocalMinutes.app/Info.plist']) {
   test(`rejects unsafe archive path ${JSON.stringify(bad)}`, () => {
     assert.throws(() => validateArchiveEntries([...archiveEntries, bad]), /path|archive|payload/i);
   });
