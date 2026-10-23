@@ -318,3 +318,27 @@ the reported race, with no additional concrete blocker in tested router scope.
 Exact-source full GREEN remains required. Pre-run3 cost observation:1,325.7/2,000
 included minutes used,674.3 remaining,$0billable, storage100%; existing Actions
 $0hard stop rechecked read-only. No artifact upload/billing/publication change.
+## T06.2.2 router full GREEN — verified
+
+Exact source40100fdb9a8349acdbf2d22c63eb25ce959e9388,
+[run40017962923](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017962923):
+115XCTest+59Node+81repeatedTSAN+15native product/package checks all passed,
+0 failures/skips/races. Commands:swift test --enable-code-coverage;
+node --test scripts/tests/*.test.mjs; existing filtered swift test --sanitize=thread;
+actual arm64 device Release and x86_64/arm64 simulator Debug builds;
+node --test scripts/native-tests/{device-build,package}.test.mjs.
+
+Both original eleven router cases and the independently reviewed real-owner
+replacement-attribution regression passed unchanged. Scoped stop cannot close
+another epoch; results require actual matching CAF/manifest and settled cleanup.
+Only OS/model-preflight boundaries doubled, never recognizer output. No ASR
+runtime or real inference exists yet. Actual iOS SDK app+extension compiled.
+Ephemeral unsigned IPA188,232bytes,SHA256
+433e98bd9eb28185cce7958dffdc723cb4516b420ef0e7b8054e4dbf4fa5b9a1,
+created2026-10-23T20:22:05.665Z,not retained/uploaded/delivered/signed/installed.
+Full ignored local log:.agent-local/T06.2.2-40100fd-green.log.
+
+T06.2.2.1 code complete pending actual intent/device integration; broadT06.2.2,
+UI, native AppIntent behavior and baseline remainIN_PROGRESS. NextT06.2.2.2
+activates native no-op declarations and actual Simulator/UI tests before behavior.
+Current3/6runs terminal. All physical/model/renewal gates remainNOT_RUN.

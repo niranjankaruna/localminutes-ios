@@ -1,9 +1,11 @@
 # T06.2.2 intent router: test-first draft
 
-Status: pending, outside active build/test paths. These files have not been
-compiled, executed, or proven RED. There is no router implementation, native
-App Intent, real-model validation, or physical-device evidence here. The owner
-slice must reach its own exact-source GREEN before this draft is activated.
+Current router status: **CODE_COMPLETE_PENDING_DEVICE** within T06.2.2.1 scope.
+The active twelve router tests (the eleven original cases plus the reviewed
+replacement-result regression) passed full validation at40100fd/run40017962923.
+See docs/evidence/T06_TDD.md. Native app/intent/UI contracts are the next slice
+in native/README.md; they have no execution evidence yet. Real models and every
+physical gate remain unverified. The original draft below is historical.
 
 ## Small proposed contract
 

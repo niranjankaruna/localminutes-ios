@@ -57,3 +57,10 @@ UI tests and actual models are NOT_RUN/unfinished, not covered by native compile
 All phone/signing/locking/ActionButton/endurance/renewal gates remainNOT_RUN.
 OverallIN_PROGRESS.11future intent-router tests saved as uncompiled drafts only;
 next invocation must prove RED before behavior. Six-run cap terminal, no seventh.
+
+T06.2.2.1 router exact-source full GREEN40100fd/run40017962923:
+115XCTest,59Node,81repeatedTSAN,15native checks passed0failure/skip/races.
+Tests-first and replacement-attribution RED/GREEN details:T06_TDD.md. Actual
+OS adapter products compiled; native AppIntent perform/Simulator UI tests have
+not yet run. Ephemeral IPA188,232bytes,hash433e98bd9eb28185cce7958dffdc723cb4516b420ef0e7b8054e4dbf4fa5b9a1,
+not retained/delivered/signed/installed. All physical and inference gates pending.

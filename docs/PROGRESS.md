@@ -350,3 +350,21 @@ fixture from docs/drafts/T06.2.2, prove hosted RED before dispatch/scoped-stop
 behavior, then implement actual native app/intent/foreground fallback. Drafts
 are uncompiled/outside active paths. Preserve the tested source and all RED
 history; merge only the verified code plus documentation checkpoint to main.
+
+## Continuation-05 router checkpoint — native control tests next
+
+T06.2.2.1 code complete pending device/native-intent integration. Router RED
+b561558/run40016043242=114executed103pass11fail61assertions0skip. Review exposed
+replacement-result attribution; deterministic regression01531f5/run40017195075=
+115executed114pass1fail2assertions0skip. First targeted repair40100fd/full
+run40017962923 passed115Swift+59Node+81repeatedTSAN+15native checks,0skip.
+Actual device/simulator app+extension compiled. Real synthetic PCM/CAF cleanup,
+readiness, stale-session stop and truthful saved-result behavior pass. No mocked
+inference or native intent execution is counted.
+
+Ephemeral unsigned IPA188,232bytes,hash433e98bd9eb28185cce7958dffdc723cb4516b420ef0e7b8054e4dbf4fa5b9a1,
+not retained/uploaded/delivered/signed/installed. Separate storage100% blocker
+remains.3of6runs terminal. NextT06.2.2.2: activate actual native SDK no-op
+interfaces and Simulator/UI/time-content tests; obtain actual assertion RED before
+app/default owner/Shortcuts/fallback/Activity timer/control behavior. All real-model,
+phone, locked two-hour, ActionButton/free-signing and renewal gates remainNOT_RUN.

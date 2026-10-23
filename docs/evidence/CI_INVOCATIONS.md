@@ -141,3 +141,5 @@ behavior. Actual native intents, real models and every phone gate are unfinished
 | [40016043242](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40016043242) | b561558052a1909c4899cb5cab3891e6f72bde0f | RED:114XCTest103pass11newfail61assertions0skip; old103pass; Node/TSAN/native not run |
 
 | [40017195075](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017195075) | 01531f590c5de43c912c865f3ec8d3584f2d9421 | Regression RED:115XCTest114pass1newfail2assertions0skip; original114pass; Node/TSAN/native not run |
+
+| [40017962923](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017962923) | 40100fdb9a8349acdbf2d22c63eb25ce959e9388 | GREEN:115XCTest+59Node+81repeatedTSAN+15native passed0skip; actual device/simulator app+extension and ephemeral188232-byte IPA, no upload |

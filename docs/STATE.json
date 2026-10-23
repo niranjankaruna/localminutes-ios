@@ -3,17 +3,17 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-23T20:16:24.2472182Z",
+  "lastUpdated": "2026-10-23T20:24:27.5097190Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
   "currentTask": "T06.2.2",
-  "lastVerifiedCommit": "9eeaa25c53ba7e22b32ae4c1f3f65034edcbc48f",
-  "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40013807701",
+  "lastVerifiedCommit": "40100fdb9a8349acdbf2d22c63eb25ce959e9388",
+  "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017962923",
   "candidateArtifact": null,
-  "nextAction": "T06.2.2: replacement-attribution RED proven at01531f5/run40017195075 (115 executed114pass1fail2assertions0skip, original114pass). First epoch-anchored mapping repair implemented only after RED; require exact-source full GREEN next. Native SDK app/intent test drafts separate and uncompiled. Current2/6runs terminal.",
+  "nextAction": "T06.2.2.2: router full GREEN verified40100fd/run40017962923. Activate actual SDK-conforming no-op native intent/composition stubs plus iOS Simulator tests, timer content contract and missing-model UI test. Prove meaningful native/UI RED before dispatch, foreground fallback, timer and controls behavior. Current3/6terminal; keep main at tested source.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "9eeaa25c53ba7e22b32ae4c1f3f65034edcbc48f",
+  "remoteBranchHead": "40100fdb9a8349acdbf2d22c63eb25ce959e9388",
   "localScriptGreen": {
     "sourceCommit": "14a988604c05e2484e9d08bf5d4d11e04d217e73",
     "platform": "Windows 11 / Node 24.21.0",
@@ -23,8 +23,8 @@
     "skipped": 0,
     "nativePackagingVerified": false
   },
-  "lastVerifiedNativeBuildCommit": "9eeaa25c53ba7e22b32ae4c1f3f65034edcbc48f",
-  "lastVerifiedNativeBuildCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40013807701",
+  "lastVerifiedNativeBuildCommit": "40100fdb9a8349acdbf2d22c63eb25ce959e9388",
+  "lastVerifiedNativeBuildCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017962923",
   "blockedItems": [
     "ARTIFACT_STORAGE_HEADROOM_UNVERIFIED"
   ],
@@ -33,26 +33,36 @@
     "maxNewRuns": 6,
     "newRunIds": [
       40016043242,
-      40017195075
+      40017195075,
+      40017962923
     ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-23T20:16:24.2472182Z"
   },
   "latestCIRun": {
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017195075",
-    "sourceCommit": "01531f590c5de43c912c865f3ec8d3584f2d9421",
-    "conclusion": "failure",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017962923",
+    "sourceCommit": "40100fdb9a8349acdbf2d22c63eb25ce959e9388",
+    "conclusion": "success",
     "executedXCTests": 115,
-    "passedXCTests": 114,
-    "failedXCTests": 1,
-    "assertionFailures": 2,
+    "passedXCTests": 115,
+    "failedXCTests": 0,
+    "assertionFailures": 0,
     "skippedXCTests": 0,
-    "executedNodeTests": 0,
-    "nativeBuildJobConclusion": "skipped",
-    "executedNativeTests": 0,
+    "executedNodeTests": 59,
+    "passedNodeTests": 59,
+    "failedNodeTests": 0,
+    "skippedNodeTests": 0,
+    "nativeBuildJobConclusion": "success",
+    "executedNativeTests": 15,
+    "passedNativeTests": 15,
+    "failedNativeTests": 0,
+    "skippedNativeTests": 0,
     "sanitizer": {
-      "executed": 0,
-      "conclusion": "not_run"
+      "executed": 81,
+      "passed": 81,
+      "failed": 0,
+      "skipped": 0,
+      "conclusion": "success"
     }
   },
   "localReporterRed": {
@@ -87,12 +97,12 @@
   },
   "verifiedComplete": false,
   "lastEphemeralArtifact": {
-    "sourceCommit": "9eeaa25c53ba7e22b32ae4c1f3f65034edcbc48f",
-    "runUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40013807701",
-    "name": "LocalMinutes-1.0-9eeaa25c53ba7e22b32ae4c1f3f65034edcbc48f-unsigned.ipa",
-    "sha256": "c91343d090a052226b831550e7f8a04dcb2db98c71321ce802b4713ddcdf4b76",
-    "sizeBytes": 179956,
-    "createdAt": "2026-10-23T19:49:20.875Z",
+    "sourceCommit": "40100fdb9a8349acdbf2d22c63eb25ce959e9388",
+    "runUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017962923",
+    "name": "LocalMinutes-1.0-40100fdb9a8349acdbf2d22c63eb25ce959e9388-unsigned.ipa",
+    "sha256": "433e98bd9eb28185cce7958dffdc723cb4516b420ef0e7b8054e4dbf4fa5b9a1",
+    "sizeBytes": 188232,
+    "createdAt": "2026-10-23T20:22:05.665Z",
     "retained": false
   },
   "captureRuntimeTestFirst": {
@@ -119,7 +129,8 @@
     "T05.3",
     "T06.1",
     "T06.1.1",
-    "T06.2.1"
+    "T06.2.1",
+    "T06.2.2.1"
   ],
   "remoteBranchHeadScope": "Last implementation source before the final documentation-only checkpoint; inspect actual Git refs for the checkpoint HEAD.",
   "nativeCompileRepair": {
@@ -130,7 +141,9 @@
     "validatedRepairAttempts": 1,
     "missingLookupPolicyNeedsRegressionRed": false
   },
-  "codeCompletedThisInvocation": [],
+  "codeCompletedThisInvocation": [
+    "T06.2.2.1"
+  ],
   "codeCompletionScope": "Tested resource/controller/owner components only. Overall IN_PROGRESS: app composition, native intents, actual models, UI and all physical gates remain unfinished.",
   "ownerCompositionTestFirst": {
     "testCount": 12,
@@ -147,6 +160,7 @@
     "inActiveBuildPaths": true,
     "compiled": true,
     "redVerified": true,
-    "productionBehaviorImplemented": true
+    "productionBehaviorImplemented": true,
+    "greenVerifiedCommit": "40100fdb9a8349acdbf2d22c63eb25ce959e9388"
   }
 }
