@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-23T22:12:56.669Z",
+  "lastUpdated": "2026-10-23T22:13:39.102Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -365,7 +365,8 @@
     "actualRecognitionPlatform": "Windows11 / sherpa-onnx1.13.8 / CPU2threads",
     "actualRecognitionScope": "8.395second synthetic original SAPI speech; streaming3200frame chunks,21 evolving partials, WER2/21=9.5238%; endpoint/reset/replacement checked. Desktop candidate evidence only, no iPhone performance or production integration pass.",
     "localEvidence": ".agent-local/asr-evaluation/actual-result.json",
-    "sanitizedEvidence": "docs/evidence/T10_CANDIDATE.md (agent preparing; verify file before citing as complete)"
+    "sanitizedEvidence": "docs/evidence/T10_CANDIDATE.md",
+    "sanitizedEvidencePresent": true
   },
   "pendingTestDrafts": [
     "docs/drafts/T09/ModelManifest.swift",
