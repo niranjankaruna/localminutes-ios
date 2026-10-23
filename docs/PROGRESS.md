@@ -188,3 +188,9 @@ Implementation commit `55423fa` remains unverified; two SDK-boundary fault tests
 are added before fixing the failure state. Existing signal tests still exercise
 real conversion. Next push proves this regression RED (56 XCTest expected),
 current invocation run 4 of 6, then the minimal fix and full native GREEN follow.
+
+Run39993142381 at `e072a6f` failed compilation on actual SDK Sendable captures;
+zero XCTest ran, so it is not regression RED. First bounded repair provides a
+lock-protected, callback-owned input cursor on the conversion worker only.
+The real-time queue remains lock-free. Terminal failure behavior is intentionally
+unchanged until actual assertions execute. Next is run5; two run slots remain.

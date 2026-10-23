@@ -30,6 +30,55 @@ private final class AVFoundationPCMConversionEngine: PCMConversionEngine {
     }
 }
 
+/// AVFoundation marks its input block Sendable. The block may outlive its
+/// lexical scope, so it owns an immutable PCM buffer and a protected cursor.
+/// Every SDK access and snapshot uses this lock. This is conversion-worker
+/// work, never the real-time microphone tap or OwnedPCMQueue producer.
+private final class PCMConversionInputCursor: @unchecked Sendable {
+    private let lock = NSLock()
+    private let input: AVAudioPCMBuffer?
+    private let format: AVAudioFormat
+    private let ending: Bool
+    private var offset = 0
+    private var failed = false
+
+    init(input: AVAudioPCMBuffer?, format: AVAudioFormat, ending: Bool) {
+        self.input = input
+        self.format = format
+        self.ending = ending
+    }
+
+    func supply(_ requested: AVAudioPacketCount,
+                status: UnsafeMutablePointer<AVAudioConverterInputStatus>) -> AVAudioBuffer? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let input, offset < Int(input.frameLength) else {
+            status.pointee = ending ? .endOfStream : .noDataNow
+            return nil
+        }
+        let count = min(Int(requested), Int(input.frameLength) - offset)
+        guard count > 0,
+              let slice = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(count)),
+              let source = input.floatChannelData?[0],
+              let target = slice.floatChannelData?[0] else {
+            failed = true
+            status.pointee = .endOfStream
+            return nil
+        }
+        slice.frameLength = AVAudioFrameCount(count)
+        target.update(from: source.advanced(by: offset), count: count)
+        offset += count
+        status.pointee = .haveData
+        return slice
+    }
+
+    func snapshot() -> (consumed: Bool, failed: Bool) {
+        lock.lock()
+        defer { lock.unlock() }
+        return (offset == Int(input?.frameLength ?? 0), failed)
+    }
+}
+
 /// Single conversion-worker ownership. Never call from the engine tap.
 /// One converter lives for the entire fixed-format epoch; no per-chunk reset.
 public final class PCMStreamConverter {
@@ -103,40 +152,23 @@ public final class PCMStreamConverter {
         // Bounded SDK progress, including prime/tail output. A stalled native
         // converter becomes an explicit error rather than an infinite worker.
         let limit = Int(ceil(estimate / 4_096)) + 8
-        var inputOffset = 0
+        let cursor = PCMConversionInputCursor(input: input, format: monoFormat, ending: ending)
         var outputs: [AVAudioPCMBuffer] = []
         for _ in 0..<limit {
             guard let output = AVAudioPCMBuffer(pcmFormat: outputFormat, frameCapacity: 4_096) else {
                 throw PCMConversionError.conversionFailed
             }
-            var failedToSupply = false
-            let status = try converter.convert(into: output) { requested, state in
-                guard let input, inputOffset < inputFrames else {
-                    state.pointee = ending ? .endOfStream : .noDataNow
-                    return nil
-                }
-                let count = min(Int(requested), inputFrames - inputOffset)
-                guard count > 0,
-                      let slice = AVAudioPCMBuffer(pcmFormat: self.monoFormat, frameCapacity: AVAudioFrameCount(count)),
-                      let source = input.floatChannelData?[0],
-                      let target = slice.floatChannelData?[0] else {
-                    failedToSupply = true
-                    state.pointee = .endOfStream
-                    return nil
-                }
-                slice.frameLength = AVAudioFrameCount(count)
-                target.update(from: source.advanced(by: inputOffset), count: count)
-                inputOffset += count
-                state.pointee = .haveData
-                return slice
+            let status = try converter.convert(into: output) { [cursor] requested, state in
+                cursor.supply(requested, status: state)
             }
-            guard !failedToSupply else { throw PCMConversionError.conversionFailed }
+            let supplied = cursor.snapshot()
+            guard !supplied.failed else { throw PCMConversionError.conversionFailed }
             if output.frameLength > 0 { outputs.append(output) }
             switch status {
             case .haveData:
                 guard output.frameLength > 0 else { throw PCMConversionError.conversionFailed }
             case .inputRanDry:
-                guard !ending, inputOffset == inputFrames else { throw PCMConversionError.conversionFailed }
+                guard !ending, supplied.consumed else { throw PCMConversionError.conversionFailed }
                 return outputs
             case .endOfStream:
                 guard ending else { throw PCMConversionError.conversionFailed }

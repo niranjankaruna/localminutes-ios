@@ -11,9 +11,9 @@
   "lastVerifiedCommit": "ca803757573b5f98ff502494f5526b1db620b7d5",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/39987058071",
   "candidateArtifact": null,
-  "nextAction": "T05.1/T05.2 implementation follows verified 54-test RED. Independent review found native drain errors can be hidden by a later finish; add/push regression tests before fixing that state. Next hosted run is 4 of 6. Queue/native regressions, sanitizer, microphone/model/device gates remain pending.",
+  "nextAction": "T05.2: repair SDK Sendable input-block ownership only, then prove converter failure-state tests RED on run 5 of 6. Run4 was a compiler failure (zero XCTest), not RED. Preserve terminal-failure bug until those assertions execute. Full GREEN/sanitizer/native and T05.3 microphone gates remain pending.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "bc4e1b7dfd3b09a977826462febcc1263e2cfbae",
+  "remoteBranchHead": "e072a6f6b335313736780a89398391f868f39093",
   "localScriptGreen": {
     "sourceCommit": "14a988604c05e2484e9d08bf5d4d11e04d217e73",
     "platform": "Windows 11 / Node 24.21.0",
@@ -34,18 +34,19 @@
     "newRunIds": [
       39987058071,
       39990764814,
-      39991627557
+      39991627557,
+      39993142381
     ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-23T16:28:12Z"
   },
   "latestCIRun": {
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/39991627557",
-    "sourceCommit": "bc4e1b7dfd3b09a977826462febcc1263e2cfbae",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/39993142381",
+    "sourceCommit": "e072a6f6b335313736780a89398391f868f39093",
     "conclusion": "failure",
-    "executedXCTests": 54,
-    "passedXCTests": 20,
-    "failedXCTests": 34,
+    "executedXCTests": 0,
+    "passedXCTests": 0,
+    "failedXCTests": 0,
     "skippedXCTests": 0,
     "executedNodeTests": 0,
     "passedNodeTests": 0,

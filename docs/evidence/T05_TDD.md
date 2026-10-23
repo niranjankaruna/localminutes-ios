@@ -125,3 +125,17 @@ conversion-engine boundary permits deterministic SDK-error injection; the public
 initializer always uses real AVAudioConverter. Failure-state behavior is unchanged
 before this RED run. All 5 signal/format tests still use the actual native engine.
 Expected count: 56 XCTest. Next is invocation run 4 of 6; assertions unverified.
+
+## Regression attempt 1 — compiler failure, not RED
+
+Source `e072a6f6b335313736780a89398391f868f39093`,
+[run39993142381](https://github.com/niranjankaruna/localminutes-ios/actions/runs/39993142381),
+failed compilation: AVAudioConverterInputBlock is Sendable in the actual SDK;
+captured AVAudioPCMBuffer/self and mutable cursor locals were rejected. Zero
+XCTest executed; no behavioral RED, GREEN, sanitizer or native result exists.
+The JSON documentation declaration did not expose that annotation; the compiler
+is authoritative. First compile repair moves input ownership/cursor into a
+lock-protected callback context. The lock is solely on the conversion worker,
+never the engine tap or queue producer. Public conversion remains serial-owned.
+No terminal failure behavior is fixed before the fault tests actually run.
+Next is run 5 of 6; the prior genuine 53/54-test RED remains preserved.
