@@ -78,3 +78,37 @@ inference, meeting UI, signing, installation or runtime activity proof yet.
 XcodeGen archive is pinned to publisher SHA and size, verified before execution.
 Native job is bounded to 15 minutes after the 10-minute core job; no upload or
 cache allocation. Existing included quota and $0 hard stop remain in force.
+
+## T04.1 GREEN / T04.2 RED — verified native products
+
+Source `2711186a6ed71de089838900ee4c63cbe78397ce`, run
+[39981859388](https://github.com/niranjankaruna/localminutes-ios/actions/runs/39981859388),
+completed 15:56:15 UTC. Core job GREEN: **20 XCTest and 43 Node tests passed,
+0 failed/skipped**. This verifies T04.1 implementation at the exact source.
+Pinned XcodeGen archive passed actual SHA-256 and byte-size checks; runtime
+reported Version: 2.46.0. Actual device Release and simulator Debug app+extension
+builds both succeeded using Xcode26.2, SDK26.2, no signing.
+Native integration: **2 executed, 1 passed, 1 failed, 0 skipped**. Device test
+failed the intended assertion `Compiled app must enable Live Activities before
+this native gate can pass`, actual false vs expected true. The simulator test
+passed and rejected the real simulator executable as a device package. This
+is native configuration RED after working compilation, not missing tools.
+The minimal interfaces are not a recording feature or installable release.
+
+T04.1 review: independent read-only diff review found no blocking issue in
+validation or process invocation. Simulator metadata coverage was strengthened
+before the native RED push. Archive names remain a names-only boundary; T04.3
+must verify actual ZIP types, real bytes and input links.
+
+## T04.2 implementation / T04.3 RED preparation
+
+After the native RED above, change only NSSupportsLiveActivities to true.
+The next commit also adds an unimplemented packaging interface plus **13 native
+packaging tests**. These will fail after the two existing build checks pass.
+No packaging implementation or source-stamp behavior exists yet. Expected
+positive failure: no real IPA/manifest is produced. Negative assertions require
+specific rejection of simulator input, wrong Git/source stamps, symlinks,
+signing/private fixtures and existing outputs. Archive inspection uses a real
+ZIP standard-library reader, CRC checks and executable hashes compared with
+actual compiled device binaries. All added fixture content is synthetic.
+The exact source and native RED counts will be recorded after the hosted run.

@@ -107,3 +107,8 @@ jobs:
         run: |
           set -euo pipefail
           node --test scripts/native-tests/device-build.test.mjs
+      - name: Test real unsigned archive packaging
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test scripts/native-tests/package.test.mjs

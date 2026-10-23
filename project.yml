@@ -27,8 +27,7 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSMicrophoneUsageDescription: Record meetings you explicitly start and transcribe them on this iPhone.
         UIBackgroundModes: [audio]
-        # Minimal RED configuration; change only after the native assertion fails.
-        NSSupportsLiveActivities: false
+        NSSupportsLiveActivities: true
         UILaunchScreen: {}
     settings:
       base:
