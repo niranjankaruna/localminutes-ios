@@ -112,3 +112,5 @@ T10_CANDIDATE.md is being prepared by the agent. No production-ASR gate passes.
 T08/T09 actual behavioral RED verified at9cb7639/run40032742242:153XCTest,116passed,37failed,77assertion failures,0skipped. Production implementations7ea1d71 await GREEN. T10native10-case test-first4c520bd/run40033589101 is pending; desktop speech evidence is candidate feasibility only. All device gates remain NOT_RUN.
 
 T10actualRED4c520bd/run40033589101:10ASRcases11assertions0skip afteractualfixture/nativecompile. Full163cases148pass15fail18assertions. T08.1realSQLite15/15pass. T09installer18/23pass; coherentreplacementfixturecorrection preservesassertions. T11/T15/T16/T09.2/T17new39test-firstcases notyetRED; nofeature-completeclaim.
+
+T11/T15/T16/T09.2/T17 RED b0cdd8b/run40034410554:202actualtests,153pass49fail104assert0skip; fixtureandnativeframeworksetupsuccess. All23modelinstaller casesGREEN. Threeagents/rootimplementedonlyafterpersistedRED; GREENpending. Addedlarge-converted-bufferregressionbeforefix; actualnewREDpending.

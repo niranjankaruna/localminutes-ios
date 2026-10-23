@@ -123,3 +123,7 @@ transcription; those agents are running. They must not bypass TDD or start
 recursive sessions. Next invocation can continue from their test-first outputs
 and the saved source history. Physical125minute tests are owner-run/manual and
 remain pending, with no waiver or fabricated result.
+
+## SUMMARY_ATTRIBUTION_QUALITY — implementation quality, not an external stop
+
+The real verifiedQwen2.5-1.5B Q4_K_M model ran on verifiedWindowsllama.cppb11798. Threeboundedprompt/schema repairattempts stillassigned a fictional volunteeredtask to the wrongspeaker. ExpectedLeo/guide/Thursday assertionsareunchanged. BlindWindowsretriesstopped; actualnativeb5046qualitytestsremainmandatory andpending. Nextdiagnosis: measuredcandidatecomparison or newtest-firstquote-first grounding/validation withexplicitunsupported-output rejection. Do nothardcodefixtureanswers, replaceinference, claimsemanticquality, orstopindependentASR/historywork. Evidence: docs/drafts/T09/Transport/SUMMARY_CANDIDATE_RESEARCH.md.

@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-23T22:33:41.577Z",
+  "lastUpdated": "2026-10-23T22:44:42.218Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -11,7 +11,7 @@
   "lastVerifiedCommit": "40100fdb9a8349acdbf2d22c63eb25ce959e9388",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017962923",
   "candidateArtifact": null,
-  "nextAction": "Push202-case test-first composition/library/transport/actualQwen suite; prove behavioralRED before implementation. ASRagent already implementing against verified10-caseRED. T08 SQLite15casesGREEN at4c520bd; installer18/23pass, replacementfixture URLs corrected without weakening assertions/validation.",
+  "nextAction": "Push implemented real native ASR/live pipeline/SQLite notes/search/export/playback mapping and initial native screens plus203rd test-first large-buffer regression; require actualRED for >3200 input before splitting. Core199 and actualQwen4 execute in separate mandatory jobs at sameSHA, no ignored failures; fullCI remainsfailed ifqualityfails. Owner-runphonegatesNOT_RUN.",
   "pendingPushCommit": null,
   "remoteBranchHead": "4c520bdb82f6147ae667181bb0b534cadedb960a",
   "localScriptGreen": {
@@ -34,7 +34,8 @@
     "newRunIds": [
       40032541662,
       40032742242,
-      40033589101
+      40033589101,
+      40034410554
     ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-23T22:28:30.200Z",
@@ -45,13 +46,13 @@
     }
   },
   "latestCIRun": {
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40033589101",
-    "sourceCommit": "4c520bdb82f6147ae667181bb0b534cadedb960a",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40034410554",
+    "sourceCommit": "b0cdd8ba4fdb3e3eb67d8f812937e50777db612b",
     "conclusion": "failure",
-    "executedXCTests": 163,
-    "passed": 148,
-    "failed": 15,
-    "assertionFailures": 18,
+    "executedXCTests": 202,
+    "passed": 153,
+    "failed": 49,
+    "assertionFailures": 104,
     "skipped": 0
   },
   "localReporterRed": {
@@ -311,14 +312,15 @@
     "actualPinnedFilesDownloaded": true,
     "actualFileHashesVerified": true,
     "reportedBy": "/root/bootstrap_review",
-    "nativeAppRecognizerIntegrated": false,
+    "nativeAppRecognizerIntegrated": true,
     "actualRecognitionReported": true,
     "weightsCommitted": false,
     "actualRecognitionPlatform": "Windows11 / sherpa-onnx1.13.8 / CPU2threads",
     "actualRecognitionScope": "8.395second synthetic original SAPI speech; streaming3200frame chunks,21 evolving partials, WER2/21=9.5238%; endpoint/reset/replacement checked. Desktop candidate evidence only, no iPhone performance or production integration pass.",
     "localEvidence": ".agent-local/asr-evaluation/actual-result.json",
     "sanitizedEvidence": "docs/evidence/T10_CANDIDATE.md",
-    "sanitizedEvidencePresent": true
+    "sanitizedEvidencePresent": true,
+    "nativeAppRecognizerVerified": false
   },
   "pendingTestDrafts": [
     "docs/drafts/T09/ModelManifest.swift",
@@ -338,16 +340,44 @@
       "T17"
     ],
     "testCount": 39,
-    "productionImplemented": false,
-    "redVerified": false
+    "productionImplemented": true,
+    "redVerified": true,
+    "sourceCommit": "b0cdd8ba4fdb3e3eb67d8f812937e50777db612b",
+    "runId": 40034410554,
+    "greenVerified": false
   },
   "nativeASRTestFirst": {
     "testCount": 10,
     "sourceCommit": "4c520bdb82f6147ae667181bb0b534cadedb960a",
     "runId": 40033589101,
     "redVerified": true,
-    "productionImplemented": false,
+    "productionImplemented": true,
     "actualWindowsCandidateRecognized": true,
     "implementationAuthorizedAfterTerminalLog": true
+  },
+  "componentGreen": {
+    "verifiedModelInstaller": {
+      "sourceCommit": "b0cdd8ba4fdb3e3eb67d8f812937e50777db612b",
+      "runId": 40034410554,
+      "executed": 23,
+      "passed": 23,
+      "skipped": 0
+    },
+    "sqliteV1": {
+      "sourceCommit": "4c520bdb82f6147ae667181bb0b534cadedb960a",
+      "runId": 40033589101,
+      "executed": 15,
+      "passed": 15,
+      "skipped": 0
+    }
+  },
+  "summaryQuality": {
+    "status": "IN_PROGRESS",
+    "actualWindowsNativeInference": true,
+    "ownerAttribution": "FAILED",
+    "boundedWindowsPromptRepairs": 3,
+    "retryStopped": true,
+    "actualHostedB5046Inference": "NOT_RUN",
+    "nextAction": "Actual native test; then diagnose measured candidate or a new test-first general grounding pipeline, never hardcode fictional owners."
   }
 }

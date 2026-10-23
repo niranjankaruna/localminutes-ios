@@ -9,6 +9,26 @@ import LocalMinutesRecording
 
 @MainActor
 final class LiveTranscriptionSessionTests: XCTestCase {
+    func testLargeConvertedBufferIsSplitIntoBoundedNativeChunksWithoutLosingSpeech() async throws {
+        let h = try await LiveSessionFixture.create()
+        do {
+            let id = UUID()
+            guard case .ready(let directory) = await h.session.prepare(sessionID: id) else {
+                XCTFail("Actual model preparation failed"); await h.cleanup(); return
+            }
+            // A native callback can exceed its requested frame-size hint. The
+            // actual 16k converter can therefore return more than200ms at once.
+            let manifest = try feed(h.speech.samples, session: h.session, directory: directory, id: id, chunkSize: 6_400)
+            let failure = await h.session.finish(sessionID: id, manifest: manifest)
+            XCTAssertNil(failure)
+            XCTAssertEqual(h.session.transcript.receivedSampleCount, Int64(h.speech.samples.count))
+            let rows = try await h.store.transcript(meetingID: id)
+            XCTAssertEqual(rows.count, 1)
+            XCTAssertEqual(rows.first?.text.lowercased().split(separator: " ").last, "tents")
+        } catch { await h.cleanup(); throw error }
+        await h.cleanup()
+    }
+
     func testActualSpeechStreamsBeforeStopAndFinalTextSurvivesSQLiteReopen() async throws {
         let h = try await LiveSessionFixture.create()
         do {
@@ -89,12 +109,12 @@ final class LiveTranscriptionSessionTests: XCTestCase {
     }
 
     private func feed(_ samples: [Float], session: LiveTranscriptionSession,
-                      directory: URL, id: UUID) throws -> AudioCaptureManifest {
+                      directory: URL, id: UUID, chunkSize: Int = 1_600) throws -> AudioCaptureManifest {
         let sink = try XCTUnwrap(session.normalizedSink)
         let writer = try SegmentCAFWriter(directory: directory, sessionID: id)
         let format = try XCTUnwrap(AVAudioFormat(standardFormatWithSampleRate: 16_000, channels: 1))
-        for start in stride(from: 0, to: samples.count, by: 1_600) {
-            let count = min(1_600, samples.count - start)
+        for start in stride(from: 0, to: samples.count, by: chunkSize) {
+            let count = min(chunkSize, samples.count - start)
             let buffer = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(count)))
             buffer.frameLength = AVAudioFrameCount(count)
             let plane = try XCTUnwrap(buffer.floatChannelData?.pointee)
