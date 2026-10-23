@@ -76,3 +76,5 @@ exact-source full CI/native GREEN. No seventh run, test skip, parser weakening,
 upload, publication or billing change is authorized by this boundary.
 The full portable suite at local test-first35074aa is59 executed/54 passed/5 failed,
 0 skipped. These are the same selected-suite regressions; production is unchanged.
+
+Continuation-03 resolved the prior reporter boundary: full run39997623318 at4b63907 passed56 XCTest,59 Node,22 repeated TSAN and15 native checks. T05 development continues; artifact retention remains the separate external blocker.

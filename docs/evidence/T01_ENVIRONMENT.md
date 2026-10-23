@@ -136,3 +136,5 @@ shows **0.5 / 0.5 GB,100%**; uploads remain blocked. No settings, billing, visib
 or unrelated artifacts changed. Start with saved reporter RED; at most six new
 standard-runner runs, one active per branch, existing timeouts. No unlimited
 allowance or exclusive reservation is inferred.
+
+Continuation-03 pre-run3 read-only recheck,23 October2026 about17:59 UTC: Actions809/2,000 minutes used,1,191 displayed remaining; billable$0; existing account-wide Actions$0/$0 Usage blocked. Storage0.5/0.5GB,100%, no upload. No budget/billing/visibility setting changed. Two runs terminal; run3 uses standard macos-15-intel only with10/15-minute job bounds.
