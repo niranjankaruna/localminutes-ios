@@ -275,3 +275,5 @@ expected87 total XCTest uncompiled. No controller/SDK behavior before RED.
 Pre-run5 account check933/2,000 included minutes used,1,067 remaining,$0 billable,
 existing Actions$0/$0 Usage blocked, storage100%. Last two invocation slots
 are run5 RED and run6 GREEN, bounded standard runners only.
+
+T06.1 RED atb95de19/run40002877757:87 XCTest,78 pass,9 fail,47 assertions,0 skipped; all prior78 pass. Implement controller/actual SDK backend now; one final run6 slot remains, no seventh run.
