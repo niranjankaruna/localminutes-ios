@@ -17,8 +17,21 @@ public final class MeetingLibraryController {
     public private(set) var errorMessage: String?
     @ObservationIgnored private let store: SQLiteMeetingStore
     @ObservationIgnored private var selectionRequest = UUID()
+    @ObservationIgnored private let afterRenameRead: (@MainActor @Sendable (UUID) async -> Void)?
 
-    public init(store: SQLiteMeetingStore) { self.store = store }
+    public init(store: SQLiteMeetingStore) {
+        self.store = store
+        afterRenameRead = nil
+    }
+
+    /// Test scheduling only: real SQLite mutation/read still occur. Public
+    /// production construction always supplies nil. This does not repair the
+    /// stale projection; its failing assertion must execute before that change.
+    init(store: SQLiteMeetingStore,
+         afterRenameRead: @escaping @MainActor @Sendable (UUID) async -> Void) {
+        self.store = store
+        self.afterRenameRead = afterRenameRead
+    }
 
     public func refresh() async {
         do { meetings = try await store.history(); errorMessage = nil }
@@ -46,7 +59,11 @@ public final class MeetingLibraryController {
         guard let id = selected?.id else { return }
         do {
             try await store.renameMeeting(id: id, title: title)
-            if selected?.id == id { selected = try await store.meeting(id: id) }
+            if selected?.id == id {
+                let loaded = try await store.meeting(id: id)
+                if let afterRenameRead { await afterRenameRead(id) }
+                selected = loaded
+            }
             await refresh()
         } catch { errorMessage = "The meeting name could not be saved." }
     }

@@ -3,17 +3,17 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-23T23:01:52.638Z",
+  "lastUpdated": "2026-10-23T23:10:15.967Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "T11",
+  "currentTask": "T12.1",
   "lastVerifiedCommit": "40100fdb9a8349acdbf2d22c63eb25ce959e9388",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017962923",
   "candidateArtifact": null,
-  "nextAction": "Read terminal native job120699362489/run40036438183 exact7659a19. Require real iOS device/simulator compilation and48native/3UI results. Implement privacy ONLY after actual SDK assertion RED; save any repair locally because6/6CI runs are used (no7thrun). Next test-first corrections: three P1 notes/rename/playback interleavings. Summary semantic quality, full baseline and all owner physical gates remain pending.",
+  "nextAction": "Push reviewed test-first source for224core/56native plusunchanged4actualsummaryquality. Native andcore run independently torecordactualRED inoneworkflow; everyjobmandatory. Sevenprivacycases stillneedactualRED; donotimplementpolicynow. After terminalassertions, implementonlyprovenmissingbehavior withboundedagents; regression/exactSHA GREEN thencheckpoint.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "7659a1980b53fc17d624973c6666d83084234ab6",
+  "remoteBranchHead": "aed1c8a96838eda8fe467612bd6fd6ba80efd59d",
   "localScriptGreen": {
     "sourceCommit": "6b5fd0c074672c467f0d26c5797683b706ec8263",
     "platform": "Windows 11 / Node 24.21.0",
@@ -29,19 +29,12 @@
     "ARTIFACT_STORAGE_HEADROOM_UNVERIFIED"
   ],
   "ciInvocation": {
-    "id": "2026-10-23-continuation-06",
+    "id": "2026-10-24-continuation-07",
     "maxNewRuns": 6,
-    "newRunIds": [
-      40032541662,
-      40032742242,
-      40033589101,
-      40034410554,
-      40035569538,
-      40036438183
-    ],
-    "limitReached": true,
-    "costGuardObservedAt": "2026-10-23T22:28:30.200Z",
-    "costGuardBasis": "Live PUBLIC repo verified; standard macos-15-intel officially free; no uploads/paid runners",
+    "newRunIds": [],
+    "limitReached": false,
+    "costGuardObservedAt": "2026-10-23T23:04:43.760Z",
+    "costGuardBasis": "Live PUBLIC repo and owner ADMIN verified. Official GitHub billing page rechecked: standard public hosted runners free; larger runners prohibited; no artifacts uploaded without storage headroom.",
     "jobLimits": {
       "coreMinutes": 15,
       "summaryQualityMinutes": 15,
@@ -51,9 +44,9 @@
   "latestCIRun": {
     "sourceCommit": "7659a1980b53fc17d624973c6666d83084234ab6",
     "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40036438183",
-    "status": "in_progress",
+    "status": "completed",
     "ordinal": 6,
-    "conclusion": null,
+    "conclusion": "failure",
     "core": {
       "status": "completed",
       "conclusion": "success",
@@ -73,9 +66,14 @@
       "skipped": 0
     },
     "native": {
-      "status": "in_progress",
+      "status": "completed",
+      "conclusion": "failure",
       "jobId": 120699362489,
-      "startedAt": "2026-10-23T23:00:53Z"
+      "deviceCompilation": true,
+      "simulatorCompilation": true,
+      "testBundleCompilation": false,
+      "executed": 0,
+      "reason": "New privacy fixture setAttributes argument labels incorrect; actualSDKrequiresofItemAtPath. Not behavioralRED."
     },
     "scripts": {
       "executed": 59,
@@ -158,7 +156,7 @@
     "T06.2.1",
     "T06.2.2.1"
   ],
-  "remoteBranchHeadScope": "Exact task-branch source push verified; run6 is testing this SHA. Documentation checkpoint will follow without a new workflow.",
+  "remoteBranchHeadScope": "Live exact branch HEAD verified; predecessor7659a19 is still running its existing native job. No push may cancel it.",
   "nativeCompileRepair": {
     "status": "CODE_COMPLETE_PENDING_DEVICE",
     "candidatePath": "docs/drafts/T06.1/ActivityKitOperations.swift.pending",
@@ -167,9 +165,7 @@
     "validatedRepairAttempts": 1,
     "missingLookupPolicyNeedsRegressionRed": false
   },
-  "codeCompletedThisInvocation": [
-    "T06.2.2.1"
-  ],
+  "codeCompletedThisInvocation": [],
   "codeCompletionScope": "No new top-level baseline task is complete. Exact7659a19 passed199core/59scripts/85TSAN, including actual CPU ASR and live SQLite compositions. Native app compilation/screens/privacy remain pending. Summary action attribution is failed; full summaries and Q&A are unfinished. Three P1 integration races need new regression RED.",
   "ownerCompositionTestFirst": {
     "testCount": 12,
@@ -211,7 +207,7 @@
     "greenVerifiedCommit": "7c1ae7c6edda4a4ee23b47299e45f22a6fcef409",
     "additionalModeProbeExecuted": true,
     "uiRedVerified": true,
-    "sourceScope": "Real app-owned live ASR provider is wired in source. Original38 native tests were GREEN earlier; preparing-toggle repair is pushed but exact39 plus new owner/privacy cases await native run6.",
+    "sourceScope": "Current app/extension device and simulator products compile at7659a19; privacy fixture errors prevented all native/unit/UI execution. Preparing-toggle regression GREEN stillunverified.",
     "originalNativeGreenExecuted": 38,
     "hiddenStopSDKMode": "background, observed iOS26.2; no mode declaration change",
     "uiProductionBehaviorImplemented": true,
@@ -227,7 +223,7 @@
       "acceptance": "Second native Toggle during held model preflight must request cleanup before late readiness and cannot start any hardware.",
       "repairCommit": "695b99ba9857488ec759bf3b723feb73f734b3b8",
       "repairPushed": true,
-      "repairCompiled": false,
+      "repairCompiled": true,
       "greenVerified": false
     }
   },
@@ -260,12 +256,7 @@
     "latestSourceCommit": "6b5fd0c074672c467f0d26c5797683b706ec8263",
     "latestRunUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40027966192"
   },
-  "activeCIRun": {
-    "sourceCommit": "7659a1980b53fc17d624973c6666d83084234ab6",
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40036438183",
-    "status": "in_progress",
-    "ordinal": 6
-  },
+  "activeCIRun": null,
   "pendingPushScope": null,
   "repositoryVisibility": "PUBLIC",
   "publication": {
@@ -287,13 +278,14 @@
     "billingSettingsChanged": false
   },
   "ciCostGuard": {
-    "verifiedAt": "2026-10-23T21:59:27Z",
+    "verifiedAt": "2026-10-23T23:04:43.761Z",
     "basis": "Verified PUBLIC repository and officially free standard macos-15-intel runner",
     "evidence": "docs/evidence/T01_PUBLIC_REPOSITORY.md",
     "standardRunnerOnly": true,
     "largerRunnersAllowed": false,
     "extraSpendAllowed": false,
-    "artifactRetentionVerified": false
+    "artifactRetentionVerified": false,
+    "officialSource": "https://docs.github.com/en/billing/concepts/product-billing/github-actions"
   },
   "localSourceReview": {
     "commit": "7659a1980b53fc17d624973c6666d83084234ab6",
@@ -301,7 +293,11 @@
     "scope": "ASR/live buffer and native C ownership reviewed with no further blocker; meeting integration review found three untested P1 scheduling issues requiring regression RED before repair.",
     "nativeExecutionPending": true
   },
-  "parallelTasks": [],
+  "parallelTasks": [
+    "T16 test-first real SQLite rename/bound notes and owned CAF deletion",
+    "Native test-first playback versus start resource admission",
+    "Summary root-cause diagnosis; privacy implementation only after actual native assertion RED"
+  ],
   "oneHourPush": {
     "startedAt": "2026-10-23T22:06:40Z",
     "targetCheckpointAt": "2026-10-23T23:06:40Z",
@@ -328,7 +324,9 @@
       }
     ],
     "rootOwnsGitAndCI": true,
-    "fullVerifiedCompletionClaimed": false
+    "fullVerifiedCompletionClaimed": false,
+    "actualCheckpointAt": "2026-10-23T23:10:15.967Z",
+    "result": "ActualASR10+live4 and complete199core/59scripts/85TSAN passed. Actualdevice/simulatorproductscompiled; nativeprivacyfixturecompilefailed0cases. Fullbaseline/summaries/Q&A/devicegatesunfinished."
   },
   "manualDeviceValidation": {
     "operator": "owner",
@@ -362,18 +360,19 @@
   ],
   "currentTestFirstSlice": {
     "tasks": [
-      "T11",
-      "T15",
-      "T16",
-      "T09.2",
-      "T17"
+      "T08.2",
+      "T16.1",
+      "T16.2",
+      "T16.3",
+      "T17.2",
+      "T12.1"
     ],
-    "testCount": 39,
-    "productionImplemented": true,
-    "redVerified": true,
-    "sourceCommit": "b0cdd8ba4fdb3e3eb67d8f812937e50777db612b",
-    "runId": 40034410554,
-    "greenVerified": false
+    "newCoreCases": 25,
+    "newNativeCases": 8,
+    "expectedCore": 224,
+    "expectedNative": 56,
+    "productionImplemented": false,
+    "redVerified": false
   },
   "nativeASRTestFirst": {
     "testCount": 10,
@@ -435,6 +434,15 @@
       "scriptsPassed": 59,
       "threadSanitizerPassed": 85,
       "fullWorkflowGreen": false
+    },
+    "iOSCompilation": {
+      "sourceCommit": "7659a1980b53fc17d624973c6666d83084234ab6",
+      "runId": 40036438183,
+      "device": true,
+      "simulator": true,
+      "appAndExtension": true,
+      "nativeTestsExecuted": 0,
+      "scope": "App/extension products compile; new privacy test fixture prevented test bundle compilation. No UI/package/device pass."
     }
   },
   "summaryQuality": {
@@ -462,7 +470,13 @@
     "evidence": "docs/evidence/T12_PRIVACY_TDD.md",
     "sourceCommit": "7659a1980b53fc17d624973c6666d83084234ab6",
     "runId": 40036438183,
-    "inActiveBuildPaths": true
+    "inActiveBuildPaths": true,
+    "compileIssue": {
+      "runId": 40036438183,
+      "executed": 0,
+      "red": false,
+      "labelsRepaired": true
+    }
   },
   "remainingBaseline": [
     "T08 crash/segment recovery and gaps",
@@ -489,5 +503,29 @@
     ],
     "testsExecuted": false,
     "repairsImplemented": false
-  }
+  },
+  "ciInvocationHistory": [
+    {
+      "id": "2026-10-23-continuation-06",
+      "maxNewRuns": 6,
+      "newRunIds": [
+        40032541662,
+        40032742242,
+        40033589101,
+        40034410554,
+        40035569538,
+        40036438183
+      ],
+      "limitReached": true,
+      "costGuardObservedAt": "2026-10-23T22:28:30.200Z",
+      "costGuardBasis": "Live PUBLIC repo verified; standard macos-15-intel officially free; no uploads/paid runners",
+      "jobLimits": {
+        "coreMinutes": 15,
+        "summaryQualityMinutes": 15,
+        "nativeMinutes": 25
+      },
+      "classification": "progress",
+      "result": "Actual199core+59scripts+85TSAN GREEN and failed native semantic quality preserved at7659a19; privacy tests activated and three P1 integration findings persisted/pushed in aed1c8a. Prior native job still confirmed live."
+    }
+  ]
 }

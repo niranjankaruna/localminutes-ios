@@ -119,3 +119,6 @@ Actual2eaa5d6/run40035569538 verifies10/10nativeCPUASR,2/2positiveASR/SQLitecomp
 
 
 7659a19/run40036438183 core SUCCESS:199XCTest+59scripts+85repeatedTSAN,0failures/skips/reported races. Actual large-buffer regression GREEN after2eaa5d6 RED;10CPUrecognizer and4live-session cases pass. Separate actualQwen4cases2pass2fail4assert0skip: semanticqualityFAILED. Nativejob120699362489 active; no current iPhone/UI/privacy/device pass inferred. Seven privacy cases are test-first, no policy implementation yet. P1 integration findings unexecuted: docs/drafts/T16Deletion/INTEGRATION_REVIEW.md. All physical/signing/renewal and both owner125minute gatesNOT_RUN. No retained artifact.
+
+
+Terminal7659a19/run40036438183:199core+59scripts+85TSAN GREEN; actualQwen2/4pass (semanticFAIL). Both device/simulator app+extension compile. Newprivacyfixturetestbundles failtwoargumentlabels;0native/UI, NOTRED, no policy implementation. Correct labels now saved. Next test-first source224core/56native; fullbaseline/devices/retainedartifact stillpending.

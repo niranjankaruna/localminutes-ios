@@ -123,7 +123,7 @@ final class NativePersistentPrivacyTests: XCTestCase {
             try data.write(to: file)
             // Files import can carry stronger protection. The persistent copy
             // must receive the app's explicitly selected locked-use policy.
-            try FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], atPath: file.path)
+            try FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: file.path)
             return ModelArtifact(role: role, fileName: name, byteCount: Int64(data.count),
                 sha256: SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined(),
                 downloadURL: URL(string: "https://huggingface.co/example/privacy-fixture/resolve/\(revision)/\(name)")!,
@@ -267,7 +267,7 @@ final class NativePersistentPrivacyTests: XCTestCase {
         let sentinel = outside.appendingPathComponent("original-fixture.txt")
         let bytes = Data("Outside original fixture remains unchanged".utf8)
         try bytes.write(to: sentinel)
-        try FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], atPath: sentinel.path)
+        try FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: sentinel.path)
         var external = sentinel
         var values = URLResourceValues(); values.isExcludedFromBackup = false
         try external.setResourceValues(values)

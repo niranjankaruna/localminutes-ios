@@ -28,6 +28,7 @@ final class RecordingApplication {
     let owner: RecordingSessionOwner?
     let foreground: (any RecordingForegroundContinuation)?
     let services: LocalMinutesServices?
+    let playbackOwnership: PlaybackOwnershipController?
     private(set) var lastOutcome: RecordingIntentOutcome?
     private let router: RecordingIntentRouter
     @ObservationIgnored
@@ -45,14 +46,17 @@ final class RecordingApplication {
             activityBackend: IOSLiveActivityBackend(), preparation: preparation
         )
         self.services = services
+        playbackOwnership = nil
         self.owner = owner
         router = RecordingIntentRouter(owner: owner)
         foreground = nil
     }
 
     init(owner: RecordingSessionOwner,
-         foreground: (any RecordingForegroundContinuation)? = nil) {
+         foreground: (any RecordingForegroundContinuation)? = nil,
+         playbackOwnership: PlaybackOwnershipController? = nil) {
         services = nil
+        self.playbackOwnership = playbackOwnership
         self.owner = owner
         router = RecordingIntentRouter(owner: owner)
         self.foreground = foreground
@@ -60,7 +64,11 @@ final class RecordingApplication {
 
     func perform(_ action: RecordingIntentAction) async throws -> RecordingIntentOutcome {
         switch action {
-        case .start, .toggle: services?.stopPlayback()
+        case .start, .toggle:
+            services?.stopPlayback()
+            // Test-first injection only: this no-op result is deliberately not
+            // enforced until the native ownership contract has actual RED.
+            _ = playbackOwnership?.prepareForRecording()
         case .stop: break
         }
         let outcome: RecordingIntentOutcome
@@ -124,6 +132,15 @@ final class RecordingApplication {
             try await foreground.requestContinuation(for: failure)
         }
         return outcome
+    }
+
+    func playAudio(at location: MeetingPlaybackLocation) async -> PlaybackOwnershipResult {
+        guard let playbackOwnership else { return .notImplemented }
+        return await playbackOwnership.play(at: location)
+    }
+
+    func stopPlayback() -> PlaybackOwnershipResult {
+        playbackOwnership?.stop() ?? .notImplemented
     }
 }
 #endif

@@ -447,6 +447,17 @@
           ],
           "deviceEvidence": [],
           "validationScope": "15 actual SQLite initial persistence cases passed; crash/segment recovery remains in parentT08."
+        },
+        {
+          "id": "T08.2",
+          "title": "Actual CAF checkpoint reconciliation, durable recovery journal and explicit gaps",
+          "status": "IN_PROGRESS",
+          "redEvidence": [
+            "docs/evidence/T08_RECOVERY_TDD.md"
+          ],
+          "greenEvidence": [],
+          "deviceEvidence": [],
+          "testCount": 8
         }
       ],
       "redEvidence": [
@@ -613,7 +624,7 @@
           "deviceEvidence": [],
           "testCount": 7,
           "testFirstSource": "7659a1980b53fc17d624973c6666d83084234ab6",
-          "nextAction": "Actual native assertion RED required before policy implementation; run6 pending."
+          "nextAction": "ActualiOSnativeREDstillrequired; firstfixturecompilelabelserrorsrepairedwithoutassertionchanges."
         }
       ],
       "redEvidence": [],
@@ -727,7 +738,41 @@
         "Tests cover autosaved notes, source timing, playback gaps and export privacy.",
         "Keep originals separate from later generated summaries."
       ],
-      "childTasks": [],
+      "childTasks": [
+        {
+          "id": "T16.1",
+          "title": "Owned audio and SQLite deletion with recoverable quarantine",
+          "status": "IN_PROGRESS",
+          "redEvidence": [
+            "docs/evidence/T16_INTEGRATION_TDD.md"
+          ],
+          "greenEvidence": [],
+          "deviceEvidence": [],
+          "testCount": 6
+        },
+        {
+          "id": "T16.2",
+          "title": "Immutable delayed note identity and stale rename epochs",
+          "status": "IN_PROGRESS",
+          "redEvidence": [
+            "docs/evidence/T16_INTEGRATION_TDD.md"
+          ],
+          "greenEvidence": [],
+          "deviceEvidence": [],
+          "testCount": 4
+        },
+        {
+          "id": "T16.3",
+          "title": "Atomic playback versus recording resource admission",
+          "status": "IN_PROGRESS",
+          "redEvidence": [
+            "docs/evidence/T16_PLAYBACK_TDD.md"
+          ],
+          "greenEvidence": [],
+          "deviceEvidence": [],
+          "testCount": 8
+        }
+      ],
       "redEvidence": [
         "docs/evidence/T10_T11_TDD.md"
       ],
@@ -756,7 +801,19 @@
         "Pin native artifact and real Qwen model; verify device/simulator integration.",
         "Test resource ownership, cancellation, unload and no concurrent ASR/LLM requirement."
       ],
-      "childTasks": [],
+      "childTasks": [
+        {
+          "id": "T17.2",
+          "title": "Canonical pinned Qwen chat envelope and full UTF8 budget",
+          "status": "IN_PROGRESS",
+          "redEvidence": [
+            "docs/evidence/T17_FORMATTER_TDD.md"
+          ],
+          "greenEvidence": [],
+          "deviceEvidence": [],
+          "testCount": 7
+        }
+      ],
       "redEvidence": [
         "docs/evidence/T10_T11_TDD.md"
       ],
