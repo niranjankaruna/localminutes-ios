@@ -69,3 +69,13 @@ Sources:
 T01 changes are documentation/configuration of observed account facts only;
 no executable script or application behavior was implemented. T02 establishes
 the actual harness under the explicitly permitted harness bootstrap exception.
+
+## Actual hosted toolchain observation
+
+Run [39972652907](https://github.com/niranjankaruna/localminutes-ios/actions/runs/39972652907)
+at source `ef311b97ed475f9cecec61805f7020ca23a4382f` logged macOS 15.7.9 / 24G830,
+image `20260824.0482.1`, x86_64, Xcode **26.2 / 17C52**, Apple Swift **6.2.3**
+(`swiftlang-6.2.3.3.21`, clang `1700.6.3.2`), target x86_64-apple-macosx15.0,
+and iPhoneOS/iPhoneSimulator SDK **26.2**. It enumerated available simulators;
+no simulator tests or device build ran. The package compiled and executed two
+XCTest cases. This verifies the hosted selection, not an iOS application.

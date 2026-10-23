@@ -60,7 +60,7 @@
       "milestone": "M1",
       "title": "Establish real test discovery and RED/GREEN harness",
       "kind": "infrastructure",
-      "status": "IN_PROGRESS",
+      "status": "VERIFIED_COMPLETE",
       "dependsOn": [
         "T01"
       ],
@@ -73,9 +73,9 @@
         "Require executed expected tests, correct exit codes and stored evidence.",
         "Create deterministic clock, fixture and evidence infrastructure."
       ],
-      "childTasks": [],
-      "redEvidence": [],
-      "greenEvidence": [],
+      "childTasks": [{"id":"T02.1","title":"Verify XCTest evidence parser after missing XML output","status":"VERIFIED_COMPLETE"}],
+      "redEvidence": ["docs/evidence/T02_TDD.md#red--observed-23-october-2026-1449-utc"],
+      "greenEvidence": ["docs/evidence/T02_TDD.md#green--verified"],
       "deviceEvidence": [],
       "blockers": [],
       "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
@@ -86,7 +86,7 @@
       "milestone": "M1",
       "title": "Implement recording domain state machine tests first",
       "kind": "feature",
-      "status": "TODO",
+      "status": "IN_PROGRESS",
       "dependsOn": [
         "T02"
       ],

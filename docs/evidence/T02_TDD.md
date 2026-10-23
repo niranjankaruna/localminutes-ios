@@ -42,12 +42,22 @@ Test-first source committed and pushed as
 `b12ac5cab52bdb7797948e3554556d7ce8ac4da3` before parser implementation.
 No new CI run was dispatched for that scripts-only commit under the old filter.
 
-## GREEN — local reporting passed; hosted harness pending
+## GREEN — verified
 
 Parser regression command on Windows: `node --test scripts/tests/verify-test-log.test.mjs`.
 Actual result: **8 passed, 0 failed, 0 skipped**, exit 0. The correction rejects
-zero/skipped/missing/incomplete/inconsistent results. Hosted harness GREEN is
-still pending and no app exists.
+zero/skipped/missing/incomplete/inconsistent results. It also classified the
+actual native RED log as 2 failed cases / 3 assertions, returning exit 1.
+
+Hosted implementation SHA: `87dadb4c030a24f5206a7658ea51c49d09579966`.
+Run: [39973529078](https://github.com/niranjankaruna/localminutes-ios/actions/runs/39973529078),
+completed 23 October 2026 at 14:55:56 UTC, **success**. XCTest: 2 executed,
+2 passed, 0 failed, 0 skipped. Node reporting regressions: 8 executed,
+8 passed, 0 failed, 0 skipped. Corrected command: `swift test --enable-code-coverage`;
+verification: `node scripts/verify-test-log.mjs .build/test-output.log testHarnessExecutesAnAssertion testControlledClockAdvancesWithoutSleeping`.
+
+The deterministic test clock, synthetic log fixtures, and strict reporting
+checks are test infrastructure only. No app, microphone or model is exercised.
 The workflow uses logs/summary only, no artifact upload or cache allocation.
 
 ## Review and continuation
@@ -55,4 +65,5 @@ The workflow uses logs/summary only, no artifact upload or cache allocation.
 Checkout is pinned, credentials persistence disabled, contents read-only,
 branch concurrency bounded, timeout 10 minutes. No secrets, models or meeting
 data are used. Every physical-device gate remains NOT_RUN.
-Next: inspect the exact RED SHA/run before changing the clock or demonstration.
+Independent review inspected real diffs and the native RED log and found no
+actionable issues. No refactor was needed. Next: T03 domain behavioral RED.

@@ -7,16 +7,16 @@
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t02-harness",
-  "currentTask": "T02",
-  "lastVerifiedCommit": null,
-  "lastVerifiedCIRun": null,
+  "currentTask": "T03",
+  "lastVerifiedCommit": "87dadb4c030a24f5206a7658ea51c49d09579966",
+  "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/39973529078",
   "candidateArtifact": null,
-  "nextAction": "T02: run local reporting regression tests, push the harness/report correction, then verify GREEN at the exact source SHA before starting T03.",
+  "nextAction": "T03: create the recording-coordinator task branch from verified harness history; add behavioral tests and minimal interfaces, push and prove hosted RED before implementing state transitions.",
   "blockedItems": [],
   "ciInvocation": {
     "id": "2026-10-23-initial",
     "maxNewRuns": 6,
-    "newRunIds": [39972652907],
+    "newRunIds": [39972652907, 39973529078],
     "costGuardObservedAt": "2026-10-23T14:41:00Z"
   },
   "deviceGates": {
