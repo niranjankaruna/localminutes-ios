@@ -127,8 +127,13 @@ final class CaptureAudioWorker: @unchecked Sendable {
     private var onFacts: (@Sendable (CaptureWorkerFacts) -> Void)?
     private var reportedFacts: CaptureWorkerFacts?
     private var finalResult: CaptureWorkerResult?
+    private let normalizedSink: (any NormalizedCaptureSink)?
+    private var normalizedFrames: Int64 = 0
 
-    init(context: CaptureTapContext) { self.context = context }
+    init(context: CaptureTapContext, normalizedSink: (any NormalizedCaptureSink)? = nil) {
+        self.context = context
+        self.normalizedSink = normalizedSink
+    }
 
     func prepare(directory: URL, sessionID: UUID, maximumSegmentFrames: Int64) async -> CaptureRuntimeFailure? {
         await withCheckedContinuation { continuation in
@@ -188,7 +193,20 @@ final class CaptureAudioWorker: @unchecked Sendable {
 
     private func write(_ buffers: [AVAudioPCMBuffer]) {
         guard failure == nil, let writer else { return }
-        do { for buffer in buffers { try writer.append(buffer) } }
+        do {
+            for buffer in buffers {
+                try writer.append(buffer)
+                guard buffer.frameLength > 0 else { continue }
+                if let normalizedSink,
+                   !normalizedSink.offer(buffer, sourceStartSample: normalizedFrames) {
+                    fail(.queueLoss)
+                    return
+                }
+                let next = normalizedFrames.addingReportingOverflow(Int64(buffer.frameLength))
+                guard !next.overflow else { fail(.queueLoss); return }
+                normalizedFrames = next.partialValue
+            }
+        }
         catch { fail(.writeFailed) }
     }
 

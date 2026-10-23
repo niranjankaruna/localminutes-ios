@@ -136,3 +136,55 @@ behavioral RED must precede implementation, followed by exact-source GREEN and
 device/simulator compilation. App integration must run summaries after capture
 and ASR release; no concurrent ASR/LLM requirement is introduced. Physical-phone
 performance, locking, signing and both125minute tests remain pending with owner.
+
+## Updated native RED, compatibility review and accuracy issue —22:42UTC
+
+Root subsequently activated the native tests. Source
+`b0cdd8ba4fdb3e3eb67d8f812937e50777db612b`, hosted
+[run40034410554](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40034410554),
+successfully prepared the real complete b5046 framework and real verified Qwen
+model, compiled all202XCTest, then demonstrated all four summary cases RED:
+five assertion failures, three unexpected notImplemented errors. The dated
+draft's earlier uncompiled statement applies to its original handoff; actual
+native behavioral RED is now recorded in docs/evidence/T10_T11_TDD.md.
+
+Only after that evidence, the active runtime was implemented with actual C API
+load/context/tokenization/decoding, explicit CPU settings, Qwen ChatML, generic
+JSON grammar, cancellation/native abort callback, context reset and RAII unload.
+Its hosted compilation and semantic GREEN are still pending at this observation.
+
+Read-only inspection of the actual b5046 Apple headers confirmed all used fields:
+n_gpu_layers, use_mmap, n_ctx, n_batch, n_ubatch, n_threads, n_threads_batch,
+offload_kqv and no_perf. The callback is exactly `bool (*)(void *)`.
+All22 referenced C functions were independently found in actual Mach-O external
+symbol tables for macOSx86_64/arm64, iOSarm64 and simulatorx86_64/arm64 slices.
+That includes llama_set_abort_callback, llama_kv_self_clear,
+llama_model_get_vocab, llama_sampler_init_grammar and their load/decode/free
+dependencies. This binary/header review is not a Swift compile or inference pass.
+
+Research issue `SUMMARY_ACTION_OWNER_ACCURACY_FAILED` remains open. The initial
+Windows experiment plus three bounded prompt/schema repairs still failed to
+attribute the volunteered installation-guide action to its speaker. The exact
+native acceptance prompt alone additionally confused the team decision with the
+personal action. The latest implemented system prompt plus actual generic JSON
+grammar produced valid JSON, correct decision/task/Thursday/Boolean/evidence-ID
+types, but still assigned Maya instead of Leo. The actual Windows output is
+preserved in ignored `summary-output-runtime-grammar.txt`. No further Windows
+prompt retry was attempted after reaching this bounded diagnosis point.
+
+This is a semantic quality issue, not evidence of an unavailable paid service,
+and does not block safe app/adapter development. No field was hardcoded or
+silently corrected to fit the fictional fixture. Leo and citation assertions
+remain unchanged. The b5046 hosted test remains authoritative for that runtime.
+
+Precise next independent quality work: first add real-model evaluation cases
+that vary speaker order/names, task phrasing and ambiguous ownership. Then
+evaluate a generic quote-first grounding pipeline: the real model extracts a
+verbatim commitment and source ID; validate that quotation against the selected
+meeting; use only that bounded source in a second real inference to attribute
+the task. Reject unsupported attribution or label it uncertain rather than
+inventing an owner. Preserve the original clear-owner acceptance. If this
+approach cannot meet it, benchmark a licensed stronger candidate at a pinned
+revision with measured device memory/performance. Neither a new pipeline nor
+candidate change is implemented here; each requires its own recorded RED and
+actual quality evidence.

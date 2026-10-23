@@ -15,10 +15,10 @@ struct LocalMinutesApp: App {
             } else if ProcessInfo.processInfo.arguments.contains("--ui-test-activity-finished") {
                 RecordingActivityTestScreen(application: application, finished: true)
             } else {
-                RecordingControlsView(application: application)
+                LocalMinutesHomeView(application: application)
             }
             #else
-            RecordingControlsView(application: application)
+            LocalMinutesHomeView(application: application)
             #endif
         }
     }

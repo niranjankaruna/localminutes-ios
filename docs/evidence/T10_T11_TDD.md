@@ -38,3 +38,30 @@ SQLite are mandatory in composition tests. No device outcome is inferred.
 
 No native GREEN, iOS live transcription, signing, two-hour, Action Button,
 locked-screen or renewal claim is made here. Raw audio/weights/logs stay ignored.
+
+## T11/T15/T16/T09.2/T17 actual RED — before behavior
+
+Test-first sourceb0cdd8ba4fdb3e3eb67d8f812937e50777db612b was pushed before
+the new behavior. Terminal hosted run
+https://github.com/niranjankaruna/localminutes-ios/actions/runs/40034410554
+compiled/linked and executed202XCTest:153passed,49failed,104assertion failures,
+14unexpected,0skipped. The strict reporter required all39new case names and
+confirmed the aggregate. Command `swift test --enable-code-coverage` on
+macos-15-intel/Xcode26.2. Actual model/framework setup succeeded, including the
+verified real1.117GB Qwen and complete b5046 native framework. No fake inference.
+
+Observed RED includes real live-preparation rejection,0-versus1920 converted
+frames at the sink, accepted rejected ingress, owner Saved preceding held
+transcript finalization, no-op notes failing durable reopen and schema1-versus2,
+empty history/selected content, missing exports, nil playback locations/wrong
+errors, transport `notImplemented`, and real-Qwen runtime `notImplemented`.
+The missing-model live case passed, as expected. The ASR no-op still failed all
+10cases because its production implementation was deliberately excluded from
+this test-first push. All23installer tests now passed with coherent synthetic
+replacement URLs; every original assertion and production validation preserved.
+
+The explicit current-schema assertion evolved1→2 BEFORE migration implementation;
+the new actual-v1 preservation/reopen case independently proves required migration.
+No test was weakened/deleted/skipped. New implementation is authorized only
+after this terminal evidence was read and persisted. Full GREEN is pending.
+Ignored actual log: `.agent-local/T11-b0cdd8b-red.log`.

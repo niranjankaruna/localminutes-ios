@@ -201,6 +201,48 @@ public actor SQLiteMeetingStore {
 
     public func close() throws { try connection.close() }
 
+    /// A returned save has committed. Persisted revisions prevent a delayed
+    /// autosave task from replacing newer manual work after navigation/relaunch.
+    public func saveManualNote(_ note: StoredManualNote) throws {
+        let database = try connection.database()
+        guard note.editRevision >= 0, note.modifiedAt.timeIntervalSince1970.isFinite else {
+            throw MeetingStoreError.invalidInput
+        }
+        try connection.transaction {
+            guard try readMeeting(id: note.meetingID, database: database) != nil else {
+                throw MeetingStoreError.notFound
+            }
+            if let current = try manualNote(meetingID: note.meetingID) {
+                guard note.editRevision >= current.editRevision else {
+                    throw ManualNoteStoreError.staleRevision
+                }
+                if note.editRevision == current.editRevision {
+                    guard note == current else { throw ManualNoteStoreError.revisionConflict }
+                    return
+                }
+            }
+            let statement = try MeetingSQLiteStatement(database: database, sql:
+                "INSERT INTO manual_notes(meeting_id,text,edit_revision,modified_at) VALUES(?,?,?,?) ON CONFLICT(meeting_id) DO UPDATE SET text=excluded.text,edit_revision=excluded.edit_revision,modified_at=excluded.modified_at")
+            try statement.bind(note.meetingID.uuidString, at: 1)
+            try statement.bind(note.text, at: 2)
+            try statement.bind(note.editRevision, at: 3)
+            try statement.bind(note.modifiedAt.timeIntervalSince1970, at: 4)
+            try statement.finish()
+        }
+    }
+
+    public func manualNote(meetingID: UUID) throws -> StoredManualNote? {
+        let statement = try MeetingSQLiteStatement(database: connection.database(),
+            sql: "SELECT text,edit_revision,modified_at FROM manual_notes WHERE meeting_id=?")
+        try statement.bind(meetingID.uuidString, at: 1)
+        guard try statement.next() else { return nil }
+        let revision = try statement.integer(at: 1)
+        let timestamp = try statement.real(at: 2)
+        guard revision >= 0, timestamp.isFinite else { throw MeetingStoreError.databaseFailure }
+        return StoredManualNote(meetingID: meetingID, text: try statement.text(at: 0),
+            editRevision: revision, modifiedAt: Date(timeIntervalSince1970: timestamp))
+    }
+
     private func readMeeting(id: UUID, database: OpaquePointer) throws -> MeetingRecord? {
         let statement = try MeetingSQLiteStatement(database: database, sql:
             "SELECT id,title,created_at,recording_state,captured_sample_count FROM meetings WHERE id=?")

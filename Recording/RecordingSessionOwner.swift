@@ -35,6 +35,7 @@ private final class RecordingOwnerEpoch {
     var audioSessionActive = false
     var firstBufferAccepted = false
     var audioStopped = false
+    var transcriptFinished = false
     var activityActive = false
     var activityWasOwned = false
     var activityEnded = false
@@ -93,7 +94,8 @@ public final class RecordingSessionOwner {
         let bridge = RecordingOwnerEventBridge()
         self.preparation = preparation
         self.beforeReservation = beforeReservation
-        capture = MicrophoneCaptureRuntime(permission: permission, hardware: hardware) {
+        capture = MicrophoneCaptureRuntime(permission: permission, hardware: hardware,
+                                            normalizedSink: preparation.normalizedSink) {
             bridge.capture($0)
         }
         activities = LiveActivityController(backend: activityBackend) {
@@ -308,6 +310,15 @@ public final class RecordingSessionOwner {
             _ = await coordinator.fail(failure, for: epoch.id)
             epoch.cleanup = nil
             return
+        }
+        // Capture has closed admission and drained its final converted audio.
+        // The transcript consumer must now flush SQLite and release native
+        // resources before Saved, activity end, or another epoch is admitted.
+        if !epoch.transcriptFinished {
+            let failure = await preparation.finish(sessionID: epoch.id, manifest: epoch.manifest)
+            guard current === epoch else { return }
+            epoch.transcriptFinished = true
+            epoch.failure = epoch.failure ?? failure
         }
         if let failure = epoch.failure {
             _ = await coordinator.fail(failure, for: epoch.id)

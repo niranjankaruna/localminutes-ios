@@ -114,6 +114,7 @@ public final class MicrophoneCaptureRuntime {
     private let onEvent: @MainActor @Sendable (CaptureRuntimeEvent) -> Void
     private let configuration: CaptureRuntimeTestConfiguration
     private let afterAdmission: (@Sendable () -> Void)?
+    private let normalizedSink: (any NormalizedCaptureSink)?
     private var current: CaptureRuntimeEpoch?
     private var lastFailure: CaptureRuntimeFailure?
 
@@ -128,7 +129,8 @@ public final class MicrophoneCaptureRuntime {
             hardware: hardware,
             onEvent: onEvent,
             configuration: CaptureRuntimeTestConfiguration(),
-            afterAdmission: nil
+            afterAdmission: nil,
+            normalizedSink: normalizedSink
         )
     }
 
@@ -141,13 +143,15 @@ public final class MicrophoneCaptureRuntime {
         hardware: any CaptureHardware,
         onEvent: @escaping @MainActor @Sendable (CaptureRuntimeEvent) -> Void,
         configuration: CaptureRuntimeTestConfiguration,
-        afterAdmission: (@Sendable () -> Void)?
+        afterAdmission: (@Sendable () -> Void)?,
+        normalizedSink: (any NormalizedCaptureSink)? = nil
     ) {
         self.permission = permission
         self.hardware = hardware
         self.onEvent = onEvent
         self.configuration = configuration
         self.afterAdmission = afterAdmission
+        self.normalizedSink = normalizedSink
     }
 
     /// Resource-idempotent for duplicate or competing requests. Read actual
@@ -193,7 +197,7 @@ public final class MicrophoneCaptureRuntime {
             return
         }
         epoch.context = context
-        let worker = CaptureAudioWorker(context: context)
+        let worker = CaptureAudioWorker(context: context, normalizedSink: normalizedSink)
         epoch.worker = worker
         let maximumSegmentFrames = configuration.maximumSegmentFrames
         let preparation = Task {

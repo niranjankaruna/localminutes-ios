@@ -1,6 +1,7 @@
 import AVFoundation
 import Foundation
 import Observation
+import Synchronization
 #if SWIFT_PACKAGE
 import LocalMinutesCore
 import LocalMinutesRecording
@@ -23,19 +24,300 @@ public struct LiveTranscriptSnapshot: Equatable, Sendable {
     }
 }
 
-private final class UnimplementedTranscriptSink: NormalizedCaptureSink {
-    func offer(_ buffer: AVAudioPCMBuffer, sourceStartSample: Int64) -> Bool { false }
-}
-
-/// Test-first interface only. Readiness requires an actual leased native model.
 @MainActor @Observable
 public final class LiveTranscriptionSession: RecordingPreparationSource {
-    public let normalizedSink: (any NormalizedCaptureSink)? = UnimplementedTranscriptSink()
+    public let normalizedSink: (any NormalizedCaptureSink)?
     public private(set) var transcript = LiveTranscriptSnapshot()
+    private let models: ModelInstallationManager
+    private let store: SQLiteMeetingStore
+    private let meetingsDirectory: URL
+    private let router: TranscriptSinkRouter
+    @ObservationIgnored private var current: LiveTranscriptEpoch?
 
     public init(models: ModelInstallationManager, store: SQLiteMeetingStore,
-                meetingsDirectory: URL) {}
+                meetingsDirectory: URL) {
+        self.models = models
+        self.store = store
+        self.meetingsDirectory = meetingsDirectory
+        let router = TranscriptSinkRouter()
+        self.router = router
+        normalizedSink = router
+    }
 
-    public func prepare(sessionID: UUID) async -> RecordingPreparationResult { .rejected(.modelUnavailable) }
-    public func finish(sessionID: UUID, manifest: AudioCaptureManifest?) async -> RecordingFailure? { nil }
+    public func prepare(sessionID: UUID) async -> RecordingPreparationResult {
+        if let current {
+            guard current.id == sessionID, let operation = current.preparation else {
+                return .rejected(.captureUnavailable)
+            }
+            return await operation.value
+        }
+        // Reserve before any actor suspension; no competing prepare can acquire
+        // another lease or replace the active sink during model loading.
+        let epoch = LiveTranscriptEpoch(id: sessionID)
+        current = epoch
+        let operation = Task { await self.prepare(epoch) }
+        epoch.preparation = operation
+        return await withTaskCancellationHandler {
+            await operation.value
+        } onCancel: {
+            operation.cancel()
+        }
+    }
+
+    private func prepare(_ epoch: LiveTranscriptEpoch) async -> RecordingPreparationResult {
+        var stageFailure = RecordingFailure.modelUnavailable
+        do {
+            try Task.checkCancellation()
+            let lease = try await models.acquire(modelID: StreamingEnglishModel.manifest.modelID)
+            epoch.lease = lease
+            let model = lease.model
+            guard model.manifest.sampleRate == 16_000, model.manifest.featureDimension == 80,
+                  let encoder = model.files[.encoder], let decoder = model.files[.decoder],
+                  let joiner = model.files[.joiner], let tokens = model.files[.tokens] else {
+                throw StreamingASRError.invalidModel
+            }
+            let recognizer = CPUStreamingRecognizer(files: .init(encoder: encoder, decoder: decoder,
+                joiner: joiner, tokens: tokens, revision: model.manifest.revision,
+                runtimeVersion: model.manifest.runtimeVersion))
+            epoch.recognizer = recognizer
+            try await recognizer.load()
+            try Task.checkCancellation()
+            try await recognizer.start(epochID: epoch.id)
+            try Task.checkCancellation()
+            stageFailure = .writeFailed
+            guard meetingsDirectory.isFileURL else { throw MeetingStoreError.invalidInput }
+            let directory = meetingsDirectory.appendingPathComponent(epoch.id.uuidString, isDirectory: true)
+            guard !FileManager.default.fileExists(atPath: directory.path) else {
+                throw MeetingStoreError.meetingConflict
+            }
+            let ingress = try TranscriptIngress()
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true,
+                                                    attributes: [.posixPermissions: 0o700])
+            try await store.createMeeting(.init(id: epoch.id, title: "Meeting", createdAt: Date(),
+                                                recordingState: .recording))
+            epoch.meetingCreated = true
+            try Task.checkCancellation()
+            epoch.ingress = ingress
+            epoch.directory = directory
+            transcript = .init(sessionID: epoch.id)
+            let id = epoch.id
+            let token = epoch.token
+            let revision = model.manifest.revision
+            let store = self.store
+            let publish: @Sendable (LiveTranscriptSnapshot) async -> Void = { [weak self] value in
+                await self?.publish(value, token: token)
+            }
+            epoch.consumer = Task.detached(priority: .userInitiated) {
+                await Self.consume(ingress, recognizer: recognizer, store: store, id: id,
+                                   revision: revision, publish: publish)
+            }
+            router.install(ingress)
+            return .ready(directory: directory)
+        } catch {
+            if let recognizer = epoch.recognizer { await recognizer.unload() }
+            if let lease = epoch.lease {
+                do { try await models.release(lease); epoch.lease = nil }
+                catch { stageFailure = .modelUnavailable }
+            }
+            if epoch.meetingCreated {
+                try? await store.updateRecordingState(id: epoch.id, state: .failed, capturedSampleCount: 0)
+            }
+            epoch.preparationFailure = error is CancellationError ? nil : stageFailure
+            if current === epoch { current = nil }
+            return .rejected(stageFailure)
+        }
+    }
+
+    public func finish(sessionID: UUID, manifest: AudioCaptureManifest?) async -> RecordingFailure? {
+        guard let epoch = current else {
+            return transcript.sessionID == sessionID ? transcript.failure : nil
+        }
+        guard epoch.id == sessionID else { return .captureUnavailable }
+        if let completion = epoch.completion { return await completion.value }
+        let completion = Task { await self.finish(epoch, manifest: manifest) }
+        epoch.completion = completion
+        return await completion.value
+    }
+
+    private func finish(_ epoch: LiveTranscriptEpoch, manifest: AudioCaptureManifest?) async -> RecordingFailure? {
+        if let preparation = epoch.preparation { _ = await preparation.value }
+        guard let ingress = epoch.ingress, let recognizer = epoch.recognizer,
+              let consumer = epoch.consumer else { return epoch.preparationFailure }
+        // RecordingSessionOwner calls this only after capture's conversion/file
+        // producer has quiesced. Admission additionally joins an already-entered
+        // offer before the queue's producer-finished publication.
+        router.remove(ingress)
+        ingress.admission.close()
+        while !ingress.admission.isClosedAndQuiescent {
+            try? await Task.sleep(for: .milliseconds(1))
+        }
+        ingress.queue.finish()
+        let drained = await consumer.value
+        var failure = drained.snapshot.failure
+        let validManifest = manifest?.sessionID == epoch.id && manifest?.schemaVersion == 1 &&
+            manifest?.totalFrames == drained.snapshot.receivedSampleCount
+        if !validManifest || ingress.failed.load(ordering: .acquiring) {
+            failure = failure ?? .captureUnavailable
+        }
+        await recognizer.unload()
+        if let lease = epoch.lease {
+            do { try await models.release(lease); epoch.lease = nil }
+            catch { failure = failure ?? .modelUnavailable }
+        }
+        do {
+            try await store.updateRecordingState(id: epoch.id,
+                state: failure == nil ? .completed : .failed,
+                capturedSampleCount: manifest?.sessionID == epoch.id ? max(0, manifest?.totalFrames ?? 0) : 0)
+        } catch { failure = .writeFailed }
+        let final = LiveTranscriptSnapshot(sessionID: epoch.id, partial: "",
+            finalized: drained.snapshot.finalized,
+            receivedSampleCount: drained.snapshot.receivedSampleCount, failure: failure)
+        publish(final, token: epoch.token)
+        if current === epoch { current = nil }
+        return failure
+    }
+
+    private func publish(_ value: LiveTranscriptSnapshot, token: UUID) {
+        guard current?.token == token else { return }
+        transcript = value
+    }
+
+    private nonisolated static func consume(_ ingress: TranscriptIngress,
+        recognizer: CPUStreamingRecognizer, store: SQLiteMeetingStore, id: UUID, revision: String,
+        publish: @escaping @Sendable (LiveTranscriptSnapshot) async -> Void) async -> TranscriptDrain {
+        var scratch = [Float](repeating: 0, count: 3_200)
+        var cursor: Int64 = 0
+        var utteranceStart: Int64 = 0
+        var finalized: [StoredTranscriptSegment] = []
+        var partial = ""
+        var failure: RecordingFailure?
+        do {
+            var ended = false
+            while !ended {
+                let next = scratch.withUnsafeMutableBufferPointer { samples in
+                    var plane = samples.baseAddress!
+                    return withUnsafePointer(to: &plane) {
+                        ingress.queue.dequeue(into: $0, frameCapacity: samples.count)
+                    }
+                }
+                switch next {
+                case .chunk(let metadata):
+                    guard metadata.precedingLoss == nil, metadata.sourceSampleTime == cursor else {
+                        throw StreamingASRError.invalidSamples
+                    }
+                    let result = try await recognizer.accept(samples: Array(scratch.prefix(metadata.frameCount)),
+                                                              sourceStartSample: cursor)
+                    cursor += Int64(metadata.frameCount)
+                    partial = result.text
+                    if result.isEndpoint {
+                        if !result.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            let segment = StoredTranscriptSegment(id: UUID(), meetingID: id,
+                                sequence: finalized.count, startSample: utteranceStart, endSample: cursor,
+                                text: result.text, modelRevision: revision)
+                            try await store.appendFinalizedSegments([segment], to: id)
+                            finalized.append(segment)
+                        }
+                        try await recognizer.resetAfterEndpoint()
+                        utteranceStart = cursor
+                        partial = ""
+                    }
+                    await publish(.init(sessionID: id, partial: partial, finalized: finalized,
+                                        receivedSampleCount: cursor))
+                case .empty:
+                    try await Task.sleep(for: .milliseconds(5))
+                case .finished(let loss):
+                    guard loss == nil else { throw StreamingASRError.invalidSamples }
+                    ended = true
+                case .closed: ended = true
+                case .tooSmall: throw StreamingASRError.invalidSamples
+                }
+            }
+            guard !ingress.failed.load(ordering: .acquiring) else {
+                throw StreamingASRError.invalidSamples
+            }
+            let final = try await recognizer.finish()
+            if !final.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                let segment = StoredTranscriptSegment(id: UUID(), meetingID: id, sequence: finalized.count,
+                    startSample: utteranceStart, endSample: cursor, text: final.text, modelRevision: revision)
+                try await store.appendFinalizedSegments([segment], to: id)
+                finalized.append(segment)
+            }
+            partial = ""
+        } catch {
+            failure = error is MeetingStoreError ? .writeFailed : .captureUnavailable
+            ingress.failed.store(true, ordering: .releasing)
+            ingress.admission.close()
+            await recognizer.cancel()
+        }
+        let snapshot = LiveTranscriptSnapshot(sessionID: id, partial: partial,
+            finalized: finalized, receivedSampleCount: cursor, failure: failure)
+        await publish(snapshot)
+        return TranscriptDrain(snapshot: snapshot)
+    }
+}
+
+@MainActor
+private final class LiveTranscriptEpoch {
+    let id: UUID
+    let token = UUID()
+    var lease: ModelLease?
+    var recognizer: CPUStreamingRecognizer?
+    var ingress: TranscriptIngress?
+    var directory: URL?
+    var meetingCreated = false
+    var preparationFailure: RecordingFailure?
+    var preparation: Task<RecordingPreparationResult, Never>?
+    var consumer: Task<TranscriptDrain, Never>?
+    var completion: Task<RecordingFailure?, Never>?
+    init(id: UUID) { self.id = id }
+}
+
+private struct TranscriptDrain: Sendable { let snapshot: LiveTranscriptSnapshot }
+
+private final class TranscriptIngress: Sendable {
+    let queue: OwnedPCMQueue
+    let admission = CaptureCallbackAdmission()
+    let failed = Atomic<Bool>(false)
+
+    init() throws {
+        queue = try OwnedPCMQueue(configuration: .init(capacity: 128, maxFramesPerChunk: 3_200,
+                                                     channelCount: 1, sampleRate: 16_000))
+    }
+
+    func offer(_ buffer: AVAudioPCMBuffer, at source: Int64) -> Bool {
+        switch admission.enter() {
+        case .closed: return false
+        case .overlapping:
+            failed.store(true, ordering: .releasing)
+            admission.close()
+            return false
+        case .admitted: break
+        }
+        defer { _ = admission.leave() }
+        let format = buffer.format
+        guard source >= 0, format.sampleRate == 16_000, format.channelCount == 1,
+              format.commonFormat == .pcmFormatFloat32, !format.isInterleaved,
+              queue.enqueue(channelData: buffer.floatChannelData, channelCount: 1,
+                  frameCount: Int(buffer.frameLength), sourceSampleTime: source) == .accepted else {
+            failed.store(true, ordering: .releasing)
+            admission.close()
+            return false
+        }
+        return true
+    }
+}
+
+// The short mutex protects route selection only on the conversion worker/control
+// boundary. It never guards inference or buffer copying, and is not in the tap.
+// Each epoch's gate rejects overlap before touching its SPSC producer state.
+private final class TranscriptSinkRouter: NormalizedCaptureSink {
+    private let selected = Mutex<TranscriptIngress?>(nil)
+    func install(_ ingress: TranscriptIngress) { selected.withLock { $0 = ingress } }
+    func remove(_ ingress: TranscriptIngress) {
+        selected.withLock { if $0 === ingress { $0 = nil } }
+    }
+    func offer(_ buffer: AVAudioPCMBuffer, sourceStartSample: Int64) -> Bool {
+        let ingress = selected.withLock { $0 }
+        return ingress?.offer(buffer, at: sourceStartSample) ?? false
+    }
 }

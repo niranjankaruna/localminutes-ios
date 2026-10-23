@@ -27,6 +27,7 @@ final class RecordingApplication {
 
     let owner: RecordingSessionOwner?
     let foreground: (any RecordingForegroundContinuation)?
+    let services: LocalMinutesServices?
     private(set) var lastOutcome: RecordingIntentOutcome?
     private let router: RecordingIntentRouter
     @ObservationIgnored
@@ -35,10 +36,15 @@ final class RecordingApplication {
     private var preparationStop: (id: UUID, task: Task<RecordingIntentOutcome, Never>)?
 
     private init() {
+        let services = try? LocalMinutesServices()
+        let preparation: any RecordingPreparationSource
+        if let services { preparation = services.live }
+        else { preparation = RequiredSpeechModelPreparation() }
         let owner = RecordingSessionOwner(
             permission: IOSCapturePermissionSource(), hardware: IOSCaptureHardware(),
-            activityBackend: IOSLiveActivityBackend(), preparation: RequiredSpeechModelPreparation()
+            activityBackend: IOSLiveActivityBackend(), preparation: preparation
         )
+        self.services = services
         self.owner = owner
         router = RecordingIntentRouter(owner: owner)
         foreground = nil
@@ -46,6 +52,7 @@ final class RecordingApplication {
 
     init(owner: RecordingSessionOwner,
          foreground: (any RecordingForegroundContinuation)? = nil) {
+        services = nil
         self.owner = owner
         router = RecordingIntentRouter(owner: owner)
         self.foreground = foreground

@@ -22,7 +22,7 @@ final class MeetingSQLiteConnection {
         handle = opened
         do {
             let version = try schemaVersion()
-            guard version == 0 || version == 1 else {
+            guard version == 0 || version == 1 || version == 2 else {
                 throw MeetingStoreError.unsupportedSchemaVersion(Int(version))
             }
             // Future schema detection precedes all persistent schema mutations.
@@ -56,6 +56,19 @@ final class MeetingSQLiteConnection {
                         """)
                     try execute("CREATE INDEX meetings_history ON meetings(created_at DESC,id ASC)")
                     try execute("PRAGMA user_version=1")
+                }
+            }
+            if version < 2 {
+                try transaction {
+                    try execute("""
+                        CREATE TABLE manual_notes(
+                            meeting_id TEXT NOT NULL PRIMARY KEY REFERENCES meetings(id) ON DELETE CASCADE,
+                            text TEXT NOT NULL,
+                            edit_revision INTEGER NOT NULL CHECK(edit_revision>=0),
+                            modified_at REAL NOT NULL
+                        )
+                        """)
+                    try execute("PRAGMA user_version=2")
                 }
             }
         } catch {

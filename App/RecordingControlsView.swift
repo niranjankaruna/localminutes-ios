@@ -48,6 +48,25 @@ struct RecordingControlsView: View {
                         .accessibilityIdentifier("recording.stop")
                     }
                     .controlSize(.large)
+                    if let live = application.services?.live,
+                       live.transcript.sessionID != nil {
+                        VStack(alignment: .leading, spacing: 14) {
+                            Text("Live transcript").font(.headline)
+                            Text("\(live.transcript.receivedSampleCount / 16_000) seconds transcribed locally")
+                                .font(.caption).foregroundStyle(.secondary)
+                            ForEach(live.transcript.finalized) { segment in
+                                Text(segment.text).textSelection(.enabled)
+                            }
+                            if !live.transcript.partial.isEmpty {
+                                Text(live.transcript.partial).italic().foregroundStyle(.secondary)
+                            }
+                            if live.transcript.failure != nil {
+                                Text("Live transcription stopped with an error. Review this meeting before relying on its transcript.")
+                                    .foregroundStyle(.red)
+                            }
+                        }
+                        .privacySensitive()
+                    }
                     if let commandError {
                         Text(commandError).foregroundStyle(.secondary)
                     }

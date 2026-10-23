@@ -100,8 +100,15 @@ public actor CPUStreamingRecognizer {
 
     private let files: StreamingASRModelFiles
     private let executionObserver: StreamingASRExecutionObserver?
-    private var recognizer: OpaquePointer?
-    private var stream: OpaquePointer?
+    private let native = ASRNativeResources()
+    private var recognizer: OpaquePointer? {
+        get { native.recognizer }
+        set { native.recognizer = newValue }
+    }
+    private var stream: OpaquePointer? {
+        get { native.stream }
+        set { native.stream = newValue }
+    }
     private var phase: StreamingASRPhase = .unloaded
     private var epochID: UUID?
     private var acceptedSampleCount: Int64 = 0
@@ -118,13 +125,6 @@ public actor CPUStreamingRecognizer {
     init(files: StreamingASRModelFiles, executionObserver: @escaping StreamingASRExecutionObserver) {
         self.files = files
         self.executionObserver = executionObserver
-    }
-
-    // Explicit unload is the completion barrier; isolated deinit is a fallback
-    // for abandoned clients, and never substitutes for awaited lease release.
-    isolated deinit {
-        if let stream { SherpaOnnxDestroyOnlineStream(stream) }
-        if let recognizer { SherpaOnnxDestroyOnlineRecognizer(recognizer) }
     }
 
     public func load() throws {
@@ -382,6 +382,23 @@ public actor CPUStreamingRecognizer {
         } catch {
             throw StreamingASRError.invalidModel
         }
+    }
+}
+
+// This non-Sendable box never escapes the actor. Ordinary ARC destruction runs
+// only after the owning actor and its jobs release it, so no callback/inference
+// can still access these handles. Explicit awaited unload() clears the handles
+// on the dedicated worker first; the fallback only handles abandoned clients.
+// A normal box deinit supports iOS18/macOS15, unlike actor isolated deinit which
+// requires the newer18.4/15.4 runtime. No pointer is made Sendable or cast to an
+// integer to circumvent ownership checking.
+private final class ASRNativeResources {
+    var recognizer: OpaquePointer?
+    var stream: OpaquePointer?
+
+    deinit {
+        if let stream { SherpaOnnxDestroyOnlineStream(stream) }
+        if let recognizer { SherpaOnnxDestroyOnlineRecognizer(recognizer) }
     }
 }
 
