@@ -135,6 +135,30 @@ final class RecordingCoordinatorTests: XCTestCase {
         XCTAssertEqual(value.sessionID, firstID)
     }
 
+    func testStopDuringActivationFlushesOnceAndRejectsLateReadiness() async {
+        let coordinator = RecordingCoordinator()
+        _ = await coordinator.start(sessionID: firstID)
+        _ = await coordinator.preparationSucceeded(for: firstID)
+        let command = await coordinator.stop()
+        let repeated = await coordinator.stop()
+        let replacement = await coordinator.start(sessionID: secondID)
+        await coordinator.updateReadiness(ready, for: firstID)
+        let lateActivation = await coordinator.preparationSucceeded(for: firstID)
+        let stopping = await coordinator.snapshot()
+        XCTAssertEqual(command, .stopAndFlush(firstID))
+        XCTAssertNil(repeated)
+        XCTAssertNil(replacement)
+        XCTAssertNil(lateActivation)
+        XCTAssertEqual(stopping.phase, .stopping)
+        XCTAssertFalse(stopping.readiness.firstBufferAccepted)
+        XCTAssertTrue(stopping.cleanupPending)
+        await coordinator.captureStopped(for: firstID)
+        let stopped = await coordinator.snapshot()
+        XCTAssertEqual(stopped.phase, .idle)
+        let next = await coordinator.start(sessionID: secondID)
+        XCTAssertEqual(next, .prepare(secondID))
+    }
+
     func testConcurrentStopsEmitExactlyOneFlushAndCompleteOnlyAfterAcknowledgement() async {
         let coordinator = await recordingCoordinator()
         let commands = await withTaskGroup(of: RecordingCommand?.self, returning: [RecordingCommand].self) { group in
