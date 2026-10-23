@@ -147,6 +147,9 @@ public final class RecordingSessionOwner {
         await requestCleanup(epoch)
     }
 
+    /// Test-first interface. Scoped cleanup behavior follows verified RED.
+    public func stop(sessionID: UUID) async {}
+
     public func toggle(sessionID: UUID) async {
         let state = await coordinator.snapshot()
         if state.cleanupPending {

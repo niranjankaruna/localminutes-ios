@@ -105,6 +105,7 @@ private final class OwnerTestHardware: CaptureHardware {
     private(set) var startCalls = 0
     private(set) var stopCalls = 0
     private(set) var deactivateCalls = 0
+    var activationFailures = 0
     var deactivationFailures = 0
 
     init(probe: OwnerTestProbe, rate: Double, channels: AVAudioChannelCount) throws {
@@ -116,6 +117,10 @@ private final class OwnerTestHardware: CaptureHardware {
 
     func activateSession() throws {
         probe.trace.append("audio.activate")
+        if activationFailures > 0 {
+            activationFailures -= 1
+            throw OwnerTestError.hardwareFailure
+        }
         sessionActive = true
     }
     func inputFormat() throws -> AVAudioFormat {
@@ -800,6 +805,288 @@ final class RecordingSessionOwnerTests: XCTestCase {
             XCTAssertEqual(h.activity.handles[0].state, .ended)
             XCTAssertFalse(h.hardware.sessionActive)
             XCTAssertFalse(h.hardware.engineRunning)
+            XCTAssertNil(h.owner.completedManifest)
+        }
+    }
+}
+
+// TEST-FIRST DRAFT ONLY. Append this entire file to the existing
+// Tests/RecordingTests/RecordingSessionOwnerTests.swift before eventual RED.
+// Its private real-owner/PCM/CAF helpers are deliberately reused in that same
+// file. Do not activate this as a separate Swift source file.
+// Requires the documented no-op owner.stop(sessionID:) interface first.
+// These eleven tests are uncompiled and have no RED/GREEN evidence.
+// Also requires the documented activationFailures test-hardware boundary field.
+
+@MainActor
+private final class IntentTestOutcome {
+    var value: RecordingIntentOutcome?
+}
+
+@MainActor
+extension RecordingSessionOwnerTests {
+    private func intentResult(
+        _ router: RecordingIntentRouter,
+        _ action: RecordingIntentAction
+    ) async throws -> RecordingIntentOutcome {
+        let result = IntentTestOutcome()
+        try await complete { result.value = await router.perform(action) }
+        return try XCTUnwrap(result.value)
+    }
+
+    func testIntentMissingModelReportsBlockedWithoutAnyOSResources() async throws {
+        try await withHarness { h in
+            h.preparation.result = .rejected(.modelUnavailable)
+            let router = RecordingIntentRouter(owner: h.owner)
+            let result = try await intentResult(router, .start(h.id))
+            XCTAssertEqual(result, .blocked(.modelUnavailable))
+            XCTAssertEqual(h.preparation.requests, [h.id])
+            let state = await h.owner.snapshot()
+            XCTAssertEqual(state.phase, .failed)
+            XCTAssertEqual(state.failure, .modelUnavailable)
+            XCTAssertFalse(state.cleanupPending)
+            XCTAssertEqual(h.permission.requests, 0)
+            XCTAssertTrue(h.activity.requests.isEmpty)
+            XCTAssertTrue(h.probe.trace.isEmpty)
+            XCTAssertNil(h.owner.completedManifest)
+        }
+    }
+
+    func testIntentReportsStartingUntilActualFirstBufferThenRecording() async throws {
+        try await withHarness { h in
+            // Setup uses the real owner pipeline, not a fabricated snapshot.
+            try await begin(h)
+            let router = RecordingIntentRouter(owner: h.owner)
+            let starting = try await intentResult(router, .start(h.id))
+            XCTAssertEqual(starting, .starting)
+            let before = await h.owner.snapshot()
+            XCTAssertEqual(before.phase, .preparing)
+            XCTAssertTrue(before.readiness.audioSessionActive)
+            XCTAssertTrue(before.readiness.activityActive)
+            XCTAssertFalse(before.readiness.firstBufferAccepted)
+            try h.hardware.emit(signal(h), sampleTime: 50_000)
+            let accepted = await ownerEventually { await h.owner.snapshot().phase == .recording }
+            XCTAssertTrue(accepted)
+            let recording = try await intentResult(router, .start(h.id))
+            XCTAssertEqual(recording, .recording)
+            let after = await h.owner.snapshot()
+            XCTAssertEqual(after.readiness, RecordingReadiness(
+                audioSessionActive: true, firstBufferAccepted: true, activityActive: true
+            ))
+            XCTAssertEqual(h.preparation.requests, [h.id])
+            XCTAssertEqual(h.hardware.startCalls, 1)
+        }
+    }
+
+    func testIntentDuplicateStartPreservesTheExistingEpochAndResourceSet() async throws {
+        try await withHarness { h in
+            try await recordOneBuffer(h)
+            let router = RecordingIntentRouter(owner: h.owner)
+            let same = try await intentResult(router, .start(h.id))
+            let competing = try await intentResult(router, .start(UUID()))
+            XCTAssertEqual(same, .recording)
+            XCTAssertEqual(competing, .recording,
+                           "Report the existing recording without claiming the proposed ID was admitted")
+            let state = await h.owner.snapshot()
+            XCTAssertEqual(state.sessionID, h.id)
+            XCTAssertEqual(state.phase, .recording)
+            XCTAssertEqual(h.preparation.requests, [h.id])
+            XCTAssertEqual(h.activity.requests, [h.id])
+            XCTAssertEqual(h.permission.requests, 1)
+            XCTAssertEqual(h.hardware.startCalls, 1)
+            XCTAssertEqual(h.hardware.stopCalls, 0)
+        }
+    }
+
+    func testIntentDeniedMicrophoneRequiresForegroundAfterActivityCleanup() async throws {
+        try await withHarness { h in
+            h.permission.granted = false
+            let router = RecordingIntentRouter(owner: h.owner)
+            let result = try await intentResult(router, .start(h.id))
+            XCTAssertEqual(result, .requiresForeground(.microphoneDenied))
+            let state = await h.owner.snapshot()
+            XCTAssertEqual(state.phase, .failed)
+            XCTAssertEqual(state.failure, .microphoneDenied)
+            XCTAssertFalse(state.cleanupPending)
+            XCTAssertEqual(h.activity.requests, [h.id])
+            XCTAssertEqual(h.activity.handles[0].endCalls, 1)
+            XCTAssertEqual(h.activity.handles[0].state, .ended)
+            XCTAssertEqual(h.hardware.startCalls, 0)
+            XCTAssertFalse(h.hardware.sessionActive)
+            XCTAssertNil(h.owner.completedManifest)
+        }
+    }
+
+    func testIntentUnavailableAudioSessionRequiresForegroundAfterActivityCleanup() async throws {
+        try await withHarness { h in
+            h.hardware.activationFailures = 1
+            let router = RecordingIntentRouter(owner: h.owner)
+            let result = try await intentResult(router, .start(h.id))
+            XCTAssertEqual(result, .requiresForeground(.captureUnavailable))
+            let state = await h.owner.snapshot()
+            XCTAssertEqual(state.phase, .failed)
+            XCTAssertEqual(state.failure, .captureUnavailable)
+            XCTAssertFalse(state.cleanupPending)
+            XCTAssertEqual(h.permission.requests, 1)
+            XCTAssertEqual(h.activity.requests, [h.id])
+            XCTAssertEqual(h.activity.handles[0].endCalls, 1)
+            XCTAssertFalse(h.hardware.sessionActive)
+            XCTAssertEqual(h.hardware.startCalls, 0)
+            XCTAssertNil(h.owner.completedManifest)
+        }
+    }
+
+    func testIntentDisabledOrInitiallyPendingActivityRequiresForegroundWithoutMicrophone() async throws {
+        for disabled in [true, false] {
+            try await withHarness { h in
+                h.activity.areActivitiesEnabled = !disabled
+                if !disabled { h.activity.handles[0].emit(.pending) }
+                let router = RecordingIntentRouter(owner: h.owner)
+                let result = try await intentResult(router, .start(h.id))
+                XCTAssertEqual(result, .requiresForeground(.activityUnavailable))
+                let state = await h.owner.snapshot()
+                XCTAssertEqual(state.phase, .failed)
+                XCTAssertEqual(state.failure, .activityUnavailable)
+                XCTAssertFalse(state.cleanupPending)
+                XCTAssertEqual(h.permission.requests, 0)
+                XCTAssertEqual(h.hardware.startCalls, 0)
+                XCTAssertFalse(h.hardware.sessionActive)
+                if disabled {
+                    XCTAssertTrue(h.activity.requests.isEmpty)
+                } else {
+                    XCTAssertEqual(h.activity.requests, [h.id])
+                    XCTAssertEqual(h.activity.handles[0].endCalls, 1)
+                    XCTAssertEqual(h.activity.handles[0].state, .ended)
+                }
+                XCTAssertNil(h.owner.completedManifest)
+            }
+        }
+    }
+
+    func testIntentStopAcknowledgesActualSavedCAFOnlyAfterCleanup() async throws {
+        try await withHarness { h in
+            try await recordOneBuffer(h)
+            let router = RecordingIntentRouter(owner: h.owner)
+            let result = try await intentResult(router, .stop(expectedSessionID: h.id))
+            XCTAssertEqual(result, .stopped)
+            let state = await h.owner.snapshot()
+            XCTAssertEqual(state.phase, .completed)
+            XCTAssertEqual(state.sessionID, h.id)
+            XCTAssertFalse(state.cleanupPending)
+            XCTAssertFalse(h.hardware.sessionActive)
+            XCTAssertFalse(h.hardware.engineRunning)
+            XCTAssertNil(h.hardware.tap)
+            XCTAssertEqual(h.activity.handles[0].state, .ended)
+            let manifest = try XCTUnwrap(h.owner.completedManifest)
+            XCTAssertEqual(manifest.sessionID, h.id)
+            XCTAssertEqual(manifest.totalFrames, 64)
+            let samples = try decode(manifest, directory: h.directory)
+            XCTAssertEqual(samples.count, 64)
+            XCTAssertTrue(samples.allSatisfy { abs($0 - 0.25) < 0.001 })
+        }
+    }
+
+    func testIntentIdleStopReturnsIdleWithoutCreatingResources() async throws {
+        try await withHarness { h in
+            let router = RecordingIntentRouter(owner: h.owner)
+            let result = try await intentResult(router, .stop(expectedSessionID: nil))
+            XCTAssertEqual(result, .idle)
+            let state = await h.owner.snapshot()
+            XCTAssertEqual(state.phase, .idle)
+            XCTAssertNil(state.sessionID)
+            XCTAssertFalse(state.cleanupPending)
+            XCTAssertTrue(h.preparation.requests.isEmpty)
+            XCTAssertTrue(h.activity.requests.isEmpty)
+            XCTAssertEqual(h.permission.requests, 0)
+            XCTAssertTrue(h.probe.trace.isEmpty)
+            XCTAssertNil(h.owner.completedManifest)
+        }
+    }
+
+    func testIntentStaleLockScreenStopCannotStopAReplacementAndMatchingOwnerStopWorks() async throws {
+        try await withHarness { h in
+            try await recordOneBuffer(h)
+            try await complete { await h.owner.stop() }
+            let nextID = UUID()
+            let nextDirectory = h.root.appendingPathComponent("intent-replacement")
+            h.preparation.result = .ready(directory: nextDirectory)
+            try await complete { await h.owner.start(sessionID: nextID) }
+            try h.hardware.emit(signal(h), sampleTime: 60_000)
+            let recording = await ownerEventually { await h.owner.snapshot().phase == .recording }
+            XCTAssertTrue(recording)
+            let router = RecordingIntentRouter(owner: h.owner)
+            let stale = try await intentResult(router, .stop(expectedSessionID: h.id))
+            XCTAssertEqual(stale, .staleSession)
+            // The guard must also live in the owner: a router snapshot alone
+            // cannot authorize a later unscoped stop across actor suspension.
+            try await complete { await h.owner.stop(sessionID: h.id) }
+            let retained = await h.owner.snapshot()
+            XCTAssertEqual(retained.sessionID, nextID)
+            XCTAssertEqual(retained.phase, .recording)
+            XCTAssertFalse(retained.cleanupPending)
+            XCTAssertEqual(h.hardware.startCalls, 2)
+            XCTAssertEqual(h.hardware.stopCalls, 1)
+            XCTAssertEqual(h.activity.handles[1].endCalls, 0)
+            XCTAssertNil(h.owner.completedManifest)
+            try await complete { await h.owner.stop(sessionID: nextID) }
+            let stopped = await h.owner.snapshot()
+            XCTAssertEqual(stopped.phase, .completed)
+            XCTAssertFalse(stopped.cleanupPending)
+            XCTAssertEqual(h.hardware.stopCalls, 2)
+            XCTAssertEqual(h.activity.handles[1].endCalls, 1)
+            XCTAssertEqual(h.owner.completedManifest?.sessionID, nextID)
+        }
+    }
+
+    func testIntentMissingActivityEndReportsCleanupPendingAndRetryNeverClaimsSavedSuccess() async throws {
+        try await withHarness { h in
+            try await recordOneBuffer(h)
+            h.activity.handles[0].endOutcome = .notFound
+            let router = RecordingIntentRouter(owner: h.owner)
+            let pending = try await intentResult(router, .stop(expectedSessionID: h.id))
+            XCTAssertEqual(pending, .cleanupPending)
+            let failed = await h.owner.snapshot()
+            XCTAssertEqual(failed.phase, .recoverableFailure)
+            XCTAssertEqual(failed.failure, .activityUnavailable)
+            XCTAssertTrue(failed.cleanupPending)
+            XCTAssertFalse(h.hardware.sessionActive)
+            XCTAssertEqual(h.hardware.stopCalls, 1)
+            XCTAssertEqual(h.activity.handles[0].endCalls, 1)
+            XCTAssertNil(h.owner.completedManifest)
+            h.activity.handles[0].endOutcome = .applied
+            let retry = try await intentResult(router, .stop(expectedSessionID: h.id))
+            XCTAssertEqual(retry, .requiresForeground(.activityUnavailable))
+            let settled = await h.owner.snapshot()
+            XCTAssertEqual(settled.phase, .recoverableFailure)
+            XCTAssertFalse(settled.cleanupPending)
+            XCTAssertEqual(h.preparation.requests, [h.id])
+            XCTAssertEqual(h.hardware.startCalls, 1)
+            XCTAssertEqual(h.hardware.stopCalls, 1)
+            XCTAssertEqual(h.activity.handles[0].endCalls, 2)
+            XCTAssertNil(h.owner.completedManifest)
+        }
+    }
+
+    func testIntentToggleUsesOwnerPhaseAndLaterToggleCanStartANewEpoch() async throws {
+        try await withHarness { h in
+            try await recordOneBuffer(h)
+            let router = RecordingIntentRouter(owner: h.owner)
+            let stopped = try await intentResult(router, .toggle(UUID()))
+            XCTAssertEqual(stopped, .stopped)
+            let completed = await h.owner.snapshot()
+            XCTAssertEqual(completed.phase, .completed)
+            XCTAssertFalse(completed.cleanupPending)
+            XCTAssertEqual(h.preparation.requests, [h.id])
+            let nextID = UUID()
+            h.preparation.result = .ready(directory: h.root.appendingPathComponent("intent-toggle"))
+            let starting = try await intentResult(router, .toggle(nextID))
+            XCTAssertEqual(starting, .starting)
+            let next = await h.owner.snapshot()
+            XCTAssertEqual(next.phase, .preparing)
+            XCTAssertEqual(next.sessionID, nextID)
+            XCTAssertFalse(next.readiness.firstBufferAccepted)
+            XCTAssertEqual(h.preparation.requests, [h.id, nextID])
+            XCTAssertEqual(h.hardware.startCalls, 2)
             XCTAssertNil(h.owner.completedManifest)
         }
     }

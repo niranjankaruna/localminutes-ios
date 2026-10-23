@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-23T19:52:23.8012496Z",
+  "lastUpdated": "2026-10-23T20:01:27.4545452Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -11,7 +11,7 @@
   "lastVerifiedCommit": "9eeaa25c53ba7e22b32ae4c1f3f65034edcbc48f",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40013807701",
   "candidateArtifact": null,
-  "nextAction": "T06.2.2: next goal invocation rechecks private Git/CI and included allowance/$0guard; activate11 pending intent-router tests + no-op router/scoped owner.stop(sessionID:) and OS activation-failure fixture from docs/drafts/T06.2.2; prove hosted RED before dispatch/scoped-stop behavior, then wire actual native app/recording intents and truthful foreground fallback. Six current CI runs terminal; no seventh dispatch/re-run. App entry remains unwired and real ASR unavailable.",
+  "nextAction": "T06.2.2: push activated eleven router tests/minimal no-op interfaces for meaningful hosted assertion RED before router/scoped-stop implementation. Current continuation-05 starts at zero of six runs; included allowance and existing account-wide $0 Actions hard stop verified. Native app/intent composition and actual models remain unfinished.",
   "pendingPushCommit": null,
   "remoteBranchHead": "9eeaa25c53ba7e22b32ae4c1f3f65034edcbc48f",
   "localScriptGreen": {
@@ -29,18 +29,11 @@
     "ARTIFACT_STORAGE_HEADROOM_UNVERIFIED"
   ],
   "ciInvocation": {
-    "id": "2026-10-23-continuation-04",
+    "id": "2026-10-23-continuation-05",
     "maxNewRuns": 6,
-    "newRunIds": [
-      40007944579,
-      40008712625,
-      40010164221,
-      40012128846,
-      40012791771,
-      40013807701
-    ],
-    "limitReached": true,
-    "costGuardObservedAt": "2026-10-23T19:44:35.5057409Z"
+    "newRunIds": [],
+    "limitReached": false,
+    "costGuardObservedAt": "2026-10-23T20:01:27.4545452Z"
   },
   "latestCIRun": {
     "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40013807701",
@@ -142,11 +135,7 @@
     "validatedRepairAttempts": 1,
     "missingLookupPolicyNeedsRegressionRed": false
   },
-  "codeCompletedThisInvocation": [
-    "T06.1",
-    "T06.1.1",
-    "T06.2.1"
-  ],
+  "codeCompletedThisInvocation": [],
   "codeCompletionScope": "Tested resource/controller/owner components only. Overall IN_PROGRESS: app composition, native intents, actual models, UI and all physical gates remain unfinished.",
   "ownerCompositionTestFirst": {
     "testCount": 12,
@@ -160,7 +149,7 @@
   "intentRouterTestFirstDraft": {
     "path": "docs/drafts/T06.2.2/README.md",
     "testCount": 11,
-    "inActiveBuildPaths": false,
+    "inActiveBuildPaths": true,
     "compiled": false,
     "redVerified": false,
     "productionBehaviorImplemented": false
