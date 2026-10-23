@@ -1,7 +1,7 @@
+import Foundation
 import SwiftUI
 
-// Application resource lifetime is independent of the view. The separate UI
-// case still needs missing-control RED before replacing Text below.
+// Resources belong to the application, independently of scene/view lifetime.
 @main
 @MainActor
 struct LocalMinutesApp: App {
@@ -9,7 +9,17 @@ struct LocalMinutesApp: App {
 
     var body: some Scene {
         WindowGroup {
-            Text("LocalMinutes")
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("--ui-test-activity-controls") {
+                RecordingActivityTestScreen(application: application, finished: false)
+            } else if ProcessInfo.processInfo.arguments.contains("--ui-test-activity-finished") {
+                RecordingActivityTestScreen(application: application, finished: true)
+            } else {
+                RecordingControlsView(application: application)
+            }
+            #else
+            RecordingControlsView(application: application)
+            #endif
         }
     }
 }

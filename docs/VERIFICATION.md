@@ -73,3 +73,11 @@ compilation passed; Xcode65 after behavioral failures, later15min job cancellati
 during result processing. UI0executed, package0executed, no new IPA. Covered
 native behavior implemented only after RED; exact-source GREEN pending. Additional
 SDK mode probe and3UI contracts await execution. All realmodel/device gates NOT_RUN.
+
+T06.2.2.2 component GREEN/UI RED at7c1ae7c/run40024451125:
+38native app-hosted XCTest+115Swift+59Node+81TSAN passed0skip. Actual hidden
+Stop SDK default background observed on iOS26.2. Actual UI3cases failed3assertions
+on missing controls,0skip, with .xcresult confirmation; apps launch successfully.
+Actual product/test-target compile passes; package0/no IPA. Next UI implementation
+and unexecuted preparing-toggle regression remain unverified, not full CI GREEN.
+All physical/realmodel gates NOT_RUN; no candidate delivered.

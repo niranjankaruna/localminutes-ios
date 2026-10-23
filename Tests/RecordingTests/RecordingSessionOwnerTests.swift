@@ -1149,7 +1149,9 @@ import AppIntents
 
 // Append to the SAME RecordingSessionOwnerTests.swift file so private helpers
 // are reused. Only native app-host tests compile this conditional extension.
-// Ten native cases proved actual37-case app-hosted RED at81960fd/run40020680067.
+// Original ten native cases proved37-case RED at81960fd, then38-case GREEN
+// including the extra SDK probe at7c1ae7c. The preparing-toggle regression below
+// is newly test-first and has no executed RED yet.
 
 @MainActor
 private final class NativeIntentCall {
@@ -1522,6 +1524,49 @@ extension RecordingSessionOwnerTests {
                 XCTAssertNotEqual(call.reply?.value, "Recording is active.")
                 XCTAssertNotEqual(call.reply?.value, "Recording saved.")
             }
+        }
+    }
+
+    func testNativeSecondToggleCancelsHeldPreparationInsteadOfCoalescingAStart() async throws {
+        try await withHarness { h in
+            h.preparation.hold = true
+            let app = RecordingApplication(owner: h.owner)
+            let first = NativeIntentCall()
+            let firstTask = Task {
+                do { first.reply = try await ToggleMeetingIntent(application: app).perform() }
+                catch { first.error = error }
+            }
+            let held = await ownerEventually { h.preparation.isWaiting }
+            XCTAssertTrue(held)
+            guard held else { firstTask.cancel(); return }
+            let second = NativeIntentCall()
+            let secondTask = Task {
+                do { second.reply = try await ToggleMeetingIntent(application: app).perform() }
+                catch { second.error = error }
+            }
+            let cancelling = await ownerEventually { await h.owner.snapshot().cleanupPending }
+            XCTAssertTrue(cancelling,
+                          "A second user toggle during preparation must close that admitted start")
+            XCTAssertTrue(h.preparation.isWaiting,
+                          "Cleanup must wait for the actual held model boundary to exit")
+            XCTAssertNil(first.reply)
+            XCTAssertNil(second.reply)
+            h.preparation.resolve(.ready(directory: h.directory))
+            try await complete { await firstTask.value; await secondTask.value }
+            XCTAssertNil(first.error)
+            XCTAssertNil(second.error)
+            XCTAssertEqual(first.reply?.value, "No recording is active.")
+            XCTAssertEqual(second.reply?.value, "No recording is active.")
+            let state = await h.owner.snapshot()
+            XCTAssertEqual(state.phase, .idle)
+            XCTAssertNil(state.sessionID)
+            XCTAssertFalse(state.cleanupPending)
+            XCTAssertEqual(h.preparation.requests.count, 1)
+            XCTAssertTrue(h.activity.requests.isEmpty)
+            XCTAssertEqual(h.permission.requests, 0)
+            XCTAssertEqual(h.hardware.startCalls, 0)
+            XCTAssertFalse(h.hardware.sessionActive)
+            XCTAssertNil(h.owner.completedManifest)
         }
     }
 }

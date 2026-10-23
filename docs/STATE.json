@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-23T21:05:05.048Z",
+  "lastUpdated": "2026-10-23T21:34:25.676Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -11,9 +11,9 @@
   "lastVerifiedCommit": "40100fdb9a8349acdbf2d22c63eb25ce959e9388",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017962923",
   "candidateArtifact": null,
-  "nextAction": "T06.2.2.2: validate the original37-test native app/content implementation after81960fd/run40020680067 RED (24pass13fail82assertions0skip). Next run also obtains real UI RED for3cases and probes hidden Stop SDK mode before changing it. App remains Text-only; no UI behavior or explicit Stop mode change before those assertions. Four of six runs terminal; maximum two further dispatches after fresh cost check.",
+  "nextAction": "T06.2.2.2: dispatch/follow final allowed run6 for new recording/shared Activity UI after actual7c1ae7c UI RED and new native preparing-toggle regression before its repair. Expect39 app-hosted+3UI. Leave production toggle coalescing unchanged until that regression has meaningful actual RED. No seventh dispatch/re-run. Preserve known-good main40100fd source; checkpoint exact pending repair/GREEN if cap is reached.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "81960fd669614313a61c499704663178b5800234",
+  "remoteBranchHead": "7c1ae7c6edda4a4ee23b47299e45f22a6fcef409",
   "localScriptGreen": {
     "sourceCommit": "14a988604c05e2484e9d08bf5d4d11e04d217e73",
     "platform": "Windows 11 / Node 24.21.0",
@@ -35,15 +35,22 @@
       40016043242,
       40017195075,
       40017962923,
-      40020680067
+      40020680067,
+      40024451125
     ],
     "limitReached": false,
-    "costGuardObservedAt": "2026-10-23T20:37:13.4117163Z"
+    "costGuardObservedAt": "2026-10-23T21:34:25.676Z",
+    "finalRunLimits": {
+      "coreMinutes": 6,
+      "nativeMinutes": 15,
+      "observedIncludedMinutesRemaining": 219.7,
+      "blockedOverage": true
+    }
   },
   "latestCIRun": {
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40020680067",
-    "sourceCommit": "81960fd669614313a61c499704663178b5800234",
-    "conclusion": "cancelled",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40024451125",
+    "sourceCommit": "7c1ae7c6edda4a4ee23b47299e45f22a6fcef409",
+    "conclusion": "failure",
     "executedXCTests": 115,
     "passedXCTests": 115,
     "failedXCTests": 0,
@@ -59,27 +66,33 @@
       "skipped": 0,
       "conclusion": "success"
     },
-    "nativeBuildJobConclusion": "cancelled",
+    "nativeBuildJobConclusion": "failure",
+    "nativeProductsCompile": true,
     "nativeApp": {
-      "executed": 37,
-      "passed": 24,
-      "failed": 13,
-      "assertionFailures": 82,
+      "executed": 38,
+      "passed": 38,
+      "failed": 0,
+      "assertionFailures": 0,
       "skipped": 0,
-      "conclusion": "failure",
+      "conclusion": "success",
       "runtime": "iOS26.2",
       "simulator": "iPhone17Pro/x86_64",
       "resultBundleVerified": true
     },
     "nativeUI": {
-      "executed": 0,
-      "conclusion": "NOT_RUN"
+      "executed": 3,
+      "passed": 0,
+      "failed": 3,
+      "assertionFailures": 3,
+      "skipped": 0,
+      "conclusion": "failure",
+      "resultBundleVerified": true
     },
     "nativeProductAndPackageChecks": {
       "executed": 0,
       "conclusion": "NOT_RUN"
     },
-    "note": "Native xcodebuild returned65 after actual assertion RED. Job timed out during result processing; UI did not run. No new IPA."
+    "note": "Actual UI missing-control assertion RED, not startup/compile failure or timeout. No new IPA."
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -183,7 +196,7 @@
     "path": "docs/drafts/T06.2.2/native/README.md",
     "nativeIntentCases": 10,
     "activityContentCases": 3,
-    "appHostExpectedCases": 38,
+    "appHostExpectedCases": 39,
     "uiExpectedCases": 3,
     "inActiveBuildPaths": true,
     "compiled": true,
@@ -198,9 +211,32 @@
     "redFailed": 13,
     "redAssertionFailures": 82,
     "redSkipped": 0,
-    "greenVerifiedCommit": null,
-    "additionalModeProbeExecuted": false,
-    "uiRedVerified": false,
-    "sourceScope": "Original37 cases compiled/executed. Newly activated mode probe and three UI cases await actual execution. Default preflight honestly rejects missing real ASR."
+    "greenVerifiedCommit": "7c1ae7c6edda4a4ee23b47299e45f22a6fcef409",
+    "additionalModeProbeExecuted": true,
+    "uiRedVerified": true,
+    "sourceScope": "Original38 app-hosted cases GREEN at7c1ae7c. Three UI cases RED there before new controls. One added native preparing-toggle regression is unexecuted; coalescing repair must wait for its RED.",
+    "originalNativeGreenExecuted": 38,
+    "hiddenStopSDKMode": "background, observed iOS26.2; no mode declaration change",
+    "uiProductionBehaviorImplemented": true,
+    "pendingRegression": {
+      "test": "testNativeSecondToggleCancelsHeldPreparationInsteadOfCoalescingAStart",
+      "inActiveBuildPaths": true,
+      "executed": false,
+      "redVerified": false,
+      "repaired": false,
+      "acceptance": "Second native Toggle during held model preflight must request cleanup before late readiness and cannot start any hardware."
+    }
+  },
+  "nativeUI": {
+    "redSourceCommit": "7c1ae7c6edda4a4ee23b47299e45f22a6fcef409",
+    "redRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40024451125",
+    "executed": 3,
+    "passed": 0,
+    "failed": 3,
+    "assertionFailures": 3,
+    "skipped": 0,
+    "implementationExists": true,
+    "greenVerified": false,
+    "physicalExtensionEvidence": false
   }
 }

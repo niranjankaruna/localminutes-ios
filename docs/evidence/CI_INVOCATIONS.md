@@ -159,3 +159,11 @@ Pre-run5 read-only cost observation21:07UTC:1,604.7/2,000 used,395.3 displayed
 remaining, Actionsbillable$0; account-wide Actions$0/$0 Usageblocked confirmed.
 Storage100%, no uploads. One bounded standard-runner run next; reverify actual
 allowance before any sixth dispatch. No settings or publication changed.
+
+| [40024451125](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40024451125) | 7c1ae7c6edda4a4ee23b47299e45f22a6fcef409 | Native38GREEN, UI3RED (3fail3assertions0skip), core115+59Node+81TSAN pass; product/test targets compile. Overall failure from real UI assertions, no timeout; package0/no new IPA |
+
+Pre-final-run read-only allowance1,780.3/2,000 used,219.7 displayed remaining,
+billable$0, Actions$0/$0 Usageblocked confirmed; storage100%. Core6min/native15min
+bound final run to21runner minutes (210 included macOS minutes); prior actual
+durations3m42s/12m22s fit. All tests and failure checks stay mandatory. Shared
+allowance is not reserved. No upload/payment/visibility/budget setting changed.

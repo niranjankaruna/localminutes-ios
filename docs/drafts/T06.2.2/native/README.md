@@ -13,6 +13,15 @@ recording and inference remain unverified. Three UI contracts and the extra
 hidden Stop mode probe now await their own execution; Text-only UI and the
 hidden Stop declaration's mode remain unchanged before that evidence.
 
+Continuation update:7c1ae7c/run40024451125 passed38 actual app-hosted cases,
+including the original37 and actual inherited background-mode probe. UI3cases
+then failed on absent controls,3assertions0skip, before view implementation.
+Root has now implemented their controls and DEBUG-only shared-view fixtures;
+GREEN awaits the next exact source. A newly added native preparing-toggle
+regression is not executed and the corresponding coalescing repair is forbidden
+until its real RED. Next expected39app-hosted+3UI. Original pending files below
+remain the historical proposal, not current production sources.
+
 ## Exact file integration proposal
 
 | Draft | Eventual active location |

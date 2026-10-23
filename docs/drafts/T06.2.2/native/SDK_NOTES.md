@@ -36,3 +36,10 @@ option to avoid unrelated failure diagnostic collection. Assertion exits, all
 expected test IDs, .xcresult summaries, and regression requirements are preserved.
 See [Apple's diagnostic collection guidance](https://developer.apple.com/forums/thread/698054).
 No sanitizer setting was removed. No diagnostic/archive uploads are added.
+
+Apple's[shared interactivity guidance](https://developer.apple.com/documentation/widgetkit/adding-interactivity-to-widgets-and-live-activities)
+explicitly supports reusing Button(intent:) and its implementation in the app.
+The proposed DEBUG-only synthetic Activity screen will reuse that same view and
+parameterized intent, so UI tests can check dispatch and timer rendering. This
+cannot establish actual extension installation, Lock Screen rendering, locked
+delivery or free-signing eligibility. Keep those device gates pending.

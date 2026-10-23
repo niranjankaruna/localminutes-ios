@@ -398,3 +398,33 @@ allowance/$0guard verification. Next native job bounded25min, core10min, no
 uploads; all required tests and failures remain strict. All actual model,
 signing/LockScreen/ActionButton/two-hour/renewal gates remainNOT_RUN. Separate
 artifact storage headroom blocker persists; candidateArtifact remains null.
+
+## Continuation-05 native38 GREEN and actual UI3 RED
+
+7c1ae7c/run40024451125 passed115Swift+59Node+81TSAN and38 actual native
+app-hosted XCTest,0failures/skips/races. Original37 native assertions unchanged
+after81960fd RED; extra actual SDK hidden Stop mode probe passes background on
+iOS26.2. Device/simulator app+extension/test products compile. UI test execution
+then proved3failed/3assertions/0skipped: real launched app lacks Start, shared
+scoped Activity Stop and elapsed Text. xcresult agrees. Overall failure is
+intentional UI RED, no timeout. No package checks/new IPA. Evidence:T06_TDD.md.
+
+After that UI RED, implemented recording controls projecting the real coordinator,
+view-only polling while foreground, generic shared Activity Stop/system timer,
+and real extension presentation. DEBUG-only synthetic Activity views exercise
+the same component/intent without making a model ready or starting capture;
+Release excludes their flags/fixtures. UI GREEN is not yet claimed.
+
+Review exposed a second Toggle during held preflight being over-coalesced with
+the pending start. New bounded actual-owner native regression written before
+repair; it is unexecuted and production coalescing remains unchanged. Next run
+expects39 native+3UI and preserves its intentional regression failure. Five of
+six runs terminal; one final bounded run after fresh allowance/$0guard check.
+No seventh dispatch. Baseline remainsIN_PROGRESS; real models, full history/UI,
+all physical/signing/locking/ActionButton/endurance/renewal gates unfinished.
+
+Independent read-only speech-dependency preparation is saved in
+docs/drafts/T09/NATIVE_MODEL_RESEARCH.md. It records immutable upstream model
+revision/reported weight checksums, runtime candidate commit and actual tiny
+token-file hash only. No native binary/model weight downloaded, no inference,
+installer or model manifest implemented. It does not markT09/T10 complete.

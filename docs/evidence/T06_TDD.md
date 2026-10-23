@@ -434,3 +434,64 @@ minutes used,395.3 displayed remaining, Actionsbillable$0; existing account-wide
 Actions$0/$0 Usage blocked confirmed. Storage0.5/0.5GB100%. Next single bounded
 run uses standardmacos-15-intel only, core10min/native25min, no upload. No payment,
 visibility, budget, storage or unrelated artifact changes; allowance is shared.
+
+## T06.2.2.2 native component GREEN and control UI RED — verified
+
+Source7c1ae7c6edda4a4ee23b47299e45f22a6fcef409,
+[run40024451125](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40024451125),
+hosted macos-15-intel/Xcode26.2/iPhone17Pro iOS26.2 x86_64 Simulator:
+**38 native app-hosted XCTest passed,0failure/skip**. This includes original37
+unchanged assertions after81960fd RED and the extra actual SDK mode probe.
+Hidden Stop's inherited supportedModes equals background on this SDK; its
+declaration was never changed and no manufactured mode RED is claimed.
+Actual native app/extension products and test targets compile. Core115Swift,
+59Node and81repeatedTSAN also pass,0failures/skips/races.
+
+Separate actual xcodebuild test -only-testing:LocalMinutesUITests executed3
+cases:0passed,3failed,3assertions,0skipped. All apps launched; observed failures
+are absent recording.start button, absent recording.activity.stop button and
+absent recording.activity.elapsed Text. .xcresult summary and strict reporter
+agree. UI production remains Text-only before this evidence. Xcode returned65
+for actual UI assertion failures; overall CI failed as intended, not timeout.
+No native product/package checks ran afterward and no new IPA exists.
+Full ignored log.agent-local/T06.2.2-7c1ae7c-native-validation.log.
+
+Next implement the3 observed UI contracts using a shared actual Button(intent:)
+and system timer component in app/extension, with DEBUG-only non-sensitive
+Activity previews for automation. This is Simulator shared-view evidence only;
+actual Lock Screen/extension delivery/free signing remain pending.
+
+Review also found overly broad toggle coalescing can ignore a second intentional
+toggle while preparation is held. Added deterministic native regression
+testNativeSecondToggleCancelsHeldPreparationInsteadOfCoalescingAStart before
+repair: wait for real held model preflight, invoke second actual intent, require
+cleanup admission before resolving readiness, then require idle/no resource
+activation. It is not executed yet and the production coalescing is unchanged.
+Next run proposes39 app-hosted+3UI; it must establish meaningful new regression
+RED before any preparing-toggle repair. Five of six runs terminal. No seventh.
+
+UI implementation now uses actual shared Button(intent:) with the Activity's
+UUID, system Text(timerInterval:pauseTime:) and coordinator-projected app controls.
+Foreground-only view polling owns no capture resources; the app-held owner
+survives view/scene changes. DEBUG-only synthetic previews are excluded from
+Release; they neither make a model ready nor start capture. Actual model gating,
+per-call result values and coalescing remain as at7c1ae7c. The new preparing-toggle
+regression is still test-first, with no repair before its actual RED.
+
+Pre-run6 read-only cost observation:1,780.3/2,000 included minutes used,
+219.7 displayed remaining, Actionsbillable$0, existing account-wide Actions
+$0/$0 Usageblocked confirmed, storage100%. To bound this final run within the
+displayed allowance, core timeout6min and native15min (at most21runner minutes,
+210 included macOS minutes) replace10/25. Last measured durations3m42s and
+12m22s fit these bounds after the diagnostic-collection adjustment. All actual
+test cases/assertions/TSAN/result checks remain unchanged; a timeout will not
+count as behavioral RED. The allowance is shared, not reserved, and the existing
+hard spending guard remains active. No purchase, budget/publication change or
+upload. Only run6 is allowed; no seventh dispatch in this invocation.
+
+Root pre-run6 diff review confirmed the new regression does not change production
+coalescing. New view code only projects coordinator facts and calls the existing
+app-held router; scene/view cancellation never stops capture. Shared Stop uses
+the exact UUID, generic Activity content has no meeting text, and Release omits
+all synthetic preview switches. No raw media/model assets, credentials or signed
+products are staged. Exact-source native/UI results remain required.
