@@ -2,7 +2,7 @@ name: Core tests
 
 on:
   push:
-    branches: [main, 'task/**']
+    branches: ['task/**']
     paths:
       - 'Package.swift'
       - 'Core/**'
@@ -62,4 +62,4 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node scripts/verify-test-log.mjs .build/test-output.log testHarnessExecutesAnAssertion testControlledClockAdvancesWithoutSleeping
+          node scripts/verify-test-log.mjs .build/test-output.log testHarnessExecutesAnAssertion testControlledClockAdvancesWithoutSleeping testConcurrentStartsEmitExactlyOnePreparation testConcurrentStopsEmitExactlyOneFlushAndCompleteOnlyAfterAcknowledgement
