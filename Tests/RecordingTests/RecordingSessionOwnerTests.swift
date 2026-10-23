@@ -1090,4 +1090,52 @@ extension RecordingSessionOwnerTests {
             XCTAssertNil(h.owner.completedManifest)
         }
     }
+
+    func testIntentCannotAttributeAReplacementManifestToAnEarlierStopOrToggle() async throws {
+        for useToggle in [false, true] {
+            try await withHarness { h in
+                try await recordOneBuffer(h)
+                let gate = OwnerTestReservationGate()
+                defer { gate.release() }
+                let router = RecordingIntentRouter(owner: h.owner, afterOperation: {
+                    await gate.wait()
+                })
+                let result = IntentTestOutcome()
+                let action: RecordingIntentAction = useToggle ? .toggle(UUID()) :
+                    .stop(expectedSessionID: h.id)
+                let earlier = Task { result.value = await router.perform(action) }
+                let paused = await ownerEventually { gate.isWaiting }
+                XCTAssertTrue(paused)
+                guard paused else { earlier.cancel(); return }
+                XCTAssertEqual(h.owner.completedManifest?.sessionID, h.id)
+
+                let replacementID = UUID()
+                h.preparation.result = .ready(directory:
+                    h.root.appendingPathComponent("replacement-before-intent-response"))
+                try await complete { await h.owner.start(sessionID: replacementID) }
+                try h.hardware.emit(signal(h), sampleTime: 70_000)
+                let recording = await ownerEventually {
+                    await h.owner.snapshot().phase == .recording
+                }
+                XCTAssertTrue(recording)
+                try await complete { await h.owner.stop(sessionID: replacementID) }
+                let replacement = try XCTUnwrap(h.owner.completedManifest)
+                XCTAssertEqual(replacement.sessionID, replacementID)
+                XCTAssertEqual(try decode(replacement, directory:
+                    h.root.appendingPathComponent("replacement-before-intent-response")).count, 64)
+
+                gate.release()
+                try await complete { await earlier.value }
+                XCTAssertEqual(result.value, .staleSession,
+                               "A delayed response cannot claim the replacement's saved media")
+                XCTAssertEqual(h.owner.completedManifest, replacement)
+                let final = await h.owner.snapshot()
+                XCTAssertEqual(final.sessionID, replacementID)
+                XCTAssertEqual(final.phase, .completed)
+                XCTAssertFalse(final.cleanupPending)
+                XCTAssertEqual(h.hardware.startCalls, 2)
+                XCTAssertEqual(h.hardware.stopCalls, 2)
+            }
+        }
+    }
 }

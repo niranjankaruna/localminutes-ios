@@ -147,8 +147,16 @@ public final class RecordingSessionOwner {
         await requestCleanup(epoch)
     }
 
-    /// Test-first interface. Scoped cleanup behavior follows verified RED.
-    public func stop(sessionID: UUID) async {}
+    /// A delayed Activity control can close only its exact current epoch.
+    public func stop(sessionID: UUID) async {
+        guard let epoch = current, epoch.id == sessionID else { return }
+        // Latch the matched epoch before any suspension. Even if another caller
+        // completes cleanup, this request cannot close its replacement.
+        epoch.cancelled = true
+        epoch.cleanupRequested = true
+        epoch.preparation?.cancel()
+        await requestCleanup(epoch)
+    }
 
     public func toggle(sessionID: UUID) async {
         let state = await coordinator.snapshot()

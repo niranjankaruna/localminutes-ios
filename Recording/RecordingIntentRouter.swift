@@ -14,7 +14,6 @@ public enum RecordingIntentAction: Sendable, Equatable {
 /// Facts about actual owner state; never evidence of real-model inference,
 /// free signing, locked execution, or physical microphone success.
 public enum RecordingIntentOutcome: Sendable, Equatable {
-    case notImplemented
     case starting
     case recording
     case stopped
@@ -25,17 +24,73 @@ public enum RecordingIntentOutcome: Sendable, Equatable {
     case staleSession
 }
 
-/// TEST-FIRST DRAFT ONLY. App Intents must eventually share this owner's
-/// app-held lifetime. No dispatch, state mapping, or retry behavior exists here.
+/// App Intents and foreground controls share one application-held owner.
+/// Results describe settled resource facts, without promising OS activation.
 @MainActor
 public final class RecordingIntentRouter {
     private let owner: RecordingSessionOwner
+    private let afterOperation: (@MainActor @Sendable () async -> Void)?
 
-    public init(owner: RecordingSessionOwner) {
+    public convenience init(owner: RecordingSessionOwner) {
+        self.init(owner: owner, afterOperation: nil)
+    }
+
+    /// Test scheduling only; public application construction always uses nil.
+    init(owner: RecordingSessionOwner,
+         afterOperation: (@MainActor @Sendable () async -> Void)?) {
         self.owner = owner
+        self.afterOperation = afterOperation
     }
 
     public func perform(_ action: RecordingIntentAction) async -> RecordingIntentOutcome {
-        .notImplemented
+        let before = await owner.snapshot()
+        let wasActive = before.cleanupPending ||
+            [.preparing, .recording, .stopping].contains(before.phase)
+        let canComplete: Bool
+        switch action {
+        case .start(let sessionID):
+            canComplete = false
+            await owner.start(sessionID: sessionID)
+        case .stop(let expectedSessionID):
+            canComplete = wasActive
+            if let expectedSessionID {
+                guard before.sessionID == expectedSessionID else { return .staleSession }
+                // The owner repeats the epoch guard and closes admission before
+                // suspension. This snapshot alone cannot authorize cleanup.
+                await owner.stop(sessionID: expectedSessionID)
+            } else {
+                await owner.stop()
+            }
+        case .toggle(let sessionID):
+            canComplete = wasActive
+            await owner.toggle(sessionID: sessionID)
+        }
+
+        await afterOperation?()
+        let state = await owner.snapshot()
+        if state.cleanupPending { return .cleanupPending }
+        if let failure = state.failure {
+            switch failure {
+            case .microphoneDenied, .activityUnavailable, .captureUnavailable:
+                return .requiresForeground(failure)
+            case .modelUnavailable, .storageFull, .writeFailed:
+                return .blocked(failure)
+            }
+        }
+        switch state.phase {
+        case .preparing: return .starting
+        case .recording: return .recording
+        case .stopping: return .cleanupPending
+        case .completed:
+            // A prior saved recording does not turn an idle/duplicate stop into
+            // a new completion. Only the completed matching media can do so.
+            if canComplete, let manifest = owner.completedManifest,
+               manifest.sessionID == state.sessionID, manifest.totalFrames > 0 {
+                return .stopped
+            }
+            return .idle
+        case .idle, .interrupted, .recoverableFailure, .failed:
+            return .idle
+        }
     }
 }

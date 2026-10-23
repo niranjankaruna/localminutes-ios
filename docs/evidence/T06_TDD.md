@@ -262,3 +262,37 @@ only tests/stubs plus scoped-stop interface and activation-failure OS fixture,
 prove/push RED before behavior, then actual native app/intent/foreground fallback.
 Six of six current runs terminal; no seventh dispatch/re-run or active-source
 push after this GREEN. Documentation-only final checkpoint follows.
+
+## T06.2.2 router RED — verified before behavior
+
+Requirements R02,R04,R06. Test-first source
+b561558052a1909c4899cb5cab3891e6f72bde0f was pushed before router dispatch or
+scoped owner-stop behavior. Actual hosted macos-15-intel/Xcode26.2
+[run40016043242](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40016043242)
+ran `swift test --enable-code-coverage`:114 XCTest executed,103 passed,
+11 new router tests failed with61 assertion failures,0 skipped. All previous103
+passed. Node/sanitizer/native jobs were not run after the Swift RED.
+
+Tests in RecordingSessionOwnerTests exercise actual owner/coordinator/capture/
+conversion/CAF/activity policy; only OS and model-preparation boundaries doubled.
+Observed examples: `notImplemented` instead of `blocked(modelUnavailable)`,
+`stopped`, `requiresForeground(microphoneDenied)` or `staleSession`; scoped no-op
+owner stop leaves replacement recording instead of completing its matching epoch.
+Real saved-CAF test cannot unwrap a completed manifest before behavior. Compile
+and test discovery succeeded; this is behavioral failure, not a toolchain error.
+Full local ignored logs:.agent-local/T06.2.2-b561558-red.log and extracted
+-xctest.log. Existing strict reporter confirmed114/103/11/61/0.
+
+Next: implement only router/scoped-stop behavior covered by these tests, run full
+regressions/native packaging at exact SHA, review, then native composition/control
+tests. All phone/model/free-signing/locking/endurance/renewal gates remainNOT_RUN.
+Router pre-GREEN review found that a Boolean completion flag could attribute a
+replacement epoch's manifest to an earlier stop/toggle response. Added deterministic
+`testIntentCannotAttributeAReplacementManifestToAnEarlierStopOrToggle` before its
+repair. The internal afterOperation scheduling hook is nil in public production
+construction; the test holds the response, uses the real owner to record/drain
+and decode a replacement CAF, then resumes the earlier operation. It must return
+staleSession, never the replacement's saved success. Both stop and toggle are
+covered; no mocked domain snapshot or inference. This is a new regression RED
+step, not a GREEN claim. Pre-dispatch cost:1,305/2,000 used,695 remaining,$0billable,
+existing Actions$0hard stop; storage100%, no uploads.

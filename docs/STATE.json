@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-23T20:01:27.4545452Z",
+  "lastUpdated": "2026-10-23T20:10:30.3431835Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -11,7 +11,7 @@
   "lastVerifiedCommit": "9eeaa25c53ba7e22b32ae4c1f3f65034edcbc48f",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40013807701",
   "candidateArtifact": null,
-  "nextAction": "T06.2.2: push activated eleven router tests/minimal no-op interfaces for meaningful hosted assertion RED before router/scoped-stop implementation. Current continuation-05 starts at zero of six runs; included allowance and existing account-wide $0 Actions hard stop verified. Native app/intent composition and actual models remain unfinished.",
+  "nextAction": "T06.2.2: first router implementation follows recorded11-case RED. Independent review found replacement-manifest attribution race; new deterministic actual-owner regression and scheduling hook must run RED before repair. Next run2/6; all native app/intent behavior still unwired.",
   "pendingPushCommit": null,
   "remoteBranchHead": "9eeaa25c53ba7e22b32ae4c1f3f65034edcbc48f",
   "localScriptGreen": {
@@ -31,33 +31,27 @@
   "ciInvocation": {
     "id": "2026-10-23-continuation-05",
     "maxNewRuns": 6,
-    "newRunIds": [],
+    "newRunIds": [
+      40016043242
+    ],
     "limitReached": false,
-    "costGuardObservedAt": "2026-10-23T20:01:27.4545452Z"
+    "costGuardObservedAt": "2026-10-23T20:10:30.3431835Z"
   },
   "latestCIRun": {
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40013807701",
-    "sourceCommit": "9eeaa25c53ba7e22b32ae4c1f3f65034edcbc48f",
-    "conclusion": "success",
-    "executedXCTests": 103,
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40016043242",
+    "sourceCommit": "b561558052a1909c4899cb5cab3891e6f72bde0f",
+    "conclusion": "failure",
+    "executedXCTests": 114,
     "passedXCTests": 103,
-    "failedXCTests": 0,
+    "failedXCTests": 11,
+    "assertionFailures": 61,
     "skippedXCTests": 0,
-    "executedNodeTests": 59,
-    "passedNodeTests": 59,
-    "failedNodeTests": 0,
-    "skippedNodeTests": 0,
-    "nativeBuildJobConclusion": "success",
-    "executedNativeTests": 15,
-    "passedNativeTests": 15,
-    "failedNativeTests": 0,
-    "skippedNativeTests": 0,
+    "executedNodeTests": 0,
+    "nativeBuildJobConclusion": "skipped",
+    "executedNativeTests": 0,
     "sanitizer": {
-      "executed": 69,
-      "passed": 69,
-      "failed": 0,
-      "skipped": 0,
-      "conclusion": "success"
+      "executed": 0,
+      "conclusion": "not_run"
     }
   },
   "localReporterRed": {
@@ -148,10 +142,10 @@
   },
   "intentRouterTestFirstDraft": {
     "path": "docs/drafts/T06.2.2/README.md",
-    "testCount": 11,
+    "testCount": 12,
     "inActiveBuildPaths": true,
-    "compiled": false,
-    "redVerified": false,
+    "compiled": true,
+    "redVerified": true,
     "productionBehaviorImplemented": false
   }
 }
