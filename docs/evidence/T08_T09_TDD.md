@@ -35,3 +35,9 @@ runs both required125minute physical endurance tests manually.
 
 RED source/run/assertion result: PENDING.
 GREEN source/run/result: PENDING.
+
+First sourcef6fb5247bae80aea20a915a00f78634457888d01/run40032541662
+failed compilation: XCTestCase.record shadows the test-only global record
+fixture helper. Zero tests executed; this is NOT RED. Rename only that helper
+and its calls to meetingFixtureRecord; all assertions/no-op production unchanged.
+Next run must actually execute the153-case suite before implementation.

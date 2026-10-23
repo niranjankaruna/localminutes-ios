@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-23T22:15:38.574Z",
+  "lastUpdated": "2026-10-23T22:18:24.199Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -11,9 +11,9 @@
   "lastVerifiedCommit": "40100fdb9a8349acdbf2d22c63eb25ce959e9388",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017962923",
   "candidateArtifact": null,
-  "nextAction": "Push this test-first model/storage activation and prove actual macOS assertion RED before authorizing the two agents to implement. Native runtime agent prepares actual model tests; prioritize real iPhone transcription within owner hour. Preserve all pending physical gates.",
-  "pendingPushCommit": "4dfacf696a1fded2c39dcc49eb561535bf3e0017",
-  "remoteBranchHead": "1718b09ebc91f74341a0770fc1aea1d8a9fffc97",
+  "nextAction": "Follow exact run40032541662; no model/store implementation until meaningful actual153-case RED. Native runtime drafts9cases are ready for review and activation while run1 executes.",
+  "pendingPushCommit": null,
+  "remoteBranchHead": "f6fb5247bae80aea20a915a00f78634457888d01",
   "localScriptGreen": {
     "sourceCommit": "6b5fd0c074672c467f0d26c5797683b706ec8263",
     "platform": "Windows 11 / Node 24.21.0",
@@ -31,7 +31,9 @@
   "ciInvocation": {
     "id": "2026-10-23-continuation-06",
     "maxNewRuns": 6,
-    "newRunIds": [],
+    "newRunIds": [
+      40032541662
+    ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-23T22:15:38.574Z",
     "costGuardBasis": "Live PUBLIC repo verified; standard macos-15-intel officially free; no uploads/paid runners",
@@ -41,57 +43,11 @@
     }
   },
   "latestCIRun": {
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40027966192",
-    "sourceCommit": "6b5fd0c074672c467f0d26c5797683b706ec8263",
-    "conclusion": "cancelled",
-    "executedXCTests": 115,
-    "passedXCTests": 115,
-    "failedXCTests": 0,
-    "skippedXCTests": 0,
-    "executedNodeTests": 59,
-    "passedNodeTests": 59,
-    "failedNodeTests": 0,
-    "skippedNodeTests": 0,
-    "sanitizer": {
-      "executed": 81,
-      "passed": 81,
-      "failed": 0,
-      "skipped": 0,
-      "conclusion": "success"
-    },
-    "nativeBuildJobConclusion": "cancelled",
-    "nativeProductsCompile": true,
-    "nativeApp": {
-      "executed": 39,
-      "passed": 38,
-      "failed": 1,
-      "assertionFailures": 9,
-      "skipped": 0,
-      "conclusion": "failure",
-      "runtime": "iOS26.2",
-      "simulator": "iPhone17Pro/x86_64",
-      "resultBundleVerified": true
-    },
-    "nativeUI": {
-      "expectedCases": 3,
-      "startedCases": 2,
-      "completedCases": 1,
-      "passedCompletedCases": 1,
-      "failedCompletedCases": 0,
-      "observedAssertionFailures": 0,
-      "notStartedCases": 1,
-      "conclusion": "cancelled",
-      "resultBundleVerified": false,
-      "aggregateVerified": false,
-      "completedCase": "testSharedActivityStopControlDispatchesItsExactSessionToTheApplicationOwner",
-      "incompleteCase": "testSharedActivityTerminalTimerIsFixedAndStopIsDisabled",
-      "notStartedCase": "testStartExplainsMissingSpeechModelWithoutClaimingRecording"
-    },
-    "nativeProductAndPackageChecks": {
-      "executed": 0,
-      "conclusion": "NOT_RUN"
-    },
-    "note": "Actual39-case native regression RED verified before repair. GitHub annotation confirms15m0s maximum; UI cancelled during second case teardown, third never started. Strict UI reporter rejects missing aggregate. No full UI GREEN or new IPA."
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40032541662",
+    "sourceCommit": "f6fb5247bae80aea20a915a00f78634457888d01",
+    "conclusion": "failure",
+    "executedXCTests": 0,
+    "failureCategory": "test helper name collision with XCTestCase.record; not behavioral RED"
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",

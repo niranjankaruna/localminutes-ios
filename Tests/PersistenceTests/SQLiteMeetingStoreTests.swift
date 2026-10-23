@@ -29,7 +29,7 @@ final class SQLiteMeetingStoreTests: XCTestCase {
 
     func testMeetingMetadataSurvivesCloseAndReopen() async throws {
         try await withDatabase { url in
-            let expected = record(1, title: "Synthetic planning — Café 📝", created: 1_000)
+            let expected = meetingFixtureRecord(1, title: "Synthetic planning — Café 📝", created: 1_000)
             let store = try SQLiteMeetingStore(databaseURL: url)
             try await store.createMeeting(expected)
             try await store.close()
@@ -44,9 +44,9 @@ final class SQLiteMeetingStoreTests: XCTestCase {
     func testHistorySortsNewestFirstWithStableUUIDTieBreakAndLimit() async throws {
         try await withDatabase { url in
             let store = try SQLiteMeetingStore(databaseURL: url)
-            let oldest = record(1, created: 100)
-            let tiedSecond = record(3, created: 200)
-            let tiedFirst = record(2, created: 200)
+            let oldest = meetingFixtureRecord(1, created: 100)
+            let tiedSecond = meetingFixtureRecord(3, created: 200)
+            let tiedFirst = meetingFixtureRecord(2, created: 200)
             for item in [tiedSecond, oldest, tiedFirst] { try await store.createMeeting(item) }
             let history = try await store.history(limit: 2)
             XCTAssertEqual(history.map(\.id), [tiedFirst.id, tiedSecond.id])
@@ -60,9 +60,9 @@ final class SQLiteMeetingStoreTests: XCTestCase {
     func testConcurrentMeetingWritesAndDuplicateIDCannotOverwriteExistingMetadata() async throws {
         try await withDatabase { url in
             let store = try SQLiteMeetingStore(databaseURL: url)
-            let original = record(1, title: "Original synthetic title", created: 100)
+            let original = meetingFixtureRecord(1, title: "Original synthetic title", created: 100)
             try await store.createMeeting(original)
-            let concurrent = (2...25).map { record($0, created: TimeInterval($0)) }
+            let concurrent = (2...25).map { meetingFixtureRecord($0, created: TimeInterval($0)) }
             try await withThrowingTaskGroup(of: Void.self) { group in
                 for item in concurrent {
                     group.addTask { try await store.createMeeting(item) }
@@ -70,7 +70,7 @@ final class SQLiteMeetingStoreTests: XCTestCase {
                 try await group.waitForAll()
             }
             await expectError(.meetingConflict) {
-                try await store.createMeeting(record(1, title: "Replacement", created: 999))
+                try await store.createMeeting(meetingFixtureRecord(1, title: "Replacement", created: 999))
             }
             let actual = try await store.meeting(id: original.id)
             XCTAssertEqual(actual, original)
@@ -83,7 +83,7 @@ final class SQLiteMeetingStoreTests: XCTestCase {
     func testRenamePersistsLiteralTextWithoutChangingIdentityDateOrTranscript() async throws {
         try await withDatabase { url in
             let store = try SQLiteMeetingStore(databaseURL: url)
-            let original = record(1, created: 100)
+            let original = meetingFixtureRecord(1, created: 100)
             let item = segment(10, meetingID: original.id, sequence: 0, text: "Synthetic source")
             try await store.createMeeting(original)
             try await store.appendFinalizedSegments([item], to: original.id)
@@ -104,7 +104,7 @@ final class SQLiteMeetingStoreTests: XCTestCase {
     func testRecordingStateAndCapturedDurationAreDurableAndMissingIDIsAnError() async throws {
         try await withDatabase { url in
             let store = try SQLiteMeetingStore(databaseURL: url)
-            let original = record(1, created: 100)
+            let original = meetingFixtureRecord(1, created: 100)
             try await store.createMeeting(original)
             try await store.updateRecordingState(id: original.id, state: .interrupted,
                                                    capturedSampleCount: 1_920_000)
@@ -125,7 +125,7 @@ final class SQLiteMeetingStoreTests: XCTestCase {
     func testFinalizedTranscriptIsOrderedBySequenceAndSurvivesReopen() async throws {
         try await withDatabase { url in
             let store = try SQLiteMeetingStore(databaseURL: url)
-            let meeting = record(1)
+            let meeting = meetingFixtureRecord(1)
             let first = segment(10, meetingID: meeting.id, sequence: 0,
                                 start: 0, end: 16_000, text: "First synthetic sentence — Café 📝.")
             let second = segment(11, meetingID: meeting.id, sequence: 1,
@@ -145,7 +145,7 @@ final class SQLiteMeetingStoreTests: XCTestCase {
 
     func testReplayingTheSameFinalizedSegmentIsIdempotentAcrossReopen() async throws {
         try await withDatabase { url in
-            let meeting = record(1)
+            let meeting = meetingFixtureRecord(1)
             let item = segment(10, meetingID: meeting.id, sequence: 0)
             let store = try SQLiteMeetingStore(databaseURL: url)
             try await store.createMeeting(meeting)
@@ -161,7 +161,7 @@ final class SQLiteMeetingStoreTests: XCTestCase {
 
     func testSegmentIDConflictAndSequenceConflictRollbackTheEntireBatch() async throws {
         try await withDatabase { url in
-            let meeting = record(1)
+            let meeting = meetingFixtureRecord(1)
             let existing = segment(11, meetingID: meeting.id, sequence: 1, text: "Keep original")
             let first = segment(10, meetingID: meeting.id, sequence: 0)
             let conflictingSequence = segment(12, meetingID: meeting.id, sequence: 1, text: "Conflict")
@@ -187,8 +187,8 @@ final class SQLiteMeetingStoreTests: XCTestCase {
 
     func testUnknownMeetingAndCrossMeetingSegmentsCannotCreateOrphanRecords() async throws {
         try await withDatabase { url in
-            let first = record(1)
-            let second = record(2)
+            let first = meetingFixtureRecord(1)
+            let second = meetingFixtureRecord(2)
             let store = try SQLiteMeetingStore(databaseURL: url)
             try await store.createMeeting(first)
             try await store.createMeeting(second)
@@ -212,8 +212,8 @@ final class SQLiteMeetingStoreTests: XCTestCase {
 
     func testSearchIsRestrictedToSelectedMeetingOrderedAndCaseInsensitive() async throws {
         try await withDatabase { url in
-            let first = record(1)
-            let second = record(2)
+            let first = meetingFixtureRecord(1)
+            let second = meetingFixtureRecord(2)
             let store = try SQLiteMeetingStore(databaseURL: url)
             try await store.createMeeting(first)
             try await store.createMeeting(second)
@@ -234,7 +234,7 @@ final class SQLiteMeetingStoreTests: XCTestCase {
 
     func testSearchTreatsQuotesAndSQLWildcardsAsLiteralData() async throws {
         try await withDatabase { url in
-            let meeting = record(1)
+            let meeting = meetingFixtureRecord(1)
             let store = try SQLiteMeetingStore(databaseURL: url)
             try await store.createMeeting(meeting)
             let literal = segment(10, meetingID: meeting.id, sequence: 0,
@@ -257,8 +257,8 @@ final class SQLiteMeetingStoreTests: XCTestCase {
         try await withDatabase { url in
             let sentinel = url.deletingLastPathComponent().appendingPathComponent("unrelated.txt")
             try Data("Synthetic unrelated file".utf8).write(to: sentinel)
-            let first = record(1)
-            let second = record(2)
+            let first = meetingFixtureRecord(1)
+            let second = meetingFixtureRecord(2)
             let firstText = segment(10, meetingID: first.id, sequence: 0)
             let secondText = segment(11, meetingID: second.id, sequence: 0)
             let store = try SQLiteMeetingStore(databaseURL: url)
@@ -285,7 +285,7 @@ final class SQLiteMeetingStoreTests: XCTestCase {
 
     func testInvalidSegmentValuesAreRejectedWithoutPartialWrites() async throws {
         try await withDatabase { url in
-            let meeting = record(1)
+            let meeting = meetingFixtureRecord(1)
             let store = try SQLiteMeetingStore(databaseURL: url)
             try await store.createMeeting(meeting)
             let good = segment(10, meetingID: meeting.id, sequence: 0)
@@ -396,7 +396,7 @@ private func uuid(_ suffix: Int) -> UUID {
     UUID(uuidString: String(format: "00000000-0000-0000-0000-%012d", suffix))!
 }
 
-private func record(_ suffix: Int, title: String = "Synthetic meeting",
+private func meetingFixtureRecord(_ suffix: Int, title: String = "Synthetic meeting",
                     created: TimeInterval = 1_000) -> MeetingRecord {
     MeetingRecord(id: uuid(suffix), title: title, createdAt: Date(timeIntervalSince1970: created),
                   recordingState: .recording)
