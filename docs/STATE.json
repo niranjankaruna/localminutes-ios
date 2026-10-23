@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-23T20:37:13.4117163Z",
+  "lastUpdated": "2026-10-23T21:05:05.048Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -11,9 +11,9 @@
   "lastVerifiedCommit": "40100fdb9a8349acdbf2d22c63eb25ce959e9388",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017962923",
   "candidateArtifact": null,
-  "nextAction": "T06.2.2.2: push actual SDK-conforming no-op app/intent/content interfaces and ten native intent cases +three content cases (37app-host expected with24existing) +one real UI case for hosted assertion RED. All37case names mandatory. No dispatch/default owner/foreground/timer/UI behavior before native RED. Current3/6terminal, next run4 after cost guard.",
+  "nextAction": "T06.2.2.2: validate the original37-test native app/content implementation after81960fd/run40020680067 RED (24pass13fail82assertions0skip). Next run also obtains real UI RED for3cases and probes hidden Stop SDK mode before changing it. App remains Text-only; no UI behavior or explicit Stop mode change before those assertions. Four of six runs terminal; maximum two further dispatches after fresh cost check.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "40100fdb9a8349acdbf2d22c63eb25ce959e9388",
+  "remoteBranchHead": "81960fd669614313a61c499704663178b5800234",
   "localScriptGreen": {
     "sourceCommit": "14a988604c05e2484e9d08bf5d4d11e04d217e73",
     "platform": "Windows 11 / Node 24.21.0",
@@ -34,36 +34,52 @@
     "newRunIds": [
       40016043242,
       40017195075,
-      40017962923
+      40017962923,
+      40020680067
     ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-23T20:37:13.4117163Z"
   },
   "latestCIRun": {
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017962923",
-    "sourceCommit": "40100fdb9a8349acdbf2d22c63eb25ce959e9388",
-    "conclusion": "success",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40020680067",
+    "sourceCommit": "81960fd669614313a61c499704663178b5800234",
+    "conclusion": "cancelled",
     "executedXCTests": 115,
     "passedXCTests": 115,
     "failedXCTests": 0,
-    "assertionFailures": 0,
     "skippedXCTests": 0,
     "executedNodeTests": 59,
     "passedNodeTests": 59,
     "failedNodeTests": 0,
     "skippedNodeTests": 0,
-    "nativeBuildJobConclusion": "success",
-    "executedNativeTests": 15,
-    "passedNativeTests": 15,
-    "failedNativeTests": 0,
-    "skippedNativeTests": 0,
     "sanitizer": {
       "executed": 81,
       "passed": 81,
       "failed": 0,
       "skipped": 0,
       "conclusion": "success"
-    }
+    },
+    "nativeBuildJobConclusion": "cancelled",
+    "nativeApp": {
+      "executed": 37,
+      "passed": 24,
+      "failed": 13,
+      "assertionFailures": 82,
+      "skipped": 0,
+      "conclusion": "failure",
+      "runtime": "iOS26.2",
+      "simulator": "iPhone17Pro/x86_64",
+      "resultBundleVerified": true
+    },
+    "nativeUI": {
+      "executed": 0,
+      "conclusion": "NOT_RUN"
+    },
+    "nativeProductAndPackageChecks": {
+      "executed": 0,
+      "conclusion": "NOT_RUN"
+    },
+    "note": "Native xcodebuild returned65 after actual assertion RED. Job timed out during result processing; UI did not run. No new IPA."
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -151,7 +167,7 @@
     "compiled": true,
     "redVerified": true,
     "greenVerifiedCommit": "9eeaa25c53ba7e22b32ae4c1f3f65034edcbc48f",
-    "appEntryWired": false,
+    "appEntryWired": true,
     "realASRProviderWired": false
   },
   "intentRouterTestFirstDraft": {
@@ -167,13 +183,24 @@
     "path": "docs/drafts/T06.2.2/native/README.md",
     "nativeIntentCases": 10,
     "activityContentCases": 3,
-    "appHostExpectedCases": 37,
-    "uiExpectedCases": 1,
+    "appHostExpectedCases": 38,
+    "uiExpectedCases": 3,
     "inActiveBuildPaths": true,
-    "compiled": false,
-    "redVerified": false,
-    "productionBehaviorImplemented": false,
-    "defaultOwnerWired": false,
-    "realASRProviderWired": false
+    "compiled": true,
+    "redVerified": true,
+    "productionBehaviorImplemented": true,
+    "defaultOwnerWired": true,
+    "realASRProviderWired": false,
+    "redSourceCommit": "81960fd669614313a61c499704663178b5800234",
+    "redRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40020680067",
+    "redExecuted": 37,
+    "redPassed": 24,
+    "redFailed": 13,
+    "redAssertionFailures": 82,
+    "redSkipped": 0,
+    "greenVerifiedCommit": null,
+    "additionalModeProbeExecuted": false,
+    "uiRedVerified": false,
+    "sourceScope": "Original37 cases compiled/executed. Newly activated mode probe and three UI cases await actual execution. Default preflight honestly rejects missing real ASR."
   }
 }

@@ -64,3 +64,12 @@ Tests-first and replacement-attribution RED/GREEN details:T06_TDD.md. Actual
 OS adapter products compiled; native AppIntent perform/Simulator UI tests have
 not yet run. Ephemeral IPA188,232bytes,hash433e98bd9eb28185cce7958dffdc723cb4516b420ef0e7b8054e4dbf4fa5b9a1,
 not retained/delivered/signed/installed. All physical and inference gates pending.
+
+T06.2.2.2 native app/content RED verified at81960fd/run40020680067:
+37 actual app-hosted XCTest,24 previous passed,13 new failed82assertions,
+0skipped; xcresult summary agrees. Actual iPhone17Pro/iOS26.2/x86_64 Simulator,
+Xcode26.2/macOS15.7.9. Core115+59Node+81TSAN passed. Product/test-target
+compilation passed; Xcode65 after behavioral failures, later15min job cancellation
+during result processing. UI0executed, package0executed, no new IPA. Covered
+native behavior implemented only after RED; exact-source GREEN pending. Additional
+SDK mode probe and3UI contracts await execution. All realmodel/device gates NOT_RUN.

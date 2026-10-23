@@ -11,7 +11,7 @@ enum ActivityKitOperations {
             $0.id == activityID
         }) else { return .notFound }
         let content = ActivityContent(
-            state: RecordingActivityAttributes.ContentState(status: status.rawValue),
+            state: activity.content.state.updating(status: status.rawValue, at: .now),
             staleDate: nil
         )
         await activity.update(content)
@@ -25,7 +25,7 @@ enum ActivityKitOperations {
             $0.id == activityID
         }) else { return .notFound }
         let content = ActivityContent(
-            state: RecordingActivityAttributes.ContentState(status: status.rawValue),
+            state: activity.content.state.updating(status: status.rawValue, at: .now),
             staleDate: nil
         )
         await activity.end(content, dismissalPolicy: .immediate)

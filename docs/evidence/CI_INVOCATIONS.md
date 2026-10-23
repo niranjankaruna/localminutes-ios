@@ -145,3 +145,17 @@ behavior. Actual native intents, real models and every phone gate are unfinished
 | [40017962923](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017962923) | 40100fdb9a8349acdbf2d22c63eb25ce959e9388 | GREEN:115XCTest+59Node+81repeatedTSAN+15native passed0skip; actual device/simulator app+extension and ephemeral188232-byte IPA, no upload |
 
 Pre-native-RED cost check:1,387.7/2,000 included minutes used,612.3 displayed remaining,Actionsbillable$0; existing account-wide Actions$0/$0 Usageblocked rechecked. Storage100%; no uploads/billing/visibility changes. Native job remains15min, core10min, standardmacos-15-intel; no larger/paid runner.
+
+| [40020680067](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40020680067) | 81960fd669614313a61c499704663178b5800234 | Native app/content RED:37executed24pass13newfail82assertions0skip, result bundle agrees. Core115+59Node+81TSAN pass, products/test targets compile. Job15min timeout during result processing; UI not run,0package checks/no IPA |
+
+Four of six runs terminal. The37-case native RED is meaningful and recorded
+before implementation. Three UI contracts and hidden Stop SDK mode probe still
+need execution before their corresponding behavior. Native next job is bounded
+25minutes (configuration maximum45), core10minutes, standard runner only; no
+upload. Failure diagnostic collection disabled using Apple's documented option,
+with all assertions, exit failures, result summaries and strict discovery intact.
+
+Pre-run5 read-only cost observation21:07UTC:1,604.7/2,000 used,395.3 displayed
+remaining, Actionsbillable$0; account-wide Actions$0/$0 Usageblocked confirmed.
+Storage100%, no uploads. One bounded standard-runner run next; reverify actual
+allowance before any sixth dispatch. No settings or publication changed.

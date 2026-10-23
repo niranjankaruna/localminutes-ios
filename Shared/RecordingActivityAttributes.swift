@@ -7,8 +7,19 @@ struct RecordingActivityAttributes: ActivityAttributes {
         var recordingStartedAt: Date? = nil
         var recordingEndedAt: Date? = nil
 
-        // Test-first interface; timer transitions require actual native RED.
-        func updating(status: String, at date: Date) -> Self { self }
+        func updating(status: String, at date: Date) -> Self {
+            var next = self
+            next.status = status
+            if status == "recording", next.recordingStartedAt == nil,
+               next.recordingEndedAt == nil {
+                next.recordingStartedAt = date
+            }
+            if ["finished", "failed", "interrupted"].contains(status),
+               let start = next.recordingStartedAt, next.recordingEndedAt == nil {
+                next.recordingEndedAt = max(start, date)
+            }
+            return next
+        }
     }
 
     var meetingID: UUID

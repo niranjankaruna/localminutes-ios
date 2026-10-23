@@ -369,3 +369,68 @@ assertion failure to preserve both REDs, but failed exit codes remain failures.
 A compiler/boot/zero-test error will not count as RED. Native SDK/metadata, fallback
 and iOS18 execution, device signing/LockScreen/ActionButton/endurance and real
 models remain unverified until appropriate evidence exists.
+
+## T06.2.2.2 native app and Activity content RED — verified
+
+Test-first81960fd669614313a61c499704663178b5800234,
+[run40020680067](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40020680067),
+hosted macos-15-intel/Xcode26.2. Actual xcodebuild test of LocalMinutesAppTests
+on the selected iOS26.2 iPhone simulator executed37XCTest:24 passed,13 new
+failed,82 assertion failures,0 skipped. The24 previous owner/router cases pass.
+All10 native intent and3 actual Activity content cases fail meaningfully:
+notImplemented instead of truthful dispatch/results, nil default owner, empty
+three-shortcut provider, absent cleanup/foreground requests and unchanged timer
+content. Tests ran before implementation and source is committed/pushed.
+
+Command: xcodebuild test -project LocalMinutes.xcodeproj -scheme LocalMinutes
+-configuration Debug -destination platform=iOS Simulator,id=<recorded available UDID>
+-destination-timeout120 -parallel-testing-enabled NO
+-only-testing:LocalMinutesAppTests -derivedDataPath build/native-tests
+-resultBundlePath .agent-local/native-app.xcresult CODE_SIGNING_ALLOWED=NO
+LOCALMINUTES_SOURCE_COMMIT=$GITHUB_SHA. Real .xcresult summary and strict reporter
+agree37/24/13/82/0. Full ignored log.agent-local/T06.2.2-81960fd-native-setup.log
+and extracted -native-xctest.log. Xcode returned65 for TEST FAILED. The complete
+job then hit15minutes during result collection; that timeout is separate from
+the observed assertions, not their RED. Core115+59Node+81TSAN passed; actual
+device/simulator products and native test targets compiled. No packaging/new IPA.
+
+The separate UI test did NOT run before cancellation and has NO RED yet. Keep
+the Text-only view until that assertion executes. Next run may implement only
+the37-tested app/intent/content behavior, retain the missing-control screen for
+UI RED, and activate the hidden Stop SDK mode probe without changing that mode.
+Allow bounded time for actual startup/result processing; assertions and strict
+discovery remain mandatory. No real foreground OS transition, locked/Action
+Button/free-signing/model/two-hour/renewal result is inferred. Current4/6 runs
+terminal; at most two more this invocation, no uploads or paid/public changes.
+
+After recorded37-case RED, implemented concrete default owner with real OS
+adapters and missing-ASR rejection, native dispatch/result dialogs, coalesced
+toggle/creator cancellation, exact-session Stop, actual three-shortcut provider,
+guarded real foreground API selection, and timer value/SDK-update preservation.
+Original37 assertions unchanged. No implementation GREEN is claimed yet.
+Activated extra hidden Stop mode test before touching its supportedModes, and
+two further actual UI cases for shared Activity controls alongside the original
+screen case. Proposed next discovery38app-hosted+3UI. UI remains Text-only.
+Shared view tests will use DEBUG-only synthetic Activity values after their
+missing-control RED; they must exercise actual Button(intent:) dispatch and
+fixed system timer rendering, not screenshots or source inspection alone.
+
+Native harness adjustment:25minute timeout, below configured45maximum; Apple's
+documented collect-test-diagnostics never option avoids unrelated collection
+after expected failures while preserving .xcresult, strict case IDs, assertions,
+exit codes, and unchanged TSAN regressions. See SDK_NOTES.md and Apple's primary
+diagnostic guidance. No retry/skip/until-success or upload is introduced.
+
+Root's pre-dispatch diff review: one application-retained owner, bounded one-slot
+toggle task, forwarded creator cancellation, epoch-scoped hidden Stop with UUID
+validation, no capture pipeline in the extension, no model-ready substitute,
+no meeting text in Activity/shortcut metadata and no new network path. Each SDK
+reply uses its own operation value rather than shared UI state after suspension.
+The original37 assertions remain unchanged. Native compilation/GREEN and OS
+foreground grant remain execution gates, not conclusions from this review.
+
+Pre-run5 read-only cost recheck at21:07UTC:1,604.7/2,000 included Actions
+minutes used,395.3 displayed remaining, Actionsbillable$0; existing account-wide
+Actions$0/$0 Usage blocked confirmed. Storage0.5/0.5GB100%. Next single bounded
+run uses standardmacos-15-intel only, core10min/native25min, no upload. No payment,
+visibility, budget, storage or unrelated artifact changes; allowance is shared.

@@ -2,8 +2,8 @@
 import AppIntents
 import Foundation
 
-// TEST-FIRST DECLARATIONS ONLY. Application selection/retention and real SDK
-// metadata exist, but no intent dispatches, requests foreground, or reports success.
+// Actual recording controls share the application-held resource owner. Public
+// results describe its facts, never the success of locked or physical dispatch.
 struct StartMeetingIntent: AudioRecordingIntent, LiveActivityIntent {
     static var title: LocalizedStringResource { "Start LocalMinutes Recording" }
     static var description: IntentDescription {
@@ -22,9 +22,7 @@ struct StartMeetingIntent: AudioRecordingIntent, LiveActivityIntent {
 
     @MainActor
     func perform() async throws -> RecordingNativeResult {
-        try RecordingNativeIntentError.fail(.notImplemented)
-        return .result(value: "Recording control is not implemented.",
-                       dialog: "Recording control is not implemented.")
+        try await RecordingIntentReplies.perform(.start(UUID()), application: application, intent: self)
     }
 }
 
@@ -43,9 +41,8 @@ struct StopMeetingIntent: AudioRecordingIntent, LiveActivityIntent {
 
     @MainActor
     func perform() async throws -> RecordingNativeResult {
-        try RecordingNativeIntentError.fail(.notImplemented)
-        return .result(value: "Recording control is not implemented.",
-                       dialog: "Recording control is not implemented.")
+        try await RecordingIntentReplies.perform(.stop(expectedSessionID: nil),
+                                                  application: application, intent: self)
     }
 }
 
@@ -64,14 +61,12 @@ struct ToggleMeetingIntent: AudioRecordingIntent, LiveActivityIntent {
 
     @MainActor
     func perform() async throws -> RecordingNativeResult {
-        try RecordingNativeIntentError.fail(.notImplemented)
-        return .result(value: "Recording control is not implemented.",
-                       dialog: "Recording control is not implemented.")
+        try await RecordingIntentReplies.perform(.toggle(UUID()), application: application, intent: self)
     }
 }
 
-// Apple's documented compatibility conformance. These declarations do not yet
-// call either legacy foreground continuation or the guarded iOS 26 APIs.
+// Apple's documented compatibility conformance preserves the iOS18 path while
+// the helper explicitly selects the guarded modern overload on iOS26.
 @available(*, deprecated)
 extension StartMeetingIntent: ForegroundContinuableIntent {}
 @available(*, deprecated)
@@ -80,8 +75,16 @@ extension StopMeetingIntent: ForegroundContinuableIntent {}
 extension ToggleMeetingIntent: ForegroundContinuableIntent {}
 
 struct LocalMinutesShortcuts: AppShortcutsProvider {
-    // Explicit return keeps the test-first provider empty. Real SDK AppShortcut
-    // values/phrases belong after metadata/provider tests have actual RED.
-    static var appShortcuts: [AppShortcut] { return [] }
+    static var appShortcuts: [AppShortcut] {
+        AppShortcut(intent: StartMeetingIntent(),
+                    phrases: ["Start recording with \(.applicationName)"],
+                    shortTitle: "Start Recording", systemImageName: "mic.fill")
+        AppShortcut(intent: StopMeetingIntent(),
+                    phrases: ["Stop recording with \(.applicationName)"],
+                    shortTitle: "Stop Recording", systemImageName: "stop.fill")
+        AppShortcut(intent: ToggleMeetingIntent(),
+                    phrases: ["Toggle recording with \(.applicationName)"],
+                    shortTitle: "Toggle Recording", systemImageName: "record.circle")
+    }
 }
 #endif

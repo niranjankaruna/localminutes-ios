@@ -1,7 +1,7 @@
 import SwiftUI
 
-// TEST-FIRST root identity interface only. The application has no default owner
-// or dispatcher yet, and this placeholder still exposes no recording controls.
+// Application resource lifetime is independent of the view. The separate UI
+// case still needs missing-control RED before replacing Text below.
 @main
 @MainActor
 struct LocalMinutesApp: App {

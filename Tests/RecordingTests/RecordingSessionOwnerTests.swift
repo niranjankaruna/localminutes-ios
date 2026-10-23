@@ -1149,7 +1149,7 @@ import AppIntents
 
 // Append to the SAME RecordingSessionOwnerTests.swift file so private helpers
 // are reused. Only native app-host tests compile this conditional extension.
-// Ten native cases; uncompiled, unexecuted, no native RED/GREEN evidence yet.
+// Ten native cases proved actual37-case app-hosted RED at81960fd/run40020680067.
 
 @MainActor
 private final class NativeIntentCall {

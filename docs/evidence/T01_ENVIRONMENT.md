@@ -157,3 +157,13 @@ Continuation-04 pre-run5 read-only overview:1,191.3/2,000 included minutes used,
 Pre-run5 budgets page loaded and confirmed account-wide Actions$0/$0 Usage blocked. Read-only verification complete.
 Continuation-04 pre-run6 read-only overview:1,222.3/2,000 included minutes used,777.7 displayed remaining; billableActions$0; storage0.5/0.5GB100%. Standard macos-15-intel with existing10/15-minute job bounds; no upload. Final allowed run follows only after reloaded account-wide$0 hard stop confirmation.
 Pre-run6 loaded budgets confirmed account-wide Actions$0/$0 Usage blocked; no settings changed.
+
+## Continuation-05 native test observation — 23 October 2026 about20:53 UTC
+
+Read-only authenticated overview shows1,439.3/2,000 included Actions minutes
+used,560.7 displayed remaining, billableActions$0, storage0.5/0.5GB100%.
+Account-wide Actions budget separately confirmed$0.00/$0.00, Usage blocked.
+No setting, payment, visibility, upload or unrelated artifact changed. Four of
+six runs dispatched; run40020680067 remains active. Included minutes are shared
+account-wide, not reserved. No next dispatch before that run is terminal and
+the current guard is rechecked. Artifact delivery remains blocked on headroom.

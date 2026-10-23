@@ -368,3 +368,33 @@ remains.3of6runs terminal. NextT06.2.2.2: activate actual native SDK no-op
 interfaces and Simulator/UI/time-content tests; obtain actual assertion RED before
 app/default owner/Shortcuts/fallback/Activity timer/control behavior. All real-model,
 phone, locked two-hour, ActionButton/free-signing and renewal gates remainNOT_RUN.
+
+## Continuation-05 native contract RED and implementation in progress
+
+Test-first81960fd/run40020680067 actually executed37 native app-hosted cases
+on iPhone17Pro/iOS26.2/x86_64 Simulator:24 previous passed,13 new failed,
+82 assertions,0 skipped. xcresult and strict reporter agree. Xcode returned65;
+the job subsequently hit15minutes during result processing. UI did not execute.
+Core115Swift+59Node+81TSAN passed; actual products/test targets compiled. No new
+IPA or packaging results. Full evidence:T06_TDD.md native RED section.
+
+Only after this RED, implement shared app-owned native dispatch, truthful
+localized result/dialog values, exact-session Stop, concurrent-toggle coalescing,
+caller cancellation, three actual AppShortcuts, real foreground API selection
+and Activity timer transitions/preservation. Default owner uses real OS adapters
+and explicitly rejects missing real ASR; no ready recognizer/model is fabricated.
+Implementation is not yet compiled or GREEN. Main remains known-good40100fd
+source plus5ec4a3e documentation checkpoint.
+
+The app still renders Text only. Next run validates the original37 while adding
+an unchanged-mode SDK probe (38 expected) and obtaining actual RED for3 native UI
+contracts: recording controls/model block, shared scoped Activity Stop and fixed
+terminal elapsed timer/disabled Stop. Only after those assertions execute may
+their view/explicit mode behavior change. DEBUG-only synthetic Activity previews
+are proposed for shared-view testing, not physical Activity/recording evidence.
+
+Four of six permitted runs terminal; at most two further runs after fresh
+allowance/$0guard verification. Next native job bounded25min, core10min, no
+uploads; all required tests and failures remain strict. All actual model,
+signing/LockScreen/ActionButton/two-hour/renewal gates remainNOT_RUN. Separate
+artifact storage headroom blocker persists; candidateArtifact remains null.

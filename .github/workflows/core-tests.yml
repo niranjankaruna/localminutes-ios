@@ -78,7 +78,7 @@ jobs:
   native-build:
     needs: core
     runs-on: macos-15-intel
-    timeout-minutes: 15
+    timeout-minutes: 25
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     steps:
@@ -136,7 +136,7 @@ jobs:
           set -euo pipefail
           xcodebuild test -project LocalMinutes.xcodeproj -scheme LocalMinutes -configuration Debug \
             -destination "platform=iOS Simulator,id=$LOCALMINUTES_TEST_SIMULATOR" -destination-timeout 120 \
-            -parallel-testing-enabled NO -only-testing:LocalMinutesAppTests \
+            -parallel-testing-enabled NO -collect-test-diagnostics never -only-testing:LocalMinutesAppTests \
             -derivedDataPath build/native-tests -resultBundlePath .agent-local/native-app.xcresult \
             CODE_SIGNING_ALLOWED=NO LOCALMINUTES_SOURCE_COMMIT="$GITHUB_SHA" \
             2>&1 | tee .agent-local/native-app-tests.log
@@ -187,7 +187,8 @@ jobs:
             testNativeCancelledStartAndToggleCannotActivateAfterHeldModelPreparation \
             testActivityTimerStartsOnlyAtRecordingAndDoesNotResetOnUpdates \
             testActivityTerminalTimerRemainsFixedAndCannotEndBeforeItsStart \
-            testFailedPreparationHasNoRecordingTimerAndDefaultPayloadContainsNoMeetingText
+            testFailedPreparationHasNoRecordingTimerAndDefaultPayloadContainsNoMeetingText \
+            testNativeScopedActivityStopDeclaresBackgroundExecution
       - name: Execute actual recording-control UI test
         id: native-ui
         if: ${{ !cancelled() && (steps.native-app.outcome == 'success' || steps.native-app.outcome == 'failure') }}
@@ -196,7 +197,7 @@ jobs:
           set -euo pipefail
           xcodebuild test -project LocalMinutes.xcodeproj -scheme LocalMinutes -configuration Debug \
             -destination "platform=iOS Simulator,id=$LOCALMINUTES_TEST_SIMULATOR" -destination-timeout 120 \
-            -parallel-testing-enabled NO -only-testing:LocalMinutesUITests \
+            -parallel-testing-enabled NO -collect-test-diagnostics never -only-testing:LocalMinutesUITests \
             -derivedDataPath build/native-tests -resultBundlePath .agent-local/native-ui.xcresult \
             CODE_SIGNING_ALLOWED=NO LOCALMINUTES_SOURCE_COMMIT="$GITHUB_SHA" \
             2>&1 | tee .agent-local/native-ui-tests.log
@@ -209,7 +210,9 @@ jobs:
             > .agent-local/native-ui-summary.json
           cat .agent-local/native-ui-summary.json
           node scripts/verify-test-log.mjs .agent-local/native-ui-tests.log \
-            testStartExplainsMissingSpeechModelWithoutClaimingRecording
+            testStartExplainsMissingSpeechModelWithoutClaimingRecording \
+            testSharedActivityStopControlDispatchesItsExactSessionToTheApplicationOwner \
+            testSharedActivityTerminalTimerIsFixedAndStopIsDisabled
       - name: Inspect compiled plists and Mach-O products
         shell: bash
         run: |

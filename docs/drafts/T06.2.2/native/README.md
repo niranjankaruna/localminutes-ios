@@ -1,11 +1,17 @@
 # T06.2.2 native app and intent contract drafts
 
-Pending, uncompiled and unexecuted. These .swift.pending files are outside all
-active targets. No native RED/GREEN, App Intent execution, foreground transition,
-Shortcuts registration, free signing, physical recording or inference result is
-claimed. Root owns activation, workflow/test infrastructure and all production
-implementation. The UI test/target is separate and must prove its own meaningful
-missing-control RED before controls replace the current Text placeholder.
+The original .swift.pending files below remain outside active targets as the
+reviewed proposal. Root activated their test/interface contents at 81960fd,
+including two additional cancellation/overlap cases, three Activity content cases
+and one separate UI case. Run40020680067 has passed existing core regressions
+and compiled device/simulator app and extension products. Native app-hosted and
+assertions actually ran:37executed24previous passed13new failed82assertions,
+0skipped. Its result bundle agrees; later15min timeout prevented UI execution.
+Root is implementing only the observed app/intent/content contract. GREEN,
+foreground OS transition, Shortcuts registration, free signing, physical
+recording and inference remain unverified. Three UI contracts and the extra
+hidden Stop mode probe now await their own execution; Text-only UI and the
+hidden Stop declaration's mode remain unchanged before that evidence.
 
 ## Exact file integration proposal
 

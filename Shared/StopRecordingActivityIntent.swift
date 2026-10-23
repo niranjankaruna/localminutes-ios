@@ -6,23 +6,20 @@ typealias RecordingNativeResult = IntentResultContainer<String, Never, Never, In
 
 /// Shared values contain no owner, microphone engine or meeting content.
 enum RecordingNativeIntentError: Error, Equatable, Sendable, LocalizedError {
-    case notImplemented
     case applicationUnavailable
     case invalidSession
     case foregroundUnavailable
+    case nativeForegroundRequired
 
     var errorDescription: String? {
         switch self {
-        case .notImplemented: "Recording control is not implemented."
         case .applicationUnavailable: "Open LocalMinutes to control recording."
         case .invalidSession: "This recording control has an invalid session."
-        case .foregroundUnavailable: "Open LocalMinutes to review recording permissions and status."
+        case .foregroundUnavailable, .nativeForegroundRequired:
+            "Open LocalMinutes to review recording permissions and status."
         }
     }
 
-    /// Always throws. The following typed result is unreachable in each stub;
-    /// it never turns the missing dispatcher into optimistic success.
-    static func fail(_ error: RecordingNativeIntentError) throws { throw error }
 }
 
 /// Compile this declaration into app AND extension. The extension only creates
@@ -54,12 +51,20 @@ struct StopRecordingActivityIntent: AudioRecordingIntent, LiveActivityIntent {
     @MainActor
     func perform() async throws -> RecordingNativeResult {
         #if LOCALMINUTES_EXTENSION
-        try RecordingNativeIntentError.fail(.applicationUnavailable)
+        // The extension constructs the control; it never creates capture state.
+        throw RecordingNativeIntentError.applicationUnavailable
         #else
-        try RecordingNativeIntentError.fail(.notImplemented)
+        guard let sessionID = UUID(uuidString: sessionID) else {
+            throw RecordingNativeIntentError.invalidSession
+        }
+        do {
+            let outcome = try await application.perform(.stop(expectedSessionID: sessionID))
+            return RecordingIntentReplies.result(for: outcome)
+        } catch RecordingNativeIntentError.nativeForegroundRequired {
+            // App-only foreground APIs do not belong in this shared control.
+            throw RecordingNativeIntentError.foregroundUnavailable
+        }
         #endif
-        return .result(value: "Recording control is not implemented.",
-                       dialog: "Recording control is not implemented.")
     }
 }
 #endif
