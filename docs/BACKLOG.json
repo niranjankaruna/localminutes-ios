@@ -360,9 +360,9 @@
                   "validationEvidence": [
                     "docs/evidence/T06_TDD.md#continuation-05-final-result-and-local-repair"
                   ],
-                  "pendingPushCommit": "4dfacf696a1fded2c39dcc49eb561535bf3e0017",
+                  "pendingPushCommit": null,
                   "repairCommit": "695b99ba9857488ec759bf3b723feb73f734b3b8",
-                  "nextAction": "Verify public standard-runner guard next invocation, push local HEAD and require exact-SHA39native/3UI/full regressions GREEN; current repair uncompiled, UI aggregate incomplete."
+                  "nextAction": "Covered preparing-toggle repair is pushed. Verify exact-SHA native regressions and3UI at run6; no native aggregate GREEN for current app yet."
                 }
               ],
               "redEvidence": [
@@ -389,7 +389,7 @@
       "milestone": "M2",
       "title": "Run early free-signing and device-control feasibility gate",
       "kind": "device",
-      "status": "TODO",
+      "status": "NOT_STARTED",
       "dependsOn": [
         "T06"
       ],
@@ -434,7 +434,7 @@
         {
           "id": "T08.1",
           "title": "Minimal real SQLite meeting/transcript persistence and history tests",
-          "status": "IN_PROGRESS",
+          "status": "VERIFIED_COMPLETE",
           "ownerPriority": "Human requested actual transcription and maximum bounded agents on23October2026; production still requires observed RED.",
           "draftEvidence": [
             "docs/drafts/T08/"
@@ -442,8 +442,11 @@
           "redEvidence": [
             "docs/evidence/T08_T09_TDD.md"
           ],
-          "greenEvidence": [],
-          "deviceEvidence": []
+          "greenEvidence": [
+            "docs/evidence/T10_T11_TDD.md"
+          ],
+          "deviceEvidence": [],
+          "validationScope": "15 actual SQLite initial persistence cases passed; crash/segment recovery remains in parentT08."
         }
       ],
       "redEvidence": [
@@ -478,7 +481,7 @@
         {
           "id": "T09.1",
           "title": "Verified model installer test-first vertical slice",
-          "status": "IN_PROGRESS",
+          "status": "VERIFIED_COMPLETE",
           "ownerPriority": "Human requested actual transcription and maximum bounded agents on23October2026; production still requires observed RED.",
           "draftEvidence": [
             "docs/drafts/T09/"
@@ -486,8 +489,11 @@
           "redEvidence": [
             "docs/evidence/T08_T09_TDD.md"
           ],
-          "greenEvidence": [],
-          "deviceEvidence": []
+          "greenEvidence": [
+            "docs/evidence/T10_T11_TDD.md"
+          ],
+          "deviceEvidence": [],
+          "validationScope": "23 model installer cases passed; transport/privacy/default app lifecycle remain in parentT09."
         }
       ],
       "redEvidence": [
@@ -530,8 +536,11 @@
           "redEvidence": [
             "docs/evidence/T10_T11_TDD.md"
           ],
-          "greenEvidence": [],
-          "deviceEvidence": []
+          "greenEvidence": [
+            "docs/evidence/T10_T11_TDD.md"
+          ],
+          "deviceEvidence": [],
+          "validationScope": "10 actual native CPU ASR cases passed on hosted macOS; current iOS compilation, device performance and full accuracy matrix remain pending."
         }
       ],
       "redEvidence": [
@@ -597,10 +606,14 @@
           "id": "T12.1",
           "title": "Actual native persistent-file protection and backup exclusion metadata",
           "status": "IN_PROGRESS",
-          "redEvidence": [],
+          "redEvidence": [
+            "docs/evidence/T12_PRIVACY_TDD.md"
+          ],
           "greenEvidence": [],
           "deviceEvidence": [],
-          "testCount": 7
+          "testCount": 7,
+          "testFirstSource": "7659a1980b53fc17d624973c6666d83084234ab6",
+          "nextAction": "Actual native assertion RED required before policy implementation; run6 pending."
         }
       ],
       "redEvidence": [],
@@ -615,7 +628,7 @@
       "milestone": "M4",
       "title": "Implement endurance metrics and diagnostic export",
       "kind": "feature",
-      "status": "TODO",
+      "status": "NOT_STARTED",
       "dependsOn": [
         "T12"
       ],
@@ -641,7 +654,7 @@
       "milestone": "M4",
       "title": "Complete two-hour locked device and accuracy validation",
       "kind": "device",
-      "status": "TODO",
+      "status": "NOT_STARTED",
       "dependsOn": [
         "T07",
         "T13"
@@ -758,7 +771,7 @@
       "milestone": "M6",
       "title": "Implement evidence-linked summary and action pipeline",
       "kind": "feature",
-      "status": "TODO",
+      "status": "NOT_STARTED",
       "dependsOn": [
         "T16",
         "T17"
@@ -784,7 +797,7 @@
       "milestone": "M6",
       "title": "Implement locally grounded questions",
       "kind": "feature",
-      "status": "TODO",
+      "status": "NOT_STARTED",
       "dependsOn": [
         "T18",
         "T15"
@@ -810,7 +823,7 @@
       "milestone": "M7",
       "title": "Complete accessibility, privacy and dependency hardening",
       "kind": "validation",
-      "status": "TODO",
+      "status": "NOT_STARTED",
       "dependsOn": [
         "T16",
         "T18",
@@ -840,7 +853,7 @@
       "milestone": "M7",
       "title": "Create reproducible release candidate and full handover",
       "kind": "validation",
-      "status": "TODO",
+      "status": "NOT_STARTED",
       "dependsOn": [
         "T20"
       ],
@@ -869,7 +882,7 @@
       "milestone": "M7",
       "title": "Validate offline use and in-place signing renewal",
       "kind": "device",
-      "status": "TODO",
+      "status": "NOT_STARTED",
       "dependsOn": [
         "T07",
         "T21"
@@ -898,7 +911,7 @@
       "milestone": "M7",
       "title": "Final independent verification and completion audit",
       "kind": "validation",
-      "status": "TODO",
+      "status": "NOT_STARTED",
       "dependsOn": [
         "T14",
         "T21",

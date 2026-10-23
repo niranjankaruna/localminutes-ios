@@ -116,3 +116,6 @@ T10actualRED4c520bd/run40033589101:10ASRcases11assertions0skip afteractualfixtur
 T11/T15/T16/T09.2/T17 RED b0cdd8b/run40034410554:202actualtests,153pass49fail104assert0skip; fixtureandnativeframeworksetupsuccess. All23modelinstaller casesGREEN. Threeagents/rootimplementedonlyafterpersistedRED; GREENpending. Addedlarge-converted-bufferregressionbeforefix; actualnewREDpending.
 
 Actual2eaa5d6/run40035569538 verifies10/10nativeCPUASR,2/2positiveASR/SQLitecompositions andnotes/library/transport/export/CAFmapping. Combinedcore199/198pass/1fail/13assert/0skip;newlarge-bufferREDpreservedbeforelocalfix. Actualb5046Qwen4/2pass/2fail/4assert/0skip, semanticqualityFAILED. NativeUI/device/signing/endurance remainNOT_RUN.
+
+
+7659a19/run40036438183 core SUCCESS:199XCTest+59scripts+85repeatedTSAN,0failures/skips/reported races. Actual large-buffer regression GREEN after2eaa5d6 RED;10CPUrecognizer and4live-session cases pass. Separate actualQwen4cases2pass2fail4assert0skip: semanticqualityFAILED. Nativejob120699362489 active; no current iPhone/UI/privacy/device pass inferred. Seven privacy cases are test-first, no policy implementation yet. P1 integration findings unexecuted: docs/drafts/T16Deletion/INTEGRATION_REVIEW.md. All physical/signing/renewal and both owner125minute gatesNOT_RUN. No retained artifact.

@@ -82,7 +82,7 @@ including pre-stop text, durable reopened rows, global ranges and leased-model
 release. All installer/transport/notes/history/export/real-CAF mapper cases and
 existing regressions passed. The only failure is the new test-first
 `testLargeConvertedBufferIsSplitIntoBoundedNativeChunksWithoutLosingSpeech`:
-nine6400-frameoffers rejected;0received versus56080 expected,0rows versus1,
+nine offers of up to6400frames rejected;0received versus56080 expected,0rows versus1,
 captureUnavailable rather than successful flush, missing finalTENTS. This is
 meaningful behavioral RED before chunk-splitting implementation, not tool failure.
 New regression was committed/pushed before any splitting fix; implementation
@@ -97,3 +97,39 @@ remains FAILED; no canned correction, changed expected owner or pass is claimed.
 These are macOS results. iOS compilation, simulator screens, physical locking,
 endurance and signing remain unverified. Full workflow is correctly FAILED.
 Ignored actual log: `.agent-local/T11-2eaa5d6-validation.log`.
+
+## Buffer repair and core regression GREEN — exact source
+
+Source `7659a1980b53fc17d624973c6666d83084234ab6`, hosted run
+https://github.com/niranjankaruna/localminutes-ios/actions/runs/40036438183,
+core job120696963024 completed SUCCESS at23:00:51UTC on23October2026.
+The test-first regression at2eaa5d6 was repaired only after its13-assertion RED
+was read and persisted. The bounded implementation atbc903c3 retains one
+admission across at most21copies, each at most3200frames, with continuous
+source offsets, explicit queue failure, and drain-before-native-unload ordering.
+
+Actual commands: `swift test --enable-code-coverage --filter
+'(HarnessTests|CoreTests|RecordingTests|ModelTests|PersistenceTests|ASRTests|MeetingLibraryTests)'`,
+`node --test scripts/tests/*.test.mjs`, and the workflow's repeated five-suite
+`swift test --sanitize=thread --filter ...` command. Actual results:
+199XCTest passed,0failures/0skips;59script tests passed,0failures/0skips;
+85repeated sanitizer cases passed,0failures/0skips/reported races. Strict
+case/aggregate reporters passed. The exact new large-buffer case passed in
+6.953seconds with the actual model and fixed licensed speech. All10actual
+recognizer and all4live-session cases passed, including missing-model refusal.
+
+Parallel read-only review found no additional buffer lifetime/shutdown issue.
+This is a core component GREEN, not full workflow or iPhone GREEN. At this
+checkpoint native-build has started; its current app screens/SDK tests have not
+yet produced results. The separate mandatory real-summary job at the same SHA
+still failed:4executed,2passed,2failed,4assertions,0unexpected/0skips. The action
+owner/task/deadline assertions remain unchanged (Maya versusLeo, missing guide,
+Friday versusThursday). Reuse fails its owner assertion; an immediate cancelled
+call did not fail the cancellation assertion. No in-flight cancellation proof
+is inferred. Actual logs confirm CPU-mapped weights,0/29GPU layers and CPU KV;
+Metal initialization messages mean no blanket absence-of-GPU-activity claim.
+
+Ignored logs: `.agent-local/T11-7659a19-core.log` and
+`.agent-local/T17-7659a19-quality.log`. Physical signing, locked continuation,
+Action Button, offline iPhone inference, renewal and both owner-run125minute
+passes remain NOT_RUN. No candidate artifact has been delivered.
