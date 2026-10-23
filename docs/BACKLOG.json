@@ -86,7 +86,7 @@
       "milestone": "M1",
       "title": "Implement recording domain state machine tests first",
       "kind": "feature",
-      "status": "IN_PROGRESS",
+      "status": "VERIFIED_COMPLETE",
       "dependsOn": [
         "T02"
       ],
@@ -99,9 +99,9 @@
         "Test transitions, duplicate/concurrent starts and stops, cancellation and interrupted states.",
         "Capture real RED before implementing coordinator behavior."
       ],
-      "childTasks": [{"id":"T03.1","title":"Reject late readiness after interruption during activation","status":"IN_PROGRESS","redEvidence":["docs/evidence/T03_TDD.md#t031-regression-red--verified"],"greenEvidence":[]}],
+      "childTasks": [{"id":"T03.1","title":"Reject late readiness after interruption during activation","status":"VERIFIED_COMPLETE","redEvidence":["docs/evidence/T03_TDD.md#t031-regression-red--verified"],"greenEvidence":["docs/evidence/T03_TDD.md#t031-green--verified"]}],
       "redEvidence": ["docs/evidence/T03_TDD.md"],
-      "greenEvidence": ["docs/evidence/T03_TDD.md#green--initial-domain-set-passed-review-regression-pending"],
+      "greenEvidence": ["docs/evidence/T03_TDD.md#t031-green--verified"],
       "deviceEvidence": [],
       "blockers": [],
       "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
@@ -112,7 +112,7 @@
       "milestone": "M1",
       "title": "Generate app/extension project and unsigned IPA pipeline",
       "kind": "infrastructure",
-      "status": "TODO",
+      "status": "IN_PROGRESS",
       "dependsOn": [
         "T02"
       ],
@@ -125,7 +125,7 @@
         "Test Info.plist, bundle IDs, architecture, Payload structure and checksums.",
         "Produce candidate unsigned artifact with no Apple credentials."
       ],
-      "childTasks": [],
+      "childTasks": [{"id":"T04.1","title":"Validate device bundle metadata, archive paths and checksums","status":"IN_PROGRESS"},{"id":"T04.2","title":"Compile app and Live Activity extension for device and simulator","status":"NOT_STARTED"},{"id":"T04.3","title":"Create and verify unsigned device archive","status":"NOT_STARTED"},{"id":"T04.4","title":"Retain and deliver checksummed candidate artifact","status":"BLOCKED_EXTERNAL","blockers":["ARTIFACT_STORAGE_HEADROOM_UNVERIFIED"]}],
       "redEvidence": [],
       "greenEvidence": [],
       "deviceEvidence": [],

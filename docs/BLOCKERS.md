@@ -1,6 +1,6 @@
 # Blockers
 
-No confirmed external blocker prevents the next T03.1 code fix. T00 authentication
+No confirmed external blocker prevents T04 code/build validation. T00 authentication
 and repository bootstrap succeeded. A sandbox-only network error was resolved
 by an authorized direct check; account billing read access was available in the
 signed-in browser despite insufficient CLI billing scope.
@@ -28,7 +28,7 @@ NOT_RUN, not inferred blocked or passed before a candidate exists.
 - Resolution: pending. Never set candidateArtifact until a retained, checksummed
   artifact has actually been delivered and verified.
 
-## Open implementation issue — T03.1 (not an external blocker)
+## Resolved implementation issue — T03.1
 
 Observed by independent review on 23 October 2026 at source
 `9c39e5f6a44904dc5746fc31c6a1c5e3c9373fc2`: after activation is emitted,
@@ -38,8 +38,9 @@ native RED is verified at `33cd7c6a88195998b6a5f15bb62cc9c6c415045a`, run
 39976742123: 20 executed, 19 passed, 1 failed, 6 assertions, 0 skipped.
 Next implementation must handle that interruption with
 one cleanup command, reject late readiness and preserve interrupted status.
-No owner action or credential is needed for the code fix. All six invocation
-CI runs have completed; this invocation checkpoints without a seventh run.
-No fix has been attempted. T03 remains IN_PROGRESS; main was not advanced.
+Resolved in continuation at `809f653c8b3cb52c1c04943401eb42d166d7e94b`, run
+39978171921: 20 XCTest and 8 reporting tests passed, 0 failures/skips. Independent
+review passed; exact tested history was fast-forwarded and verified on main.
+No owner action or credential was needed. T03/T03.1 are complete as domain work.
 
 For each blocker record: ID, first observed time, affected tasks/gates, exact sanitized error/evidence, hypotheses already tried, retry count, safe independent work, owner action if required, and resolution evidence. Missing authentication, unknown budget guard, and unavailable physical device must not trigger an endless retry loop.

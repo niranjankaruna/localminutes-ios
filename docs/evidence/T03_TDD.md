@@ -115,3 +115,20 @@ session with activation issued may enter interrupted before all readiness
 acknowledgements arrive. It shares the existing single cleanup command and
 stale-event rejection path. No test was removed, skipped or weakened.
 Actual new-source GREEN is pending, not inferred from inspection.
+
+## T03.1 GREEN — verified
+
+Implementation commit: `809f653c8b3cb52c1c04943401eb42d166d7e94b`.
+Run [39978171921](https://github.com/niranjankaruna/localminutes-ios/actions/runs/39978171921)
+completed 23 October 2026, 15:27:07 UTC: **20 XCTest executed/passed, 0 failed,
+0 skipped; all 8 Node reporting regressions passed**. Exact commands remain
+`swift test --enable-code-coverage` and the strict log verifier requiring the
+interruption regression by name. Real platform: macos-15-intel / Xcode 26.2.
+The new regression and all prior concurrency/cancellation/failure cases passed.
+
+Independent reviewer examined the two-line fix and found no actionable issue.
+No I/O, meeting data, diagnostics, dependency or test behavior was added.
+No refactor was needed. Main was fast-forwarded to this exact tested source,
+pushed and verified against the remote. RED commits remain in its history.
+T03 and T03.1 are complete as a domain slice; native audio/model/device gates
+are still NOT_RUN. Next: T04 app/extension and package validation tests first.
