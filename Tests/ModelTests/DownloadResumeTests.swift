@@ -25,17 +25,36 @@ private final class ResumeHTTPState: @unchecked Sendable {
     private var recorded: [URLRequest] = []
     private var delivered = false
     private var stopped = 0
-    func reset(_ reply: ResumeReply) { lock.withLock { self.reply = reply; recorded = []; delivered = false; stopped = 0 } }
+    private var disconnectID: UUID?
+    private var disconnectCallback: (@Sendable () -> Void)?
+    func reset(_ reply: ResumeReply) {
+        lock.withLock { self.reply = reply; recorded = []; delivered = false; stopped = 0; disconnectID = nil; disconnectCallback = nil }
+    }
     func begin(_ request: URLRequest) -> ResumeReply? { lock.withLock { recorded.append(request); return reply } }
     func sent() { lock.withLock { delivered = true } }
     func stop() { lock.withLock { stopped += 1 } }
     var requests: [URLRequest] { lock.withLock { recorded } }
     var deliveredChunk: Bool { lock.withLock { delivered } }
     var stopCount: Int { lock.withLock { stopped } }
+    var canDisconnect: Bool { lock.withLock { disconnectCallback != nil } }
+    func holdDisconnect(id: UUID, _ callback: @escaping @Sendable () -> Void) {
+        lock.withLock { disconnectID = id; disconnectCallback = callback }
+    }
+    func clearDisconnect(id: UUID) {
+        lock.withLock { if disconnectID == id { disconnectID = nil; disconnectCallback = nil } }
+    }
+    func disconnect() {
+        let callback = lock.withLock { () -> (@Sendable () -> Void)? in
+            let callback = disconnectCallback; disconnectCallback = nil; disconnectID = nil
+            return callback
+        }
+        callback?()
+    }
 }
 private final class ResumeHTTPProtocol: URLProtocol, @unchecked Sendable {
     static let state = ResumeHTTPState()
     private let lock = NSLock()
+    private let connectionID = UUID()
     private var stopped = false
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
@@ -54,12 +73,22 @@ private final class ResumeHTTPProtocol: URLProtocol, @unchecked Sendable {
             guard !self.lock.withLock({ self.stopped }) else { return }
             switch reply.ending {
             case .complete: self.client?.urlProtocolDidFinishLoading(self)
-            case .disconnect: self.client?.urlProtocol(self, didFailWithError: URLError(.networkConnectionLost))
+            case .disconnect:
+                // This is only offered data until Foundation calls the real
+                // delegate. The test proves durable delivery before disconnect.
+                Self.state.holdDisconnect(id: self.connectionID) { [weak self] in self?.disconnect() }
             case .hold: break
             }
         }
     }
-    override func stopLoading() { lock.withLock { stopped = true }; Self.state.stop() }
+    private func disconnect() {
+        guard !lock.withLock({ stopped }) else { return }
+        client?.urlProtocol(self, didFailWithError: URLError(.networkConnectionLost))
+    }
+    override func stopLoading() {
+        lock.withLock { stopped = true }; Self.state.stop()
+        Self.state.clearDisconnect(id: connectionID)
+    }
 }
 
 @MainActor
@@ -84,8 +113,23 @@ final class DownloadResumeTests: XCTestCase {
         try await fixture { f in
             let prefix = 1_024
             ResumeHTTPProtocol.state.reset(f.fullReply(bytes: Data(f.bytes.prefix(prefix)), ending: .disconnect))
+            let transport = f.transport(), artifact = f.artifact, output = f.output, checkpoint = f.checkpoint
+            let interrupted = Task { try await transport.downloadResumable(artifact, to: output, checkpointDirectory: checkpoint) }
+            let durable = await wait {
+                let saved = try? f.readCheckpoint()
+                return ResumeHTTPProtocol.state.canDisconnect && saved?.receivedByteCount == Int64(prefix)
+                    && saved?.partialSHA256 == resumeDigest(Data(f.bytes.prefix(prefix)))
+                    && (try? Data(contentsOf: f.partial)) == Data(f.bytes.prefix(prefix))
+            }
+            XCTAssertTrue(durable, "Real prefix/checkpoint publication must precede injected network failure")
+            guard durable else {
+                interrupted.cancel(); ResumeHTTPProtocol.state.disconnect()
+                _ = try? await interrupted.value
+                return
+            }
+            ResumeHTTPProtocol.state.disconnect()
             await expect(.networkFailure) {
-                try await f.transport().downloadResumable(f.artifact, to: f.output, checkpointDirectory: f.checkpoint)
+                try await interrupted.value
             }
             let saved = try f.readCheckpoint()
             XCTAssertEqual(saved.receivedByteCount, Int64(prefix))

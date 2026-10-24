@@ -113,19 +113,29 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
             }
             metrics?.beginEpoch(modelRevision: selected.revision, runtimeVersion: selected.runtimeVersion)
             let recognizer: LiveSpeechRecognizer
-            if let whisper = model.files[.whisper] {
+            let profile: HuggingFaceRuntimeProfile
+            if selected.runtimeVersion == ParakeetCoreMLModel.runtimeVersion {
+                guard selected.revision == ParakeetCoreMLModel.revision, selected.featureDimension == 128,
+                      selected.artifacts.count == ParakeetCoreMLModel.manifest.artifacts.count,
+                      selected.artifacts.allSatisfy({ $0.role == .coreMLAsset }) else { throw StreamingASRError.invalidModel }
+                profile = .parakeetTDTCoreML
+                recognizer = .windowed(.parakeet(CoreMLParakeetRecognizer(files: .init(
+                    directory: model.directoryURL, revision: selected.revision, runtimeVersion: selected.runtimeVersion))))
+            } else if let whisper = model.files[.whisper] {
                 guard model.files.count == 1, selected.artifacts.count == 1,
                       selected.artifacts[0].role == .whisper, selected.featureDimension == nil,
                       selected.runtimeVersion == "whisper.cpp-1.7.5" else { throw StreamingASRError.invalidModel }
                 let artifact = selected.artifacts[0]
-                recognizer = .whisper(WhisperSpeechRecognizer(files: .init(model: whisper,
-                    revision: selected.revision, byteCount: artifact.byteCount, sha256: artifact.sha256)))
+                profile = .whisperGGML
+                recognizer = .windowed(.whisper(WhisperSpeechRecognizer(files: .init(model: whisper,
+                    revision: selected.revision, byteCount: artifact.byteCount, sha256: artifact.sha256))))
             } else {
                 guard model.files.count == 4, selected.featureDimension == 80,
                       let encoder = model.files[.encoder], let decoder = model.files[.decoder],
                       let joiner = model.files[.joiner], let tokens = model.files[.tokens] else {
                     throw StreamingASRError.invalidModel
                 }
+                profile = .streamingZipformerONNX
                 recognizer = .streaming(CPUStreamingRecognizer(files: .init(encoder: encoder, decoder: decoder,
                     joiner: joiner, tokens: tokens, revision: selected.revision,
                     runtimeVersion: selected.runtimeVersion)))
@@ -148,7 +158,7 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
                                                 recordingState: .recording))
             epoch.meetingCreated = true
             try await store.saveSpeechModelPin(.init(meetingID: epoch.id,
-                selection: .init(manifest: selected, profile: model.files[.whisper] != nil ? .whisperGGML : .streamingZipformerONNX,
+                selection: .init(manifest: selected, profile: profile,
                     installationID: model.installationID)))
             try Task.checkCancellation()
             epoch.ingress = ingress
@@ -266,8 +276,8 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
         case .streaming(let streaming):
             return await consumeStreaming(ingress, recognizer: streaming, store: store, id: id,
                 revision: revision, publish: publish)
-        case .whisper(let whisper):
-            return await consumeWhisper(ingress, recognizer: whisper, store: store, id: id,
+        case .windowed(let windowed):
+            return await consumeWindowed(ingress, recognizer: windowed, store: store, id: id,
                 revision: revision, publish: publish)
         }
     }
@@ -358,8 +368,8 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
         return TranscriptDrain(snapshot: snapshot)
     }
 
-    private nonisolated static func consumeWhisper(_ ingress: TranscriptIngress,
-        recognizer: WhisperSpeechRecognizer, store: SQLiteMeetingStore, id: UUID, revision: String,
+    private nonisolated static func consumeWindowed(_ ingress: TranscriptIngress,
+        recognizer: WindowedSpeechRecognizer, store: SQLiteMeetingStore, id: UUID, revision: String,
         publish: @escaping @Sendable (LiveTranscriptSnapshot) async -> Void) async -> TranscriptDrain {
         var scratch = [Float](repeating: 0, count: 3_200)
         var cursor: Int64 = 0
@@ -445,28 +455,28 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
     }
 }
 
-/// Engine differences remain explicit: Whisper supplies timestamped final
-/// deltas; Sherpa owns endpoint reset and utterance-relative token times.
+/// Engine differences remain explicit: windowed engines supply final deltas;
+/// the online engine owns endpoint reset and utterance-relative token times.
 private enum LiveSpeechRecognizer: Sendable {
     case streaming(CPUStreamingRecognizer)
-    case whisper(WhisperSpeechRecognizer)
+    case windowed(WindowedSpeechRecognizer)
 
     func load() async throws {
         switch self {
         case .streaming(let value): try await value.load()
-        case .whisper(let value): try await value.load()
+        case .windowed(let value): try await value.load()
         }
     }
     func start(epochID: UUID) async throws {
         switch self {
         case .streaming(let value): try await value.start(epochID: epochID)
-        case .whisper(let value): try await value.start(epochID: epochID)
+        case .windowed(let value): try await value.start(epochID: epochID)
         }
     }
     func unload() async {
         switch self {
         case .streaming(let value): await value.unload()
-        case .whisper(let value): await value.unload()
+        case .windowed(let value): await value.unload()
         }
     }
 }

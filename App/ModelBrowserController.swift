@@ -20,6 +20,7 @@ final class ModelBrowserController {
     private(set) var isInspecting = false
     private(set) var isWorking = false
     private(set) var isDownloading = false
+    private(set) var isImporting = false
     private(set) var message: String?
     private(set) var errorMessage: String?
     @ObservationIgnored private weak var services: LocalMinutesServices?
@@ -33,7 +34,7 @@ final class ModelBrowserController {
         let result = repository.assessment(for: purpose, fileName: selectedFileName,
             maximumDownloadBytes: resources.freeDiskBytes ?? Int64.max)
         return ModelRuntimeCompatibility.assess(repository: repository, format: result,
-            availableProfiles: [.streamingZipformerONNX, .whisperGGML, .llamaGGUF])
+            availableProfiles: [.streamingZipformerONNX, .whisperGGML, .llamaGGUF, .parakeetTDTCoreML])
     }
     var resourceAssessment: ModelResourceAssessment? {
         repository?.resourceAssessment(for: purpose, fileName: selectedFileName,
@@ -96,7 +97,7 @@ final class ModelBrowserController {
             do {
                 _ = try await services.models.download(manifest)
                 message = "Downloaded and verified. Tap Equip to use this model."
-            } catch is CancellationError { message = "Download cancelled. Installed alternatives were preserved." }
+            } catch is CancellationError { message = "Download paused. Choose the same file and tap Download to resume its verified saved prefix." }
             catch { errorMessage = Self.describe(error) }
             isDownloading = false; isWorking = false; download = nil
             await services.refreshModels(); await refresh()
@@ -104,6 +105,39 @@ final class ModelBrowserController {
     }
 
     func cancelDownload() { download?.cancel() }
+
+    func selectedImportManifest() -> ModelManifest? {
+        guard !isWorking, let repository else { return nil }
+        let format = repository.assessment(for: purpose, fileName: selectedFileName, maximumDownloadBytes: .max)
+        let assessment = ModelRuntimeCompatibility.assess(repository: repository, format: format,
+            availableProfiles: [.streamingZipformerONNX, .whisperGGML, .llamaGGUF, .parakeetTDTCoreML])
+        guard assessment.status == .supported else { return nil }
+        return try? Self.manifest(repository, assessment: assessment, purpose: purpose)
+    }
+
+    func discardSelectedDownload() {
+        guard let manifest = selectedImportManifest(), let services else { return }
+        do {
+            try services.transferFactory.discardProgress(for: manifest)
+            message = "Unfinished download removed. Installed models remain available."
+        } catch { errorMessage = "This download is still in use or its files could not be safely removed. Pause it and try again." }
+    }
+
+    func importSelectedFiles(_ files: [URL], manifest: ModelManifest) {
+        guard !isWorking, let services, !services.maintainingLibrary else { return }
+        isWorking = true; isImporting = true; errorMessage = nil
+        message = "Reading the selected files and verifying this model…"
+        download = Task { [weak self] in
+            guard let self else { return }
+            do {
+                _ = try await services.filesImporter.importFiles(files, manifest: manifest)
+                message = "Imported and verified. Tap Equip to use this model."
+            } catch is CancellationError { message = "Import cancelled. Existing installed models were preserved." }
+            catch { errorMessage = Self.describe(error) }
+            isImporting = false; isWorking = false; download = nil
+            await services.refreshModels(); await refresh()
+        }
+    }
 
     func equip(_ manifest: ModelManifest) async {
         guard !isWorking, let services else { return }
@@ -125,6 +159,7 @@ final class ModelBrowserController {
             if isEquipped(manifest), services.heavyAdmission?.snapshot().phase != .idle {
                 throw ModelSelectionError.selectionInUse
             }
+            try services.transferFactory.discardProgress(for: manifest)
             let selected = try await services.modelSelections.selected(for: manifest.purpose)
             if selected?.manifest.modelID == manifest.modelID {
                 try await services.modelSelections.removeSelected(for: manifest.purpose)
@@ -143,6 +178,7 @@ final class ModelBrowserController {
 
     private static func profile(_ manifest: ModelManifest) -> HuggingFaceRuntimeProfile? {
         switch manifest.runtimeVersion {
+        case ParakeetCoreMLModel.runtimeVersion: return .parakeetTDTCoreML
         case "whisper.cpp-1.7.5": return .whisperGGML
         case "sherpa-onnx-1.13.8": return .streamingZipformerONNX
         case "llama.cpp-b5046": return .llamaGGUF
@@ -154,6 +190,12 @@ final class ModelBrowserController {
         assessment: HuggingFaceCompatibilityAssessment, purpose: ModelPurpose) throws -> ModelManifest {
         guard let profile = assessment.profile, let license = repository.licenseIdentifier,
               !license.isEmpty, !assessment.selectedFiles.isEmpty else { throw ModelInstallationError.invalidManifest }
+        if profile == .parakeetTDTCoreML {
+            guard assessment.status == .supported, repository.revision == ParakeetCoreMLModel.revision else {
+                throw ModelInstallationError.invalidManifest
+            }
+            return ParakeetCoreMLModel.manifest
+        }
         let artifacts = try assessment.selectedFiles.map { file -> ModelArtifact in
             guard let bytes = file.byteCount, let digest = file.sha256, bytes > 0 else {
                 throw ModelInstallationError.invalidManifest
@@ -161,6 +203,7 @@ final class ModelBrowserController {
             let name = URL(fileURLWithPath: file.fileName).lastPathComponent
             let role: ModelFileRole
             switch profile {
+            case .parakeetTDTCoreML: throw ModelInstallationError.invalidManifest
             case .llamaGGUF: role = .summary
             case .whisperGGML: role = .whisper
             case .streamingZipformerONNX:
@@ -179,6 +222,7 @@ final class ModelBrowserController {
         let upstream = URL(string: "https://huggingface.co/" + repository.id.rawValue)!
         let runtime: String
         switch profile {
+        case .parakeetTDTCoreML: runtime = ParakeetCoreMLModel.runtimeVersion
         case .llamaGGUF: runtime = "llama.cpp-b5046"
         case .whisperGGML: runtime = "whisper.cpp-1.7.5"
         case .streamingZipformerONNX: runtime = "sherpa-onnx-1.13.8"

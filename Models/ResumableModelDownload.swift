@@ -40,6 +40,10 @@ final class ResumableModelDownload: NSObject, URLSessionDataDelegate, @unchecked
     private var durableBytes: Int64 = 0
     private var outputTemporary: URL?
     private var publishedOutput = false
+#if DEBUG
+    private var responseCallbacks = 0
+    private var dataCallbacks = 0
+#endif
     private var partial: URL { directory.appendingPathComponent("partial.bin") }
     private var checkpointURL: URL { directory.appendingPathComponent("checkpoint.json") }
 
@@ -95,8 +99,8 @@ final class ResumableModelDownload: NSObject, URLSessionDataDelegate, @unchecked
         let parts = artifact.downloadURL.path.split(separator: "/", omittingEmptySubsequences: true)
         guard artifact.downloadURL.query == nil, artifact.downloadURL.fragment == nil,
               parts.count >= 5, parts[2] == "resolve", Self.hex(String(parts[3]), length: 40),
-              artifact.downloadURL.lastPathComponent == artifact.fileName,
-              Self.component(artifact.fileName), artifact.byteCount > 0,
+              parts.dropFirst(4).joined(separator: "/") == artifact.fileName,
+              ModelArtifactPath.components(artifact.fileName) != nil, artifact.byteCount > 0,
               Self.hex(artifact.sha256, length: 64) else { throw ModelTransportError.invalidResumeState }
         revision = String(parts[3])
         try validateDestination()
@@ -189,6 +193,9 @@ final class ResumableModelDownload: NSObject, URLSessionDataDelegate, @unchecked
 
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse,
                     completionHandler: @escaping @Sendable (URLSession.ResponseDisposition) -> Void) {
+#if DEBUG
+        responseCallbacks += 1
+#endif
         guard outcome == nil else { completionHandler(.cancel); return }
         do {
             try checkCancellation()
@@ -238,6 +245,9 @@ final class ResumableModelDownload: NSObject, URLSessionDataDelegate, @unchecked
     }
 
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+#if DEBUG
+        dataCallbacks += 1
+#endif
         guard outcome == nil, accepted else { return }
         do {
             try checkCancellation()
@@ -341,10 +351,9 @@ final class ResumableModelDownload: NSObject, URLSessionDataDelegate, @unchecked
 
     private func validateDestination() throws {
         let parent = destination.deletingLastPathComponent()
-        guard destination.isFileURL, stagingRoot.isFileURL,
-              destination.lastPathComponent == artifact.fileName,
-              parent.deletingLastPathComponent().path == stagingRoot.path,
-              UUID(uuidString: parent.lastPathComponent) != nil else { throw ModelTransportError.invalidDestination }
+        guard ModelArtifactPath.operationRoot(destination: destination, fileName: artifact.fileName, stagingRoot: stagingRoot) != nil else {
+            throw ModelTransportError.invalidDestination
+        }
         do {
             try PersistentFilePolicy.validateItem(parent, within: stagingRoot)
             guard try parent.resourceValues(forKeys: [.isDirectoryKey]).isDirectory == true,
@@ -389,6 +398,12 @@ final class ResumableModelDownload: NSObject, URLSessionDataDelegate, @unchecked
     }
     private func finish(_ result: Result<Void, Error>) {
         guard outcome == nil else { return }
+#if DEBUG
+        if case .failure = result {
+            // Counts/phase only: never URL, path, ETag, bytes or credentials.
+            print("MODEL_TRANSFER_BOUNDARY response=\(responseCallbacks) accepted=\(accepted) dataCallbacks=\(dataCallbacks) received=\(received)")
+        }
+#endif
         outcome = result
         try? file?.close(); file = nil
         if let outputTemporary { try? FileManager.default.removeItem(at: outputTemporary); self.outputTemporary = nil }
@@ -402,7 +417,7 @@ final class ResumableModelDownload: NSObject, URLSessionDataDelegate, @unchecked
     private static func readHandle(_ url: URL) throws -> FileHandle {
         FileHandle(fileDescriptor: try openRegular(url, flags: O_RDONLY), closeOnDealloc: true)
     }
-    private static func lockExclusively(_ descriptor: Int32) -> Bool {
+    static func lockExclusively(_ descriptor: Int32) -> Bool {
         // Darwin's imported struct flock shadows the C function in this SDK.
         // Resolve only this constant public libSystem symbol with its C ABI;
         // never load a path/model library or send the pointer across executors.

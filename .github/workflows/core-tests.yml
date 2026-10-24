@@ -13,6 +13,11 @@ on:
         description: Reviewed app source for the MVP package
         required: true
         default: db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04
+      summaryResume:
+        description: Recheck actual summary resume when its implementation changed
+        type: boolean
+        required: true
+        default: true
 
 permissions:
   contents: read
@@ -77,7 +82,7 @@ jobs:
               testFilesFolderSelectionBalancesOneSecurityScopeAndRefusesDeniedOrAliasedRootsWithoutSourceChanges \
               testExactNativeTDTIdentityAndMeasuredCountersRoundTripWithoutInventedComputeClaims \
               testNativeRuntimeIdentityCannotAuthorizeUnmeasuredGPUOrPrivatePayloadFields \
-              testRemovingModelCanPurgeItsCompletedDownloadCacheWithoutErasingAnotherPinAndRefusesCacheLinks \
+              testRemovingModelPurgesInterruptedProgressWithoutErasingAnotherPinAndRefusesCacheLinks \
               testFilesImportWithoutDirectoryURLHintLeavesNoOwnedSourceCopiesAfterSuccessfulInstall
           fi
 
@@ -273,7 +278,7 @@ jobs:
           fi
 
   actual-summary-resume:
-    if: ${{ inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet' }}
+    if: ${{ (inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet') && inputs.summaryResume }}
     runs-on: macos-15-intel
     timeout-minutes: 18
     env:
@@ -324,7 +329,7 @@ jobs:
           export LOCALMINUTES_PARAKEET_COREML_MODEL_DIRECTORY="$PWD/.agent-local/parakeet-coreml-fixtures/model"
           export LOCALMINUTES_PARAKEET_COREML_FIXTURE_PATH="$PWD/.agent-local/parakeet-coreml-fixtures/6930-75918-0000.flac"
           mkdir -p .build
-          swift test --filter 'ASRTests[.](CoreMLParakeetRecognizerTests|SelectedCoreMLParakeetLiveSessionTests)' 2>&1 | tee .build/native-parakeet.log
+          swift test --filter 'ASRTests[.](CoreMLParakeetRecognizerTests|SelectedCoreMLParakeetLiveSessionTests|CoreMLParakeetSelectionIntegrationTests|CoreMLParakeetReplayIntegrationTests)' 2>&1 | tee .build/native-parakeet.log
       - name: Require real native inference contracts without skip
         if: always()
         shell: bash
@@ -335,7 +340,9 @@ jobs:
             testCancellationIsEpochScopedAndUnloadAllowsFreshActualRecognition \
             testInvalidPCMAndGapsCannotAdvanceActualNativeTimeline \
             testUnverifiedModelIsRejectedBeforeAnyNativeConstructor \
-            testEquippedNativeParakeetPublishesLicensedSpeechDuringCaptureAndPersistsCapturedPin
+            testEquippedNativeParakeetPublishesLicensedSpeechDuringCaptureAndPersistsCapturedPin \
+            testActualNativeInstallationEquipsAndReopensWithoutChangingIndependentSummarySlot \
+            testDurableLicensedCAFReplaysCapturedNativePinPreservingOriginalsAndIdempotentCursor
 
   selected-model-integration:
     if: ${{ inputs.mode == 'model-integration' || inputs.mode == 'model-repair' || inputs.mode == 'model-delivery' }}

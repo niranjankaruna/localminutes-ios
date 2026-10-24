@@ -31,6 +31,7 @@ final class RecordingApplication {
     private(set) var services: LocalMinutesServices?
     private(set) var playbackOwnership: PlaybackOwnershipController?
     private(set) var isRestoringLibrary = false
+    @ObservationIgnored private var libraryPlaybackReservation: (controller: PlaybackOwnershipController, id: UUID)?
     private(set) var lastOutcome: RecordingIntentOutcome?
     private var router: RecordingIntentRouter
     @ObservationIgnored private var signalMonitor: IOSRecordingSignalMonitor
@@ -245,7 +246,28 @@ final class RecordingApplication {
         playbackOwnership?.stop(expectedRequestID: expectedRequestID) ?? .stopped
     }
 
-    func setLibraryRestoreActive(_ active: Bool) { isRestoringLibrary = active }
+    func setLibraryRestoreActive(_ active: Bool) throws {
+        if active {
+            guard !isRestoringLibrary else { throw LibraryArchiveCoordinatorError.busy }
+            if let controller = playbackOwnership {
+                let id = UUID()
+                guard controller.prepareForRecording(operationID: id) == .allowed else {
+                    controller.recordingActionCompleted(operationID: id)
+                    throw LibraryArchiveCoordinatorError.busy
+                }
+                libraryPlaybackReservation = (controller, id)
+            }
+            isRestoringLibrary = true
+        } else {
+            // Rebinding services creates a new controller. Release the original
+            // controller's exact token, never a token on its replacement.
+            if let reservation = libraryPlaybackReservation {
+                reservation.controller.recordingActionCompleted(operationID: reservation.id)
+            }
+            libraryPlaybackReservation = nil
+            isRestoringLibrary = false
+        }
+    }
 
     /// Replace the composition behind the stable App Intents entry object only
     /// after the new library opens. Old view tasks retain their closed old store.

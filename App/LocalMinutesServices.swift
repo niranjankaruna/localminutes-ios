@@ -12,6 +12,15 @@ private struct AppMetricsClock: MetricsMonotonicClock {
 /// in-place signing refresh; preservation still requires physical verification.
 @MainActor @Observable
 final class LocalMinutesServices: PlaybackHardware {
+    @MainActor private final class DeletionResources: HeavyModelResourceLifecycle {
+        var work: Task<Bool, Never>?
+        var settled = false
+        func requestCancellation() { work?.cancel() }
+        func drain() async throws { if let work { _ = await work.value } }
+        func unloadAndReleaseModel() async throws {
+            guard settled else { throw HeavyModelAdmissionError.cleanupFailed }
+        }
+    }
     let heavyAdmission: HeavyModelAdmission?
     let recordingAdmission: RecordingHeavyModelAdmission?
     private(set) var intelligence: IntelligenceSession?
@@ -48,7 +57,11 @@ final class LocalMinutesServices: PlaybackHardware {
         try endurance?.sample(NativeEnduranceFacts.current(visibility: visibility))
     }
     func beginEnduranceEpoch() {
-        metricsSampler?.cancel(); endurance?.beginEpoch()
+        metricsSampler?.cancel()
+        // Owner preparation precedes the model's async pin binding. Clear the
+        // previous PCM epoch synchronously before any retained sampler can run.
+        metrics?.beginEpoch()
+        endurance?.beginEpoch()
         metricsSampler = Task { @MainActor [weak self] in
             while !Task.isCancelled {
                 guard let self else { return }
@@ -163,7 +176,7 @@ final class LocalMinutesServices: PlaybackHardware {
         endurance = try EnduranceMetricsRecorder(transcription: metrics, clock: AppMetricsClock())
         let admission = HeavyModelAdmission()
         let selections = ModelSelectionStore(rootURL: root.appendingPathComponent("ModelSelections", isDirectory: true),
-            models: manager, availableProfiles: [.streamingZipformerONNX, .whisperGGML, .llamaGGUF],
+            models: manager, availableProfiles: [.streamingZipformerONNX, .whisperGGML, .llamaGGUF, .parakeetTDTCoreML],
             canChangeSelection: { admission.snapshot().phase == .idle })
         modelSelections = selections
         models = manager; store = database; meetingsDirectory = meetings
@@ -233,8 +246,12 @@ final class LocalMinutesServices: PlaybackHardware {
             libraryMessage = "Stop recording, playback or local processing before deleting this meeting."
             return false
         }
+        guard let admission = heavyAdmission else { return false }
+        let resources = DeletionResources()
+        let lease: HeavyModelUseLease
+        do { lease = try admission.acquire(purpose: .libraryMaintenance, requestID: id, resource: resources) }
+        catch { libraryMessage = "Local processing is still in use. Try deleting again after it finishes."; return false }
         let work = Task { @MainActor in
-            defer { self.deletionWork[id] = nil }
             await self.initialize()
             guard self.startup.state == .ready else { return false }
             do {
@@ -248,8 +265,18 @@ final class LocalMinutesServices: PlaybackHardware {
                 return false
             }
         }
-        deletionWork[id] = work
-        return await work.value
+        resources.work = work
+        // Cleanup joins the worker from a separate retained task. The heavy
+        // gate excludes new generation until SQL and private cache cleanup end.
+        let completion = Task { @MainActor in
+            defer { self.deletionWork[id] = nil }
+            let result = await work.value
+            resources.settled = true
+            do { try await admission.cancelAndDrain(lease); return result }
+            catch { self.libraryMessage = "Deletion cleanup is still pending. Keep the app open and retry."; return false }
+        }
+        deletionWork[id] = completion
+        return await completion.value
     }
 
     func resumeTranscript(meetingID: UUID) {
@@ -364,7 +391,10 @@ final class LocalMinutesServices: PlaybackHardware {
 
     func remove(_ manifest: ModelManifest) async {
         guard operation == nil else { return }
-        do { try await models.remove(modelID: manifest.modelID); modelError = nil }
+        do {
+            try transferFactory.discardProgress(for: manifest)
+            try await models.remove(modelID: manifest.modelID); modelError = nil
+        }
         catch { modelError = "This model is in use or could not be removed. Stop recording and try again." }
         await refreshModels()
     }

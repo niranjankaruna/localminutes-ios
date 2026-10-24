@@ -193,15 +193,26 @@ public enum MeetingArchive {
     private static func scanPayload(_ root: URL, limits: MeetingArchiveLimits) throws -> Scan {
         var result = Scan()
         var directoryCount = 0
+        var parents: [String] = []
         let enumerationFailed = Mutex(false)
         guard let entries = FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil,
             options: [], errorHandler: { _, _ in enumerationFailed.withLock { $0 = true }; return false }) else {
             throw MeetingArchiveError.ioFailure
         }
-        while let file = entries.nextObject() as? URL {
+        while let entry = entries.nextObject() as? URL {
             try Task.checkCancellation()
                 guard !enumerationFailed.withLock({ $0 }) else { throw MeetingArchiveError.ioFailure }
-                let path = file.pathComponents.dropFirst(root.pathComponents.count).joined(separator: "/")
+                // Enumerated URLs may use a system-canonical or relative base.
+                // The enumerator's depth and basename bind each item to the
+                // already validated owned parent without subtracting URL roots.
+                let depth = entries.level
+                guard (1...4).contains(depth), depth <= parents.count + 1 else {
+                    throw MeetingArchiveError.unexpectedFile
+                }
+                parents = Array(parents.prefix(depth - 1))
+                let components = parents + [entry.lastPathComponent]
+                let path = components.joined(separator: "/")
+                let file = root.appendingPathComponent(path)
                 if ["meetings.sqlite-wal", "meetings.sqlite-shm", "meetings.sqlite-journal"].contains(path) {
                     throw MeetingArchiveError.snapshotNotClosed
                 }
@@ -211,6 +222,7 @@ public enum MeetingArchive {
                     guard allowedDirectory(path) else { throw MeetingArchiveError.unexpectedFile }
                     directoryCount += 1
                     guard directoryCount <= limits.maximumFiles else { throw MeetingArchiveError.limitExceeded }
+                    parents.append(entry.lastPathComponent)
                 } else {
                     guard metadata[.type] as? FileAttributeType == .typeRegular else { throw MeetingArchiveError.unsafeItem }
                     guard allowedFile(path) else { throw MeetingArchiveError.unexpectedFile }

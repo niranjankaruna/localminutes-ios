@@ -111,14 +111,12 @@ public final class HTTPSModelTransport: @unchecked Sendable {
 
     private func validateDestination(_ destination: URL, artifact: ModelArtifact) throws {
         let directory = destination.deletingLastPathComponent().standardizedFileURL
-        guard destination.isFileURL, destination.lastPathComponent == artifact.fileName,
-              directory.deletingLastPathComponent().standardizedFileURL.path == stagingRootURL.path,
-              UUID(uuidString: directory.lastPathComponent) != nil else {
+        guard ModelArtifactPath.operationRoot(destination: destination, fileName: artifact.fileName, stagingRoot: stagingRootURL) != nil else {
             throw ModelTransportError.invalidDestination
         }
         for url in [stagingRootURL, directory] {
-            guard let values = try? url.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey]),
-                  values.isDirectory == true, values.isSymbolicLink != true else {
+            guard (try? PersistentFilePolicy.validateItem(url, within: stagingRootURL)) != nil,
+                  (try? FileManager.default.attributesOfItem(atPath: url.path)[.type] as? FileAttributeType) == .typeDirectory else {
                 throw ModelTransportError.invalidDestination
             }
         }

@@ -14,13 +14,32 @@ private final class TransferHTTPState: @unchecked Sendable {
     private let lock = NSLock()
     private var response: TransferResponse?
     private var captured: [URLRequest] = []
-    func reset(_ response: TransferResponse) { lock.withLock { self.response = response; captured = [] } }
+    private var disconnectID: UUID?
+    private var disconnectCallback: (@Sendable () -> Void)?
+    func reset(_ response: TransferResponse) {
+        lock.withLock { self.response = response; captured = []; disconnectID = nil; disconnectCallback = nil }
+    }
     func begin(_ request: URLRequest) -> TransferResponse? { lock.withLock { captured.append(request); return response } }
     var requests: [URLRequest] { lock.withLock { captured } }
+    var canDisconnect: Bool { lock.withLock { disconnectCallback != nil } }
+    func holdDisconnect(id: UUID, _ callback: @escaping @Sendable () -> Void) {
+        lock.withLock { disconnectID = id; disconnectCallback = callback }
+    }
+    func clearDisconnect(id: UUID) {
+        lock.withLock { if disconnectID == id { disconnectID = nil; disconnectCallback = nil } }
+    }
+    func disconnect() {
+        let callback = lock.withLock { () -> (@Sendable () -> Void)? in
+            let callback = disconnectCallback; disconnectCallback = nil; disconnectID = nil
+            return callback
+        }
+        callback?()
+    }
 }
 private final class TransferHTTPProtocol: URLProtocol, @unchecked Sendable {
     static let state = TransferHTTPState()
     private let lock = NSLock()
+    private let connectionID = UUID()
     private var stopped = false
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
@@ -34,11 +53,22 @@ private final class TransferHTTPProtocol: URLProtocol, @unchecked Sendable {
                     httpVersion: "HTTP/1.1", headerFields: response.headers) else { return }
             self.client?.urlProtocol(self, didReceive: http, cacheStoragePolicy: .notAllowed)
             self.client?.urlProtocol(self, didLoad: response.bytes)
-            if response.interrupted { self.client?.urlProtocol(self, didFailWithError: URLError(.networkConnectionLost)) }
+            if response.interrupted {
+                // Do not assume didLoad means Foundation delivered the body.
+                // The test disconnects only after observing real durable bytes.
+                Self.state.holdDisconnect(id: self.connectionID) { [weak self] in self?.disconnect() }
+            }
             else { self.client?.urlProtocolDidFinishLoading(self) }
         }
     }
-    override func stopLoading() { lock.withLock { stopped = true } }
+    private func disconnect() {
+        guard !lock.withLock({ stopped }) else { return }
+        client?.urlProtocol(self, didFailWithError: URLError(.networkConnectionLost))
+    }
+    override func stopLoading() {
+        lock.withLock { stopped = true }
+        Self.state.clearDisconnect(id: connectionID)
+    }
 }
 
 private final class FileScopeProbe: ModelFileSecurityScope, @unchecked Sendable {
@@ -92,7 +122,7 @@ final class ModelTransferIntegrationTests: XCTestCase {
         }
     }
 
-    func testRemovingModelCanPurgeItsCompletedDownloadCacheWithoutErasingAnotherPinAndRefusesCacheLinks() async throws {
+    func testRemovingModelPurgesInterruptedProgressWithoutErasingAnotherPinAndRefusesCacheLinks() async throws {
         try await fixture { f in
             let factory = f.factory()
             let manager = factory.makeManager()
@@ -101,7 +131,20 @@ final class ModelTransferIntegrationTests: XCTestCase {
                 bytes: f.downloadBytes, interrupted: false))
             _ = try await manager.download(f.downloadManifest)
             let cached = try factory.checkpointDirectory(for: f.artifact)
-            XCTAssertTrue(FileManager.default.fileExists(atPath: cached.appendingPathComponent("partial.bin").path))
+            XCTAssertFalse(FileManager.default.fileExists(atPath: cached.appendingPathComponent("partial.bin").path),
+                "A completed verified download releases its duplicate progress bytes")
+            // An interrupted retry can coexist with the still-approved install.
+            // Seed that owned fixture explicitly; completed downloads must not
+            // retain a second full model solely to satisfy a cleanup test.
+            try FileManager.default.createDirectory(at: cached, withIntermediateDirectories: true)
+            let prefix = Data(f.downloadBytes.prefix(1_024))
+            try prefix.write(to: cached.appendingPathComponent("partial.bin"))
+            let checkpoint = ModelDownloadCheckpoint(downloadURL: f.artifact.downloadURL,
+                revision: f.downloadManifest.revision, fileName: f.artifact.fileName,
+                expectedByteCount: f.artifact.byteCount, sha256: f.artifact.sha256,
+                strongETag: "\"interrupted-retry\"", receivedByteCount: Int64(prefix.count),
+                partialSHA256: transferDigest(prefix))
+            try JSONEncoder().encode(checkpoint).write(to: cached.appendingPathComponent("checkpoint.json"))
             let other = try factory.checkpointDirectory(for: f.changedArtifact(name: "different.gguf"))
             try FileManager.default.createDirectory(at: other, withIntermediateDirectories: false)
             let sentinel = other.appendingPathComponent("partial.bin")
@@ -150,12 +193,33 @@ final class ModelTransferIntegrationTests: XCTestCase {
             TransferHTTPProtocol.state.reset(.init(status: 200,
                 headers: ["Content-Length": "\(f.downloadBytes.count)", "ETag": etag],
                 bytes: Data(f.downloadBytes.prefix(1_024)), interrupted: true))
-            do { _ = try await first.download(f.downloadManifest); XCTFail("Interrupted HTTP must not publish an installation") }
+            let location = try firstFactory.checkpointDirectory(for: f.artifact)
+            let partial = location.appendingPathComponent("partial.bin")
+            let firstDownload = Task { try await first.download(f.downloadManifest) }
+            let deadline = ContinuousClock.now.advanced(by: .seconds(2))
+            var durable = false
+            while ContinuousClock.now < deadline {
+                let point = try? JSONDecoder().decode(ModelDownloadCheckpoint.self,
+                    from: Data(contentsOf: location.appendingPathComponent("checkpoint.json")))
+                if TransferHTTPProtocol.state.canDisconnect,
+                   (try? Data(contentsOf: partial)) == Data(f.downloadBytes.prefix(1_024)),
+                   point?.receivedByteCount == 1_024,
+                   point?.partialSHA256 == transferDigest(Data(f.downloadBytes.prefix(1_024))) {
+                    durable = true; break
+                }
+                try? await Task.sleep(for: .milliseconds(2))
+            }
+            XCTAssertTrue(durable, "The actual transport must durably accept1024bytes before this fixture disconnects")
+            guard durable else {
+                firstDownload.cancel(); TransferHTTPProtocol.state.disconnect()
+                _ = try? await firstDownload.value
+                return
+            }
+            TransferHTTPProtocol.state.disconnect()
+            do { _ = try await firstDownload.value; XCTFail("Interrupted HTTP must not publish an installation") }
             catch { XCTAssertEqual(error as? ModelInstallationError, .downloadFailed) }
             let activeBefore = try await first.current(modelID: f.downloadManifest.modelID)
             XCTAssertNil(activeBefore)
-            let location = try firstFactory.checkpointDirectory(for: f.artifact)
-            let partial = location.appendingPathComponent("partial.bin")
             XCTAssertEqual(try? Data(contentsOf: partial), Data(f.downloadBytes.prefix(1_024)))
             let checkpoint = try? JSONDecoder().decode(ModelDownloadCheckpoint.self,
                 from: Data(contentsOf: location.appendingPathComponent("checkpoint.json")))

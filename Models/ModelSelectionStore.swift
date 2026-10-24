@@ -143,7 +143,7 @@ public final class ModelSelectionStore {
     private func profileMatchesPurpose(_ profile: HuggingFaceRuntimeProfile, _ purpose: ModelPurpose) -> Bool {
         switch profile {
         case .llamaGGUF: purpose == .summary
-        case .streamingZipformerONNX, .whisperGGML: purpose == .speechRecognition
+        case .streamingZipformerONNX, .whisperGGML, .parakeetTDTCoreML: purpose == .speechRecognition
         }
     }
 
@@ -151,6 +151,10 @@ public final class ModelSelectionStore {
         let roles = Set(manifest.artifacts.map(\.role))
         let valid: Bool
         switch profile {
+        case .parakeetTDTCoreML:
+            // Tests-first admission: real native selection/reopen must show
+            // behavioral RED independently of an injected Live model provider.
+            valid = false
         case .llamaGGUF:
             valid = manifest.purpose == .summary && manifest.artifacts.count == 1 && roles == [.summary]
                 && manifest.artifacts[0].fileName.lowercased().hasSuffix(".gguf")

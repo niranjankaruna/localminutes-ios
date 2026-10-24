@@ -248,15 +248,28 @@ public final class MeetingTranscriptionReplayCoordinator {
               source.installationID == nil || source.installationID == lease.model.installationID else {
             throw TranscriptionReplayError.modelUnavailable
         }
-        if source.profile == .whisperGGML {
-            guard let file = lease.model.files[.whisper], source.manifest.artifacts.count == 1,
-                  source.manifest.runtimeVersion == "whisper.cpp-1.7.5" else { throw TranscriptionReplayError.modelUnavailable }
-            let artifact = source.manifest.artifacts[0]
-            let whisper = WhisperSpeechRecognizer(files: .init(model: file, revision: revision,
-                byteCount: artifact.byteCount, sha256: artifact.sha256))
-            use.recognizer = .whisper(whisper)
-            try await whisper.load()
-            return try await replayWhisper(use, recognizer: whisper, source: source, plan: plan,
+        // TEST-FIRST native replay admission. The independent real-CAF/native
+        // recovery contract must produce an observed RED before enabling it.
+        if source.profile == .parakeetTDTCoreML { throw TranscriptionReplayError.modelUnavailable }
+        if source.profile == .whisperGGML || source.profile == .parakeetTDTCoreML {
+            let windowed: WindowedSpeechRecognizer
+            if source.profile == .parakeetTDTCoreML {
+                guard source.manifest.revision == ParakeetCoreMLModel.revision,
+                      source.manifest.runtimeVersion == ParakeetCoreMLModel.runtimeVersion,
+                      source.manifest.featureDimension == 128 else { throw TranscriptionReplayError.modelUnavailable }
+                windowed = .parakeet(CoreMLParakeetRecognizer(files: .init(
+                    directory: lease.model.directoryURL, revision: revision,
+                    runtimeVersion: source.manifest.runtimeVersion)))
+            } else {
+                guard let file = lease.model.files[.whisper], source.manifest.artifacts.count == 1,
+                      source.manifest.runtimeVersion == "whisper.cpp-1.7.5" else { throw TranscriptionReplayError.modelUnavailable }
+                let artifact = source.manifest.artifacts[0]
+                windowed = .whisper(WhisperSpeechRecognizer(files: .init(model: file, revision: revision,
+                    byteCount: artifact.byteCount, sha256: artifact.sha256)))
+            }
+            use.recognizer = .windowed(windowed)
+            try await windowed.load()
+            return try await replayWindowed(use, recognizer: windowed, source: source, plan: plan,
                 directory: directory, rows: initialRows, remaining: remaining, resume: resume)
         }
         guard source.profile == .streamingZipformerONNX,
@@ -349,7 +362,7 @@ public final class MeetingTranscriptionReplayCoordinator {
         await afterCheckpoint?(checkpoint)
     }
 
-    private func replayWhisper(_ use: Use, recognizer: WhisperSpeechRecognizer, source: ReplaySource,
+    private func replayWindowed(_ use: Use, recognizer: WindowedSpeechRecognizer, source: ReplaySource,
         plan: Plan, directory: URL, rows originalRows: [StoredTranscriptSegment],
         remaining: [StoredAudioSegment], resume: Int64) async throws -> TranscriptionReplayReport {
         try Task.checkCancellation()
@@ -605,11 +618,11 @@ public final class MeetingTranscriptionReplayCoordinator {
 
 private enum ReplaySpeechRecognizer: Sendable {
     case streaming(CPUStreamingRecognizer)
-    case whisper(WhisperSpeechRecognizer)
+    case windowed(WindowedSpeechRecognizer)
     func unload() async {
         switch self {
         case .streaming(let value): await value.unload()
-        case .whisper(let value): await value.unload()
+        case .windowed(let value): await value.unload()
         }
     }
 }

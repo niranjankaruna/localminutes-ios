@@ -842,3 +842,7 @@ Run40121343041 at6adcc04 failed compilation before any test due to SDK flock sym
 ## MVP2 integration RED observed; native Parakeet added by owner
 
 C3 exact0348c1c/run40124109356:269portable(241PASS28FAIL92assert),10actualspeechPASS,1actualPhiresumeFAIL,7nativeappFAIL20assert;0skip. Full counts/evidence MVP2_RELIABILITY. Current repairs await GREEN; exact original meeting data preserved. Native Parakeet now targets exactv2 Core ML21assets464413247B + Swiftdecoder with optionalengines disabled, tests/stub only. NextC4 proves newParakeetRED while checking MVP2repairs, keeping4/6run budget afterdispatch. No newIPA orphysicalacceptance yet.
+
+## C4 result; MVP2 delivery forecast
+
+Original7nativeapp checksPASS; actualPhi resumepass445.283s; speechrecovery10PASS. Newnativeadmission3cases provide11assertionRED; nativeParakeet6cases genuineRED afterverifiedmodelsetup. Portable281:253PASS28FAIL includesnewCoreMLstorage/catalog/metrics plusarchive/snapshot/transferissues nowrepairedpendingGREEN. Ownerinformed45–60minuteestimateforMVP2IPA; Parakeetadditionalrepairsmustnotdelayreliabilitydelivery. NextC5focusedverify+newactualselection/replayRED, preservingrun6forpackage. DetailsMVP2_RELIABILITY. No additionalIPA/devicepassclaimed.

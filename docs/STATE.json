@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T19:45:21.646Z",
+  "lastUpdated": "2026-10-24T20:26:19.804Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -11,9 +11,9 @@
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "Push native Core ML tests/stubs first, then C3 repair commit and new3native admission regressions; dispatch run4/6 mvp2-parakeet. Observe actual native/model/catalog/metrics/cache/admission RED, inspect DEBUG SQLite stage, then implement only proven missing behavior before run5/6 and package run6/6.",
+  "nextAction": "Push2independent nativeEquip/replay tests-first with fail-closed admissions, then native/backend/storage/diagnostics fixes and deterministic HTTP fault fixtures. Run5/6 mvp2-parakeet with summaryResume=false because actualPhi445.283s alreadyPASS at4640aec and summary implementation unchanged. Inspect allresults; enableEquip/replay onlyafteractualRED, packageMVP2 inrun6/6. Owner requires Parakeet IN MVP2: no fallback delivery with it gated off. If checks fail, repair safely and report honest pending state.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "0348c1c31806d3b88120cc9f61ac449fa290ef5a",
+  "remoteBranchHead": "4640aecb467d29a9c4b2bd5c90b1d4f1b0a956f5",
   "localScriptGreen": {
     "sourceCommit": "0181b311abedb3c32745b015be64d6e7c777032b",
     "platform": "Windows11/Node24.21.0",
@@ -37,19 +37,19 @@
     "newRunIds": [
       40119556084,
       40121343041,
-      40124109356
+      40124109356,
+      40126813965
     ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-24T19:45:21.646Z",
     "costGuardBasis": "PUBLIC intended repository; standard free macos-15-intel plus official standard macos-15 Apple Silicon for native Core ML/app checks; no paid/larger runners, Actions artifact/cache storage or billing changes."
   },
   "latestCIRun": {
-    "sourceCommit": "0348c1c31806d3b88120cc9f61ac449fa290ef5a",
-    "runId": 40124109356,
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40124109356",
+    "sourceCommit": "4640aecb467d29a9c4b2bd5c90b1d4f1b0a956f5",
+    "runId": 40126813965,
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40126813965",
     "status": "completed",
-    "conclusion": "failure",
-    "scope": "Genuine integration RED, initial selected-speech recovery10PASS; portable269 with28failingcases, actualPhi1FAIL, native7FAIL20assert"
+    "conclusion": "failure"
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -1775,14 +1775,59 @@
         "jobId": 120961739153
       },
       "nativeBuildTiming": "Package graph resolution19:12:59→19:20:28; actual7nativecases4.625s. No test hang. Do not attribute cold dependency time to repeated full-suite execution."
+    },
+    "repairSourceCommit": "4640aecb467d29a9c4b2bd5c90b1d4f1b0a956f5",
+    "newNativeAdmissionCases": 3,
+    "newNativeAdmissionActualRED": false,
+    "c4": {
+      "sourceCommit": "4640aecb467d29a9c4b2bd5c90b1d4f1b0a956f5",
+      "runId": 40126813965,
+      "portable": {
+        "executed": 281,
+        "passed": 253,
+        "failed": 28,
+        "assertionFailures": 60,
+        "skipped": 0
+      },
+      "nativeServices": {
+        "executed": 10,
+        "passed": 7,
+        "failed": 3,
+        "assertionFailures": 11,
+        "skipped": 0,
+        "scope": "Initial7 allPASS, new3admissionraces actualRED"
+      },
+      "actualPhiResume": {
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "durationSeconds": 445.283
+      },
+      "actualSpeechRecovery": {
+        "executed": 10,
+        "passed": 10,
+        "failed": 0,
+        "skipped": 0
+      }
     }
   },
   "parakeetNative": {
     "state": "IN_PROGRESS",
     "ownerRequest": "Dedicated iPhone-native FastConformer-TDT for nvidia/parakeet-tdt-0.6b-v2; no routing through existing engines",
     "architecture": "Core ML + Swift TDT decoding; exact v2 conversion, only equipped speech runtime loaded",
-    "productionImplemented": false,
-    "actualRED": false,
+    "productionImplemented": true,
+    "actualRED": {
+      "sourceCommit": "4640aecb467d29a9c4b2bd5c90b1d4f1b0a956f5",
+      "runId": 40126813965,
+      "jobId": 120969912653,
+      "executed": 6,
+      "passed": 0,
+      "failed": 6,
+      "assertionFailures": 6,
+      "skipped": 0,
+      "durationSeconds": 2.007
+    },
     "actualInference": false,
     "formerONNXDraft": "docs/drafts/PARAKEET_ONNX_SUPERSEDED_2026_10_24/README.md",
     "sourceModel": "nvidia/parakeet-tdt-0.6b-v2",
@@ -1798,6 +1843,28 @@
       "revision": "c79c4106b954f81205113c3343e5a7e59a1089b5",
       "optionalTraits": [],
       "minimumSwiftTools": "6.2"
-    }
+    },
+    "testFirstCommit": "393227d59e558be628d13381b8372a0832fe3e20",
+    "pendingIndependentTestFirst": [
+      "actualModelSelectionAndReopen",
+      "actualCapturedNativeReplay"
+    ],
+    "mustIncludeInMVP2": true
+  },
+  "localPackageAudit": {
+    "passed": 10,
+    "failed": 1,
+    "scope": "Focused package audit11 cases onWindows",
+    "reason": "Existing symlink test cannotcreateWindows symlink (EPERM); notnewproductionfailure, notGREEN, notskipped; macOS gate retained"
+  },
+  "mvp2DeliveryEstimate": {
+    "updatedAt": "2026-10-24T20:26:19.804Z",
+    "relativeEstimateMinutes": [
+      60,
+      90
+    ],
+    "ownerInformed": true,
+    "scope": "MVP2 MUST include native Parakeet plus download/remove/Equip/recovery; owner explicitly rejected a delivery without it",
+    "manual125MinuteGateBlocksIPADelivery": false
   }
 }

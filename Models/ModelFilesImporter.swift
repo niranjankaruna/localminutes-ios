@@ -28,12 +28,29 @@ public actor ModelFilesImporter {
     private let manager: ModelInstallationManager
     private let stagingRoot: URL
     public init(manager: ModelInstallationManager, stagingRootURL: URL) {
-        self.manager = manager; stagingRoot = stagingRootURL.standardizedFileURL
+        self.manager = manager
+        stagingRoot = stagingRootURL.isFileURL
+            ? URL(fileURLWithPath: stagingRootURL.standardizedFileURL.path, isDirectory: true) : stagingRootURL
     }
 
     public func importFiles(_ files: [URL], manifest: ModelManifest,
                             access: any ModelFileSecurityScope = FoundationModelFileSecurityScope()) async throws -> VerifiedModel {
         try Task.checkCancellation()
+        if !manifest.artifacts.isEmpty, manifest.artifacts.allSatisfy({ $0.role == .coreMLAsset }) {
+            guard files.count == 1, let folder = files.first, folder.isFileURL else { throw ModelFileImportError.invalidSelection }
+            guard access.begin(folder) else { throw ModelFileImportError.accessDenied }
+            defer { access.end(folder) }
+            try Task.checkCancellation()
+            do {
+                let info = try FileManager.default.attributesOfItem(atPath: folder.path)
+                guard info[.type] as? FileAttributeType == .typeDirectory else { throw ModelFileImportError.unsafeSource }
+                try PersistentFilePolicy.validateItem(folder, within: folder.deletingLastPathComponent())
+            } catch { throw ModelFileImportError.unsafeSource }
+            // The real installer already copies/hashes into private staging.
+            // Keep this single granted folder scope alive through publication;
+            // do not retain an additional complete tree in ModelImports.
+            return try await manager.importDirectory(folder, manifest: manifest)
+        }
         let expected = Set(manifest.artifacts.map(\.fileName))
         let names = files.map(\.lastPathComponent)
         guard !files.isEmpty, files.count == manifest.artifacts.count,
@@ -64,7 +81,7 @@ public actor ModelFilesImporter {
         try FileManager.default.createDirectory(at: operation, withIntermediateDirectories: false)
         defer {
             // Only this call's freshly created UUID directory can be removed.
-            if operation.deletingLastPathComponent() == stagingRoot,
+            if operation.deletingLastPathComponent().standardizedFileURL.path == stagingRoot.standardizedFileURL.path,
                (try? PersistentFilePolicy.validateItem(operation, within: stagingRoot)) != nil {
                 try? FileManager.default.removeItem(at: operation)
             }

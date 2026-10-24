@@ -17,6 +17,18 @@ public enum ModelRuntimeCompatibility {
             return result(.plannedRuntime, "This file format is recognized, but its inference engine is not available in this build.")
         }
         switch profile {
+        case .parakeetTDTCoreML:
+            let reviewed = ParakeetCoreMLModel.manifest
+            guard repository.id.rawValue.lowercased() == ParakeetCoreMLModel.repositoryID.lowercased(),
+                  repository.revision == reviewed.revision,
+                  format.selectedFiles.count == reviewed.artifacts.count,
+                  Set(format.selectedFiles.map(\.fileName)).count == reviewed.artifacts.count,
+                  format.selectedFiles.allSatisfy({ file in reviewed.artifacts.contains {
+                      $0.fileName == file.fileName && $0.byteCount == file.byteCount && $0.sha256 == file.sha256
+                  } }) else {
+                return result(.unsupported, "The native Core ML adapter needs the complete reviewed Parakeet v2 resource set.")
+            }
+            return result(.supported, "Native Core ML + Swift TDT decodes bounded speech chunks with the configured CPU/Neural Engine policy. iPhone memory, live speed and locked use remain unverified.")
         case .streamingZipformerONNX:
             let reviewed = StreamingEnglishModel.manifest
             guard repository.revision == reviewed.revision,

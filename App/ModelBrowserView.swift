@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import UniformTypeIdentifiers
 
 @MainActor
 struct ModelBrowserView: View {
@@ -7,6 +8,8 @@ struct ModelBrowserView: View {
     @State private var showingCard = false
     @State private var pendingRemoval: ModelManifest?
     @State private var showingRemoval = false
+    @State private var showingImport = false
+    @State private var importManifest: ModelManifest?
 
     init(controller: ModelBrowserController) { self.controller = controller }
 
@@ -66,10 +69,23 @@ struct ModelBrowserView: View {
                             Label("Download selected model", systemImage: "arrow.down.circle")
                         }
                         .disabled(!controller.canDownload || controller.isWorking || controller.isInspecting)
+                        Button("Import selected model from Files") {
+                            importManifest = controller.selectedImportManifest()
+                            showingImport = importManifest != nil
+                        }
+                        .disabled(!controller.canDownload || controller.isWorking || controller.isInspecting)
                         if controller.isDownloading {
                             ProgressView(controller.message ?? "Working with model files…")
-                            Button("Cancel download") { controller.cancelDownload() }
+                            Button("Pause download") { controller.cancelDownload() }
                         }
+                        if controller.isImporting {
+                            ProgressView(controller.message ?? "Importing model…")
+                            Button("Cancel import") { controller.cancelDownload() }
+                        }
+                        Button("Remove unfinished download", role: .destructive) { controller.discardSelectedDownload() }
+                            .disabled(controller.selectedImportManifest() == nil || controller.isWorking)
+                        Text("For Whisper or GGUF, select the expected file. For native Parakeet, select the folder containing all four Core ML bundles and parakeet_vocab.json.")
+                            .font(.caption).foregroundStyle(.secondary)
                         Text("Downloads are verified before installation. Format compatibility does not establish answer quality, speed or memory use on this iPhone.")
                             .font(.caption).foregroundStyle(.secondary)
                     }
@@ -103,6 +119,12 @@ struct ModelBrowserView: View {
             .task { await controller.refresh() }
             .refreshable { await controller.refresh() }
             .sheet(isPresented: $showingCard) { modelCard }
+            .fileImporter(isPresented: $showingImport, allowedContentTypes: [.data, .folder],
+                          allowsMultipleSelection: true) { result in
+                guard let manifest = importManifest else { return }
+                importManifest = nil
+                if case .success(let files) = result { controller.importSelectedFiles(files, manifest: manifest) }
+            }
             .confirmationDialog("Remove installed model?", isPresented: $showingRemoval,
                                 titleVisibility: .visible) {
                 if let manifest = pendingRemoval {
@@ -170,14 +192,18 @@ struct ModelBrowserView: View {
                     Text(verbatim: reason).font(.callout)
                 }
                 if !result.suggestedRepositories.isEmpty {
-                    Text("Converted-format examples to review: " + result.suggestedRepositories.joined(separator: ", "))
-                        .font(.caption).foregroundStyle(.secondary)
+                    ForEach(result.suggestedRepositories, id: \.self) { repository in
+                        Button("Look up " + repository) {
+                            controller.repositoryInput = repository
+                            inspect()
+                        }.disabled(controller.isWorking || controller.isInspecting)
+                    }
                 }
                 if !result.selectedFiles.isEmpty {
                     ForEach(result.selectedFiles, id: \.fileName) { file in
                         VStack(alignment: .leading, spacing: 3) {
                             Text(verbatim: file.fileName).font(.caption).textSelection(.enabled)
-                            Text("\(bytes(file.byteCount)) · \(file.sha256 == nil ? "SHA-256 unavailable" : "Upstream SHA-256 available")")
+                            Text("\(bytes(file.byteCount)) · \(file.sha256 == nil ? "SHA-256 unavailable" : "Expected SHA-256 available")")
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                     }
@@ -193,8 +219,8 @@ struct ModelBrowserView: View {
                 LabeledContent("Estimated RAM", value: ramRange(result))
                 if controller.purpose == .summary {
                     LabeledContent("Requested context", value: "\(result.requestedContextTokens.formatted()) tokens")
+                    LabeledContent("Context capacity", value: result.maximumContextTokens.map { "\($0.formatted()) tokens" } ?? "Unknown")
                 }
-                LabeledContent("Context capacity", value: result.maximumContextTokens.map { "\($0.formatted()) tokens" } ?? "Unknown")
                 Text(resourceTitle(result.status))
                     .foregroundStyle(resourceColor(result.status))
                 ForEach(Array(result.notes.enumerated()), id: \.offset) { _, note in
@@ -291,6 +317,7 @@ struct ModelBrowserView: View {
 
     private func profileTitle(_ profile: HuggingFaceRuntimeProfile) -> String {
         switch profile {
+        case .parakeetTDTCoreML: "Core ML + Swift TDT · Parakeet v2"
         case .streamingZipformerONNX: "sherpa-onnx · streaming Zipformer"
         case .whisperGGML: "whisper.cpp · Whisper GGML"
         case .llamaGGUF: "llama.cpp · GGUF"

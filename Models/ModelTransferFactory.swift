@@ -1,5 +1,9 @@
 import CryptoKit
+import Darwin
 import Foundation
+#if canImport(LocalMinutesCore)
+import LocalMinutesCore
+#endif
 
 /// App-retained construction boundary. Caches live beside Models, never inside
 /// installer staging or installed-model inventory. Input artifacts are pinned.
@@ -32,7 +36,7 @@ public final class ModelTransferFactory: @unchecked Sendable {
     /// revision. Calculating a location never creates files or installs a model.
     public func checkpointDirectory(for artifact: ModelArtifact) throws -> URL {
         guard appRootURL.isFileURL, appRootURL.path != "/", artifact.byteCount > 0,
-              !artifact.fileName.isEmpty, !artifact.fileName.contains("/"), !artifact.fileName.contains("\\"),
+              ModelArtifactPath.components(artifact.fileName) != nil,
               artifact.sha256.utf8.count == 64 else { throw ModelInstallationError.invalidManifest }
         let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
         let hash = SHA256.hash(data: try encoder.encode(artifact)).map { String(format: "%02x", $0) }.joined()
@@ -44,7 +48,50 @@ public final class ModelTransferFactory: @unchecked Sendable {
             .appendingPathComponent(uuid.uuidString, isDirectory: true)
     }
 
-    /// TEST-FIRST: removal must also free retained download bytes. This hook
-    /// deliberately does nothing until the new real-cache assertion runs RED.
-    public func discardProgress(for manifest: ModelManifest) throws {}
+    public func discardProgress(for manifest: ModelManifest) throws {
+        let root = appRootURL.appendingPathComponent("DownloadResume", isDirectory: true)
+        let targets = try Set(manifest.artifacts.map { try checkpointDirectory(for: $0) })
+        guard try Self.exists(root) else { return }
+        try PersistentFilePolicy.validateItem(root, within: appRootURL)
+        var locks: [Int32] = []
+        defer { for descriptor in locks { Darwin.close(descriptor) } }
+        var existing: [URL] = []
+        // Validate and reserve every target before erasing any retained bytes.
+        for target in targets {
+            guard target.deletingLastPathComponent().standardizedFileURL.path == root.standardizedFileURL.path,
+                  UUID(uuidString: target.lastPathComponent) != nil else { throw ModelInstallationError.invalidInstallation }
+            guard try Self.exists(target) else { continue }
+            try PersistentFilePolicy.validateItem(target, within: root)
+            guard try FileManager.default.attributesOfItem(atPath: target.path)[.type] as? FileAttributeType == .typeDirectory else {
+                throw ModelInstallationError.invalidInstallation
+            }
+            let names = try FileManager.default.contentsOfDirectory(atPath: target.path)
+            guard Set(names).isSubset(of: ["partial.bin", "checkpoint.json", ".transfer.lock"]) else {
+                throw ModelInstallationError.invalidInstallation
+            }
+            for name in names {
+                let file = target.appendingPathComponent(name)
+                try PersistentFilePolicy.validateItem(file, within: root)
+                guard try FileManager.default.attributesOfItem(atPath: file.path)[.type] as? FileAttributeType == .typeRegular else {
+                    throw ModelInstallationError.invalidInstallation
+                }
+            }
+            let lock = target.appendingPathComponent(".transfer.lock")
+            let descriptor = lock.path.withCString { Darwin.open($0, O_RDWR | O_CREAT | O_NOFOLLOW, mode_t(0o600)) }
+            guard descriptor >= 0 else { throw ModelInstallationError.invalidInstallation }
+            locks.append(descriptor)
+            guard ResumableModelDownload.lockExclusively(descriptor) else { throw ModelInstallationError.modelInUse }
+            try PersistentFilePolicy.protectItem(lock, within: root)
+            existing.append(target)
+        }
+        for target in existing {
+            try PersistentFilePolicy.validateItem(target, within: root)
+            try FileManager.default.removeItem(at: target)
+        }
+    }
+
+    private static func exists(_ url: URL) throws -> Bool {
+        do { _ = try FileManager.default.attributesOfItem(atPath: url.path); return true }
+        catch let error as CocoaError where error.code == .fileNoSuchFile || error.code == .fileReadNoSuchFile { return false }
+    }
 }

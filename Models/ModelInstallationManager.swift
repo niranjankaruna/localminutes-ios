@@ -1,4 +1,5 @@
 import CryptoKit
+import Darwin
 import Foundation
 #if canImport(LocalMinutesCore)
 import LocalMinutesCore
@@ -70,7 +71,12 @@ public actor ModelInstallationManager {
         for artifact in manifest.artifacts {
             try Task.checkCancellation()
             let destination = staging.appendingPathComponent(artifact.fileName)
-            try FileManager.default.copyItem(at: source.appendingPathComponent(artifact.fileName), to: destination)
+            if artifact.role == .coreMLAsset {
+                try createDirectory(destination.deletingLastPathComponent())
+                try copyAsset(source.appendingPathComponent(artifact.fileName), to: destination, artifact: artifact, sourceRoot: source)
+            } else {
+                try FileManager.default.copyItem(at: source.appendingPathComponent(artifact.fileName), to: destination)
+            }
             // Copy can retain the import source's stronger protection class.
             // Change only the app-owned copy, never the external source.
             try PersistentFilePolicy.protectItem(destination, within: rootURL)
@@ -92,6 +98,7 @@ public actor ModelInstallationManager {
         for artifact in manifest.artifacts {
             try Task.checkCancellation()
             let destination = staging.appendingPathComponent(artifact.fileName)
+            if artifact.role == .coreMLAsset { try createDirectory(destination.deletingLastPathComponent()) }
             do { try await downloader(artifact, destination) }
             catch is CancellationError { throw CancellationError() }
             catch {
@@ -188,9 +195,13 @@ public actor ModelInstallationManager {
             guard manifest.modelID == name, manifest.revision == selected.revision else {
                 throw ModelInstallationError.invalidInstallation
             }
-            let present = Set(try manager.contentsOfDirectory(atPath: directory.path))
-            guard present == Set(manifest.artifacts.map(\.fileName)).union(["manifest.json"]) else {
-                throw ModelInstallationError.invalidInstallation
+            if manifest.artifacts.allSatisfy({ $0.role == .coreMLAsset }) {
+                try validateAssetTree(in: directory, manifest: manifest, containsMetadata: true)
+            } else {
+                let present = Set(try manager.contentsOfDirectory(atPath: directory.path))
+                guard present == Set(manifest.artifacts.map(\.fileName)).union(["manifest.json"]) else {
+                    throw ModelInstallationError.invalidInstallation
+                }
             }
             for artifact in manifest.artifacts {
                 let file = directory.appendingPathComponent(artifact.fileName)
@@ -304,7 +315,7 @@ public actor ModelInstallationManager {
     }
 
     private func handle(manifest: ModelManifest, id: UUID, directory: URL) -> VerifiedModel {
-        let files = Dictionary(uniqueKeysWithValues: manifest.artifacts.map {
+        let files = Dictionary(uniqueKeysWithValues: manifest.artifacts.filter { $0.role != .coreMLAsset }.map {
             ($0.role, directory.appendingPathComponent($0.fileName))
         })
         return VerifiedModel(manifest: manifest, installationID: id, directoryURL: directory, files: files)
@@ -320,19 +331,42 @@ public actor ModelInstallationManager {
         }
         var roles: Set<ModelFileRole> = []
         var names: Set<String> = []
+        let assets = manifest.artifacts.allSatisfy { $0.role == .coreMLAsset }
+        if assets {
+            guard manifest.purpose == .speechRecognition, (1...256).contains(manifest.artifacts.count),
+                  manifest.sampleRate == 16_000, manifest.featureDimension == 128,
+                  manifest.runtimeVersion == "coreml-parakeet-tdt-v2-fluid-c79c4106" else {
+                throw ModelInstallationError.invalidManifest
+            }
+        }
+        var assetBytes: Int64 = 0
         for artifact in manifest.artifacts {
-            guard validComponent(artifact.fileName), artifact.fileName != "manifest.json",
+            let safeName = assets ? ModelArtifactPath.components(artifact.fileName) != nil : validComponent(artifact.fileName)
+            guard safeName, artifact.fileName != "manifest.json",
                   artifact.fileName != "current.json", artifact.byteCount > 0,
                   artifact.sha256.count == 64, artifact.sha256.utf8.allSatisfy(isLowerHex),
                   artifact.downloadURL.scheme == "https",
                   artifact.downloadURL.host == manifest.upstreamRepository.host,
                   artifact.downloadURL.path.contains("/resolve/\(manifest.revision)/"),
-                  roles.insert(artifact.role).inserted, names.insert(artifact.fileName).inserted else {
+                  (assets || !roles.contains(artifact.role)), names.insert(artifact.fileName).inserted else {
+                throw ModelInstallationError.invalidManifest
+            }
+            roles.insert(artifact.role)
+            if assets {
+                let sum = assetBytes.addingReportingOverflow(artifact.byteCount)
+                guard !sum.overflow, sum.partialValue <= 8_589_934_592 else { throw ModelInstallationError.invalidManifest }
+                assetBytes = sum.partialValue
+            }
+        }
+        if assets {
+            guard Set(names.map { $0.lowercased() }).count == names.count,
+                  ModelArtifactPath.directories(for: Array(names)).isDisjoint(with: names) else {
                 throw ModelInstallationError.invalidManifest
             }
         }
         switch manifest.purpose {
         case .speechRecognition:
+            if assets { break }
             if roles == [.whisper] {
                 guard manifest.artifacts.count == 1, manifest.sampleRate == 16_000,
                       manifest.featureDimension == nil, manifest.runtimeVersion == "whisper.cpp-1.7.5" else {
@@ -390,15 +424,16 @@ public actor ModelInstallationManager {
     }
 
     private func requireDirectory(_ url: URL) throws {
-        let values = try url.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
-        guard values.isDirectory == true, values.isSymbolicLink != true else {
+        let values = try FileManager.default.attributesOfItem(atPath: url.path)
+        guard values[.type] as? FileAttributeType == .typeDirectory else {
             throw ModelInstallationError.invalidInstallation
         }
     }
 
     private func requireRegularFile(_ url: URL, name: String) throws {
-        let values = try url.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey])
-        guard values.isRegularFile == true, values.isSymbolicLink != true else {
+        let values = try FileManager.default.attributesOfItem(atPath: url.path)
+        guard values[.type] as? FileAttributeType == .typeRegular,
+              (values[.referenceCount] as? NSNumber)?.intValue == 1 else {
             throw ModelInstallationError.unsafeFile(name)
         }
     }
@@ -412,6 +447,11 @@ public actor ModelInstallationManager {
 
     private func validateFiles(in directory: URL, manifest: ModelManifest, containsMetadata: Bool) throws {
         try requireDirectory(directory)
+        if manifest.artifacts.allSatisfy({ $0.role == .coreMLAsset }) {
+            try validateAssetTree(in: directory, manifest: manifest, containsMetadata: containsMetadata)
+            for artifact in manifest.artifacts { try Task.checkCancellation(); try verifyFile(directory.appendingPathComponent(artifact.fileName), artifact: artifact) }
+            return
+        }
         let present = Set(try FileManager.default.contentsOfDirectory(atPath: directory.path))
         let required = Set(manifest.artifacts.map(\.fileName))
         for artifact in manifest.artifacts where !present.contains(artifact.fileName) {
@@ -448,5 +488,72 @@ public actor ModelInstallationManager {
         guard consumed == artifact.byteCount else { throw ModelInstallationError.sizeMismatch(artifact.fileName) }
         let digest = hasher.finalize().map { String(format: "%02x", $0) }.joined()
         guard digest == artifact.sha256 else { throw ModelInstallationError.checksumMismatch(artifact.fileName) }
+    }
+
+    private func validateAssetTree(in directory: URL, manifest: ModelManifest, containsMetadata: Bool) throws {
+        try requireDirectory(directory)
+        let required = Set(manifest.artifacts.map(\.fileName))
+        let parents = ModelArtifactPath.directories(for: Array(required))
+        let allowed = containsMetadata ? required.union(["manifest.json"]) : required
+        var pending = [(directory, "")]
+        var present: Set<String> = []
+        var visited = 0
+        while let (folder, prefix) = pending.popLast() {
+            do { try PersistentFilePolicy.validateItem(folder, within: directory) }
+            catch { throw ModelInstallationError.unsafeFile(prefix) }
+            let children = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)
+            guard children.count <= allowed.count + parents.count + 1 - visited else { throw ModelInstallationError.invalidManifest }
+            for child in children {
+                try Task.checkCancellation(); visited += 1
+                let path = prefix.isEmpty ? child.lastPathComponent : prefix + "/" + child.lastPathComponent
+                let info = try FileManager.default.attributesOfItem(atPath: child.path)
+                if info[.type] as? FileAttributeType == .typeDirectory {
+                    guard parents.contains(path) else { throw ModelInstallationError.unexpectedFile(path) }
+                    pending.append((child, path))
+                } else {
+                    guard info[.type] as? FileAttributeType == .typeRegular,
+                          (info[.referenceCount] as? NSNumber)?.intValue == 1 else { throw ModelInstallationError.unsafeFile(path) }
+                    guard allowed.contains(path) else { throw ModelInstallationError.unexpectedFile(path) }
+                    do { try PersistentFilePolicy.validateItem(child, within: directory) }
+                    catch { throw ModelInstallationError.unsafeFile(path) }
+                    present.insert(path)
+                }
+            }
+        }
+        for artifact in manifest.artifacts where !present.contains(artifact.fileName) { throw ModelInstallationError.missingFile(artifact.fileName) }
+        for artifact in manifest.artifacts {
+            let file = directory.appendingPathComponent(artifact.fileName)
+            let info = try FileManager.default.attributesOfItem(atPath: file.path)
+            guard (info[.size] as? NSNumber)?.int64Value == artifact.byteCount else {
+                throw ModelInstallationError.sizeMismatch(artifact.fileName)
+            }
+        }
+    }
+
+    private func copyAsset(_ source: URL, to destination: URL, artifact: ModelArtifact, sourceRoot: URL) throws {
+        do { try PersistentFilePolicy.validateItem(source, within: sourceRoot) }
+        catch { throw ModelInstallationError.unsafeFile(artifact.fileName) }
+        let descriptor = source.path.withCString { Darwin.open($0, O_RDONLY | O_NOFOLLOW | O_NONBLOCK) }
+        guard descriptor >= 0 else { throw ModelInstallationError.unsafeFile(artifact.fileName) }
+        let input = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
+        defer { try? input.close() }
+        var info = stat()
+        guard fstat(descriptor, &info) == 0, info.st_nlink == 1, info.st_mode & mode_t(S_IFMT) == mode_t(S_IFREG) else {
+            throw ModelInstallationError.unsafeFile(artifact.fileName)
+        }
+        guard info.st_size == artifact.byteCount else { throw ModelInstallationError.sizeMismatch(artifact.fileName) }
+        let outputFD = destination.path.withCString { Darwin.open($0, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, mode_t(0o600)) }
+        guard outputFD >= 0 else { throw ModelInstallationError.invalidInstallation }
+        let output = FileHandle(fileDescriptor: outputFD, closeOnDealloc: true)
+        defer { try? output.close() }
+        try PersistentFilePolicy.protectItem(destination, within: rootURL)
+        var copied: Int64 = 0
+        while let bytes = try input.read(upToCount: 65_536), !bytes.isEmpty {
+            try Task.checkCancellation()
+            guard Int64(bytes.count) <= artifact.byteCount - copied else { throw ModelInstallationError.sizeMismatch(artifact.fileName) }
+            try output.write(contentsOf: bytes); copied += Int64(bytes.count)
+        }
+        guard copied == artifact.byteCount else { throw ModelInstallationError.sizeMismatch(artifact.fileName) }
+        try output.synchronize()
     }
 }

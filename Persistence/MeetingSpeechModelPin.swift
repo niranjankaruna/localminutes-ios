@@ -50,11 +50,25 @@ extension StoredMeetingSpeechModelPin {
         case .whisperGGML:
             guard roles == [.whisper], manifest.artifacts.count == 1, manifest.featureDimension == nil,
                   manifest.runtimeVersion == "whisper.cpp-1.7.5" else { throw MeetingSpeechModelPinError.invalidPin }
+        case .parakeetTDTCoreML:
+            let native = ParakeetCoreMLModel.manifest
+            let expected = Dictionary(uniqueKeysWithValues: native.artifacts.map { ($0.fileName, $0) })
+            guard roles == [.coreMLAsset], manifest.artifacts.count == expected.count,
+                  manifest.featureDimension == 128, manifest.runtimeVersion == native.runtimeVersion,
+                  manifest.revision == native.revision, manifest.upstreamRepository == native.upstreamRepository,
+                  manifest.artifacts.allSatisfy({ artifact in
+                      guard let reference = expected[artifact.fileName] else { return false }
+                      return artifact.byteCount == reference.byteCount && artifact.sha256 == reference.sha256
+                          && artifact.downloadURL == reference.downloadURL
+                  }) else { throw MeetingSpeechModelPinError.invalidPin }
         case .llamaGGUF: throw MeetingSpeechModelPinError.invalidPin
         }
         var names: Set<String> = []
         for artifact in manifest.artifacts {
-            guard component(artifact.fileName), names.insert(artifact.fileName).inserted,
+            let safeName = selection.profile == .parakeetTDTCoreML
+                ? artifact.fileName.split(separator: "/", omittingEmptySubsequences: false).allSatisfy { component(String($0)) }
+                : component(artifact.fileName)
+            guard safeName, names.insert(artifact.fileName).inserted,
                   artifact.byteCount > 0, artifact.byteCount <= 4_000_000_000, hex(artifact.sha256, 64),
                   artifact.downloadURL.scheme == "https", artifact.downloadURL.host == manifest.upstreamRepository.host,
                   artifact.downloadURL.path.contains("/resolve/\(manifest.revision)/") else {

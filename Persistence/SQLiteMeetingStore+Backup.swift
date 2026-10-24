@@ -23,6 +23,7 @@ enum SQLiteMeetingBackup {
         case preflight, createStage, protectStage, createFile, closeCreatedFile, protectFile
         case openDatabase, configureDatabase, backupInit, backupStep, backupFinish, journalMode, closeDatabase
         case verifySidecars, protectCompletedFile, synchronizeFile, closeCompletedFile, validatePublication, publish
+        case standaloneHeader, openStandalone, verifyStandalone, closeStandalone
     }
     private struct Trace {
         var stage = Stage.preflight
@@ -30,6 +31,9 @@ enum SQLiteMeetingBackup {
         var posixStatus: Int32 = 0
         var foundationStatus = 0
         var count = 0
+    }
+    private final class IntegrityBudget: Sendable {
+        let deadline = ContinuousClock().now.advanced(by: .seconds(60))
     }
     /// Output is internal staging beneath the source database's owned parent.
     /// Sharing a finished archive to Files is a separate, explicit operation.
@@ -98,9 +102,8 @@ enum SQLiteMeetingBackup {
         trace.stage = .verifySidecars
         let contents = try FileManager.default.contentsOfDirectory(at: staging, includingPropertiesForKeys: nil)
         trace.count = contents.count
-        guard contents.count == 1, contents[0].lastPathComponent == "database.sqlite" else {
-            throw SQLiteSnapshotError.databaseFailure
-        }
+        try verifyStagedFiles(contents, database: temporary, within: staging)
+        try verifyStandalone(temporary, within: staging, trace: &trace)
         do {
             trace.stage = .protectCompletedFile
             try PersistentFilePolicy.protectItem(temporary, within: staging)
@@ -128,6 +131,109 @@ enum SQLiteMeetingBackup {
         }
         // No throwing operation follows publication. A late cancellation can
         // retain this complete snapshot; it never replaces an existing file.
+    }
+
+    private static func stagedCategory(_ name: String) -> String {
+        switch name {
+        case "database.sqlite": "database"
+        case "database.sqlite-wal": "wal"
+        case "database.sqlite-shm": "shared-memory"
+        case "database.sqlite-journal": "rollback-journal"
+        case ".DS_Store": "finder-metadata"
+        case "._database.sqlite", "._.DS_Store": "appledouble-metadata"
+        case ".database.sqlite-conch", "database.sqlite-conch", "database.sqlite.lock": "vfs-lock"
+        default: "unclassified"
+        }
+    }
+
+    private static func verifyStagedFiles(_ entries: [URL], database: URL, within root: URL) throws {
+#if DEBUG
+        if entries.count != 1 {
+            // Only fixed names generated in this fresh private stage are
+            // classified. Unknown basenames and full paths are never logged.
+            let classes = entries.prefix(8).map { stagedCategory($0.lastPathComponent) }.sorted().joined(separator: ",")
+            try? FileHandle.standardError.write(contentsOf:
+                Data("SQLITE_SNAPSHOT_ENTRIES count=\(entries.count) categories=\(classes)\n".utf8))
+        }
+#endif
+        guard entries.contains(where: { $0.standardizedFileURL.path == database.standardizedFileURL.path }) else {
+            throw SQLiteSnapshotError.databaseFailure
+        }
+        for entry in entries {
+            try PersistentFilePolicy.validateItem(entry, within: root)
+            let values = try URL(fileURLWithPath: entry.path).resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey])
+            guard values.isRegularFile == true, let size = values.fileSize, size >= 0 else {
+                throw SQLiteSnapshotError.databaseFailure
+            }
+            switch stagedCategory(entry.lastPathComponent) {
+            case "database", "shared-memory", "finder-metadata", "appledouble-metadata", "vfs-lock": break
+            case "wal":
+                guard size == 0 else { throw SQLiteSnapshotError.databaseFailure }
+            case "rollback-journal":
+                if size != 0 {
+                    let file = try FileHandle(forReadingFrom: entry)
+                    defer { try? file.close() }
+                    let header = try file.read(upToCount: 8) ?? Data()
+                    // A nonzero journal header may require rollback. Only an
+                    // explicitly invalidated zero header is safe to discard.
+                    guard !header.isEmpty, header.allSatisfy({ $0 == 0 }) else {
+                        throw SQLiteSnapshotError.databaseFailure
+                    }
+                }
+            default: throw SQLiteSnapshotError.databaseFailure
+            }
+        }
+    }
+
+    private static func verifyStandalone(_ file: URL, within root: URL, trace: inout Trace) throws {
+        trace.stage = .standaloneHeader
+        try PersistentFilePolicy.validateItem(file, within: root)
+        let input = try FileHandle(forReadingFrom: file)
+        let header: Data
+        do { header = try input.read(upToCount: 100) ?? Data(); try input.close() }
+        catch { try? input.close(); throw error }
+        guard header.count == 100, header.starts(with: Data("SQLite format 3\0".utf8)) else {
+            throw SQLiteSnapshotError.databaseFailure
+        }
+        trace.count = Int(header[18]) * 10 + Int(header[19])
+        guard header[18] == 1, header[19] == 1 else { throw SQLiteSnapshotError.databaseFailure }
+        var components = URLComponents(url: file, resolvingAgainstBaseURL: false)
+        components?.queryItems = [URLQueryItem(name: "immutable", value: "1")]
+        guard let uri = components?.string else { throw SQLiteSnapshotError.databaseFailure }
+        trace.stage = .openStandalone
+        var opened: OpaquePointer?
+        trace.nativeStatus = sqlite3_open_v2(uri, &opened,
+            SQLITE_OPEN_READONLY | SQLITE_OPEN_URI | SQLITE_OPEN_FULLMUTEX, nil)
+        guard trace.nativeStatus == SQLITE_OK, let opened else {
+            if let opened { sqlite3_close_v2(opened) }
+            throw SQLiteSnapshotError.databaseFailure
+        }
+        var closed = false
+        defer { if !closed { sqlite3_close_v2(opened) } }
+        trace.stage = .verifyStandalone
+        // immutable=1 reads only this exact closed main database: an external
+        // WAL/journal cannot make an incomplete main file appear consistent.
+        guard try integrityCheck(opened, trace: &trace) == "ok" else {
+            throw SQLiteSnapshotError.databaseFailure
+        }
+        trace.stage = .closeStandalone
+        trace.nativeStatus = sqlite3_close(opened)
+        guard trace.nativeStatus == SQLITE_OK else { throw SQLiteSnapshotError.databaseFailure }
+        closed = true
+    }
+
+    private static func integrityCheck(_ database: OpaquePointer, trace: inout Trace) throws -> String {
+        let budget = IntegrityBudget()
+        return try withExtendedLifetime(budget) {
+            sqlite3_progress_handler(database, 1_000, { context in
+                guard let context else { return 1 }
+                let budget = Unmanaged<IntegrityBudget>.fromOpaque(context).takeUnretainedValue()
+                return Task.isCancelled || ContinuousClock().now >= budget.deadline ? 1 : 0
+            }, Unmanaged.passUnretained(budget).toOpaque())
+            defer { sqlite3_progress_handler(database, 0, nil, nil) }
+            do { return try scalar(database, "PRAGMA integrity_check", trace: &trace) }
+            catch { try Task.checkCancellation(); throw error }
+        }
     }
 
     private static func ownedRoot(for destination: URL, sourceRoot: URL) throws -> URL {

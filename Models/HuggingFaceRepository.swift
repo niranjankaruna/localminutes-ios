@@ -62,7 +62,7 @@ public struct HuggingFaceModelFile: Equatable, Sendable {
 }
 
 public enum HuggingFaceRuntimeProfile: String, Codable, Hashable, Sendable {
-    case streamingZipformerONNX, whisperGGML, llamaGGUF
+    case streamingZipformerONNX, whisperGGML, llamaGGUF, parakeetTDTCoreML
 }
 
 public enum HuggingFaceCompatibilityStatus: String, Equatable, Sendable {
@@ -96,7 +96,7 @@ public enum ModelResourceStatus: String, Equatable, Sendable {
 }
 
 public enum ModelMemoryEstimateBasis: String, Equatable, Sendable {
-    case unknown, upstreamWhisperReference, weightsAndContextEstimate
+    case unknown, upstreamWhisperReference, weightsAndContextEstimate, upstreamCoreMLReference
 }
 
 public struct ModelResourceAssessment: Equatable, Sendable {
@@ -146,10 +146,36 @@ public struct HuggingFaceModelRepository: Equatable, Sendable {
         }
         guard !isGated else { return result(.gated, "This repository requires access approval; public lookup cannot install it.") }
         guard maximumDownloadBytes > 0 else { return result(.unverified, "A positive download budget is required.") }
+        if purpose == .speechRecognition, id.rawValue.lowercased() == "nvidia/parakeet-tdt-0.6b-v2" {
+            return result(.conversionRequired,
+                "This NVIDIA repository distributes NeMo weights. The native Core ML + Swift TDT adapter uses the reviewed v2 Core ML conversion. Open that repository to download its complete model bundle.",
+                suggestions: [ParakeetCoreMLModel.repositoryID])
+        }
         let type = modelType?.lowercased()
         var candidates: [HuggingFaceModelFile] = []
         var profile: HuggingFaceRuntimeProfile
-        if purpose == .summary {
+        if purpose == .speechRecognition,
+           id.rawValue.lowercased() == ParakeetCoreMLModel.repositoryID.lowercased() {
+            let reviewed = ParakeetCoreMLModel.manifest
+            guard revision == reviewed.revision else {
+                return result(.unsupported, "This native TDT adapter supports the reviewed v2 Core ML revision only.")
+            }
+            if let fileName, !reviewed.artifacts.contains(where: { $0.fileName == fileName }) {
+                return result(.unsupported, "Choose the complete native Core ML bundle, not an unrelated repository file.")
+            }
+            for artifact in reviewed.artifacts {
+                guard let found = files.first(where: { $0.fileName == artifact.fileName }),
+                      found.byteCount == artifact.byteCount,
+                      found.sha256 == artifact.sha256 || (found.sha256 == nil && artifact.digestProvenance == .independentlyDownloaded) else {
+                    return result(.unverified, "All21 reviewed Core ML resources must match their exact pinned sizes and checksums.")
+                }
+                // Small non-LFS files use the independent reviewed receipt at
+                // this exact commit. This is not local weight verification.
+                candidates.append(.init(fileName: artifact.fileName, byteCount: artifact.byteCount,
+                    sha256: artifact.sha256, downloadURL: artifact.downloadURL))
+            }
+            profile = .parakeetTDTCoreML
+        } else if purpose == .summary {
             profile = .llamaGGUF
             candidates = files.filter { file in
                 let name = file.fileName.lowercased()
@@ -186,7 +212,7 @@ public struct HuggingFaceModelRepository: Equatable, Sendable {
                 candidates = group
             }
         }
-        if profile != .streamingZipformerONNX {
+        if profile != .streamingZipformerONNX && profile != .parakeetTDTCoreML {
             if let fileName {
                 guard let chosen = candidates.first(where: { $0.fileName == fileName }) else {
                     return result(.unsupported, "The requested file does not match this runtime and purpose.")
@@ -218,6 +244,9 @@ public struct HuggingFaceModelRepository: Equatable, Sendable {
                     "The architecture/chat format is not verified for the current llama.cpp adapter.", profile, candidates, total)
             }
         }
+        if profile == .parakeetTDTCoreML {
+            return result(.supported, "Native Core ML + Swift TDT supports this complete v2 bundle. Speech is decoded in bounded chunks; phone speed and locked-screen use require measurement.", profile, candidates, total)
+        }
         return result(profile == .whisperGGML ? .plannedRuntime : .supported,
             profile == .whisperGGML ? "Whisper GGML format identified; its runtime must pass native validation before recording can use it."
                 : "Reviewed runtime format with pinned upstream metadata; actual bytes must still be verified and loaded.", profile, candidates, total)
@@ -242,6 +271,10 @@ public struct HuggingFaceModelRepository: Equatable, Sendable {
             lower = reference[family]; upper = lower.map { $0 + $0 / 2 }
             basis = .upstreamWhisperReference
             notes.append("Approximate upstream unquantized Whisper reference with additional planning headroom; not this quantization's measured peak, a strict bound, or a phone measurement.")
+        } else if chosen.profile == .parakeetTDTCoreML {
+            lower = 800_000_000; upper = 1_200_000_000; basis = .upstreamCoreMLReference
+            notes.append("Planning estimate from the conversion publisher's roughly800MB desktop peak plus headroom. This is not an iPhone measurement or a guarantee; only the equipped speech model is loaded.")
+            notes.append("Native Core ML with Swift TDT decoding; bounded audio chunks, no text context requirement and no GPU configuration.")
         } else if chosen.profile == .llamaGGUF, let disk, contextTokens > 0,
                   let c = contextConfiguration, let hidden = c.hiddenSize, let layers = c.layerCount,
                   let heads = c.attentionHeadCount, let kvHeads = c.keyValueHeadCount,

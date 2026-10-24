@@ -2,10 +2,10 @@
 import Foundation
 
 extension RecordingApplication {
-    /// Test-first maintenance entry; pending-playback exclusion is verified by
-    /// the native admission regression before this wrapper owns a reservation.
     func exportLibraryBackup() async throws -> URL {
         guard let services else { throw LibraryArchiveCoordinatorError.busy }
+        try setLibraryRestoreActive(true)
+        defer { try? setLibraryRestoreActive(false) }
         return try await services.exportBackup()
     }
 
@@ -19,8 +19,9 @@ extension RecordingApplication {
         guard playbackOwnership?.hasPlaybackOwnership != true else { throw LibraryArchiveCoordinatorError.busy }
         await old.initialize()
         try old.beginLibraryMaintenance()
-        setLibraryRestoreActive(true)
-        defer { old.endLibraryMaintenance(); setLibraryRestoreActive(false) }
+        do { try setLibraryRestoreActive(true) }
+        catch { old.endLibraryMaintenance(); throw error }
+        defer { old.endLibraryMaintenance(); try? setLibraryRestoreActive(false) }
         let pointer = old.applicationRoot.appendingPathComponent("activeLibrary.json")
         let previous: Data?
         if FileManager.default.fileExists(atPath: pointer.path) {
