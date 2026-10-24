@@ -699,6 +699,18 @@
           "deviceEvidence": [],
           "scope": "Test-first interfaces and reviewed tests activated; compiled assertion RED pending. No new working behavior.",
           "draft": "docs/drafts/T12Signals/README.md"
+        },
+        {
+          "id": "T12.3",
+          "title": "Application-retained native signal observation and late permission protection",
+          "status": "IN_PROGRESS",
+          "testCount": 3,
+          "redEvidence": [
+            "docs/evidence/T12_T13_T18_T19_TDD.md"
+          ],
+          "greenEvidence": [],
+          "deviceEvidence": [],
+          "scope": "Active test-first interfaces only; compatible assertion RED pending. No working behavior before RED."
         }
       ],
       "redEvidence": [],
@@ -937,6 +949,18 @@
           "scope": "Bounded caller-supplied flat schema/GBNF: six compiler cases and all original actual-model semantic oracles pass. Nested schema and app pipeline remain pending.",
           "greenSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
           "greenRunId": 40079629180
+        },
+        {
+          "id": "T17.4",
+          "title": "Shared heavy-model admission and native cleanup ownership",
+          "status": "IN_PROGRESS",
+          "testCount": 4,
+          "redEvidence": [
+            "docs/evidence/T12_T13_T18_T19_TDD.md"
+          ],
+          "greenEvidence": [],
+          "deviceEvidence": [],
+          "scope": "Active test-first interfaces only; compatible assertion RED pending. No working behavior before RED."
         }
       ],
       "redEvidence": [
@@ -1012,6 +1036,18 @@
           "greenEvidence": [],
           "deviceEvidence": [],
           "scope": "Test-first interfaces and reviewed tests activated; compiled assertion RED pending. No new working behavior."
+        },
+        {
+          "id": "T18.4",
+          "title": "Separate durable editable generated summary and question revisions",
+          "status": "IN_PROGRESS",
+          "testCount": 4,
+          "redEvidence": [
+            "docs/evidence/T12_T13_T18_T19_TDD.md"
+          ],
+          "greenEvidence": [],
+          "deviceEvidence": [],
+          "scope": "Active test-first interfaces only; compatible assertion RED pending. No working behavior before RED."
         }
       ],
       "redEvidence": [],
@@ -1206,8 +1242,8 @@
     }
   ],
   "executionPausedByOwner": false,
-  "resumeAction": "Push reviewed test-first interfaces/tests; require core282/native61/actualQwen7 discovery and actual missing-behavior assertions before implementing each corresponding slice. No production before compatible RED. Prior db1b8d5 remains last full GREEN.",
-  "lastUpdated": "2026-10-24T09:27:50.540Z",
+  "resumeAction": "Push source2 after terminal cc5049f run: implement only its17 proven-RED contracts; require actual old/new behavior results at exact SHA. Newly added10core/4native executions remain test-first and require their own assertion RED before storage/admission/app-binding/early-interruption/metrics-reset behavior.",
+  "lastUpdated": "2026-10-24T09:59:33.345Z",
   "latestVerification": {
     "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
     "runId": 40079629180,

@@ -1,0 +1,117 @@
+// APPEND to Tests/RecordingTests/RecordingSessionOwnerTests.swift after the final
+// #endif. Existing file-private real owner/CAF helpers remain unchanged.
+#if os(iOS)
+@MainActor
+extension RecordingSessionOwnerTests {
+    func testNativeApplicationRetainsSignalObservationAfterStartReturnsAndInterruptsActualCAF() async throws {
+        try await withHarness { h in
+            let center = NotificationCenter()
+            let application = RecordingApplication(owner: h.owner, signalCenter: center)
+            let result = NativeIntentCall()
+            try await complete {
+                do { result.reply = try await StartMeetingIntent(application: application).perform() }
+                catch { result.error = error }
+            }
+            XCTAssertNil(result.error)
+            XCTAssertEqual(result.reply?.value, "Preparing recording.")
+            try h.hardware.emit(signal(h), sampleTime: 40_000)
+            let recording = await ownerEventually { await h.owner.snapshot().phase == .recording }
+            XCTAssertTrue(recording)
+            // Perform's start task has returned. Only the retained application
+            // may keep native observation alive; the test owns no monitor.
+            center.post(name: AVAudioSession.interruptionNotification,
+                object: AVAudioSession.sharedInstance(),
+                userInfo: [AVAudioSessionInterruptionTypeKey: AVAudioSession.InterruptionType.began.rawValue])
+            try await complete { await application.flushSignals() }
+            let state = await h.owner.snapshot()
+            XCTAssertEqual(state.phase, .interrupted)
+            XCTAssertFalse(state.cleanupPending)
+            XCTAssertFalse(state.readiness.audioSessionActive)
+            XCTAssertFalse(state.readiness.firstBufferAccepted)
+            XCTAssertFalse(h.hardware.sessionActive)
+            XCTAssertFalse(h.hardware.engineRunning)
+            XCTAssertNil(h.owner.completedManifest)
+            XCTAssertNil(h.hardware.tap)
+            let data = try? Data(contentsOf: h.directory.appendingPathComponent("capture-manifest.json"))
+            XCTAssertNotNil(data)
+            if let data {
+                let manifest = try JSONDecoder().decode(AudioCaptureManifest.self, from: data)
+                // StartMeetingIntent allocates its own epoch UUID.
+                XCTAssertEqual(manifest.sessionID, state.sessionID)
+                XCTAssertEqual(manifest.totalFrames, 64)
+                XCTAssertEqual(try decode(manifest, directory: h.directory).count, 64)
+            }
+        }
+    }
+
+    func testNativeStaleAppStopCannotDetachReplacementSignalObservation() async throws {
+        try await withHarness { h in
+            let center = NotificationCenter()
+            let application = RecordingApplication(owner: h.owner, signalCenter: center)
+            let first = NativeAppSignalOutcome()
+            try await complete {
+                do { first.value = try await application.perform(.start(h.id)) }
+                catch { first.error = error }
+            }
+            XCTAssertNil(first.error)
+            XCTAssertEqual(first.value, .starting)
+            try h.hardware.emit(signal(h), sampleTime: 40_000)
+            let initial = await ownerEventually { await h.owner.snapshot().phase == .recording }
+            XCTAssertTrue(initial)
+            let stopped = NativeAppSignalOutcome()
+            try await complete {
+                do { stopped.value = try await application.perform(.stop(expectedSessionID: h.id)) }
+                catch { stopped.error = error }
+            }
+            XCTAssertNil(stopped.error)
+            XCTAssertEqual(stopped.value, .stopped)
+            XCTAssertNotNil(h.owner.completedManifest)
+            let replacementID = UUID()
+            let replacementDirectory = h.root.appendingPathComponent("app-signal-replacement", isDirectory: true)
+            h.preparation.result = .ready(directory: replacementDirectory)
+            let started = NativeAppSignalOutcome()
+            try await complete {
+                do { started.value = try await application.perform(.start(replacementID)) }
+                catch { started.error = error }
+            }
+            XCTAssertNil(started.error)
+            XCTAssertEqual(started.value, .starting)
+            try h.hardware.emit(signal(h), sampleTime: 90_000)
+            let active = await ownerEventually { await h.owner.snapshot().phase == .recording }
+            XCTAssertTrue(active)
+            let stale = NativeAppSignalOutcome()
+            try await complete {
+                do { stale.value = try await application.perform(.stop(expectedSessionID: h.id)) }
+                catch { stale.error = error }
+            }
+            XCTAssertNil(stale.error)
+            XCTAssertEqual(stale.value, .staleSession)
+            center.post(name: AVAudioSession.mediaServicesWereResetNotification,
+                        object: AVAudioSession.sharedInstance())
+            try await complete { await application.flushSignals() }
+            let state = await h.owner.snapshot()
+            XCTAssertEqual(state.sessionID, replacementID)
+            XCTAssertEqual(state.phase, .interrupted,
+                "Stale Stop may not tear down observation for the matching replacement epoch")
+            XCTAssertFalse(state.cleanupPending)
+            XCTAssertFalse(h.hardware.sessionActive)
+            XCTAssertFalse(h.hardware.engineRunning)
+            XCTAssertNil(h.owner.completedManifest)
+            let data = try? Data(contentsOf: replacementDirectory.appendingPathComponent("capture-manifest.json"))
+            XCTAssertNotNil(data)
+            if let data {
+                let manifest = try JSONDecoder().decode(AudioCaptureManifest.self, from: data)
+                XCTAssertEqual(manifest.sessionID, replacementID)
+                XCTAssertEqual(manifest.totalFrames, 64)
+                XCTAssertEqual(try decode(manifest, directory: replacementDirectory).count, 64)
+            }
+        }
+    }
+}
+
+@MainActor
+private final class NativeAppSignalOutcome {
+    var value: RecordingIntentOutcome?
+    var error: Error?
+}
+#endif

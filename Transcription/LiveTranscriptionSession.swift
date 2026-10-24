@@ -92,7 +92,7 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
             guard !FileManager.default.fileExists(atPath: directory.path) else {
                 throw MeetingStoreError.meetingConflict
             }
-            let ingress = try TranscriptIngress()
+            let ingress = try TranscriptIngress(metrics: metrics)
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true,
                                                     attributes: [.posixPermissions: 0o700])
             try await store.createMeeting(.init(id: epoch.id, title: "Meeting", createdAt: Date(),
@@ -131,17 +131,23 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
     }
 
     public func finish(sessionID: UUID, manifest: AudioCaptureManifest?) async -> RecordingFailure? {
+        await finish(sessionID: sessionID, manifest: manifest, disposition: .completed)
+    }
+
+    public func finish(sessionID: UUID, manifest: AudioCaptureManifest?,
+                       disposition: RecordingFinishDisposition) async -> RecordingFailure? {
         guard let epoch = current else {
             return transcript.sessionID == sessionID ? transcript.failure : nil
         }
         guard epoch.id == sessionID else { return .captureUnavailable }
         if let completion = epoch.completion { return await completion.value }
-        let completion = Task { await self.finish(epoch, manifest: manifest) }
+        let completion = Task { await self.finish(epoch, manifest: manifest, disposition: disposition) }
         epoch.completion = completion
         return await completion.value
     }
 
-    private func finish(_ epoch: LiveTranscriptEpoch, manifest: AudioCaptureManifest?) async -> RecordingFailure? {
+    private func finish(_ epoch: LiveTranscriptEpoch, manifest: AudioCaptureManifest?,
+                        disposition: RecordingFinishDisposition) async -> RecordingFailure? {
         if let preparation = epoch.preparation { _ = await preparation.value }
         guard let ingress = epoch.ingress, let recognizer = epoch.recognizer,
               let consumer = epoch.consumer else { return epoch.preparationFailure }
@@ -168,7 +174,7 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
         }
         do {
             try await store.updateRecordingState(id: epoch.id,
-                state: failure == nil ? .completed : .failed,
+                state: failure == nil ? (disposition == .interrupted ? .interrupted : .completed) : .failed,
                 capturedSampleCount: manifest?.sessionID == epoch.id ? max(0, manifest?.totalFrames ?? 0) : 0)
         } catch { failure = .writeFailed }
         let final = LiveTranscriptSnapshot(sessionID: epoch.id, partial: "",
@@ -181,6 +187,23 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
 
     private func publish(_ value: LiveTranscriptSnapshot, token: UUID) {
         guard current?.token == token else { return }
+        if let metrics {
+            do {
+                if !value.partial.isEmpty, value.partial != transcript.partial {
+                    try metrics.partialPublished(endSample: value.receivedSampleCount)
+                }
+                if value.finalized.count > transcript.finalized.count {
+                    for segment in value.finalized.dropFirst(transcript.finalized.count) {
+                        try metrics.finalPublished(endSample: segment.endSample)
+                    }
+                }
+                try metrics.checkpoint()
+            } catch {
+                // Telemetry cannot interrupt otherwise valid capture. Preserve
+                // an explicit invalid-evidence counter instead of inventing facts.
+                metrics.recordError(.invalidTimestamp)
+            }
+        }
         transcript = value
     }
 
@@ -199,7 +222,7 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
                 let next = scratch.withUnsafeMutableBufferPointer { samples in
                     var plane = samples.baseAddress!
                     return withUnsafePointer(to: &plane) {
-                        ingress.queue.dequeue(into: $0, frameCapacity: samples.count)
+                        ingress.dequeue(into: $0, frameCapacity: samples.count)
                     }
                 }
                 switch next {
@@ -207,8 +230,15 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
                     guard metadata.precedingLoss == nil, metadata.sourceSampleTime == cursor else {
                         throw StreamingASRError.invalidSamples
                     }
+                    let workStarted = ingress.metrics?.nowNanoseconds()
                     let result = try await recognizer.accept(samples: Array(scratch.prefix(metadata.frameCount)),
                                                               sourceStartSample: cursor)
+                    if let metrics = ingress.metrics, let workStarted {
+                        do {
+                            try metrics.processed(startSample: cursor, frameCount: metadata.frameCount,
+                                                  workStartedAtNanoseconds: workStarted)
+                        } catch { metrics.recordError(.invalidTimestamp) }
+                    }
                     cursor += Int64(metadata.frameCount)
                     partial = result.text
                     if result.isEndpoint {
@@ -237,7 +267,12 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
             guard !ingress.failed.load(ordering: .acquiring) else {
                 throw StreamingASRError.invalidSamples
             }
+            let finalizationStarted = ingress.metrics?.nowNanoseconds()
             let final = try await recognizer.finish()
+            if let metrics = ingress.metrics, let finalizationStarted {
+                do { try metrics.finalizationCompleted(workStartedAtNanoseconds: finalizationStarted) }
+                catch { metrics.recordError(.invalidTimestamp) }
+            }
             if !final.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 let segment = StoredTranscriptSegment(id: UUID(), meetingID: id, sequence: finalized.count,
                     startSample: utteranceStart, endSample: cursor, text: final.text, modelRevision: revision)
@@ -247,6 +282,7 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
             partial = ""
         } catch {
             failure = error is MeetingStoreError ? .writeFailed : .captureUnavailable
+            ingress.metrics?.recordError(error is MeetingStoreError ? .writeFailed : .inferenceFailed)
             ingress.failed.store(true, ordering: .releasing)
             ingress.admission.close()
             await recognizer.cancel()
@@ -278,18 +314,35 @@ private struct TranscriptDrain: Sendable { let snapshot: LiveTranscriptSnapshot 
 
 private final class TranscriptIngress: Sendable {
     let queue: OwnedPCMQueue
+    let metrics: TranscriptionMetricsRecorder?
     let admission = CaptureCallbackAdmission()
     let failed = Atomic<Bool>(false)
+    // Instrumented queue publication and timing registration share one short
+    // worker-only critical section. The consumer cannot observe a chunk before
+    // its accepted-input timestamp exists. Native inference is outside this lock.
+    private let metricQueueDepth = Mutex<Int>(0)
 
-    init() throws {
+    init(metrics: TranscriptionMetricsRecorder? = nil) throws {
+        self.metrics = metrics
         queue = try OwnedPCMQueue(configuration: .init(capacity: 128, maxFramesPerChunk: 3_200,
                                                      channelCount: 1, sampleRate: 16_000))
+    }
+
+    func dequeue(into destination: UnsafePointer<UnsafeMutablePointer<Float>>,
+                 frameCapacity: Int) -> PCMDequeueResult {
+        guard metrics != nil else { return queue.dequeue(into: destination, frameCapacity: frameCapacity) }
+        return metricQueueDepth.withLock { depth in
+            let result = queue.dequeue(into: destination, frameCapacity: frameCapacity)
+            if case .chunk = result { depth -= 1 }
+            return result
+        }
     }
 
     func offer(_ buffer: AVAudioPCMBuffer, at source: Int64) -> Bool {
         switch admission.enter() {
         case .closed: return false
         case .overlapping:
+            metrics?.recordError(.captureUnavailable)
             failed.store(true, ordering: .releasing)
             admission.close()
             return false
@@ -306,6 +359,7 @@ private final class TranscriptIngress: Sendable {
               format.commonFormat == .pcmFormatFloat32, !format.isInterleaved,
               frameCount > 0, frameCount <= 65_536, !sourceOverflow,
               let samples = buffer.floatChannelData?.pointee else {
+            metrics?.recordError(.invalidTimestamp)
             failed.store(true, ordering: .releasing)
             admission.close()
             return false
@@ -315,10 +369,10 @@ private final class TranscriptIngress: Sendable {
             let count = min(3_200, frameCount - offset)
             var plane = samples.advanced(by: offset)
             let result = withUnsafePointer(to: &plane) {
-                queue.enqueue(channelData: $0, channelCount: 1, frameCount: count,
-                              sourceSampleTime: source + Int64(offset))
+                enqueue(channelData: $0, frameCount: count, sourceSampleTime: source + Int64(offset))
             }
             guard result == .accepted else {
+                metrics?.recordError(.queueOverflow)
                 // Earlier chunks may already have been durably queued. Reject
                 // the whole offer explicitly; never report a partial success.
                 failed.store(true, ordering: .releasing)
@@ -328,6 +382,27 @@ private final class TranscriptIngress: Sendable {
             offset += count
         }
         return true
+    }
+
+    private func enqueue(channelData: UnsafePointer<UnsafeMutablePointer<Float>>,
+                         frameCount: Int, sourceSampleTime: Int64) -> PCMEnqueueResult {
+        guard let metrics else {
+            return queue.enqueue(channelData: channelData, channelCount: 1, frameCount: frameCount,
+                                 sourceSampleTime: sourceSampleTime)
+        }
+        return metricQueueDepth.withLock { depth in
+            let result = queue.enqueue(channelData: channelData, channelCount: 1, frameCount: frameCount,
+                                       sourceSampleTime: sourceSampleTime)
+            if result == .accepted {
+                depth += 1
+                do {
+                    try metrics.audioQueued(startSample: sourceSampleTime, frameCount: frameCount, queueDepth: depth)
+                } catch let error as MetricsValidationError {
+                    metrics.recordError(error == .pendingOverflow ? .queueOverflow : .invalidTimestamp)
+                } catch { metrics.recordError(.invalidTimestamp) }
+            }
+            return result
+        }
     }
 }
 

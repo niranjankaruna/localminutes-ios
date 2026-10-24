@@ -1745,3 +1745,226 @@ extension RecordingSessionOwnerTests {
     }
 }
 #endif
+
+
+// APPEND to Tests/RecordingTests/RecordingSessionOwnerTests.swift after the final
+// #endif. Existing file-private real owner/CAF helpers remain unchanged.
+#if os(iOS)
+@MainActor
+extension RecordingSessionOwnerTests {
+    func testNativeApplicationRetainsSignalObservationAfterStartReturnsAndInterruptsActualCAF() async throws {
+        try await withHarness { h in
+            let center = NotificationCenter()
+            let application = RecordingApplication(owner: h.owner, signalCenter: center)
+            let result = NativeIntentCall()
+            try await complete {
+                do { result.reply = try await StartMeetingIntent(application: application).perform() }
+                catch { result.error = error }
+            }
+            XCTAssertNil(result.error)
+            XCTAssertEqual(result.reply?.value, "Preparing recording.")
+            try h.hardware.emit(signal(h), sampleTime: 40_000)
+            let recording = await ownerEventually { await h.owner.snapshot().phase == .recording }
+            XCTAssertTrue(recording)
+            // Perform's start task has returned. Only the retained application
+            // may keep native observation alive; the test owns no monitor.
+            center.post(name: AVAudioSession.interruptionNotification,
+                object: AVAudioSession.sharedInstance(),
+                userInfo: [AVAudioSessionInterruptionTypeKey: AVAudioSession.InterruptionType.began.rawValue])
+            try await complete { await application.flushSignals() }
+            let state = await h.owner.snapshot()
+            XCTAssertEqual(state.phase, .interrupted)
+            XCTAssertFalse(state.cleanupPending)
+            XCTAssertFalse(state.readiness.audioSessionActive)
+            XCTAssertFalse(state.readiness.firstBufferAccepted)
+            XCTAssertFalse(h.hardware.sessionActive)
+            XCTAssertFalse(h.hardware.engineRunning)
+            XCTAssertNil(h.owner.completedManifest)
+            XCTAssertNil(h.hardware.tap)
+            let data = try? Data(contentsOf: h.directory.appendingPathComponent("capture-manifest.json"))
+            XCTAssertNotNil(data)
+            if let data {
+                let manifest = try JSONDecoder().decode(AudioCaptureManifest.self, from: data)
+                // StartMeetingIntent allocates its own epoch UUID.
+                XCTAssertEqual(manifest.sessionID, state.sessionID)
+                XCTAssertEqual(manifest.totalFrames, 64)
+                XCTAssertEqual(try decode(manifest, directory: h.directory).count, 64)
+            }
+        }
+    }
+
+    func testNativeStaleAppStopCannotDetachReplacementSignalObservation() async throws {
+        try await withHarness { h in
+            let center = NotificationCenter()
+            let application = RecordingApplication(owner: h.owner, signalCenter: center)
+            let first = NativeAppSignalOutcome()
+            try await complete {
+                do { first.value = try await application.perform(.start(h.id)) }
+                catch { first.error = error }
+            }
+            XCTAssertNil(first.error)
+            XCTAssertEqual(first.value, .starting)
+            try h.hardware.emit(signal(h), sampleTime: 40_000)
+            let initial = await ownerEventually { await h.owner.snapshot().phase == .recording }
+            XCTAssertTrue(initial)
+            let stopped = NativeAppSignalOutcome()
+            try await complete {
+                do { stopped.value = try await application.perform(.stop(expectedSessionID: h.id)) }
+                catch { stopped.error = error }
+            }
+            XCTAssertNil(stopped.error)
+            XCTAssertEqual(stopped.value, .stopped)
+            XCTAssertNotNil(h.owner.completedManifest)
+            let replacementID = UUID()
+            let replacementDirectory = h.root.appendingPathComponent("app-signal-replacement", isDirectory: true)
+            h.preparation.result = .ready(directory: replacementDirectory)
+            let started = NativeAppSignalOutcome()
+            try await complete {
+                do { started.value = try await application.perform(.start(replacementID)) }
+                catch { started.error = error }
+            }
+            XCTAssertNil(started.error)
+            XCTAssertEqual(started.value, .starting)
+            try h.hardware.emit(signal(h), sampleTime: 90_000)
+            let active = await ownerEventually { await h.owner.snapshot().phase == .recording }
+            XCTAssertTrue(active)
+            let stale = NativeAppSignalOutcome()
+            try await complete {
+                do { stale.value = try await application.perform(.stop(expectedSessionID: h.id)) }
+                catch { stale.error = error }
+            }
+            XCTAssertNil(stale.error)
+            XCTAssertEqual(stale.value, .staleSession)
+            center.post(name: AVAudioSession.mediaServicesWereResetNotification,
+                        object: AVAudioSession.sharedInstance())
+            try await complete { await application.flushSignals() }
+            let state = await h.owner.snapshot()
+            XCTAssertEqual(state.sessionID, replacementID)
+            XCTAssertEqual(state.phase, .interrupted,
+                "Stale Stop may not tear down observation for the matching replacement epoch")
+            XCTAssertFalse(state.cleanupPending)
+            XCTAssertFalse(h.hardware.sessionActive)
+            XCTAssertFalse(h.hardware.engineRunning)
+            XCTAssertNil(h.owner.completedManifest)
+            let data = try? Data(contentsOf: replacementDirectory.appendingPathComponent("capture-manifest.json"))
+            XCTAssertNotNil(data)
+            if let data {
+                let manifest = try JSONDecoder().decode(AudioCaptureManifest.self, from: data)
+                XCTAssertEqual(manifest.sessionID, replacementID)
+                XCTAssertEqual(manifest.totalFrames, 64)
+                XCTAssertEqual(try decode(manifest, directory: replacementDirectory).count, 64)
+            }
+        }
+    }
+}
+
+@MainActor
+private final class NativeAppSignalOutcome {
+    var value: RecordingIntentOutcome?
+    var error: Error?
+}
+
+@MainActor
+extension RecordingSessionOwnerTests {
+    func testNativeApplicationObservesResetBeforePermissionReturnsAndRejectsLateGrant() async throws {
+        try await withHarness { h in
+            let center = NotificationCenter()
+            let application = RecordingApplication(owner: h.owner, signalCenter: center)
+            h.permission.hold = true
+            let result = NativeAppSignalOutcome()
+            let starting = Task {
+                do { result.value = try await application.perform(.start(h.id)) }
+                catch { result.error = error }
+            }
+            defer { starting.cancel(); h.permission.resolve() }
+            let held = await ownerEventually { h.permission.isWaiting }
+            XCTAssertTrue(held)
+            center.post(name: AVAudioSession.mediaServicesWereResetNotification,
+                        object: AVAudioSession.sharedInstance())
+            try await complete { await application.flushSignals() }
+            let interrupted = await h.owner.snapshot()
+            XCTAssertEqual(interrupted.phase, .interrupted)
+            XCTAssertFalse(interrupted.cleanupPending)
+            XCTAssertEqual(h.hardware.startCalls, 0)
+            h.permission.resolve()
+            try await complete { await starting.value }
+            XCTAssertNil(result.error)
+            XCTAssertEqual(h.hardware.startCalls, 0, "A late grant cannot start after an app-observed reset")
+            XCTAssertFalse(h.hardware.sessionActive)
+            XCTAssertFalse(h.hardware.engineRunning)
+            XCTAssertNil(h.owner.completedManifest)
+        }
+    }
+}
+#endif
+
+
+// APPEND to Tests/RecordingTests/RecordingSessionOwnerTests.swift outside any
+// #if os(iOS) block. Reuses the same-file actual owner/CAF harness in SPM/native.
+// No production change or new helper is required for behavioral RED.
+@MainActor
+extension RecordingSessionOwnerTests {
+    func testInterruptionDuringHeldModelPreparationSettlesInterruptedAndAllowsReplacement() async throws {
+        try await withHarness { h in
+            h.preparation.hold = true
+            let started = OwnerTestProbe()
+            let interrupted = OwnerTestProbe()
+            let starting = Task {
+                await h.owner.start(sessionID: h.id)
+                started.finished = true
+            }
+            defer { starting.cancel(); h.preparation.resolve(.rejected(.modelUnavailable)) }
+            let waiting = await ownerEventually { h.preparation.isWaiting }
+            XCTAssertTrue(waiting, "Hold model preparation before coordinator activation or microphone permission")
+            guard waiting else { return }
+            let interrupting = Task {
+                await h.owner.interrupt(sessionID: h.id)
+                interrupted.finished = true
+            }
+            defer { interrupting.cancel() }
+            let latched = await ownerEventually {
+                let state = await h.owner.snapshot()
+                return state.phase == .interrupted && state.cleanupPending
+            }
+            XCTAssertTrue(latched, "An interruption must own cleanup even before activationIssued")
+            XCTAssertFalse(interrupted.finished, "Held preparation still owns unfinished resources")
+            XCTAssertEqual(h.permission.requests, 0)
+            XCTAssertEqual(h.hardware.startCalls, 0)
+            XCTAssertTrue(h.activity.requests.isEmpty)
+            XCTAssertNil(h.owner.completedManifest)
+            h.preparation.resolve(.ready(directory: h.directory))
+            let settled = await ownerEventually { started.finished && interrupted.finished }
+            XCTAssertTrue(settled, "Both waiters must join the same bounded teardown")
+            guard settled else { return }
+            await starting.value; await interrupting.value
+            let state = await h.owner.snapshot()
+            XCTAssertEqual(state.sessionID, h.id)
+            XCTAssertEqual(state.phase, .interrupted)
+            XCTAssertFalse(state.cleanupPending)
+            XCTAssertNil(state.failure)
+            XCTAssertFalse(state.readiness.audioSessionActive)
+            XCTAssertFalse(state.readiness.firstBufferAccepted)
+            XCTAssertFalse(state.readiness.activityActive)
+            XCTAssertEqual(h.permission.requests, 0)
+            XCTAssertEqual(h.hardware.startCalls, 0)
+            XCTAssertTrue(h.activity.requests.isEmpty)
+            XCTAssertFalse(FileManager.default.fileExists(atPath: h.directory.path))
+            XCTAssertNil(h.owner.completedManifest)
+
+            // Prove the internal coordinator is reusable, not just that the
+            // resource epoch disappeared while its phase stayed .preparing.
+            let replacementID = UUID()
+            h.preparation.result = .ready(directory: h.root.appendingPathComponent("replacement", isDirectory: true))
+            try await complete { await h.owner.start(sessionID: replacementID) }
+            XCTAssertEqual(h.preparation.requests, [h.id, replacementID])
+            if h.hardware.tap != nil { try h.hardware.emit(signal(h), sampleTime: 90_000) }
+            let replacementRecording = await ownerEventually { await h.owner.snapshot().phase == .recording }
+            XCTAssertTrue(replacementRecording, "An interrupted preparation must not permanently wedge future recording")
+            let replacement = await h.owner.snapshot()
+            XCTAssertEqual(replacement.sessionID, replacementID)
+            XCTAssertEqual(h.hardware.startCalls, 1)
+            XCTAssertEqual(h.activity.requests, [replacementID])
+            try await complete { await h.owner.stop(sessionID: replacementID) }
+        }
+    }
+}

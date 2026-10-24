@@ -43,47 +43,109 @@ public struct StructuredJSONSchema: Equatable, Sendable {
         guard (256...65_536).contains(maximumGrammarUTF8Bytes) else {
             throw StructuredJSONSchemaError.invalidBounds
         }
-        guard !fields.isEmpty else { throw StructuredJSONSchemaError.emptyFields }
-        guard fields.count <= 64 else { throw StructuredJSONSchemaError.tooManyFields }
-        var names: Set<String> = []
-        var members: [String] = []
-        var rules: [String] = []
-        for (index, field) in fields.enumerated() {
-            guard Self.validIdentifier(field.name) else { throw StructuredJSONSchemaError.invalidFieldName }
-            guard names.insert(field.name).inserted else { throw StructuredJSONSchemaError.duplicateFieldName }
-            members.append("\(try Self.literal(for: field.name)) ws \":\" ws field-\(index)")
-            switch field.type {
-            case .string:
-                rules.append("field-\(index) ::= string")
-            case .boolean:
-                rules.append("field-\(index) ::= boolean")
-            case .stringEnumeration(let values):
-                guard !values.isEmpty else { throw StructuredJSONSchemaError.emptyEnumeration }
-                let alternatives = try Self.enumAlternatives(values, maximumBytes: maximumGrammarUTF8Bytes)
-                rules.append("field-\(index) ::= (\(alternatives)) ws")
-            case .stringArray(let values):
-                let alternatives = try Self.enumAlternatives(values, maximumBytes: maximumGrammarUTF8Bytes)
-                if values.isEmpty {
-                    rules.append("field-\(index) ::= \"[\" ws \"]\" ws")
-                } else {
-                    rules.append("field-\(index) ::= \"[\" ws (enum-\(index) (\",\" ws enum-\(index))*)? \"]\" ws")
-                    rules.append("enum-\(index) ::= (\(alternatives)) ws")
-                }
-            case .object, .array, .nullable, .integerEnumeration:
-                throw StructuredJSONSchemaError.unsupportedType
-            }
-            // Reject growing domains before constructing another field. The
-            // final check below includes all separators and root punctuation.
-            let used = members.reduce(0) { $0 + $1.utf8.count }
-                + rules.reduce(0) { $0 + $1.utf8.count } + Self.sharedRules.utf8.count
-            guard used <= maximumGrammarUTF8Bytes else { throw StructuredJSONSchemaError.grammarTooLarge }
-        }
-        let root = "root ::= ws \"{\" ws " + members.joined(separator: " \",\" ws ") + " \"}\" ws"
-        let grammar = ([root] + rules + [Self.sharedRules]).joined(separator: "\n")
+        var compiler = Compiler(maximumBytes: maximumGrammarUTF8Bytes)
+        let body = try compiler.object(fields, path: "field", depth: 0)
+        let root = "root ::= ws " + body
+        let grammar = ([root] + compiler.rules + [Self.sharedRules]).joined(separator: "\n")
         guard grammar.utf8.count <= maximumGrammarUTF8Bytes else {
             throw StructuredJSONSchemaError.grammarTooLarge
         }
         return grammar
+    }
+
+    /// Limits both recursive input and generated rule allocation. Array tails
+    /// use only the existing GBNF optional/sequence operators, and terminate
+    /// after the caller's maximum rather than widening to unbounded JSON.
+    private struct Compiler {
+        let maximumBytes: Int
+        var rules: [String] = []
+        private var emittedBytes = StructuredJSONSchema.sharedRules.utf8.count
+        private var fieldCount = 0
+
+        init(maximumBytes: Int) { self.maximumBytes = maximumBytes }
+
+        mutating func object(_ fields: [StructuredJSONField], path: String, depth: Int) throws -> String {
+            guard depth <= 8 else { throw StructuredJSONSchemaError.invalidBounds }
+            guard !fields.isEmpty else { throw StructuredJSONSchemaError.emptyFields }
+            guard fields.count <= 64, fieldCount <= 1_024 - fields.count else {
+                throw StructuredJSONSchemaError.tooManyFields
+            }
+            fieldCount += fields.count
+            var names: Set<String> = []
+            var members: [String] = []
+            for (index, field) in fields.enumerated() {
+                guard StructuredJSONSchema.validIdentifier(field.name) else {
+                    throw StructuredJSONSchemaError.invalidFieldName
+                }
+                guard names.insert(field.name).inserted else { throw StructuredJSONSchemaError.duplicateFieldName }
+                let name = "\(path)-\(index)"
+                members.append("\(try StructuredJSONSchema.literal(for: field.name)) ws \":\" ws \(name)")
+                try type(field.type, name: name, depth: depth + 1)
+            }
+            return "\"{\" ws " + members.joined(separator: " \",\" ws ") + " \"}\" ws"
+        }
+
+        mutating func type(_ value: StructuredJSONType, name: String, depth: Int) throws {
+            guard depth <= 8 else { throw StructuredJSONSchemaError.invalidBounds }
+            switch value {
+            case .string: try append(name, "string")
+            case .boolean: try append(name, "boolean")
+            case .stringEnumeration(let values):
+                guard !values.isEmpty else { throw StructuredJSONSchemaError.emptyEnumeration }
+                let alternatives = try StructuredJSONSchema.enumAlternatives(values, maximumBytes: maximumBytes)
+                try append(name, "(\(alternatives)) ws")
+            case .stringArray(let values):
+                let alternatives = try StructuredJSONSchema.enumAlternatives(values, maximumBytes: maximumBytes)
+                if values.isEmpty {
+                    try append(name, "\"[\" ws \"]\" ws")
+                } else {
+                    let domain = name.replacingOccurrences(of: "field-", with: "enum-")
+                    try append(name, "\"[\" ws (\(domain) (\",\" ws \(domain))*)? \"]\" ws")
+                    try append(domain, "(\(alternatives)) ws")
+                }
+            case .object(let fields):
+                let body = try object(fields, path: name, depth: depth)
+                try append(name, body)
+            case .array(let element, let maximumItems):
+                guard (1...128).contains(maximumItems) else { throw StructuredJSONSchemaError.invalidBounds }
+                let item = name + "-item"
+                try type(element, name: item, depth: depth + 1)
+                if maximumItems == 1 {
+                    try append(name, "\"[\" ws (\(item))? \"]\" ws")
+                } else {
+                    for remaining in 1..<maximumItems {
+                        let next = remaining == 1 ? "" : " \(name)-tail-\(remaining - 1)"
+                        try append("\(name)-tail-\(remaining)", "(\",\" ws \(item)\(next))?")
+                    }
+                    try append(name, "\"[\" ws (\(item) \(name)-tail-\(maximumItems - 1))? \"]\" ws")
+                }
+            case .nullable(let wrapped):
+                let inner = name + "-value"
+                try type(wrapped, name: inner, depth: depth + 1)
+                try append(name, "(\(inner) | \"null\" ws)")
+            case .integerEnumeration(let values):
+                guard !values.isEmpty else { throw StructuredJSONSchemaError.emptyEnumeration }
+                guard values.count <= 256 else { throw StructuredJSONSchemaError.tooManyEnumerationValues }
+                var seen: Set<Int64> = []
+                var literals: [String] = []
+                for value in values {
+                    guard seen.insert(value).inserted else { throw StructuredJSONSchemaError.duplicateEnumerationValue }
+                    literals.append("\"\(value)\"")
+                }
+                try append(name, "(\(literals.joined(separator: " | "))) ws")
+            }
+        }
+
+        private mutating func append(_ name: String, _ body: String) throws {
+            guard rules.count < 1_024 else { throw StructuredJSONSchemaError.grammarTooLarge }
+            let rule = "\(name) ::= \(body)"
+            let bytes = rule.utf8.count + 1
+            guard bytes <= maximumBytes, emittedBytes <= maximumBytes - bytes else {
+                throw StructuredJSONSchemaError.grammarTooLarge
+            }
+            emittedBytes += bytes
+            rules.append(rule)
+        }
     }
 
     private static func validIdentifier(_ name: String) -> Bool {

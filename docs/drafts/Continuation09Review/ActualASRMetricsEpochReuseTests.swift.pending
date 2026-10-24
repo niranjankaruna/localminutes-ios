@@ -1,0 +1,73 @@
+// APPEND to Tests/ASRTests/LiveTranscriptionSessionTests.swift, preserving its
+// private real-model fixture, feed, LiveMetricsTestClock and existing assertions.
+// Runs in the hosted actual-ASR core suite, never a fake recognizer or device gate.
+@MainActor
+extension LiveTranscriptionSessionTests {
+    func testActualSequentialMeetingsReuseOneSessionWithIndependentMetricsEpochs() async throws {
+        let h = try await LiveSessionFixture.create()
+        guard let source = ProcessInfo.processInfo.environment["GITHUB_SHA"], source.count == 40,
+              source.utf8.allSatisfy({ (48...57).contains($0) || (97...102).contains($0) }) else {
+            XCTFail("The hosted actual source identity is required; missing setup is not RED")
+            await h.cleanup()
+            throw MetricsASRDraftError.missingSourceIdentity
+        }
+        let identity = MetricsBuildIdentity(sourceCommit: source, modelRevision: NativeASRFixture.revision,
+            runtimeVersion: "1.13.8", buildNumber: 1)
+        let metrics = try TranscriptionMetricsRecorder(identity: identity, capacity: 128, clock: LiveMetricsTestClock())
+        let session = LiveTranscriptionSession(models: h.models, store: h.store,
+            meetingsDirectory: h.meetings, metrics: metrics)
+        var activeID: UUID?
+        do {
+            let firstID = UUID()
+            guard case .ready(let firstDirectory) = await session.prepare(sessionID: firstID) else {
+                XCTFail("First actual pinned recognizer must prepare")
+                throw MetricsASRDraftError.preparationFailed
+            }
+            activeID = firstID
+            let firstAudio = h.speech.samples + NativeASRFixture.trailingSilence
+            let firstManifest = try feed(firstAudio, session: session, directory: firstDirectory, id: firstID)
+            let firstFailure = await session.finish(sessionID: firstID, manifest: firstManifest)
+            activeID = nil
+            XCTAssertNil(firstFailure)
+            let first = metrics.snapshot()
+            XCTAssertEqual(first.capturedSampleCount, firstManifest.totalFrames)
+            XCTAssertEqual(first.processedSampleCount, firstManifest.totalFrames)
+            XCTAssertTrue(first.errors.isEmpty)
+
+            let secondID = UUID()
+            guard case .ready(let secondDirectory) = await session.prepare(sessionID: secondID) else {
+                XCTFail("The same application-owned live session must support another meeting")
+                throw MetricsASRDraftError.preparationFailed
+            }
+            activeID = secondID
+            let secondAudio = firstAudio + [Float](repeating: 0, count: 1_600)
+            let secondManifest = try feed(secondAudio, session: session, directory: secondDirectory, id: secondID)
+            XCTAssertNotEqual(secondManifest.totalFrames, firstManifest.totalFrames,
+                "Different lengths make a stale first-epoch snapshot observable")
+            let secondFailure = await session.finish(sessionID: secondID, manifest: secondManifest)
+            activeID = nil
+            XCTAssertNil(secondFailure, "Instrumentation cannot break healthy actual ASR or persistence")
+            let second = metrics.snapshot()
+            XCTAssertEqual(second.capturedSampleCount, secondManifest.totalFrames)
+            XCTAssertEqual(second.processedSampleCount, secondManifest.totalFrames)
+            XCTAssertTrue(second.errors.isEmpty, "A new meeting's sample0 is valid for its new metrics epoch")
+            XCTAssertGreaterThan(second.processingWallNanoseconds, 0)
+            XCTAssertGreaterThan(second.finalLatency.sampleCount, 0)
+            XCTAssertEqual(second.identity, identity)
+            XCTAssertEqual(session.transcript.sessionID, secondID)
+            XCTAssertEqual(session.transcript.receivedSampleCount, secondManifest.totalFrames)
+            let firstRows = try await h.store.transcript(meetingID: firstID)
+            let secondRows = try await h.store.transcript(meetingID: secondID)
+            XCTAssertEqual(firstRows.count, 1); XCTAssertEqual(secondRows.count, 1)
+            XCTAssertEqual(firstRows.first?.text.lowercased().split(separator: " ").last, "tents")
+            XCTAssertEqual(secondRows.first?.text.lowercased().split(separator: " ").last, "tents")
+            XCTAssertEqual(secondRows.first?.meetingID, secondID)
+            XCTAssertEqual(secondRows.first?.modelRevision, NativeASRFixture.revision)
+        } catch {
+            if let activeID { _ = await session.finish(sessionID: activeID, manifest: nil) }
+            await h.cleanup()
+            throw error
+        }
+        await h.cleanup()
+    }
+}

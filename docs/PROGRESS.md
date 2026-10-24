@@ -623,3 +623,10 @@ Six of six runs are terminal. No seventh dispatch/re-run/code-triggering push th
 ## Continuation09 test-first activation
 
 Previous turn: progress, exact db1b8d5 full GREEN reverified. Activated17 new cases:13core+2native+2actualQwen, expected282core/61native/7actualmodel/3UI. Only minimal empty/no-op/throwing interfaces added; no new behavior before compatible assertions. Source push/RED pending. See [TDD evidence](evidence/T12_T13_T18_T19_TDD.md). Current bounded budget0/6 new runs; public standard compute guard reverified, no uploads or paid infrastructure. All physical gates remain NOT_RUN.
+
+
+## Continuation09 implementation and next test-first source
+
+Initial cc5049f/run40082088572 has actual17-case RED:282core269pass13fail90assert,61native59pass2fail20assert,7actual-model5pass2fail7assert,0unexpected/skip; UI3/3 and2product+13archive pass. All old regressions pass. Only after these assertions: implemented exact-epoch interruption/disposition and SDK monitor, bounded measured private diagnostics, nested grammar/grounded map-validate-merge pipeline, selected-meeting exact-quote QA. Actual semantic GREEN remains pending; no test/pin was weakened.
+
+Independent review found early model-preparation interruption can strand coordinator and recorder state carries across meetings; both get new tests before repair. Added test-first generated storage4, heavy admission4, app observation3 and these2 regressions (one shared SPM/native). Expected next292core/65native/7actualmodel/3UI/86TSAN. Storage schema remains3, gate is a no-op, app signalCenter unused/flush no-op, both regressions unfixed until actual new RED. No app/model/privacy/device completion inferred. Budget1/6 used, first run terminal; no cancellation.

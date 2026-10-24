@@ -11,16 +11,26 @@ public enum RecordingPreparationResult: Sendable, Equatable {
     case rejected(RecordingFailure)
 }
 
+public enum RecordingFinishDisposition: Sendable, Equatable {
+    case completed, interrupted
+}
+
 @MainActor
 public protocol RecordingPreparationSource: AnyObject {
     var normalizedSink: (any NormalizedCaptureSink)? { get }
     func prepare(sessionID: UUID) async -> RecordingPreparationResult
     func finish(sessionID: UUID, manifest: AudioCaptureManifest?) async -> RecordingFailure?
+    func finish(sessionID: UUID, manifest: AudioCaptureManifest?,
+                disposition: RecordingFinishDisposition) async -> RecordingFailure?
 }
 
 public extension RecordingPreparationSource {
     var normalizedSink: (any NormalizedCaptureSink)? { nil }
     func finish(sessionID: UUID, manifest: AudioCaptureManifest?) async -> RecordingFailure? { nil }
+    func finish(sessionID: UUID, manifest: AudioCaptureManifest?,
+                disposition: RecordingFinishDisposition) async -> RecordingFailure? {
+        await finish(sessionID: sessionID, manifest: manifest)
+    }
 }
 
 @MainActor
@@ -32,6 +42,7 @@ private final class RecordingOwnerEpoch {
     var cleanup: Task<Void, Never>?
     var cleanupRequested = false
     var cancelled = false
+    var interrupted = false
     var captureBegan = false
     var audioSessionActive = false
     var firstBufferAccepted = false
@@ -74,6 +85,14 @@ public final class RecordingSessionOwner {
     private var current: RecordingOwnerEpoch?
 
     public private(set) var completedManifest: AudioCaptureManifest?
+
+    public func interrupt(sessionID: UUID) async {
+        guard let epoch = current, epoch.id == sessionID else { return }
+        // Latch the exact owned epoch before suspension. Late readiness and tap
+        // callbacks use that same epoch and cannot acknowledge a saved meeting.
+        if !epoch.cleanupRequested { epoch.interrupted = true }
+        await requestCleanup(epoch)
+    }
 
     public convenience init(
         permission: any CapturePermissionSource,
@@ -308,6 +327,8 @@ public final class RecordingSessionOwner {
         guard current === epoch else { return }
         if let failure = epoch.failure {
             _ = await coordinator.fail(failure, for: epoch.id)
+        } else if epoch.interrupted {
+            _ = await coordinator.interrupt(for: epoch.id)
         } else {
             _ = await coordinator.stop()
         }
@@ -333,7 +354,8 @@ public final class RecordingSessionOwner {
         // The transcript consumer must now flush SQLite and release native
         // resources before Saved, activity end, or another epoch is admitted.
         if !epoch.transcriptFinished {
-            let failure = await preparation.finish(sessionID: epoch.id, manifest: epoch.manifest)
+            let failure = await preparation.finish(sessionID: epoch.id, manifest: epoch.manifest,
+                disposition: epoch.interrupted ? .interrupted : .completed)
             guard current === epoch else { return }
             epoch.transcriptFinished = true
             epoch.failure = epoch.failure ?? failure
@@ -343,7 +365,7 @@ public final class RecordingSessionOwner {
         }
         if activities.snapshot().sessionID == epoch.id {
             await activities.end(sessionID: epoch.id,
-                                 status: epoch.failure == nil ? .finished : .failed)
+                status: epoch.failure == nil ? (epoch.interrupted ? .interrupted : .finished) : .failed)
         }
         guard activities.snapshot().sessionID != epoch.id,
               !epoch.activityWasOwned || epoch.activityEnded else {

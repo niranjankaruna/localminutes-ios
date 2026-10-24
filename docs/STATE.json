@@ -3,26 +3,26 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T09:27:50.540Z",
+  "lastUpdated": "2026-10-24T09:59:33.345Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "T12.2 interruption plus bounded T13/T18/T19 test-first integration",
+  "currentTask": "T12/T13/T18/T19 implementation verification; app retention/storage/admission/regression test-first",
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "Push reviewed test-first interfaces/tests; require core282/native61/actualQwen7 discovery and actual missing-behavior assertions before implementing each corresponding slice. No production before compatible RED. Prior db1b8d5 remains last full GREEN.",
+  "nextAction": "Push source2 after terminal cc5049f run: implement only its17 proven-RED contracts; require actual old/new behavior results at exact SHA. Newly added10core/4native executions remain test-first and require their own assertion RED before storage/admission/app-binding/early-interruption/metrics-reset behavior.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+  "remoteBranchHead": "cc5049f4bad993bb0bd7cdee9603a12a34f56304",
   "localScriptGreen": {
-    "sourceCommit": "39d9eaa65f7b030a8bdf87e1447b254508dce2db",
-    "sourceScope": "Current reviewed source3 working tree before commit",
+    "sourceCommit": "cc5049f4bad993bb0bd7cdee9603a12a34f56304",
     "platform": "Windows11/Node24.21.0",
     "executed": 59,
     "passed": 59,
     "failed": 0,
     "skipped": 0,
-    "nativePackagingVerified": false
+    "nativePackagingVerified": false,
+    "initialRestrictedAttempt": "EPERM symlink setup, not behavioral RED; same unchanged tests pass in authorized native filesystem execution."
   },
   "lastVerifiedNativeBuildCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedNativeBuildCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
@@ -32,7 +32,9 @@
   "ciInvocation": {
     "id": "2026-10-24-continuation-09",
     "maxNewRuns": 6,
-    "newRunIds": [],
+    "newRunIds": [
+      40082088572
+    ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-24T09:27:50.539Z",
     "costGuardBasis": "Live PUBLIC/ADMIN/HTTPS origin and terminal prior run40079629180 reverified; official https://docs.github.com/en/billing/concepts/product-billing/github-actions rechecked. Standard public macos-15-intel compute free; no larger/paid runner, uploads/caches or billing mutation.",
@@ -43,11 +45,11 @@
     }
   },
   "latestCIRun": {
-    "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
+    "sourceCommit": "cc5049f4bad993bb0bd7cdee9603a12a34f56304",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40082088572",
     "status": "completed",
-    "ordinal": 6,
-    "conclusion": "success"
+    "conclusion": "failure",
+    "ordinal": 1
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -119,7 +121,7 @@
     "T08.4",
     "T08.5"
   ],
-  "remoteBranchHeadScope": "Verified exact source; later documentation-only checkpoint HEAD is a descendant and has no application/workflow changes.",
+  "remoteBranchHeadScope": "Test-first source pushed and live remote HEAD verified",
   "nativeCompileRepair": {
     "status": "CODE_COMPLETE_PENDING_DEVICE",
     "candidatePath": "docs/drafts/T06.1/ActivityKitOperations.swift.pending",
@@ -216,7 +218,7 @@
     "latestRunUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180"
   },
   "activeCIRun": null,
-  "pendingPushScope": null,
+  "pendingPushScope": "Reviewed current17 RED implementations plus new unimplemented test-first APIs/regressions. No actual-model GREEN claim yet.",
   "repositoryVisibility": "PUBLIC",
   "publication": {
     "approvedByOwner": true,
@@ -254,23 +256,7 @@
     "currentCheckpoint": "docs/evidence/CONTINUATION_08_CHECKPOINT.md",
     "currentSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04"
   },
-  "parallelTasks": [
-    {
-      "agent": "/root/bootstrap_review",
-      "scope": "T13 test-first activation",
-      "status": "completed"
-    },
-    {
-      "agent": "/root/verified_models",
-      "scope": "T18 test-first activation",
-      "status": "completed"
-    },
-    {
-      "agent": "/root/meeting_storage",
-      "scope": "T19 test-first activation",
-      "status": "completed"
-    }
-  ],
+  "parallelTasks": [],
   "oneHourPush": {
     "startedAt": "2026-10-23T22:06:40Z",
     "targetCheckpointAt": "2026-10-23T23:06:40Z",
@@ -802,10 +788,61 @@
     "expectedNative": 61,
     "expectedActualQwen": 7,
     "expectedUI": 3,
+    "redVerified": true,
+    "compiled": true,
+    "productionImplemented": true,
+    "sourceCommit": "cc5049f4bad993bb0bd7cdee9603a12a34f56304",
+    "runId": 40082088572,
+    "coreRed": {
+      "sourceCommit": "cc5049f4bad993bb0bd7cdee9603a12a34f56304",
+      "runId": 40082088572,
+      "jobId": 120837553274,
+      "executed": 282,
+      "passed": 269,
+      "failed": 13,
+      "assertionFailures": 90,
+      "unexpected": 0,
+      "skipped": 0
+    },
+    "coreRedVerified": true,
+    "actualModelRed": {
+      "sourceCommit": "cc5049f4bad993bb0bd7cdee9603a12a34f56304",
+      "runId": 40082088572,
+      "jobId": 120837553432,
+      "executed": 7,
+      "passed": 5,
+      "failed": 2,
+      "assertionFailures": 7,
+      "unexpected": 0,
+      "skipped": 0
+    },
+    "actualModelRedVerified": true,
+    "nativeRed": {
+      "sourceCommit": "cc5049f4bad993bb0bd7cdee9603a12a34f56304",
+      "runId": 40082088572,
+      "jobId": 120837553423,
+      "executed": 61,
+      "passed": 59,
+      "failed": 2,
+      "assertionFailures": 20,
+      "unexpected": 0,
+      "skipped": 0,
+      "xcresultAgrees": true
+    },
+    "nativeRedVerified": true,
+    "greenVerified": false
+  },
+  "continuation09NextBatch": {
+    "newCore": 10,
+    "newNative": 4,
+    "expectedCore": 292,
+    "expectedNative": 65,
+    "expectedActualQwen": 7,
+    "expectedUI": 3,
+    "expectedTSAN": 86,
+    "testFirst": true,
     "redVerified": false,
-    "compiled": false,
     "productionImplemented": false,
-    "sourceCommit": null,
-    "runId": null
+    "scope": "Generated storage4 + heavy admission4 + early model-preparation interruption1 + actual metrics epoch reuse1; native app-retention/reset3 plus shared early-owner1. New behavior is no-op/unfixed until next exact-source assertions."
   }
 }

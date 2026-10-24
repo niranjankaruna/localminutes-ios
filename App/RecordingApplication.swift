@@ -31,6 +31,7 @@ final class RecordingApplication {
     let playbackOwnership: PlaybackOwnershipController?
     private(set) var lastOutcome: RecordingIntentOutcome?
     private let router: RecordingIntentRouter
+    @ObservationIgnored private let signalCenter: NotificationCenter?
     @ObservationIgnored
     private var toggleOperation: (id: UUID, task: Task<RecordingIntentOutcome, Never>)?
     @ObservationIgnored
@@ -43,6 +44,7 @@ final class RecordingApplication {
     /// Storage injection only; the default Live/OS composition and its shared
     /// startup/deletion admission remain identical for the app and native tests.
     init(services: LocalMinutesServices?) {
+        signalCenter = nil
         let preparation: any RecordingPreparationSource
         if let services { preparation = services.live }
         else { preparation = RequiredSpeechModelPreparation() }
@@ -64,13 +66,18 @@ final class RecordingApplication {
 
     init(owner: RecordingSessionOwner,
          foreground: (any RecordingForegroundContinuation)? = nil,
-         playbackOwnership: PlaybackOwnershipController? = nil) {
+         playbackOwnership: PlaybackOwnershipController? = nil,
+         signalCenter: NotificationCenter? = nil) {
+        self.signalCenter = signalCenter
         services = nil
         self.playbackOwnership = playbackOwnership
         self.owner = owner
         router = RecordingIntentRouter(owner: owner)
         self.foreground = foreground
     }
+
+    // Test-first join boundary; no native app signal observation exists yet.
+    func flushSignals() async {}
 
     func perform(_ action: RecordingIntentAction) async throws -> RecordingIntentOutcome {
         switch action {
