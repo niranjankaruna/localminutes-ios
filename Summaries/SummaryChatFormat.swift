@@ -1,7 +1,8 @@
 import Foundation
 
-/// Explicit candidate format; the reviewed app/default runtime remains Qwen.
-public enum LocalSummaryChatFormat: Equatable, Sendable { case qwen, phi3 }
+/// Explicit formats preserve prior behavior; automatic validates actual GGUF
+/// architecture/template metadata against the supported canonical envelopes.
+public enum LocalSummaryChatFormat: Equatable, Sendable { case qwen, phi3, automatic }
 
 public enum Phi3SummaryPromptFormatter {
     /// The pinned Phi GGUF template handles user/assistant turns only. Fold the

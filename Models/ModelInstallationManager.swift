@@ -139,9 +139,72 @@ public actor ModelInstallationManager {
         return handle(manifest: manifest, id: selection.installationID, directory: directory)
     }
 
-    /// TEST-FIRST inventory seam. Metadata listing remains unimplemented until
-    /// its own compatible assertion RED; it is not an inference readiness check.
-    public func installedManifests() throws -> [ModelManifest] { [] }
+    /// List published installed choices without hashing every weight for UI.
+    /// Paths, pointers, manifest coherence and file sizes are checked here;
+    /// acquire/current still perform full byte verification before native use.
+    public func installedManifests() throws -> [ModelManifest] {
+        let manager = FileManager.default
+        do {
+            let attributes = try manager.attributesOfItem(atPath: rootURL.path)
+            guard attributes[.type] as? FileAttributeType == .typeDirectory else {
+                throw ModelInstallationError.invalidInstallation
+            }
+        } catch let error as CocoaError where error.code == .fileNoSuchFile || error.code == .fileReadNoSuchFile {
+            return []
+        }
+        try PersistentFilePolicy.validateItem(rootURL, within: rootURL)
+        var inventory: [ModelManifest] = []
+        for name in try manager.contentsOfDirectory(atPath: rootURL.path).sorted() {
+            try Task.checkCancellation()
+            let container = rootURL.appendingPathComponent(name, isDirectory: true)
+            try PersistentFilePolicy.validateItem(container, within: rootURL)
+            try requireDirectory(container)
+            if name == ".staging" { continue }
+            guard validComponent(name) else { throw ModelInstallationError.invalidInstallation }
+            let pointer = container.appendingPathComponent("current.json")
+            do { _ = try manager.attributesOfItem(atPath: pointer.path) }
+            catch let error as CocoaError where error.code == .fileNoSuchFile || error.code == .fileReadNoSuchFile {
+                // An import can create its container before atomic publication.
+                continue
+            }
+            try PersistentFilePolicy.validateItem(pointer, within: rootURL)
+            let selected: Selection
+            do { selected = try JSONDecoder().decode(Selection.self, from: readMetadata(pointer)) }
+            catch { throw ModelInstallationError.invalidInstallation }
+            guard selected.schemaVersion == 1, validRevision(selected.revision) else {
+                throw ModelInstallationError.invalidInstallation
+            }
+            let directory = container.appendingPathComponent(selected.revision, isDirectory: true)
+                .appendingPathComponent(selected.installationID.uuidString, isDirectory: true)
+            try PersistentFilePolicy.validateItem(directory, within: rootURL)
+            try requireDirectory(directory)
+            let metadata = directory.appendingPathComponent("manifest.json")
+            try PersistentFilePolicy.validateItem(metadata, within: rootURL)
+            let manifest: ModelManifest
+            do {
+                manifest = try JSONDecoder().decode(ModelManifest.self, from: readMetadata(metadata))
+                try validate(manifest)
+            } catch { throw ModelInstallationError.invalidInstallation }
+            guard manifest.modelID == name, manifest.revision == selected.revision else {
+                throw ModelInstallationError.invalidInstallation
+            }
+            let present = Set(try manager.contentsOfDirectory(atPath: directory.path))
+            guard present == Set(manifest.artifacts.map(\.fileName)).union(["manifest.json"]) else {
+                throw ModelInstallationError.invalidInstallation
+            }
+            for artifact in manifest.artifacts {
+                let file = directory.appendingPathComponent(artifact.fileName)
+                try PersistentFilePolicy.validateItem(file, within: rootURL)
+                try requireRegularFile(file, name: artifact.fileName)
+                let size = try URL(fileURLWithPath: file.path).resourceValues(forKeys: [.fileSizeKey]).fileSize
+                guard size.map({ Int64($0) }) == artifact.byteCount else {
+                    throw ModelInstallationError.sizeMismatch(artifact.fileName)
+                }
+            }
+            inventory.append(manifest)
+        }
+        return inventory
+    }
 
     public func acquire(modelID: String) throws -> ModelLease {
         guard let model = try current(modelID: modelID) else { throw ModelInstallationError.modelMissing }

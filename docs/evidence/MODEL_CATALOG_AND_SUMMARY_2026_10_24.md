@@ -47,3 +47,14 @@ Memory estimates remain labelled estimates, compared with current phone facts;
 unknown requirements are not displayed as zero or supported.
 
 GREEN and actual catalogue/Whisper RED: pending exact-source run.
+
+
+## Actual component and integration evidence
+
+Source4f328bd2095e91686c72f564f2d514b74d14d543/run40111205922: HFmetadata30PASS, originalselection10PASS, inventory2newRED. Whisper4actualcasesPASS32.717s0skip (rolling26.859s, cancel4.417s, load0.730s, invalid0.711s). SelectedWhisperlive job1209231265251FAIL5.539s atreadiness becausefixedZipformerpreflightignoredselectedmodel. ActualselectedPhi defaultservicejob1209231265531FAIL4assertions167.583s; bothoperationsrejectedinvalidModel byhardcodedQwenloader. These are behavioral RED, beforethecurrent repairs.
+
+Portablejob also accidentally matched legacyActualSummaryPipelineTests withoutQwenfixture becauseunanchoredclassname regex. That one missing-fixturefailure is NOT behavioralRED; nextfilter usesexplicitmodule-qualifiedclassestoavoidunintendedactual-model jobs. No existing oracle was removed orweakened.
+
+NativeResourcejob120923126296 exited65beforeanyXCTestcase; nativeMetricsjob120923126506 wascancelled15min withnocompletedcases. This doesnotprove a resource/metricsbehaviorfailure. Precise xcresult startupdiagnostics areaddednext; no linkpinchangeorsimulatorpass guessed. ResourceadapterisnowsharedportableFoundationstub plus2actualhostRAM/volumecontracts toobtaincompatible-platform RED. iOSapp-memoryavailability remainsseparatephysicalscope.
+
+Nativebrowser/controllerbindings, genericmetadata-basedGGUFloader, selectedWhisperliveadapter andmetadata-only inventoryareimplemented aftertheirrecordedRED; integrationGREENpending. Metadata/cards remaininert, andweightsneverenterGit/artifacts. iLoaderdocs/ownerinstallationreportarepreserved. No physical/2h/ActionButton/renewalclaim.

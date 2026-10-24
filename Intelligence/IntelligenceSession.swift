@@ -119,28 +119,51 @@ public final class IntelligenceSession {
     public nonisolated static func loadPinnedRuntime(_ model: VerifiedModel) async throws -> any IntelligenceRuntime {
         try Task.checkCancellation()
         let manifest = model.manifest
-        let revision = "91cad51170dc346986eccefdc2dd33a9da36ead9"
-        let fileName = "qwen2.5-1.5b-instruct-q4_k_m.gguf"
-        let digest = "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e"
-        let byteCount: Int64 = 1_117_320_736
-        guard manifest.schemaVersion == 1, manifest.modelID == "qwen2.5-1.5b-instruct-q4_k_m",
-              manifest.purpose == .summary, manifest.revision == revision,
-              manifest.runtimeVersion == "llama.cpp-b5046", manifest.licenseIdentifier == "Apache-2.0",
-              !manifest.licenseNotice.isEmpty, manifest.sampleRate == nil, manifest.featureDimension == nil,
-              manifest.upstreamRepository.absoluteString == "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF",
+        func lowerHex(_ value: String, count: Int) -> Bool {
+            value.utf8.count == count && value.utf8.allSatisfy { (48...57).contains($0) || (97...102).contains($0) }
+        }
+        func component(_ value: String) -> Bool {
+            !value.isEmpty && value.utf8.count <= 255 && value != "." && value != ".."
+                && value.utf8.allSatisfy { (48...57).contains($0) || (65...90).contains($0)
+                    || (97...122).contains($0) || $0 == 45 || $0 == 46 || $0 == 95 }
+        }
+        func publicHF(_ value: URL) -> Bool {
+            value.scheme?.lowercased() == "https" && value.host?.lowercased() == "huggingface.co"
+                && value.user == nil && value.password == nil && value.port == nil
+                && value.query == nil && value.fragment == nil
+        }
+        guard manifest.schemaVersion == 1, component(manifest.modelID), manifest.purpose == .summary,
+              lowerHex(manifest.revision, count: 40), manifest.runtimeVersion == "llama.cpp-b5046",
+              !manifest.licenseIdentifier.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              !manifest.licenseNotice.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              manifest.sampleRate == nil, manifest.featureDimension == nil,
               manifest.artifacts.count == 1, let artifact = manifest.artifacts.first,
-              artifact.role == .summary, artifact.fileName == fileName,
-              artifact.byteCount == byteCount, artifact.sha256 == digest,
-              artifact.downloadURL.absoluteString == "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/\(revision)/\(fileName)",
+              artifact.role == .summary, component(artifact.fileName), artifact.byteCount > 0,
+              lowerHex(artifact.sha256, count: 64),
               model.directoryURL.isFileURL, model.files.count == 1,
               let file = model.files[.summary], file.isFileURL,
-              file.standardizedFileURL.path == model.directoryURL.appendingPathComponent(fileName).standardizedFileURL.path else {
+              file.standardizedFileURL.path == model.directoryURL.appendingPathComponent(artifact.fileName).standardizedFileURL.path else {
             throw IntelligenceSessionError.invalidModel
         }
+        let source = manifest.upstreamRepository
+        let repository = source.path.split(separator: "/")
+        let expectedURL = source.appendingPathComponent("resolve").appendingPathComponent(manifest.revision)
+            .appendingPathComponent(artifact.fileName)
+        guard publicHF(source), repository.count == 2,
+              repository.allSatisfy({ $0 != "." && $0 != ".." }), publicHF(artifact.downloadURL),
+              artifact.downloadURL.absoluteString == expectedURL.absoluteString,
+              model.directoryURL.lastPathComponent == model.installationID.uuidString,
+              model.directoryURL.deletingLastPathComponent().lastPathComponent == manifest.revision,
+              model.directoryURL.deletingLastPathComponent().deletingLastPathComponent().lastPathComponent == manifest.modelID else {
+            throw IntelligenceSessionError.invalidModel
+        }
+        let digest = artifact.sha256
+        let byteCount = artifact.byteCount
         let cancellation = IntelligenceCancellation()
         let loading = Task.detached(priority: .userInitiated) { () throws -> LocalSummaryRuntime in
             try Task.checkCancellation()
             do {
+                try PersistentFilePolicy.validateItem(file, within: model.directoryURL)
                 let attributes = try FileManager.default.attributesOfItem(atPath: file.path)
                 guard attributes[.type] as? FileAttributeType == .typeRegular,
                       (attributes[.size] as? NSNumber)?.int64Value == byteCount else {
@@ -152,6 +175,10 @@ public final class IntelligenceSession {
                 var readCount: Int64 = 0
                 while let bytes = try input.read(upToCount: 65_536), !bytes.isEmpty {
                     try Task.checkCancellation()
+                    if readCount == 0, !bytes.starts(with: [0x47, 0x47, 0x55, 0x46]) {
+                        throw IntelligenceSessionError.invalidModel
+                    }
+                    guard Int64(bytes.count) <= byteCount - readCount else { throw IntelligenceSessionError.invalidModel }
                     readCount += Int64(bytes.count)
                     guard readCount <= byteCount else { throw IntelligenceSessionError.invalidModel }
                     hash.update(data: bytes)
@@ -165,7 +192,7 @@ public final class IntelligenceSession {
             try Task.checkCancellation()
             // Once native construction begins, always return its actor to the
             // joining owner. A late cancellation must explicitly unload it.
-            return try LocalSummaryRuntime(modelURL: file, contextSize: 4_096, threads: 4)
+            return try LocalSummaryRuntime(modelURL: file, contextSize: 4_096, threads: 4, chatFormat: .automatic)
         }
         return try await withTaskCancellationHandler {
             let runtime: LocalSummaryRuntime

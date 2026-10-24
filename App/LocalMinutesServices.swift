@@ -14,7 +14,10 @@ private struct AppMetricsClock: MetricsMonotonicClock {
 final class LocalMinutesServices: PlaybackHardware {
     let heavyAdmission: HeavyModelAdmission?
     let recordingAdmission: RecordingHeavyModelAdmission?
-    let intelligence: IntelligenceSession?
+    private(set) var intelligence: IntelligenceSession?
+    private var intelligenceManifest: ModelManifest?
+    let modelSelections: ModelSelectionStore
+    @ObservationIgnored lazy var modelBrowser = ModelBrowserController(services: self)
     let metrics: TranscriptionMetricsRecorder?
     private let diagnosticsDirectory: URL
 
@@ -97,17 +100,28 @@ final class LocalMinutesServices: PlaybackHardware {
             runtimeVersion: StreamingEnglishModel.manifest.runtimeVersion, buildNumber: number),
             clock: AppMetricsClock())
         self.metrics = metrics; diagnosticsDirectory = diagnostics
+        let admission = HeavyModelAdmission()
+        let selections = ModelSelectionStore(rootURL: root.appendingPathComponent("ModelSelections", isDirectory: true),
+            models: manager, availableProfiles: [.streamingZipformerONNX, .whisperGGML, .llamaGGUF],
+            canChangeSelection: { admission.snapshot().phase == .idle })
+        modelSelections = selections
         models = manager; store = database; meetingsDirectory = meetings
-        live = LiveTranscriptionSession(models: manager, store: database, meetingsDirectory: meetings, metrics: metrics)
+        live = LiveTranscriptionSession(models: manager, store: database, meetingsDirectory: meetings, metrics: metrics,
+            selectedSpeechModel: {
+                if try await selections.hasSelectionRecord(for: .speechRecognition) {
+                    return try await selections.resolve(for: .speechRecognition)?.manifest
+                }
+                return StreamingEnglishModel.manifest
+            })
         library = MeetingLibraryController(store: database)
         let usage = MeetingUsageRegistry(requiresStartup: true)
         self.usage = usage
         startup = LibraryStartupCoordinator(store: database, recordingsRoot: meetings, usage: usage)
-        let admission = HeavyModelAdmission()
         heavyAdmission = admission
         recordingAdmission = RecordingHeavyModelAdmission(usageRegistry: usage, heavyAdmission: admission)
         intelligence = IntelligenceSession(store: database, models: manager, admission: admission,
             manifest: Self.summaryManifest)
+        intelligenceManifest = Self.summaryManifest
     }
 
     /// Retain cancellation independently of the scene/view that requested it.
@@ -147,8 +161,24 @@ final class LocalMinutesServices: PlaybackHardware {
 
     func refreshModels() async {
         do {
-            speechInstalled = try await models.current(modelID: StreamingEnglishModel.manifest.modelID) != nil
-            summaryInstalled = try await models.current(modelID: Self.summaryManifest.modelID) != nil
+            if try await modelSelections.hasSelectionRecord(for: .speechRecognition) {
+                speechInstalled = try await modelSelections.resolve(for: .speechRecognition) != nil
+            } else {
+                speechInstalled = try await models.current(modelID: StreamingEnglishModel.manifest.modelID) != nil
+            }
+            let chosen: ModelManifest?
+            if try await modelSelections.hasSelectionRecord(for: .summary) {
+                chosen = try await modelSelections.resolve(for: .summary)?.manifest
+            } else {
+                chosen = try await models.current(modelID: Self.summaryManifest.modelID)?.manifest
+            }
+            summaryInstalled = chosen != nil
+            if heavyAdmission?.snapshot().phase == .idle, intelligenceManifest != chosen {
+                if let chosen, let admission = heavyAdmission {
+                    intelligence = IntelligenceSession(store: store, models: models, admission: admission, manifest: chosen)
+                } else { intelligence = nil }
+                intelligenceManifest = chosen
+            }
         } catch {
             speechInstalled = false; summaryInstalled = false
             modelError = "An installed model did not pass verification. Download it again before use."

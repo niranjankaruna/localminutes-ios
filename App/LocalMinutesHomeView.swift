@@ -13,7 +13,7 @@ struct LocalMinutesHomeView: View {
             if let services = application.services {
                 MeetingHistoryView(services: services, application: application)
                     .tabItem { Label("Meetings", systemImage: "text.book.closed") }
-                ModelSettingsView(services: services, application: application)
+                ModelBrowserView(controller: services.modelBrowser)
                     .tabItem { Label("Models", systemImage: "internaldrive") }
             }
         }

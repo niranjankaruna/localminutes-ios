@@ -3,15 +3,15 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T16:21:43.118Z",
+  "lastUpdated": "2026-10-24T17:07:02.021Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "MVP1 model chooser: implemented HF/Equip/Whisper after actualRED; integration/phone-resource/inventory tests-first",
+  "currentTask": "MVP1 model browser integrated; selected speech/summary and inventory repairs ready for focused verification",
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "Run model-integration focused batch: verify core model features and real Whisper, record selected-loader/live-engine/inventory/native-resource RED. Complete actual app cards and runtime wiring, produce MVP1IPA, then continue MVP2 without pausing.",
+  "nextAction": "Run focused model-integration verification: selected speech/summary/inventory GREEN, two portable actual resource-reader RED checks, native result-bundle startup diagnostics. Implement real resource reader after its actual RED, then package/deliver MVP1 and continue MVP2.",
   "pendingPushCommit": null,
   "remoteBranchHead": "6d914fe0117964c7019a71d5b9332c9dba3758b4",
   "localScriptGreen": {
@@ -37,7 +37,8 @@
     "plannedNewRuns": 1,
     "newRunIds": [
       40107527439,
-      40109131483
+      40109131483,
+      40111205922
     ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-24T15:29:10Z",
@@ -1454,13 +1455,66 @@
       "HFmetadata/card/format/resources",
       "durable Equip/Unequip",
       "singleGGML installation",
-      "actualCPUWhisper rolling adapter"
+      "actualCPUWhisper rolling adapter",
+      "native model browser/controller",
+      "installed model inventory",
+      "selected Whisper live routing",
+      "generic actual-metadata GGUF loader"
     ],
     "integrationPending": [
       "native browser/resources",
       "selected Whisper capture",
       "selected GGUF defaultloader",
       "installed inventory"
+    ],
+    "currentScope": "Native repo/variant/cards, live phone resources, verified Download/Remove, independent persistent Equip, selected CPUWhisper capture and GGUF defaultloader",
+    "componentGreen": {
+      "sourceCommit": "4f328bd2095e91686c72f564f2d514b74d14d543",
+      "runId": 40111205922,
+      "huggingFace": {
+        "executed": 30,
+        "passed": 30
+      },
+      "originalSelection": {
+        "executed": 10,
+        "passed": 10
+      },
+      "whisper": {
+        "executed": 4,
+        "passed": 4,
+        "failed": 0,
+        "skipped": 0,
+        "seconds": 32.717
+      },
+      "scope": "Component evidence only; iPhone and UI/selected-runtime integration not inferred."
+    },
+    "integrationRed": {
+      "sourceCommit": "4f328bd2095e91686c72f564f2d514b74d14d543",
+      "runId": 40111205922,
+      "inventory": {
+        "failed": 2,
+        "jobId": 120923126512
+      },
+      "whisperLive": {
+        "failed": 1,
+        "assertionFailures": 1,
+        "seconds": 5.539,
+        "jobId": 120923126525,
+        "reason": "Fixed Zipformer preflight rejected equipped actualWhisper"
+      },
+      "selectedSummary": {
+        "failed": 1,
+        "assertionFailures": 4,
+        "seconds": 167.583,
+        "jobId": 120923126553,
+        "reason": "Hardcoded Qwen defaultloader rejected verified actualPhi"
+      }
+    },
+    "resourceReader": "TEST_FIRST_STUB: portable2caseactualvolume/RAMRED awaiting; native equivalent not reached beforehostlaunchfailure",
+    "knownLimitations": [
+      "Custom-ASR metrics identity remains initialization-pinned; not valid custom-model endurance evidence untilMVP2 fix.",
+      "Native app-hosted checks have not completed afterWhisperframework integration; next run dumps xcresult startup errors instead of guessing.",
+      "Only reviewedQwen2/Phi3 GGUF chat templates supported; otherformats/architectures declaredunsupported, not falselyloadable."
     ]
   },
   "summaryCandidateValidated": {

@@ -37,8 +37,9 @@ private final class SummaryNativeResources {
     let model: OpaquePointer
     let context: OpaquePointer
     let vocabulary: OpaquePointer
+    let chatFormat: LocalSummaryChatFormat
 
-    init(modelURL: URL, contextSize: UInt32, threads: Int32) throws {
+    init(modelURL: URL, contextSize: UInt32, threads: Int32, chatFormat: LocalSummaryChatFormat) throws {
         guard modelURL.isFileURL, FileManager.default.isReadableFile(atPath: modelURL.path) else {
             throw LocalSummaryRuntimeError.modelUnavailable
         }
@@ -49,6 +50,12 @@ private final class SummaryNativeResources {
         guard let loadedModel = modelURL.path.withCString({ llama_model_load_from_file($0, modelParameters) }) else {
             throw LocalSummaryRuntimeError.invalidModel
         }
+        let resolvedFormat: LocalSummaryChatFormat
+        do {
+            if chatFormat == .automatic { resolvedFormat = try Self.resolveChatFormat(loadedModel) }
+            else { resolvedFormat = chatFormat }
+        }
+        catch { llama_model_free(loadedModel); throw error }
         var parameters = llama_context_default_params()
         parameters.n_ctx = contextSize
         parameters.n_batch = min(contextSize, 512)
@@ -69,6 +76,68 @@ private final class SummaryNativeResources {
         model = loadedModel
         context = loadedContext
         self.vocabulary = vocabulary
+        self.chatFormat = resolvedFormat
+    }
+
+    private static func metadata(_ key: String, model: OpaquePointer, maximumBytes: Int) throws -> String {
+        var buffer = [CChar](repeating: 0, count: maximumBytes + 1)
+        let count = key.withCString { key in
+            buffer.withUnsafeMutableBufferPointer { llama_model_meta_val_str(model, key, $0.baseAddress, $0.count) }
+        }
+        guard count > 0, Int(count) <= maximumBytes, buffer[Int(count)] == 0,
+              let value = String(bytes: buffer.prefix(Int(count)).map { UInt8(bitPattern: $0) }, encoding: .utf8),
+              !value.utf8.contains(0) else { throw LocalSummaryRuntimeError.invalidModel }
+        return value
+    }
+
+    private static func resolveChatFormat(_ model: OpaquePointer) throws -> LocalSummaryChatFormat {
+        let architecture = try metadata("general.architecture", model: model, maximumBytes: 256)
+        let template = try metadata("tokenizer.chat_template", model: model, maximumBytes: 16_384)
+        let format: LocalSummaryChatFormat
+        switch architecture {
+        case "qwen2": format = .qwen
+        case "phi3": format = .phi3
+        default: throw LocalSummaryRuntimeError.invalidModel
+        }
+        let systemProbe = "LOCALMINUTES_SYSTEM_PROBE"
+        let userProbe = "LOCALMINUTES_USER_PROBE"
+        let userContent = format == .phi3 ? systemProbe + "\n\n" + userProbe : userProbe
+        var output = [CChar](repeating: 0, count: 4_096)
+        let count = template.withCString { template in
+            "user".withCString { userRole in
+                userContent.withCString { user in
+                    let userMessage = llama_chat_message(role: userRole, content: user)
+                    if format == .phi3 { return applyProbe(template, messages: [userMessage], output: &output) }
+                    return "system".withCString { systemRole in
+                        systemProbe.withCString { system in
+                            applyProbe(template, messages: [llama_chat_message(role: systemRole, content: system), userMessage],
+                                       output: &output)
+                        }
+                    }
+                }
+            }
+        }
+        guard count > 0, Int(count) < output.count,
+              let rendered = String(bytes: output.prefix(Int(count)).map { UInt8(bitPattern: $0) }, encoding: .utf8) else {
+            throw LocalSummaryRuntimeError.invalidModel
+        }
+        let expected: String
+        if format == .phi3 { expected = try Phi3SummaryPromptFormatter.format(systemPrompt: systemProbe, userPrompt: userProbe) }
+        else { expected = try SummaryPromptFormatter.format(systemPrompt: systemProbe, userPrompt: userProbe) }
+        // The pinned native Phi/Qwen renderers produce these exact envelopes,
+        // without a literal BOS. Native tokenization supplies model BOS as before.
+        guard Data(rendered.utf8) == Data(expected.utf8) else { throw LocalSummaryRuntimeError.invalidModel }
+        return format
+    }
+
+    private static func applyProbe(_ template: UnsafePointer<CChar>, messages: [llama_chat_message],
+                                   output: inout [CChar]) -> Int32 {
+        messages.withUnsafeBufferPointer { messages in
+            output.withUnsafeMutableBufferPointer { output in
+                llama_chat_apply_template(template, messages.baseAddress, messages.count, true,
+                                          output.baseAddress, Int32(output.count))
+            }
+        }
     }
 
     deinit {
@@ -88,8 +157,10 @@ public actor LocalSummaryRuntime {
             throw LocalSummaryRuntimeError.contextUnavailable
         }
         self.contextSize = contextSize
-        self.chatFormat = chatFormat
-        resources = try SummaryNativeResources(modelURL: modelURL, contextSize: contextSize, threads: threads)
+        let loaded = try SummaryNativeResources(modelURL: modelURL, contextSize: contextSize,
+                                                threads: threads, chatFormat: chatFormat)
+        self.chatFormat = loaded.chatFormat
+        resources = loaded
     }
 
     public func generateJSON(prompt: String, maximumTokens: Int = 192) async throws -> String {
@@ -252,6 +323,8 @@ public actor LocalSummaryRuntime {
                 formatted = try SummaryPromptFormatter.format(systemPrompt: Self.systemPolicy, userPrompt: prompt)
             case .phi3:
                 formatted = try Phi3SummaryPromptFormatter.format(systemPrompt: Self.systemPolicy, userPrompt: prompt)
+            case .automatic:
+                throw LocalSummaryRuntimeError.invalidModel
             }
         }
         catch {
