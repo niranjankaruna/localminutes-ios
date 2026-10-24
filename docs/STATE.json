@@ -3,15 +3,15 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T14:20:34.046Z",
+  "lastUpdated": "2026-10-24T14:52:28.940Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "Summary/Q&A screens built; local-model quality blocker, owner comparison choice pending",
+  "currentTask": "Owner-authorized single Phi-3 comparison, deadline 2026-10-24T15:13:11Z",
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "Await owner choice: one compatible local-model comparison capped30min, or save build/stop model work. No candidate download/inference or further testing without that choice. Current Qwen1.5B unknown owner/date and evidence cases fail; keep raw oracles/pins and rejection guards. First MVP remains unchanged. Updated preview is in build/delivery/Summary-QA-40101392948, with a schema4 downgrade warning.",
+  "nextAction": "Run one exact-source hosted macOS candidate comparison with four actual generations, record outcomes, and stop by 15:13:11 UTC. No default model switch or additional tuning/testing authorized by this comparison.",
   "pendingPushCommit": null,
   "remoteBranchHead": "d6a329354ffc095d4dffb9ca4d939c67bf10adc8",
   "localScriptGreen": {
@@ -1282,5 +1282,19 @@
     "deviceValidation": "NOT_RUN",
     "schemaVersion": 4,
     "downgradeToOriginalSchema3MVP": "Not supported after migration; original rows preserved, older binary refuses future schema."
+  },
+  "singleModelComparison": {
+    "status": "IN_PROGRESS",
+    "candidate": "microsoft/Phi-3-mini-4k-instruct-gguf",
+    "revision": "a64113399c2f6b8ad3e11c394733a2ddadaa7f33",
+    "sha256": "8a83c7fb9049a9b2e92266fa7ad04933bb53aa1e85136b7b30f1b8000ff2edef",
+    "bytes": 2393231072,
+    "license": "MIT",
+    "startedAt": "2026-10-24T14:43:11Z",
+    "hardStopAt": "2026-10-24T15:13:11Z",
+    "run": null,
+    "defaultModelChanged": false,
+    "observationCount": 4,
+    "evidence": "docs/evidence/PHI3_SINGLE_COMPARISON_2026_10_24.md"
   }
 }

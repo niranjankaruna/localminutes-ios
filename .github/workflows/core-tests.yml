@@ -8,7 +8,7 @@ on:
         required: true
         type: choice
         default: mvp
-        options: [mvp, features, package, validation]
+        options: [mvp, features, package, validation, candidate]
       sourceCommit:
         description: Reviewed app source for the MVP package
         required: true
@@ -22,6 +22,48 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  phi3-candidate:
+    if: ${{ inputs.mode == 'candidate' }}
+    runs-on: macos-15-intel
+    timeout-minutes: 18
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+    steps:
+      - name: Check out exact candidate source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Verify zero-spend guard and candidate pins
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          c = json.loads(Path('project-config.json').read_text())
+          assert c['ci']['costGuardVerified'] is True
+          assert c['budget']['maximumAdditionalSpendEUR'] == 0
+          assert c['budget']['allowLargerRunners'] is False
+          assert c['github']['visibility'] == 'public'
+          assert c['github']['publicationApproved'] is True
+          assert Path(c['ci']['costGuardEvidence'].split('#')[0]).is_file()
+          PY
+          python3 docs/drafts/T17/prepare_native_summary.py --framework-only
+          python3 docs/drafts/T17/prepare_phi3_candidate.py
+      - name: Compare four actual candidate outcomes once
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .build
+          swift test --filter 'Phi3CandidateComparisonTests/testActualPinnedPhi3ComparesTwoSummariesAndTwoSelectedMeetingQuestions' 2>&1 | tee .build/phi3-candidate-output.log
+      - name: Require actual candidate discovery and assertions
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/verify-test-log.mjs .build/phi3-candidate-output.log testActualPinnedPhi3ComparesTwoSummariesAndTwoSelectedMeetingQuestions
+
   core:
     if: ${{ inputs.mode == 'validation' }}
     runs-on: macos-15-intel

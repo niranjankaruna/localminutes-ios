@@ -80,12 +80,15 @@ private final class SummaryNativeResources {
 public actor LocalSummaryRuntime {
     private var resources: SummaryNativeResources?
     private let contextSize: UInt32
+    private let chatFormat: LocalSummaryChatFormat
 
-    public init(modelURL: URL, contextSize: UInt32 = 2_048, threads: Int32 = 4) throws {
+    public init(modelURL: URL, contextSize: UInt32 = 2_048, threads: Int32 = 4,
+                chatFormat: LocalSummaryChatFormat = .qwen) throws {
         guard contextSize >= 512, contextSize <= 32_768, threads >= 1, threads <= 8 else {
             throw LocalSummaryRuntimeError.contextUnavailable
         }
         self.contextSize = contextSize
+        self.chatFormat = chatFormat
         resources = try SummaryNativeResources(modelURL: modelURL, contextSize: contextSize, threads: threads)
     }
 
@@ -243,7 +246,14 @@ public actor LocalSummaryRuntime {
         // Counting and generation share the exact policy, canonical envelope,
         // escaping and native tokenizer flags. Source byte length is no estimate.
         let formatted: String
-        do { formatted = try SummaryPromptFormatter.format(systemPrompt: Self.systemPolicy, userPrompt: prompt) }
+        do {
+            switch chatFormat {
+            case .qwen:
+                formatted = try SummaryPromptFormatter.format(systemPrompt: Self.systemPolicy, userPrompt: prompt)
+            case .phi3:
+                formatted = try Phi3SummaryPromptFormatter.format(systemPrompt: Self.systemPolicy, userPrompt: prompt)
+            }
+        }
         catch {
             throw Self.generationFailure(.promptEnvelope, inputTokens: 0, maximumOutput: 0, generatedTokens: 0, outputBytes: 0)
         }
