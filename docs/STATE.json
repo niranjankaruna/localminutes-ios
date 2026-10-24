@@ -3,17 +3,17 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T14:10:20.337Z",
+  "lastUpdated": "2026-10-24T14:20:34.046Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "T18wholequotevalidationandT19retrievalprecisionrepair; oneboundedbatchedverification",
+  "currentTask": "Summary/Q&A screens built; local-model quality blocker, owner comparison choice pending",
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "Onefinalcompile/package-onlybuildofrestoredinputpacking;NOmodelrerun. DownloadupdatedUIpreview/hashandpersistactualqualityfailures. Awaitownermodel-comparisonchoicebeforenewcandidateexperiment. FullbaselineIN_PROGRESS,noneofunknownmodeloutputsaccepted.",
+  "nextAction": "Await owner choice: one compatible local-model comparison capped30min, or save build/stop model work. No candidate download/inference or further testing without that choice. Current Qwen1.5B unknown owner/date and evidence cases fail; keep raw oracles/pins and rejection guards. First MVP remains unchanged. Updated preview is in build/delivery/Summary-QA-40101392948, with a schema4 downgrade warning.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "588834b68876e94a6cffe5963fe0a875d1f69315",
+  "remoteBranchHead": "d6a329354ffc095d4dffb9ca4d939c67bf10adc8",
   "localScriptGreen": {
     "sourceCommit": "0181b311abedb3c32745b015be64d6e7c777032b",
     "platform": "Windows11/Node24.21.0",
@@ -27,7 +27,8 @@
   "lastVerifiedNativeBuildCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedNativeBuildCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "blockedItems": [
-    "ARTIFACT_STORAGE_HEADROOM_UNVERIFIED"
+    "ARTIFACT_STORAGE_HEADROOM_UNVERIFIED",
+    "LOCAL_SUMMARY_QA_MODEL_QUALITY"
   ],
   "ciInvocation": {
     "id": "2026-10-24-summary-qa-batch",
@@ -35,22 +36,24 @@
     "plannedNewRuns": 1,
     "newRunIds": [
       40098679075,
-      40099854249
+      40099854249,
+      40101392948
     ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-24T13:19:55.441Z",
     "costGuardBasis": "Live PUBLIC/ADMIN repository, genuine existing auth, exact remote8f6fc1f and terminal previousMVP run40092475736 reverified. Standard publicmacos-15-intel only; existing official GitHub free-compute/release-storage evidence, unpublished draft retention, no paid/larger runner/storage/billing mutation."
   },
   "latestCIRun": {
-    "sourceCommit": "588834b68876e94a6cffe5963fe0a875d1f69315",
-    "appSourceCommit": "588834b68876e94a6cffe5963fe0a875d1f69315",
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40099854249",
+    "sourceCommit": "d6a329354ffc095d4dffb9ca4d939c67bf10adc8",
+    "appSourceCommit": "d6a329354ffc095d4dffb9ca4d939c67bf10adc8",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40101392948",
     "status": "completed",
-    "conclusion": "failure",
-    "ordinal": 2,
-    "mode": "features",
-    "scope": "One bounded actual-failure repair, appbuild plus3 independentmodel flows. No full/perchange loops.",
-    "completedAt": "2026-10-24T13:59:51Z"
+    "conclusion": "success",
+    "ordinal": 3,
+    "mode": "package",
+    "testsExecuted": 0,
+    "scope": "Compile/package-only success; all model/fullregression jobs excluded. Not a model-quality PASS.",
+    "completedAt": "2026-10-24T14:14:54Z"
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -112,7 +115,9 @@
     "fullNativeGreenCommit": "b6f4bdf0231d72d279ae690c5ce20936b8225459"
   },
   "completedThisInvocation": [
-    "T21.MVP_BUILD"
+    "T17.5 app wiring implementation",
+    "T18.6 summary UI implementation",
+    "T19.3 selected Q&A UI implementation"
   ],
   "codeCompletePendingDevice": [
     "T05",
@@ -1109,7 +1114,7 @@
     "physicalDeviceValidation": "NOT_RUN",
     "evidence": "docs/evidence/MVP_DELIVERY_2026_10_24.md"
   },
-  "candidateArtifactReason": "Retained MVP build is recorded separately in mvpArtifact; full-baseline verified candidate is not ready.",
+  "candidateArtifactReason": "Current feature preview compiles but summary/Q&A model-quality gate fails. Full-baseline verified candidate not ready.",
   "resumedBatch": {
     "startedAt": "2026-10-24T12:46:18Z",
     "pausedAt": "2026-10-24T12:57:19.624Z",
@@ -1246,6 +1251,36 @@
     },
     "modelDecisionPending": true,
     "pendingQuestion": "Owneraskedwhetheronecompatiblelocalmodelcomparisoncapped30minutesorstopmodelwork;noextraexperimentauthorizedbyelapsedtime.",
-    "inputPacking": "Restoredactualtokenizer-onlychunkpacking;output2/categoryand1citationunchanged. Removesartificial256-utterancecutoffwithoutchangingthetwo-sourcesmokeinputs/prompts. Longmeetingqualitystillunverified."
+    "inputPacking": "Restoredactualtokenizer-onlychunkpacking;output2/categoryand1citationunchanged. Removesartificial256-utterancecutoffwithoutchangingthetwo-sourcesmokeinputs/prompts. Longmeetingqualitystillunverified.",
+    "packageSource": "d6a329354ffc095d4dffb9ca4d939c67bf10adc8",
+    "packageRunId": 40101392948,
+    "packageDraft": {
+      "id": 422770453,
+      "tag": "mvp-preview-d6a329354ffc",
+      "isDraft": true
+    },
+    "packageComplete": true,
+    "modelExperimentsStopped": true
+  },
+  "featurePreviewArtifact": {
+    "status": "IN_PROGRESS",
+    "sourceCommit": "d6a329354ffc095d4dffb9ca4d939c67bf10adc8",
+    "runId": 40101392948,
+    "runUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40101392948",
+    "artifact": "LocalMinutes-1.0-d6a329354ffc095d4dffb9ca4d939c67bf10adc8-unsigned.ipa",
+    "sha256": "4b89ee364976f661ab206ef914f73746a2c976f5ab2a1b72acb46037d910f19d",
+    "sizeBytes": 12931428,
+    "signing": "unsigned",
+    "retained": true,
+    "published": false,
+    "draftReleaseId": 422770453,
+    "draftReleaseTag": "mvp-preview-d6a329354ffc",
+    "localDirectory": "build/delivery/Summary-QA-40101392948",
+    "localIPA": "build/delivery/Summary-QA-40101392948/LocalMinutes-1.0-d6a329354ffc095d4dffb9ca4d939c67bf10adc8-unsigned.ipa",
+    "checksumMatched": true,
+    "modelQuality": "FAILED",
+    "deviceValidation": "NOT_RUN",
+    "schemaVersion": 4,
+    "downgradeToOriginalSchema3MVP": "Not supported after migration; original rows preserved, older binary refuses future schema."
   }
 }

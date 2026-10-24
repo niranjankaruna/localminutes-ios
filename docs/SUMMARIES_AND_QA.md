@@ -17,3 +17,5 @@ Generated results must pass schema and selected-source quote checks before savin
 The current implementation has explicit context, atomic-segment, map and total-item limits. A very long or unusually dense meeting may exceed them and fail without publishing a partial summary. Long-meeting summarization, notes-only citations, checkpoint resume, representative model quality and physical-phone behavior remain pending baseline work.
 
 The build/check results and exact downloadable IPA are recorded in the feature delivery handoff. Existing MVP files remain available separately.
+
+This preview adds generated-document schema4. The original schema3 MVP cannot reopen a database upgraded by this preview. Original rows are retained, but a downgrade to that old binary is not a supported rollback. Keep the original MVP for current use until you decide whether to try the feature preview.

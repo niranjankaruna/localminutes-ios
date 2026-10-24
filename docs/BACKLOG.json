@@ -1132,6 +1132,16 @@
           "scope": "Four original orchestration cases pass source4 core after source3 RED; actual default pinned loader/service fails generationFailed344.789s and is not GREEN. New sixth case (blocked real SQLite commit cancellation) is test-first only/unfixed pending hosted RED; actual service plus full app integration remain pending.",
           "redVerified": true,
           "productionImplemented": true
+        },
+        {
+          "id": "T18.6",
+          "title": "Selected-meeting generated summary editing and citations UI",
+          "status": "IN_PROGRESS",
+          "productionImplemented": true,
+          "compileSource": "d6a329354ffc095d4dffb9ca4d939c67bf10adc8",
+          "compileRunId": 40101392948,
+          "modelQualityVerified": false,
+          "scope": "Real default model integration, selected durable summary, serial CAS autosave, sources/playback, cancellation/export compiled. Actual model failures keep parent feature unfinished."
         }
       ],
       "redEvidence": [],
@@ -1139,7 +1149,7 @@
       "deviceEvidence": [],
       "blockers": [],
       "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead.",
-      "latestCheckpoint": "Resumedownerfunctionalbatch: actualServices/sharedgate and Summary/Ask UI implemented, sourceboundedmapoutputpolicy, oneendofbatchbuild/parallelmodelobservations pending. No native/model/device successclaim."
+      "latestCheckpoint": "Final feature preview d6a3293 compiled/package SUCCESS; actual model quality at588834b FAILED. See evidence/SUMMARY_QA_BATCH_2026_10_24.md. Await bounded candidate decision; no more blind prompt/test loops."
     },
     {
       "id": "T19",
@@ -1191,6 +1201,16 @@
           "scope": "Three portable QA cases pass, actual semantic contract failed source4 over-refusal. Final balanced generic attempt3 applied, actual verification pending; both status domains, full IDs, free quote and all raw native assertions retained. No fourth blind retry.",
           "redVerified": true,
           "productionImplemented": true
+        },
+        {
+          "id": "T19.3",
+          "title": "Selected-meeting Ask and saved answers UI",
+          "status": "IN_PROGRESS",
+          "productionImplemented": true,
+          "compileSource": "d6a329354ffc095d4dffb9ca4d939c67bf10adc8",
+          "compileRunId": 40101392948,
+          "modelQualityVerified": false,
+          "scope": "Actual selected-meeting Ask, saved answers/citations, missing-model/busy/error/cancel, generated export compiled; model evidence validation still fails."
         }
       ],
       "redEvidence": [],
@@ -1198,7 +1218,7 @@
       "deviceEvidence": [],
       "blockers": [],
       "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead.",
-      "latestCheckpoint": "Resumedownerfunctionalbatch: actualServices/sharedgate and Summary/Ask UI implemented, sourceboundedmapoutputpolicy, oneendofbatchbuild/parallelmodelobservations pending. No native/model/device successclaim."
+      "latestCheckpoint": "Final feature preview d6a3293 compiled/package SUCCESS; actual model quality at588834b FAILED. See evidence/SUMMARY_QA_BATCH_2026_10_24.md. Await bounded candidate decision; no more blind prompt/test loops."
     },
     {
       "id": "T20",
@@ -1342,8 +1362,8 @@
     }
   ],
   "executionPausedByOwner": false,
-  "resumeAction": "Onefinalcompile/package-onlybuildofrestoredinputpacking;NOmodelrerun. DownloadupdatedUIpreview/hashandpersistactualqualityfailures. Awaitownermodel-comparisonchoicebeforenewcandidateexperiment. FullbaselineIN_PROGRESS,noneofunknownmodeloutputsaccepted.",
-  "lastUpdated": "2026-10-24T14:10:20.337Z",
+  "resumeAction": "Await owner choice: one compatible local-model comparison capped30min, or save build/stop model work. No candidate download/inference or further testing without that choice. Current Qwen1.5B unknown owner/date and evidence cases fail; keep raw oracles/pins and rejection guards. First MVP remains unchanged. Updated preview is in build/delivery/Summary-QA-40101392948, with a schema4 downgrade warning.",
+  "lastUpdated": "2026-10-24T14:20:34.046Z",
   "latestVerification": {
     "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
     "runId": 40079629180,
@@ -1379,5 +1399,26 @@
     "deliveredAt": "2026-10-24T12:12:16.729Z",
     "pausedAfterHandoff": true,
     "mvpDeliveryBlockers": []
+  },
+  "latestFeatureArtifact": {
+    "status": "IN_PROGRESS",
+    "sourceCommit": "d6a329354ffc095d4dffb9ca4d939c67bf10adc8",
+    "runId": 40101392948,
+    "runUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40101392948",
+    "artifact": "LocalMinutes-1.0-d6a329354ffc095d4dffb9ca4d939c67bf10adc8-unsigned.ipa",
+    "sha256": "4b89ee364976f661ab206ef914f73746a2c976f5ab2a1b72acb46037d910f19d",
+    "sizeBytes": 12931428,
+    "signing": "unsigned",
+    "retained": true,
+    "published": false,
+    "draftReleaseId": 422770453,
+    "draftReleaseTag": "mvp-preview-d6a329354ffc",
+    "localDirectory": "build/delivery/Summary-QA-40101392948",
+    "localIPA": "build/delivery/Summary-QA-40101392948/LocalMinutes-1.0-d6a329354ffc095d4dffb9ca4d939c67bf10adc8-unsigned.ipa",
+    "checksumMatched": true,
+    "modelQuality": "FAILED",
+    "deviceValidation": "NOT_RUN",
+    "schemaVersion": 4,
+    "downgradeToOriginalSchema3MVP": "Not supported after migration; original rows preserved, older binary refuses future schema."
   }
 }

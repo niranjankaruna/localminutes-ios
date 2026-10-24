@@ -326,3 +326,8 @@ Exact588834b68876e94a6cffe5963fe0a875d1f69315/run40099854249 completedFAILED13:5
 No furtherprompt/testloop. Ownerwasaskedonetimewhethercompareonecompatiblelocalmodelwith30mincaporstopmodelwork, duetothenorepeatedtestrunconstraint. Awaitreplybeforecandidateexperiment;elapsedtimeisnotapproval. OfficialMicrosoftPhi-3-mini-4k-instruct-GGUF(MIT,2.2GBQ4asmodelcard)identifiedaspossibleread-onlycandidate,notdownloaded/pinned/evaluated/recommendedasworking. https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf
 
 Inputpackingreviewremovedartificialtwo-sourceinputcap: actualcanonicaltokenizercountsnowpacklongerchunks;output≤2/category,1citationand128map/itemboundspreserved. Existingtwo-sourceactualfixtureshaveidenticalprompts/chunks/schema,nomodelsemanticrepairclaimfromthischange. Finalcompile/package-onlymodeexcludesallmodel/fulltestjobs. ThispreparesanupdatedUIpreviewwhilequalityblockerremains;nomoreinferenceexperimentswithoutownerchoice.
+
+
+## Summary/Q&A batch handoff
+
+App screens/shared real-model wiring, durable edits/answers/citations/cancel/export are implemented. Final d6a3293/run40101392948 compile/package SUCCESS,0tests; preview downloaded with matchingSHA256. **Model quality remains FAILED**: current Qwen1.5B unknown-owner/date, default-service summary and QA evidence cases still fail under unchanged oracles. No full/physical acceptance claimed. Original MVP unchanged; preview schema4 prevents old-schema3 binary rollback. See [exact evidence](evidence/SUMMARY_QA_BATCH_2026_10_24.md) and [usage](SUMMARIES_AND_QA.md). Model experiments stopped; awaiting owner choice for one30minute-compatible-model comparison or stop.
