@@ -51,16 +51,19 @@ public final class HTTPSModelTransport: @unchecked Sendable {
 
     deinit { session.invalidateAndCancel() }
 
-    /// TEST-FIRST opt-in seam: deliberately delegates to the original fresh
-    /// transfer until compatible hosted assertions prove missing resume behavior.
-    /// Future checkpointDirectory is one owned UUID child of resumeRootURL,
+    /// checkpointDirectory is one owned UUID child of resumeRootURL,
     /// separate from the installer's disposable .staging directory. Layout is
     /// partial.bin + checkpoint.json. Checkpoints bind all immutable metadata
     /// and the retained prefix digest; only a strong ETag authorizes If-Range.
     /// This method can publish only the operation staging file, never current.json.
     public func downloadResumable(_ artifact: ModelArtifact, to destination: URL,
                                   checkpointDirectory: URL) async throws {
-        try await download(artifact, to: destination)
+        try Task.checkCancellation()
+        guard let resumeRootURL else { throw ModelTransportError.invalidDestination }
+        let operation = ResumableModelDownload(artifact: artifact, destination: destination,
+            stagingRoot: stagingRootURL, resumeRoot: resumeRootURL, directory: checkpointDirectory,
+            allowedHosts: allowedHosts, configuration: session.configuration)
+        try await operation.run()
     }
 
     public func download(_ artifact: ModelArtifact, to destination: URL) async throws {

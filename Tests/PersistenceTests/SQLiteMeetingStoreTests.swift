@@ -11,14 +11,14 @@ import XCTest
 /// No in-memory store, database mock, fixture database or real transcript.
 @MainActor
 final class SQLiteMeetingStoreTests: XCTestCase {
-    func testCreatesAnActualSQLiteDatabaseWithCurrentVersionFourSchema() async throws {
+    func testCreatesAnActualSQLiteDatabaseWithCurrentVersionFiveSchema() async throws {
         try await withDatabase { url in
             let store = try SQLiteMeetingStore(databaseURL: url)
             try await store.close()
             XCTAssertTrue(FileManager.default.fileExists(atPath: url.path),
                           "Opening the real adapter must create an on-disk database")
             guard FileManager.default.fileExists(atPath: url.path) else { return }
-            XCTAssertEqual(try readUserVersion(url), 4, "Version four separates editable generated documents while preserving indexed originals")
+            XCTAssertEqual(try readUserVersion(url), 5, "Version five preserves immutable capture-model provenance beside indexed originals")
             let handle = try openSQLite(url, flags: SQLITE_OPEN_READONLY)
             defer { sqlite3_close(handle) }
             let tables = try readTextColumn(handle,

@@ -147,6 +147,9 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
             try await store.createMeeting(.init(id: epoch.id, title: "Meeting", createdAt: Date(),
                                                 recordingState: .recording))
             epoch.meetingCreated = true
+            try await store.saveSpeechModelPin(.init(meetingID: epoch.id,
+                selection: .init(manifest: selected, profile: model.files[.whisper] != nil ? .whisperGGML : .streamingZipformerONNX,
+                    installationID: model.installationID)))
             try Task.checkCancellation()
             epoch.ingress = ingress
             epoch.directory = directory

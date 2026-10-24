@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 #if canImport(LocalMinutesPersistence)
 import LocalMinutesPersistence
@@ -50,8 +51,6 @@ public actor SummaryPipeline {
     private let reservedOutputTokens: Int
     private let tokenizer: SummaryTokenCounter
     private let generator: SummaryMapJSONGenerator
-    // TEST-FIRST ignored hook. Working resume awaits its hosted behavioral RED;
-    // the default pipeline and every existing semantic oracle remain unchanged.
     private let resume: SummaryPipelineResumeConfiguration?
     private var state = SummaryPipelineSnapshot(phase: .idle, meetingID: nil, result: nil)
 
@@ -95,6 +94,23 @@ public actor SummaryPipeline {
             let chunks = try await planner.plan(source.segments)
             try Task.checkCancellation()
             guard chunks.count <= limits.maximumItems else { throw GroundedSummaryError.limitExceeded }
+            let identity = try resumeIdentity(selectedMeetingID: selectedMeetingID, source: source, chunks: chunks)
+            var recovered: [SummaryMapCheckpoint] = []
+            if let resume, let identity, let checkpoint = try await resume.checkpoints.load(matching: identity) {
+                try Task.checkCancellation()
+                guard checkpoint.identity == identity, checkpoint.maps.count <= chunks.count else {
+                    throw SummaryCheckpointError.identityMismatch
+                }
+                // A protocol boundary is not a trust boundary. Validate the
+                // entire contiguous plan binding before making any new call.
+                for (index, saved) in checkpoint.maps.enumerated() {
+                    guard saved.index == index,
+                          saved.chunkSHA256 == Self.digest(Data(chunks[index].prompt.utf8)) else {
+                        throw SummaryCheckpointError.identityMismatch
+                    }
+                }
+                recovered = checkpoint.maps
+            }
             var maps: [GroundedSummary] = []
             var mappedItemCount = 0
             for (index, chunk) in chunks.enumerated() {
@@ -104,17 +120,31 @@ public actor SummaryPipeline {
                 // Compile before crossing the generator boundary so invalid
                 // domains fail even when a caller supplies its own transport.
                 _ = try schema.grammar()
-                let json = try await generator(chunk.prompt, schema, chunk.reservedOutputTokens)
+                let bytes: Data
+                let isRecovered = index < recovered.count
+                if isRecovered {
+                    bytes = recovered[index].mapJSON
+                } else {
+                    let json = try await generator(chunk.prompt, schema, chunk.reservedOutputTokens)
+                    bytes = Data(json.utf8)
+                }
                 try Task.checkCancellation()
-                guard json.utf8.count <= limits.maximumJSONBytes else { throw GroundedSummaryError.limitExceeded }
+                guard bytes.count <= limits.maximumJSONBytes else { throw GroundedSummaryError.limitExceeded }
                 let chunkSource = GroundedSummarySource(meetingID: selectedMeetingID, segments: chunk.segments,
                                                        originalManualNotes: source.originalManualNotes)
-                let map = try GroundedSummaryDecoder.decode(Data(json.utf8), selectedMeetingID: selectedMeetingID,
+                let map = try GroundedSummaryDecoder.decode(bytes, selectedMeetingID: selectedMeetingID,
                     source: chunkSource, provenance: .init(modelRevision: modelRevision,
                         promptVersion: promptVersion, mapIndex: index), limits: limits)
                 let newItems = map.summaryPoints.count + map.decisions.count + map.actions.count
                 guard newItems <= limits.maximumItems - mappedItemCount else { throw GroundedSummaryError.limitExceeded }
                 mappedItemCount += newItems
+                if !isRecovered, let resume, let identity {
+                    // Save only after full grounding and aggregate admission.
+                    // A failed/cancelled save cannot publish a partial result.
+                    try await resume.checkpoints.save(.init(index: index,
+                        chunkSHA256: Self.digest(Data(chunk.prompt.utf8)), mapJSON: bytes), matching: identity)
+                    try Task.checkCancellation()
+                }
                 maps.append(map)
             }
             try Task.checkCancellation()
@@ -135,6 +165,46 @@ public actor SummaryPipeline {
 
     public func snapshot() -> SummaryPipelineSnapshot {
         state
+    }
+
+    private struct ResumeSource: Encodable {
+        let version: Int
+        let meetingID: UUID
+        let originalManualNotes: String
+        let segments: [SummaryEvidenceSegment]
+    }
+
+    private struct ResumeChunk: Encodable {
+        let prompt: String
+        let promptTokenCount: Int
+        let reservedOutputTokens: Int
+    }
+
+    private struct ResumePlan: Encodable {
+        let version: Int
+        let chunks: [ResumeChunk]
+    }
+
+    private func resumeIdentity(selectedMeetingID: UUID, source: GroundedSummarySource,
+                                chunks: [SummaryInputChunk]) throws -> SummaryCheckpointIdentity? {
+        guard let resume, !chunks.isEmpty else { return nil }
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
+        let sourceBytes = try encoder.encode(ResumeSource(version: 1, meetingID: selectedMeetingID,
+            originalManualNotes: source.originalManualNotes, segments: source.segments))
+        let planBytes = try encoder.encode(ResumePlan(version: 1, chunks: chunks.map {
+            ResumeChunk(prompt: $0.prompt, promptTokenCount: $0.promptTokenCount,
+                        reservedOutputTokens: $0.reservedOutputTokens)
+        }))
+        return .init(jobID: resume.jobID, meetingID: selectedMeetingID,
+            sourceSHA256: Self.digest(sourceBytes), planSHA256: Self.digest(planBytes),
+            modelID: resume.modelID, modelRevision: modelRevision, modelSHA256: resume.modelSHA256,
+            runtimeVersion: resume.runtimeVersion, promptVersion: promptVersion,
+            contextTokenLimit: contextTokenLimit, reservedOutputTokens: reservedOutputTokens, totalChunks: chunks.count)
+    }
+
+    private static func digest(_ bytes: Data) -> String {
+        SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
     }
 
     private static func mapSchema(meetingID: UUID, segments: [SummaryEvidenceSegment],

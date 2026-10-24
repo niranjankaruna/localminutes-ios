@@ -3,13 +3,14 @@ import SQLite3
 import XCTest
 @testable import LocalMinutesPersistence
 
-/// Real schema-four store and a real open WAL connection. No database,
+/// Real current-schema store and a real open WAL connection. No database,
 /// filesystem, inference or audio boundary is replaced by a mock.
 @MainActor
 final class SQLiteSnapshotTests: XCTestCase {
     func testNativeSnapshotIncludesCommittedWALSourcesNotesGeneratedEditsAndFTSAsStandaloneDatabase() async throws {
         try await withSQLiteSnapshotFixture { fixture in
             let before = try fixture.sourceBytes()
+            let sourceVersion = try snapshotScalar(fixture.database, "PRAGMA user_version")
             XCTAssertFalse(try XCTUnwrap(before["-wal"]).isEmpty, "Setup requires a real retained WAL")
             try await fixture.store.createSnapshot(at: fixture.destination)
             XCTAssertTrue(FileManager.default.fileExists(atPath: fixture.destination.path))
@@ -18,7 +19,8 @@ final class SQLiteSnapshotTests: XCTestCase {
                                "A published snapshot must be a closed standalone database")
             }
             XCTAssertEqual(try snapshotScalar(fixture.destination, "PRAGMA integrity_check"), "ok")
-            XCTAssertEqual(try snapshotScalar(fixture.destination, "PRAGMA user_version"), "4")
+            XCTAssertEqual(try snapshotScalar(fixture.destination, "PRAGMA user_version"), sourceVersion,
+                           "A snapshot preserves the independently observed source schema version")
             try await fixture.assertSnapshotOriginals()
             XCTAssertEqual(try fixture.sourceBytes(), before, "Backup must not checkpoint or rewrite the live source")
         }

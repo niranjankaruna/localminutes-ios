@@ -19,7 +19,7 @@ final class ManualNotePersistenceTests: XCTestCase {
             let store = try SQLiteMeetingStore(databaseURL: url)
             let preserved = try await store.meeting(id: meeting.id)
             XCTAssertEqual(preserved, meeting, "Adding notes must preserve existing version-one meetings")
-            XCTAssertEqual(try noteFixtureSchemaVersion(url), 4, "The original version-one fixture migrates through notes and indexing to separate generated storage")
+            XCTAssertEqual(try noteFixtureSchemaVersion(url), 5, "The original version-one fixture migrates through notes, indexing and generated storage to capture-model provenance")
             try await store.saveManualNote(expected)
             try await store.close()
             let reopened = try SQLiteMeetingStore(databaseURL: url)

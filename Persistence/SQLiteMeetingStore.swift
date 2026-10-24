@@ -1,5 +1,8 @@
 import Foundation
 import SQLite3
+#if SWIFT_PACKAGE
+import LocalMinutesModels
+#endif
 
 public enum MeetingRecordingState: String, Codable, Sendable {
     case recording, completed, interrupted, recovered, failed
@@ -243,10 +246,15 @@ public actor SQLiteMeetingStore {
 
     public func close() throws { try connection.close() }
 
-    /// TEST-FIRST seam: native consistent backup waits for hosted behavioral
-    /// RED. No source pointer, connection or mutable database is returned.
+    /// A consistent native snapshot includes committed WAL data without
+    /// checkpointing the caller-owned source or exposing its connection.
     public func createSnapshot(at destinationURL: URL) throws {
-        throw SQLiteSnapshotError.notImplemented
+        try Task.checkCancellation()
+        let source = try connection.database()
+        do { try SQLiteMeetingBackup.create(from: source, to: destinationURL) }
+        catch is CancellationError { throw CancellationError() }
+        catch let error as SQLiteSnapshotError { throw error }
+        catch { throw SQLiteSnapshotError.databaseFailure }
     }
 
     /// A returned save has committed. Persisted revisions prevent a delayed
@@ -289,6 +297,46 @@ public actor SQLiteMeetingStore {
         guard revision >= 0, timestamp.isFinite else { throw MeetingStoreError.databaseFailure }
         return StoredManualNote(meetingID: meetingID, text: try statement.text(at: 0),
             editRevision: revision, modifiedAt: Date(timeIntervalSince1970: timestamp))
+    }
+
+    /// Capture provenance is immutable and belongs to exactly one meeting.
+    /// Missing legacy provenance stays unknown; corruption never becomes nil.
+    public func speechModelPin(meetingID: UUID) throws -> StoredMeetingSpeechModelPin? {
+        let statement = try MeetingSQLiteStatement(database: connection.database(), sql:
+            "SELECT length(CAST(selection_json AS BLOB)),selection_json FROM meeting_speech_model_pins WHERE meeting_id=?")
+        try statement.bind(meetingID.uuidString, at: 1)
+        guard try statement.next() else { return nil }
+        let bytes = try statement.integer(at: 0)
+        guard bytes >= 1, bytes <= 1_048_576 else { throw MeetingSpeechModelPinError.invalidPin }
+        let data: Data
+        do { data = Data(try statement.text(at: 1).utf8) }
+        catch { throw MeetingSpeechModelPinError.invalidPin }
+        let pin: StoredMeetingSpeechModelPin
+        do { pin = try JSONDecoder().decode(StoredMeetingSpeechModelPin.self, from: data) }
+        catch { throw MeetingSpeechModelPinError.invalidPin }
+        guard pin.meetingID == meetingID else { throw MeetingSpeechModelPinError.invalidPin }
+        try pin.validate()
+        return pin
+    }
+
+    public func saveSpeechModelPin(_ pin: StoredMeetingSpeechModelPin) throws {
+        let database = try connection.database()
+        try pin.validate()
+        let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
+        let data = try encoder.encode(pin)
+        guard data.count <= 1_048_576, let text = String(data: data, encoding: .utf8) else { throw MeetingSpeechModelPinError.invalidPin }
+        try connection.transaction {
+            guard try readMeeting(id: pin.meetingID, database: database) != nil else { throw MeetingStoreError.notFound }
+            if let previous = try speechModelPin(meetingID: pin.meetingID) {
+                guard previous == pin, try encoder.encode(previous) == data else { throw MeetingSpeechModelPinError.immutableConflict }
+                return
+            }
+            let statement = try MeetingSQLiteStatement(database: database, sql:
+                "INSERT INTO meeting_speech_model_pins(meeting_id,selection_json) VALUES(?,?)")
+            try statement.bind(pin.meetingID.uuidString, at: 1)
+            try statement.bind(text, at: 2)
+            try statement.finish()
+        }
     }
 
     /// One immutable generated original, with a separate initial display value.

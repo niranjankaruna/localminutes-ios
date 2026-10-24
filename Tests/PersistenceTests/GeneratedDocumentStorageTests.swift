@@ -21,7 +21,7 @@ final class GeneratedDocumentStorageTests: XCTestCase {
             XCTAssertTrue(documents.isEmpty)
             try await fixture.store.close()
             try withGeneratedStorageSQLite(fixture.database) { database in
-                XCTAssertEqual(try generatedStorageScalar(database, "PRAGMA user_version"), 4)
+                XCTAssertEqual(try generatedStorageScalar(database, "PRAGMA user_version"), 5)
                 XCTAssertEqual(try generatedStorageScalar(database,
                     "SELECT count(*) FROM sqlite_master WHERE type='table' AND name='generated_documents'"), 1,
                     "A separate durable table is required; never repurpose manual_notes/transcript_segments")

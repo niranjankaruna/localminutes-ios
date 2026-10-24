@@ -34,7 +34,7 @@ final class MeetingSQLiteConnection {
         handle = opened
         do {
             let version = try schemaVersion()
-            guard version == 0 || version == 1 || version == 2 || version == 3 || version == 4 else {
+            guard (0...5).contains(version) else {
                 throw MeetingStoreError.unsupportedSchemaVersion(Int(version))
             }
             try PersistentFilePolicy.protectItem(databaseURL, within: directory)
@@ -139,6 +139,19 @@ final class MeetingSQLiteConnection {
                         """)
                     try execute("CREATE INDEX generated_documents_history ON generated_documents(meeting_id,created_at DESC,id ASC)")
                     try execute("PRAGMA user_version=4")
+                }
+            }
+            if version < 5 {
+                try transaction {
+                    // No inferred default is attached to an older meeting.
+                    // New captures persist their exact leased model separately.
+                    try execute("""
+                        CREATE TABLE meeting_speech_model_pins(
+                            meeting_id TEXT NOT NULL PRIMARY KEY REFERENCES meetings(id) ON DELETE CASCADE,
+                            selection_json TEXT NOT NULL CHECK(length(CAST(selection_json AS BLOB)) BETWEEN 1 AND 1048576)
+                        )
+                        """)
+                    try execute("PRAGMA user_version=5")
                 }
             }
             try Self.protectDatabaseFiles(at: databaseURL, within: directory)

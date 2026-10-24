@@ -55,7 +55,7 @@ public final class MeetingTranscriptionReplayCoordinator {
         let meetingLease: MeetingRecordingLease
         var gateLease: HeavyModelUseLease?
         var modelLease: ModelLease?
-        var recognizer: CPUStreamingRecognizer?
+        var recognizer: ReplaySpeechRecognizer?
         var work: Task<TranscriptionReplayReport, Error>?
         var completion: Task<TranscriptionReplayReport, Error>?
         var resourcesReleased = false
@@ -75,6 +75,20 @@ public final class MeetingTranscriptionReplayCoordinator {
         let checkpoint: TranscriptionReplayCheckpoint
         let recoverySHA256: String
         let rowsSHA256: String
+        let modelPinSHA256: String?
+        let cursorProofSHA256: String
+    }
+    private struct CursorProof: Codable {
+        let checkpoint: TranscriptionReplayCheckpoint
+        let recoverySHA256: String
+        let rowsSHA256: String
+        let modelPinSHA256: String?
+    }
+    private struct ReplaySource: Sendable {
+        let manifest: ModelManifest
+        let profile: HuggingFaceRuntimeProfile
+        let installationID: UUID?
+        let pinSHA256: String?
     }
     private struct RowProof: Codable {
         let id: UUID, sequence: Int, start: Int64, end: Int64, text: String, revision: String
@@ -95,14 +109,17 @@ public final class MeetingTranscriptionReplayCoordinator {
     private let recordingsRoot: URL
     private let usage: MeetingUsageRegistry
     private let admission: HeavyModelAdmission
+    private let modelPolicy: MeetingReplayModelPolicy?
     private let afterClaim: (@Sendable () async -> Void)?
     private let afterCheckpoint: (@Sendable (TranscriptionReplayCheckpoint) async -> Void)?
     private var current: Use?
 
     public init(store: SQLiteMeetingStore, models: ModelInstallationManager,
-                recordingsRoot: URL, usage: MeetingUsageRegistry, admission: HeavyModelAdmission) {
+                recordingsRoot: URL, usage: MeetingUsageRegistry, admission: HeavyModelAdmission,
+                modelPolicy: MeetingReplayModelPolicy? = nil) {
         self.store = store; self.models = models; self.recordingsRoot = recordingsRoot.standardizedFileURL
         self.usage = usage; self.admission = admission; afterClaim = nil; afterCheckpoint = nil
+        self.modelPolicy = modelPolicy
     }
 
     // Scheduling boundaries only. Production uses the public initializer; these
@@ -114,6 +131,7 @@ public final class MeetingTranscriptionReplayCoordinator {
         self.store = store; self.models = models; self.recordingsRoot = recordingsRoot.standardizedFileURL
         self.usage = usage; self.admission = admission; self.afterClaim = afterClaim
         self.afterCheckpoint = afterCheckpoint
+        modelPolicy = nil
     }
 
     public func replay(meetingID: UUID) async throws -> TranscriptionReplayReport {
@@ -155,6 +173,20 @@ public final class MeetingTranscriptionReplayCoordinator {
         let directory = try checkedDirectory(use.id)
         let initialRows = try await store.transcript(meetingID: use.id)
         guard let meeting = try await store.meeting(id: use.id) else { throw TranscriptionReplayError.metadataFailure }
+        let pin = try await store.speechModelPin(meetingID: use.id)
+        let source: ReplaySource
+        if let pin {
+            let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
+            source = .init(manifest: pin.selection.manifest, profile: pin.selection.profile,
+                installationID: pin.selection.installationID, pinSHA256: Self.digest(try encoder.encode(pin)))
+        } else {
+            guard modelPolicy == nil else { throw MeetingSpeechModelPinError.missingPin }
+            // Explicit legacy entry point only; selected captures never infer
+            // an absent pin from whichever model is currently equipped.
+            source = .init(manifest: StreamingEnglishModel.manifest, profile: .streamingZipformerONNX,
+                installationID: nil, pinSHA256: nil)
+        }
+        let revision = source.manifest.revision
         try Task.checkCancellation()
         let reportURL = directory.appendingPathComponent("recovery-report.json")
         if try !Self.exists(reportURL) {
@@ -172,13 +204,16 @@ public final class MeetingTranscriptionReplayCoordinator {
         var resume = initialRows.last?.endSample ?? 0
         if let journal {
             let point = journal.checkpoint
-            guard journal.schemaVersion == 1, point.schemaVersion == 1, point.meetingID == use.id,
+            guard journal.schemaVersion == 2, point.schemaVersion == 1, point.meetingID == use.id,
                   point.manifestSHA256 == Self.digest(plan.manifestBytes),
-                  point.modelRevision == StreamingEnglishModel.manifest.revision,
+                  point.modelRevision == revision,
                   point.nextGlobalSample >= 0, point.nextGlobalSample <= plan.report.timelineEndSample,
                   point.committedSequence >= -1, point.committedSequence < initialRows.count,
                   journal.recoverySHA256 == Self.digest(plan.reportBytes),
-                  journal.rowsSHA256 == (try rowsDigest(Array(initialRows.prefix(point.committedSequence + 1)))) else {
+                  journal.rowsSHA256 == (try rowsDigest(Array(initialRows.prefix(point.committedSequence + 1)))),
+                  journal.modelPinSHA256 == source.pinSHA256,
+                  journal.cursorProofSHA256 == (try cursorProof(point, recovery: journal.recoverySHA256,
+                    rows: journal.rowsSHA256, modelPin: journal.modelPinSHA256)) else {
                 throw TranscriptionReplayError.invalidCheckpoint
             }
             let committedEnd = point.committedSequence >= 0 ? initialRows[point.committedSequence].endSample : 0
@@ -197,15 +232,34 @@ public final class MeetingTranscriptionReplayCoordinator {
         let remaining = plan.healthy.filter { $0.startFrame + $0.frameCount > resume }
         if remaining.isEmpty {
             if journal == nil {
-                try writeCheckpoint(id: use.id, next: plan.report.timelineEndSample, rows: initialRows, plan: plan, directory: directory)
+                try writeCheckpoint(id: use.id, next: plan.report.timelineEndSample, rows: initialRows, plan: plan,
+                    directory: directory, revision: revision, modelPin: source.pinSHA256)
             }
             return .init(meetingID: use.id, durableFrameCount: plan.report.durableFrameCount,
                 replayedFrameCount: 0, timelineEndSample: plan.report.timelineEndSample,
                 insertedSegmentIDs: [], gaps: plan.report.gaps)
         }
-        let lease = try await models.acquire(modelID: StreamingEnglishModel.manifest.modelID)
+        let lease: ModelLease
+        do { lease = try await models.acquire(modelID: source.manifest.modelID) }
+        catch is CancellationError { throw CancellationError() }
+        catch { throw TranscriptionReplayError.modelUnavailable }
         use.modelLease = lease
-        guard lease.model.manifest == StreamingEnglishModel.manifest,
+        guard lease.model.manifest == source.manifest,
+              source.installationID == nil || source.installationID == lease.model.installationID else {
+            throw TranscriptionReplayError.modelUnavailable
+        }
+        if source.profile == .whisperGGML {
+            guard let file = lease.model.files[.whisper], source.manifest.artifacts.count == 1,
+                  source.manifest.runtimeVersion == "whisper.cpp-1.7.5" else { throw TranscriptionReplayError.modelUnavailable }
+            let artifact = source.manifest.artifacts[0]
+            let whisper = WhisperSpeechRecognizer(files: .init(model: file, revision: revision,
+                byteCount: artifact.byteCount, sha256: artifact.sha256))
+            use.recognizer = .whisper(whisper)
+            try await whisper.load()
+            return try await replayWhisper(use, recognizer: whisper, source: source, plan: plan,
+                directory: directory, rows: initialRows, remaining: remaining, resume: resume)
+        }
+        guard source.profile == .streamingZipformerONNX,
               let encoder = lease.model.files[.encoder], let decoder = lease.model.files[.decoder],
               let joiner = lease.model.files[.joiner], let tokens = lease.model.files[.tokens] else {
             throw TranscriptionReplayError.modelUnavailable
@@ -213,7 +267,7 @@ public final class MeetingTranscriptionReplayCoordinator {
         let recognizer = CPUStreamingRecognizer(files: .init(encoder: encoder, decoder: decoder,
             joiner: joiner, tokens: tokens, revision: lease.model.manifest.revision,
             runtimeVersion: lease.model.manifest.runtimeVersion))
-        use.recognizer = recognizer
+        use.recognizer = .streaming(recognizer)
         try await recognizer.load()
         try Task.checkCancellation()
         var rows = initialRows
@@ -231,7 +285,8 @@ public final class MeetingTranscriptionReplayCoordinator {
                 if streamActive && start != globalCursor {
                     let ending = try await recognizer.finish()
                     try await commit(ending.text, start: utteranceStart, end: globalCursor,
-                        rows: &rows, inserted: &inserted, plan: plan, directory: directory, id: use.id)
+                        rows: &rows, inserted: &inserted, plan: plan, directory: directory, id: use.id,
+                        revision: revision, modelPin: source.pinSHA256)
                     streamActive = false
                 }
                 if !streamActive {
@@ -246,7 +301,8 @@ public final class MeetingTranscriptionReplayCoordinator {
                     relative += Int64(samples.count); globalCursor += Int64(samples.count); replayed += Int64(samples.count)
                     if output.isEndpoint {
                         try await commit(output.text, start: utteranceStart, end: globalCursor,
-                            rows: &rows, inserted: &inserted, plan: plan, directory: directory, id: use.id)
+                            rows: &rows, inserted: &inserted, plan: plan, directory: directory, id: use.id,
+                            revision: revision, modelPin: source.pinSHA256)
                         try await recognizer.resetAfterEndpoint()
                         utteranceStart = globalCursor
                     }
@@ -256,10 +312,12 @@ public final class MeetingTranscriptionReplayCoordinator {
             if streamActive {
                 let ending = try await recognizer.finish()
                 try await commit(ending.text, start: utteranceStart, end: globalCursor,
-                    rows: &rows, inserted: &inserted, plan: plan, directory: directory, id: use.id)
+                    rows: &rows, inserted: &inserted, plan: plan, directory: directory, id: use.id,
+                    revision: revision, modelPin: source.pinSHA256)
             }
             try Task.checkCancellation()
-            try writeCheckpoint(id: use.id, next: plan.report.timelineEndSample, rows: rows, plan: plan, directory: directory)
+            try writeCheckpoint(id: use.id, next: plan.report.timelineEndSample, rows: rows, plan: plan,
+                directory: directory, revision: revision, modelPin: source.pinSHA256)
             return .init(meetingID: use.id, durableFrameCount: plan.report.durableFrameCount,
                 replayedFrameCount: replayed, timelineEndSample: plan.report.timelineEndSample,
                 insertedSegmentIDs: inserted, gaps: plan.report.gaps)
@@ -272,33 +330,117 @@ public final class MeetingTranscriptionReplayCoordinator {
 
     private func commit(_ text: String, start: Int64, end: Int64,
         rows: inout [StoredTranscriptSegment], inserted: inout [UUID], plan: Plan,
-        directory: URL, id: UUID) async throws {
+        directory: URL, id: UUID, revision: String, modelPin: String?) async throws {
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         try Task.checkCancellation()
         guard end > start, start >= (rows.last?.endSample ?? 0), end <= plan.report.timelineEndSample else {
             throw TranscriptionReplayError.invalidAudio
         }
-        let seed = "\(id.uuidString)|\(Self.digest(plan.manifestBytes))|\(StreamingEnglishModel.manifest.revision)|\(start)|\(end)"
+        let seed = "\(id.uuidString)|\(Self.digest(plan.manifestBytes))|\(revision)|\(start)|\(end)"
         let bytes = Array(SHA256.hash(data: Data(seed.utf8)).prefix(16))
         let uuid = UUID(uuid: (bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
             bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15]))
         let row = StoredTranscriptSegment(id: uuid, meetingID: id, sequence: rows.count,
-            startSample: start, endSample: end, text: text, modelRevision: StreamingEnglishModel.manifest.revision)
+            startSample: start, endSample: end, text: text, modelRevision: revision)
         try await store.appendFinalizedSegments([row], to: id)
         rows.append(row); inserted.append(row.id)
-        let checkpoint = try writeCheckpoint(id: id, next: end, rows: rows, plan: plan, directory: directory)
+        let checkpoint = try writeCheckpoint(id: id, next: end, rows: rows, plan: plan,
+            directory: directory, revision: revision, modelPin: modelPin)
         await afterCheckpoint?(checkpoint)
     }
 
+    private func replayWhisper(_ use: Use, recognizer: WhisperSpeechRecognizer, source: ReplaySource,
+        plan: Plan, directory: URL, rows originalRows: [StoredTranscriptSegment],
+        remaining: [StoredAudioSegment], resume: Int64) async throws -> TranscriptionReplayReport {
+        try Task.checkCancellation()
+        var rows = originalRows
+        var inserted: [UUID] = []
+        var cursor = resume
+        var base = resume
+        var relative: Int64 = 0
+        var replayed: Int64 = 0
+        var active = false
+        let reader = ReplayCAFReader()
+        do {
+            for segment in remaining {
+                try Task.checkCancellation()
+                let start = max(resume, segment.startFrame)
+                if active && start != cursor {
+                    let ending = try await recognizer.finish()
+                    try await commitWhisper(ending, base: base, through: relative, rows: &rows, inserted: &inserted,
+                        plan: plan, directory: directory, id: use.id, source: source)
+                    active = false
+                }
+                if !active {
+                    try await recognizer.start(epochID: use.id)
+                    base = start; cursor = start; relative = 0; active = true
+                }
+                try await reader.open(directory.appendingPathComponent(segment.relativePath),
+                    expectedFrames: segment.frameCount, offset: start - segment.startFrame)
+                while let samples = try await reader.next() {
+                    try Task.checkCancellation()
+                    let output = try await recognizer.accept(samples, at: relative)
+                    relative += Int64(samples.count); cursor += Int64(samples.count); replayed += Int64(samples.count)
+                    try await commitWhisper(output, base: base, through: relative, rows: &rows, inserted: &inserted,
+                        plan: plan, directory: directory, id: use.id, source: source)
+                }
+                await reader.close()
+            }
+            if active {
+                let ending = try await recognizer.finish()
+                try await commitWhisper(ending, base: base, through: relative, rows: &rows, inserted: &inserted,
+                    plan: plan, directory: directory, id: use.id, source: source)
+            }
+            try Task.checkCancellation()
+            try writeCheckpoint(id: use.id, next: plan.report.timelineEndSample, rows: rows, plan: plan,
+                directory: directory, revision: source.manifest.revision, modelPin: source.pinSHA256)
+            return .init(meetingID: use.id, durableFrameCount: plan.report.durableFrameCount,
+                replayedFrameCount: replayed, timelineEndSample: plan.report.timelineEndSample,
+                insertedSegmentIDs: inserted, gaps: plan.report.gaps)
+        } catch {
+            await reader.close()
+            await recognizer.cancel(epochID: use.id)
+            throw error
+        }
+    }
+
+    private func commitWhisper(_ update: WhisperSpeechUpdate, base: Int64, through: Int64,
+        rows: inout [StoredTranscriptSegment], inserted: inout [UUID], plan: Plan,
+        directory: URL, id: UUID, source: ReplaySource) async throws {
+        guard update.epochID == id else { throw TranscriptionReplayError.invalidAudio }
+        for segment in update.finalized {
+            let start = base.addingReportingOverflow(segment.startSample)
+            let end = base.addingReportingOverflow(segment.endSample)
+            guard segment.startSample >= 0, segment.endSample > segment.startSample, segment.endSample <= through,
+                  !start.overflow, !end.overflow else { throw TranscriptionReplayError.invalidAudio }
+            try await commit(segment.text, start: start.partialValue, end: end.partialValue,
+                rows: &rows, inserted: &inserted, plan: plan, directory: directory, id: id,
+                revision: source.manifest.revision, modelPin: source.pinSHA256)
+        }
+    }
+
     @discardableResult
-    private func writeCheckpoint(id: UUID, next: Int64, rows: [StoredTranscriptSegment], plan: Plan, directory: URL) throws -> TranscriptionReplayCheckpoint {
+    private func writeCheckpoint(id: UUID, next: Int64, rows: [StoredTranscriptSegment], plan: Plan,
+        directory: URL, revision: String, modelPin: String?) throws -> TranscriptionReplayCheckpoint {
         let point = TranscriptionReplayCheckpoint(meetingID: id, manifestSHA256: Self.digest(plan.manifestBytes),
-            modelRevision: StreamingEnglishModel.manifest.revision, nextGlobalSample: next, committedSequence: rows.count - 1)
-        let journal = Journal(schemaVersion: 1, checkpoint: point, recoverySHA256: Self.digest(plan.reportBytes),
-            rowsSHA256: try rowsDigest(rows))
+            modelRevision: revision, nextGlobalSample: next, committedSequence: rows.count - 1)
+        let recovery = Self.digest(plan.reportBytes), proof = try rowsDigest(rows)
+        let journal = Journal(schemaVersion: 2, checkpoint: point, recoverySHA256: recovery,
+            rowsSHA256: proof, modelPinSHA256: modelPin,
+            cursorProofSHA256: try cursorProof(point, recovery: recovery, rows: proof, modelPin: modelPin))
         try PersistentFilePolicy.writeAtomically(try JSONEncoder().encode(journal),
             to: directory.appendingPathComponent("transcription-replay.json"), within: directory)
         return point
+    }
+
+    /// Integrity checksum of the complete committed position and its evidence.
+    /// This detects cursor mutation retaining old proof fields; it is not a
+    /// signature or a claim of authentication against arbitrary private writes.
+    private func cursorProof(_ point: TranscriptionReplayCheckpoint, recovery: String,
+        rows: String, modelPin: String?) throws -> String {
+        let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
+        return Self.digest(try encoder.encode(CursorProof(checkpoint: point, recoverySHA256: recovery,
+            rowsSHA256: rows, modelPinSHA256: modelPin)))
     }
 
     private func readJournal(_ directory: URL) throws -> Journal? {
@@ -458,6 +600,17 @@ public final class MeetingTranscriptionReplayCoordinator {
     }
     private nonisolated static func digest(_ data: Data) -> String {
         SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+    }
+}
+
+private enum ReplaySpeechRecognizer: Sendable {
+    case streaming(CPUStreamingRecognizer)
+    case whisper(WhisperSpeechRecognizer)
+    func unload() async {
+        switch self {
+        case .streaming(let value): await value.unload()
+        case .whisper(let value): await value.unload()
+        }
     }
 }
 
