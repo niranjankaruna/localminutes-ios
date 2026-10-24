@@ -47,9 +47,9 @@ jobs:
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           mkdir -p .build
           if [ "${{ inputs.mode }}" = model-integration ]; then
-            swift test --filter '(HuggingFaceRepositoryTests|ModelSelectionTests|SummaryPipelineTests|GroundedSummaryTests|NestedStructuredSchemaTests|StructuredJSONSchemaTests)' 2>&1 | tee .build/focused-portable.log
+            swift test --filter 'ModelTests[.](HuggingFaceRepositoryTests|ModelSelectionTests|ModelDeviceResourceReaderTests)|SummaryTests[.](SummaryPipelineTests|GroundedSummaryTests|NestedStructuredSchemaTests|StructuredJSONSchemaTests)' 2>&1 | tee .build/focused-portable.log
           elif [ "${{ inputs.mode }}" = model-catalog ]; then
-            swift test --filter '(HuggingFaceRepositoryTests|ModelSelectionTests|WhisperSpeechRecognizerTests|SummaryPipelineTests|GroundedSummaryTests|NestedStructuredSchemaTests|StructuredJSONSchemaTests)' 2>&1 | tee .build/focused-portable.log
+            swift test --filter 'ModelTests[.](HuggingFaceRepositoryTests|ModelSelectionTests)|ASRTests[.]WhisperSpeechRecognizerTests|SummaryTests[.](SummaryPipelineTests|GroundedSummaryTests|NestedStructuredSchemaTests|StructuredJSONSchemaTests)' 2>&1 | tee .build/focused-portable.log
           else
             swift test --filter 'IntelligenceSessionTests/testCancellationBeforeBlockedSQLiteCommitSavesNothingAndPreservesOriginalsAndModel' 2>&1 | tee .build/focused-portable.log
           fi
@@ -137,6 +137,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          if [ -d .agent-local/focused-app-metrics.xcresult ]; then
+            if xcrun xcresulttool get test-results summary --path .agent-local/focused-app-metrics.xcresult > .agent-local/focused-native-summary.json; then
+              cat .agent-local/focused-native-summary.json
+            fi
+          fi
+          if [ -f .agent-local/focused-simulator-boot.log ]; then
+            tail -40 .agent-local/focused-simulator-boot.log
+          fi
           if [ "$NATIVE_TEST_CLASS" = NativeModelResourceTests ]; then
             node scripts/verify-test-log.mjs .agent-local/focused-app-metrics.log testModelResourcesReadActualVolumeAndPhysicalRAMWithoutFabricatedCapacity testModelResourcesDoNotInventFreeStorageForAnUnusablePath
           else
@@ -150,7 +158,7 @@ jobs:
     if: ${{ inputs.mode == 'model-integration' }}
     name: Selected model (${{ matrix.flow }})
     runs-on: macos-15-intel
-    timeout-minutes: 12
+    timeout-minutes: ${{ matrix.flow == 'selected-summary' && 18 || 12 }}
     strategy:
       fail-fast: false
       matrix:
