@@ -3,15 +3,15 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T18:09:40.581Z",
+  "lastUpdated": "2026-10-24T18:34:03.035Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "MVP1 delivered; MVP2 test-first recovery, resumable-download, archive and consistent SQLite snapshot contracts prepared",
+  "currentTask": "MVP2 RED37 verified; initial reliability implementations ready for focused GREEN, plus new archive traversal-budget regression RED",
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "Next bounded invocation: read current required checkpoint, verify Git/PUBLIC zero-spend guard and terminal GREEN run40117673355 at4aec851; run targeted MVP2 portable RED (summaryresume4, HTTPresume11, archive10, SQLite snapshot5) plus actual-model recovery RED (integrity2, selectedmodel5). Implement only after actual assertions; keep modelchoice IPA4aec851 separate from test-first branch HEAD. No full-suite-per-edit run.",
+  "nextAction": "Commit/push archive-directory regression then initial37 repairs, run mvp2 focused verification. Inspect new directory-budget actualRED before repairing; keep future service/app integration stubs separate from this candidate. Continue app wiring after genuine integrationRED.",
   "pendingPushCommit": null,
   "remoteBranchHead": "4aec851bb1c83ec1a9acb8f48074db79dcdd8a23",
   "localScriptGreen": {
@@ -30,21 +30,16 @@
     "ARTIFACT_STORAGE_HEADROOM_UNVERIFIED"
   ],
   "ciInvocation": {
-    "id": "2026-10-24-owner-unbounded-resume",
-    "startedAt": "2026-10-24T15:33:29.213Z",
+    "id": "2026-10-24-mvp2-01",
+    "startedAt": "2026-10-24T18:11:23.102Z",
     "maxNewRuns": 6,
-    "plannedNewRuns": 0,
+    "plannedNewRuns": 1,
     "newRunIds": [
-      40107527439,
-      40109131483,
-      40111205922,
-      40114656922,
-      40116270957,
-      40117673355
+      40119556084
     ],
-    "limitReached": true,
-    "costGuardObservedAt": "2026-10-24T17:47:00Z",
-    "costGuardBasis": "Authenticated intended repository PUBLIC/ADMIN and HTTPS origin verified. Only standard macos-15-intel; no billing/larger runner/Actions artifact storage mutation. Six-run invocation limit retained."
+    "limitReached": false,
+    "costGuardObservedAt": "2026-10-24T18:11:23.102Z",
+    "costGuardBasis": "Live gh keyring identity niranjankaruna; intended repo PUBLIC/ADMIN, verified HTTPSorigin/remote34ab9e9, previousrun40117673355 terminalSUCCESS exact4aec851. All jobs standardmacos-15-intel; zeroActionsartifactstorage/paidrunners/billingchanges."
   },
   "latestCIRun": {
     "sourceCommit": "4aec851bb1c83ec1a9acb8f48074db79dcdd8a23",
@@ -1692,9 +1687,43 @@
     "resumableHTTP": 11,
     "archive": 10,
     "sqliteSnapshot": 5,
-    "actualRED": false,
+    "actualRED": true,
     "productionBehavior": "NOT_IMPLEMENTED_STUBS_ONLY",
     "evidence": "docs/evidence/MVP1_MODEL_DELIVERY_2026_10_24.md",
     "testFirstCommit": "31513b124855a0f9d4f137f76d4ab5801c95511f"
+  },
+  "previousCIInvocation": {
+    "id": "2026-10-24-owner-unbounded-resume",
+    "startedAt": "2026-10-24T15:33:29.213Z",
+    "maxNewRuns": 6,
+    "plannedNewRuns": 0,
+    "newRunIds": [
+      40107527439,
+      40109131483,
+      40111205922,
+      40114656922,
+      40116270957,
+      40117673355
+    ],
+    "limitReached": true,
+    "costGuardObservedAt": "2026-10-24T17:47:00Z",
+    "costGuardBasis": "Authenticated intended repository PUBLIC/ADMIN and HTTPS origin verified. Only standard macos-15-intel; no billing/larger runner/Actions artifact storage mutation. Six-run invocation limit retained."
+  },
+  "previousGoalTurnClassification": {
+    "classification": "progress",
+    "evidence": "MVP1 delivered at4aec851/run40117673355,137focusedPASS and exactchecksummedIPA;37MVP2tests-firstcases prepared/pushed31513b1; checkpoint34ab9e9."
+  },
+  "mvp2Reliability": {
+    "state": "IN_PROGRESS",
+    "redSourceCommit": "34ab9e9dd36a73ffa6fcf6e5e717d2b72f4353f1",
+    "redRunId": 40119556084,
+    "redRunURL": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40119556084",
+    "executed": 37,
+    "passed": 3,
+    "failed": 34,
+    "assertionFailures": 169,
+    "skipped": 0,
+    "implementation": "IN_PROGRESS_GREEN_PENDING",
+    "evidence": "docs/evidence/MVP2_RELIABILITY_2026_10_24.md"
   }
 }

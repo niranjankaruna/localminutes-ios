@@ -829,3 +829,8 @@ Exact4aec851/run40117673355 terminalSUCCESS:80focusedSwift+46Node+6actualASR+5na
 ContinuingMVP2:37reviewedtest-first cases prepared (summaryresume4, replayintegrity2, selectedspeechrecovery5, HTTPresume11, archive10, SQLite snapshot5); noactualRED/newbehaviorclaim. Sixof6currentruns used, no7thdispatch. Exactnextaction savedinSTATE: nextboundedinvocation runs onlytheseRED jobs, thenimplements. Separatepipeline4/resumereplay2teststubs alreadyauditable; stableMVP1artifact remains4aec851 independentlyoflaterbranchHEAD. Fullsuite reservedforreleasecheckpoint.
 
 MVP2 test-first source31513b124855a0f9d4f137f76d4ab5801c95511f is pushed and HTTPSremoteverified; worktreeclean atthatobservation. Mode mvp2-red is prepared for only30portable+7actualrecoverycontracts, with zero additionalCI dispatched. State stores this exactnextsource;MVP1deliveredIPA remains4aec851.
+
+
+## MVP2 first actual RED
+
+Source34ab9e9/run40119556084:37executed3PASS34FAIL169assertions0skip. RealSQLite/CAF/nativeWhisper andZipformer setup succeeds; publicruntime/modelpins remain. HTTP11cases56assert, archive10/31, snapshot5/9, summaryresume4/60, selectedrecovery5/12 andcursor2/1 provideactualRED beforecurrentrepairs. Details evidence/MVP2_RELIABILITY_2026_10_24.md. InitialimplementationsreadyforfocusedGREEN; newempty-directorybudgetregression is test-first beforeadditionalrepair. Appwiring/backupUI/Files/diagnostics stillunfinished; noMVP2orphonecompletionclaim.

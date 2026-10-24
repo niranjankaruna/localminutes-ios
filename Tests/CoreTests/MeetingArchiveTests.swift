@@ -227,6 +227,57 @@ final class MeetingArchiveTests: XCTestCase {
     }
 }
 
+/// Separate traversal-budget regression; the original ten archive oracles stay
+/// unchanged. Exactly one regular DB file prevents a file-count false positive.
+final class MeetingArchiveDirectoryLimitTests: XCTestCase {
+    func testEmptyMeetingDirectoriesConsumeTraversalBudgetBeforeExportInspectionOrRestorePublication() throws {
+        let f = try ArchiveFixture()
+        defer { try? f.remove() }
+        try FileManager.default.removeItem(at: f.snapshot.appendingPathComponent("Meetings", isDirectory: true))
+        let database = f.snapshot.appendingPathComponent("meetings.sqlite")
+        let original = try Data(contentsOf: database)
+        let cap = MeetingArchiveLimits(maximumFiles: 2)
+        let control = f.root.appendingPathComponent("one-file-control")
+        let clean = try MeetingArchive.export(snapshotRoot: f.snapshot, to: control, limits: cap)
+        XCTAssertEqual(clean.files.map(\.relativePath), ["meetings.sqlite"])
+        try FileManager.default.removeItem(at: control)
+        let ids = (1...3).map { String(format: "00000000-0000-0000-0000-%012d", $0) }
+        for id in ids {
+            try FileManager.default.createDirectory(at: f.snapshot.appendingPathComponent("Meetings/" + id),
+                withIntermediateDirectories: true)
+        }
+        let exportTarget = f.root.appendingPathComponent("must-not-export")
+        XCTAssertThrowsError(try MeetingArchive.export(snapshotRoot: f.snapshot, to: exportTarget, limits: cap)) { error in
+            XCTAssertEqual(error as? MeetingArchiveError, .limitExceeded)
+        }
+        XCTAssertFalse(FileManager.default.fileExists(atPath: exportTarget.path))
+
+        // Build the archive independently, including only the one real DB file.
+        let payload = f.archive.appendingPathComponent("payload", isDirectory: true)
+        try FileManager.default.createDirectory(at: payload, withIntermediateDirectories: true)
+        try FileManager.default.copyItem(at: database, to: payload.appendingPathComponent("meetings.sqlite"))
+        let manifest = MeetingArchiveManifest(databaseUserVersion: 4, totalByteCount: Int64(original.count),
+            files: [.init(relativePath: "meetings.sqlite", byteCount: Int64(original.count), sha256: archiveDigest(original))])
+        try JSONEncoder().encode(manifest).write(to: f.archive.appendingPathComponent("manifest.json"))
+        XCTAssertEqual(try MeetingArchive.inspect(f.archive, limits: cap), manifest,
+            "The one-file independent package must be valid before empty directories are introduced")
+        for id in ids {
+            try FileManager.default.createDirectory(at: payload.appendingPathComponent("Meetings/" + id),
+                withIntermediateDirectories: true)
+        }
+        XCTAssertThrowsError(try MeetingArchive.inspect(f.archive, limits: cap)) { error in
+            XCTAssertEqual(error as? MeetingArchiveError, .limitExceeded)
+        }
+        XCTAssertThrowsError(try MeetingArchive.restore(from: f.archive, to: f.restored, limits: cap)) { error in
+            XCTAssertEqual(error as? MeetingArchiveError, .limitExceeded)
+        }
+        XCTAssertFalse(FileManager.default.fileExists(atPath: f.restored.path))
+        XCTAssertEqual(try Data(contentsOf: database), original)
+        XCTAssertEqual(try Data(contentsOf: payload.appendingPathComponent("meetings.sqlite")), original)
+        XCTAssertEqual(try f.readRows(), [ArchiveFixture.originalNote, ArchiveFixture.transcript, ArchiveFixture.generatedNote])
+    }
+}
+
 private enum ArchiveFixtureError: Error { case sqlite(Int32), invalidAudio, unsafeCleanup }
 
 private func archiveDatabase(_ file: URL, readOnly: Bool = false,
