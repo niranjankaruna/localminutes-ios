@@ -60,8 +60,6 @@ weakened. Native implementation GREEN, ASR native build/link/model integration
 and consolidated release validation remain PENDING. Physical permissions,
 snapshot/VoiceOver, Action Button and endurance gates stay NOT_RUN.
 
-## Prior delivery
-
 ## Model-control accessibility test-first slice
 
 Two ModelBrowserAccessibilityUITests mount the actual Models view/controller
@@ -104,3 +102,36 @@ d6efa438161bfe23079e6409707fe127201e74c0:2PASS/1FAIL/0skip,0.316s, exit1.
 Both controls passed,21 defined TTS symbols remain. Exact source log stays
 ignored at .agent-local/native-hygiene/d6efa43-red.log. This confirms RED before
 the separately prepared same-revision ASR-only dependency repair.
+
+## C11 actual result and next integration batch
+
+Sourceb26b89dda04c49c0742417179f79b1c2aa762654/run40135661801:
+ASR-only build SUCCESS; portable focused job SUCCESS. Both native product/UI
+jobs failed compilation before executing tests: RecordingPrivacyRoot transferred
+the non-Sendable Notification into MainActor.assumeIsolated. First repair extracts
+only Boolean event/scene facts before that synchronous boundary; all original
+scene, accessibility and capture assertions remain. This is not new behavioral
+RED or native GREEN, and model-button labels remain unchanged pending actual RED.
+
+Actual source-built iOS device/simulator and publisher macOS no-TTS frameworks
+were produced and independently reviewed: archive20,879,035bytes,
+SHA1ba515336274ceae21bbdbbbde0076d8865b04c7082b0623b260800e76d090e7;
+receiptSHA84a352eb11b1190caefe7b0562b42c90b875828a84628b3724924cbdad5d52f1.
+All13 file hashes, ZIP CRC, expected three platform entries/five architectures
+and source pins matched. Native symbols retain CPU recognizer controls and no
+defined eSpeak/Piper. Actual app linking/inference/final IPA audit remain pending.
+The successful build took roughly five minutes, so jobs use platform-specific
+source preparation; the unactivated cache draft is preserved, not reported GREEN.
+
+The next batch adds test-first nil/unknown seams for source-segment navigation,
+actual app version/build and database-derived content status; actual screen tests
+exercise the missing bindings. Production defaults are also tested against the
+mandatory CPU-only policy before changing the current ANE-enabled default.
+Fixed public three-speaker clean/15dB-noise WER and one real Phi multi-map/refusal
+evaluation are pending actual native results; no quality pass is inferred.
+
+Library UI seeding is test-harness bootstrap only. A separately named old-source
+8edff56 baseline job preserves actual nil-fixture failure, while current UI tests
+exercise real isolated SQLite/CAF and retain original data/edit/isolation oracles.
+Only obsolete Qwen settings expectations are reconciled with the owner's current
+model browser. No product RED is inferred from missing fixture setup.

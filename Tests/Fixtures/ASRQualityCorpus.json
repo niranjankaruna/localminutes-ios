@@ -1,0 +1,44 @@
+{
+  "dataset": "openslr/librispeech_asr",
+  "datasetRevision": "71cacbfb7e2354c4226d01e70d77d5fca3d04ba1",
+  "config": "all",
+  "split": "test.clean",
+  "publisher": "https://www.openslr.org/12/",
+  "license": "CC-BY-4.0",
+  "attribution": "LibriSpeech, prepared by Vassil Panayotov with assistance from Daniel Povey, derived from LibriVox public-domain audiobooks.",
+  "clips": [
+    {
+      "id": "6930-75918-0001",
+      "rowOffset": 1,
+      "text": "THE ENGLISH FORWARDED TO THE FRENCH BASKETS OF FLOWERS OF WHICH THEY HAD MADE A PLENTIFUL PROVISION TO GREET THE ARRIVAL OF THE YOUNG PRINCESS THE FRENCH IN RETURN INVITED THE ENGLISH TO A SUPPER WHICH WAS TO BE GIVEN THE NEXT DAY",
+      "bytes": 287636,
+      "sha256": "3dfad7eb0793eddd5040d04f1f2f3046ceeee39e0ec461794856a350e1bd728e",
+      "sampleRate": 16000,
+      "channels": 1,
+      "bitsPerSample": 16,
+      "sampleFrames": 227600
+    },
+    {
+      "id": "2961-960-0003",
+      "rowOffset": 500,
+      "text": "THEY WERE ABSORBED IN HIS THEOLOGY AND WERE UNDER THE DOMINION OF HIS NAME WHILE THAT WHICH WAS TRULY GREAT AND TRULY CHARACTERISTIC IN HIM HIS EFFORT TO REALIZE AND CONNECT ABSTRACTIONS WAS NOT UNDERSTOOD BY THEM AT ALL",
+      "bytes": 332071,
+      "sha256": "1c7709259d871c7a36fe1f994f6f1bce0a3424c6f009002eb3defcd3f1a97040",
+      "sampleRate": 16000,
+      "channels": 1,
+      "bitsPerSample": 16,
+      "sampleFrames": 277040
+    },
+    {
+      "id": "4507-16021-0031",
+      "rowOffset": 1500,
+      "text": "AND THEN WE INSIST UPON IT THE STUDY OF SOCIAL DEFORMITIES AND INFIRMITIES AND THE TASK OF POINTING THEM OUT WITH A VIEW TO REMEDY IS NOT A BUSINESS IN WHICH CHOICE IS PERMITTED",
+      "bytes": 268675,
+      "sha256": "c76e682d374b296c709d2c1a9484e4c7176886cb6aab2cd99795d4d9925b7dfa",
+      "sampleRate": 16000,
+      "channels": 1,
+      "bitsPerSample": 16,
+      "sampleFrames": 228960
+    }
+  ]
+}

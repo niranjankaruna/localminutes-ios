@@ -9,6 +9,28 @@ import LocalMinutesModels
 /// bytes or fixture setup is an error, never an optional skip or a valid RED.
 @MainActor
 final class CoreMLParakeetRecognizerTests: XCTestCase {
+    func testActualParakeetProductionDefaultRequestsCPUOnlyWithoutAnExplicitOverride() async throws {
+        let fixture = try CoreMLParakeetFixture.load()
+        // Exercise the same default argument used by production composition;
+        // passing .cpuOnly here would conceal an unapproved default change.
+        let recognizer = CoreMLParakeetRecognizer(files: fixture.files)
+        do {
+            try await recognizer.load()
+            let state = await recognizer.snapshot()
+            XCTAssertEqual(state.phase, .ready)
+            XCTAssertEqual(state.computePolicy, .cpuOnly,
+                "Production live ASR must request the CPU-only policy required by the project contract")
+            // Configuration/observation proves the requested policy, not actual
+            // chip placement. Existing actual-CPU decoding cases remain separate.
+            await recognizer.unload()
+            let unloaded = await recognizer.snapshot()
+            XCTAssertEqual(unloaded.phase, .unloaded)
+        } catch {
+            await recognizer.unload()
+            throw error
+        }
+    }
+
     func testActualParakeetLoadsOnCPUAndNativeCallsStayOnOwnedWorker() async throws {
         let fixture = try CoreMLParakeetFixture.load()
         let calls = CoreMLParakeetExecutionRecords()

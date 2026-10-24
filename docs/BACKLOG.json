@@ -744,6 +744,16 @@
           "scope": "Three native application-retention/early-permission cases have actual source2 RED; retained exact-epoch app wiring is implemented. Source3 canary gate and source4 stale-root compile failure prevented native re-execution, so app-level GREEN remains pending.",
           "redVerified": true,
           "productionImplemented": true
+        },
+        {
+          "id": "T12.4",
+          "title": "Navigate cited evidence to its actual transcript row and validated audio time",
+          "status": "IN_PROGRESS",
+          "productionImplemented": false,
+          "redEvidence": [],
+          "greenEvidence": [],
+          "deviceEvidence": [],
+          "preparedEvidence": "docs/evidence/MVP3_PRODUCT_GATES_2026_10_24.md"
         }
       ],
       "redEvidence": [],
@@ -1317,6 +1327,16 @@
           "greenEvidence": [],
           "deviceEvidence": [],
           "preparedEvidence": "docs/evidence/MVP3_PRODUCT_GATES_2026_10_24.md"
+        },
+        {
+          "id": "T20.3",
+          "title": "Required setup explanations build identity and per-meeting content status",
+          "status": "IN_PROGRESS",
+          "productionImplemented": false,
+          "redEvidence": [],
+          "greenEvidence": [],
+          "deviceEvidence": [],
+          "preparedEvidence": "docs/evidence/MVP3_PRODUCT_GATES_2026_10_24.md"
         }
       ],
       "redEvidence": [],
@@ -1554,8 +1574,8 @@
     }
   ],
   "executionPausedByOwner": false,
-  "resumeAction": "Review/commit native privacy/latest shortcut implementations after actualC10RED. PrepareC11 same-source focused productGREEN plus bounded45min ASR-only framework build (unpublished draft), run5of6. Keep rootpackage on currentengine until actualcleanframeworkbuild/symbol receipt; nextwireverifiedlocalpackage and realCPU/model+IPA audit for finalgate. PreserveMediumsubagent preference and deliveredMVP2.",
-  "lastUpdated": "2026-10-24T21:38:58.577Z",
+  "resumeAction": "Push new test-first navigation/content/CPU-default/quality cases and bounded integration workflow, then candidateASRlocalpackage wiring/firstNotificationcompile repair. DispatchC12 mvp3-integration proveLibraryBootstrap=true (run6of6). Record actual componentGREEN/newRED/quality, notoverallcompletion; implement remaining productstubs onlyafteractualfailure. No seventhCI inthisinvocation. DeliveredMVP2 unchanged; allphysicalgatesNOT_RUN.",
+  "lastUpdated": "2026-10-24T22:29:06.478Z",
   "latestVerification": {
     "sourceCommit": "048481c8c51bd097ffac6b535cd4101470acf3fd",
     "runId": 40130455240,

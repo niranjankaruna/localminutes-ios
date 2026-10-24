@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "repository": "niranjankaruna/localminutes-ios",
+  "releaseID": 422999606,
+  "releaseTag": "native-asr-11afbd0-b26b89dda04c",
+  "requireDraft": true,
+  "buildSourceCommit": "b26b89dda04c49c0742417179f79b1c2aa762654",
+  "buildRunID": 40135661801,
+  "sherpaRevision": "11afbd009a7f8c08f4bcf2fc1b265d0df4670fbf",
+  "sherpaVersion": "1.13.8",
+  "sourceArchiveSHA256": "0a8db6c55dd318f4a688faba85f7760b99a6c92e8ef8864479d418531bee1ac2",
+  "onnxRuntimeVersion": "1.28.2",
+  "headerSHA256": "2a1b95084be8fd1deb3228fcad2fd3f7f0258b64582f7402281ec174c7b7f4ce",
+  "frameworkReceiptSHA256": "84a352eb11b1190caefe7b0562b42c90b875828a84628b3724924cbdad5d52f1",
+  "archive": {
+    "assetID": 673401586,
+    "name": "NativeSherpaASR-1.13.8-b26b89dda04c49c0742417179f79b1c2aa762654.zip",
+    "sizeBytes": 20879035,
+    "sha256": "1ba515336274ceae21bbdbbbde0076d8865b04c7082b0623b260800e76d090e7"
+  },
+  "manifest": {
+    "assetID": 673401587,
+    "name": "native-asr-build.json",
+    "sizeBytes": 402,
+    "sha256": "3900ba180c1b8dcac7fc8029d26d894f1a8950dde5b1d59a5727f0e81cf5df64"
+  }
+}

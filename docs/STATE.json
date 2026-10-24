@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T21:38:58.577Z",
+  "lastUpdated": "2026-10-24T22:29:06.478Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -11,9 +11,9 @@
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "Review/commit native privacy/latest shortcut implementations after actualC10RED. PrepareC11 same-source focused productGREEN plus bounded45min ASR-only framework build (unpublished draft), run5of6. Keep rootpackage on currentengine until actualcleanframeworkbuild/symbol receipt; nextwireverifiedlocalpackage and realCPU/model+IPA audit for finalgate. PreserveMediumsubagent preference and deliveredMVP2.",
+  "nextAction": "Push new test-first navigation/content/CPU-default/quality cases and bounded integration workflow, then candidateASRlocalpackage wiring/firstNotificationcompile repair. DispatchC12 mvp3-integration proveLibraryBootstrap=true (run6of6). Record actual componentGREEN/newRED/quality, notoverallcompletion; implement remaining productstubs onlyafteractualfailure. No seventhCI inthisinvocation. DeliveredMVP2 unchanged; allphysicalgatesNOT_RUN.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "8edff56a96f051587d727812239937ccba51b9a5",
+  "remoteBranchHead": "b26b89dda04c49c0742417179f79b1c2aa762654",
   "localScriptGreen": {
     "sourceCommit": "0181b311abedb3c32745b015be64d6e7c777032b",
     "platform": "Windows11/Node24.21.0",
@@ -38,15 +38,16 @@
       40131735329,
       40132528745,
       40133352703,
-      40134199884
+      40134199884,
+      40135661801
     ],
     "limitReached": false,
-    "costGuardObservedAt": "2026-10-24T20:52:13.101Z",
-    "costGuardBasis": "Authenticated owner niranjankaruna/admin, intended PUBLIC repository and matching HTTPS remote HEAD36f9c7f; prior invocation terminal6/6, previous turn classified progress. Official standard free macos-15 AppleSilicon/macos-15-intel only; no cache/artifactstorage/billing/larger-runner spend."
+    "costGuardObservedAt": "2026-10-24T21:46:23.242Z",
+    "costGuardBasis": "Resume auth/admin and PUBLIC intendedrepo checked; standardmacos-15/macOS15-intel only; currentrun5of6, singleactivebranch,45minnativebuild, noActionsartifact/cache or billingchange."
   },
   "latestCIRun": {
-    "runId": 40134199884,
-    "sourceCommit": "8edff56a96f051587d727812239937ccba51b9a5",
+    "runId": 40135661801,
+    "sourceCommit": "b26b89dda04c49c0742417179f79b1c2aa762654",
     "status": "completed",
     "conclusion": "failure"
   },
@@ -2080,7 +2081,15 @@
       "assertionFailures": 28,
       "skipped": 0
     },
-    "nativeImplementationPendingGREEN": true
+    "nativeImplementationPendingGREEN": true,
+    "c11": {
+      "runId": 40135661801,
+      "sourceCommit": "b26b89dda04c49c0742417179f79b1c2aa762654",
+      "portable": "PASS",
+      "nativeExecuted": 0,
+      "nativeCompileError": "Notification is non-Sendable across MainActor.assumeIsolated; Boolean-only first repair prepared",
+      "accessibilityREDVerified": false
+    }
   },
   "nativeDependencyHygiene": {
     "state": "IN_PROGRESS",
@@ -2095,8 +2104,19 @@
       "durationSeconds": 0.316,
       "definedTTSsymbolCount": 21
     },
-    "productionDependencyChanged": false,
-    "sourceBuildCandidate": "same sherpa11afbd0 ASR-only; no iOS no-TTS prebuilt verified"
+    "productionDependencyChanged": true,
+    "sourceBuildCandidate": "same sherpa11afbd0 ASR-only; no iOS no-TTS prebuilt verified",
+    "frameworkBuild": {
+      "sourceCommit": "b26b89dda04c49c0742417179f79b1c2aa762654",
+      "runId": 40135661801,
+      "unpublishedTag": "native-asr-11afbd0-b26b89dda04c",
+      "status": "success",
+      "nativeLinkAndInference": "PENDING",
+      "archiveSHA256": "1ba515336274ceae21bbdbbbde0076d8865b04c7082b0623b260800e76d090e7",
+      "sizeBytes": 20879035,
+      "independentReceiptVerification": true
+    },
+    "nativeLinkAndInference": "PENDING"
   },
   "ownerModelPreference": {
     "model": "gpt-6.1-sol",
