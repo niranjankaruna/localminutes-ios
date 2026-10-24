@@ -3,15 +3,15 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-23T23:14:31.300Z",
+  "lastUpdated": "2026-10-24T06:09:57.433Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "T12.1",
+  "currentTask": "T08.2",
   "lastVerifiedCommit": "40100fdb9a8349acdbf2d22c63eb25ce959e9388",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017962923",
   "candidateArtifact": null,
-  "nextAction": "On explicit owner resume, read required docs and actual Git/public cost guard; inspect existing run40038154279 at exactcdf4a06f6a4a9cd226e306941fd0199a18bf418c before starting any workflow. Record224core/56native/4actualsummary results. Compiler/tool failures are notRED. Only after genuine assertions implement recovery/deletion/boundnotes/rename/playback/privacy/formatter, preserving original tests. Then regress/review/push/exactSHA GREEN. No candidate/signing/locking/endurance/renewal pass exists.",
+  "nextAction": "Pushimplemented228core/54simnative/3UI gate plusunchanged4actualQwen. New3edit-reservationcases proveREDbeforeimmutableUIeditcapture; realHFdownload/inference integrationmustactuallyrun. Physical7classassertionsunchangedcompile-onlyNOT_RUN. Fixfailureswithrecordedsourceevidence, preservemandatorygates, maximum6newrunscontinuation08. No artifactupload orpaidrunners.",
   "pendingPushCommit": null,
   "remoteBranchHead": "cdf4a06f6a4a9cd226e306941fd0199a18bf418c",
   "localScriptGreen": {
@@ -29,14 +29,12 @@
     "ARTIFACT_STORAGE_HEADROOM_UNVERIFIED"
   ],
   "ciInvocation": {
-    "id": "2026-10-24-continuation-07",
+    "id": "2026-10-24-continuation-08",
     "maxNewRuns": 6,
-    "newRunIds": [
-      40038154279
-    ],
+    "newRunIds": [],
     "limitReached": false,
-    "costGuardObservedAt": "2026-10-23T23:04:43.760Z",
-    "costGuardBasis": "Live PUBLIC repo and owner ADMIN verified. Official GitHub billing page rechecked: standard public hosted runners free; larger runners prohibited; no artifacts uploaded without storage headroom.",
+    "costGuardObservedAt": "2026-10-24T05:49:57.365Z",
+    "costGuardBasis": "Live PUBLIC repo/ADMIN/remote verified; standardpublic macos-15-intel only, no uploads orpaidrunners. Recheckofficialpolicybeforedispatch.",
     "jobLimits": {
       "coreMinutes": 15,
       "summaryQualityMinutes": 15,
@@ -46,10 +44,38 @@
   "latestCIRun": {
     "sourceCommit": "cdf4a06f6a4a9cd226e306941fd0199a18bf418c",
     "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40038154279",
-    "status": "in_progress",
-    "conclusion": null,
-    "lastObservedAt": "2026-10-23T23:14:31.300Z",
-    "observation": "Allthreejobs were live; resultmustberead onresume. Localwatch stopped; hostedworkflow bounded15/15/25minutes remains running."
+    "status": "completed",
+    "conclusion": "failure",
+    "core": {
+      "executed": 224,
+      "passed": 199,
+      "failed": 25,
+      "assertionFailures": 57,
+      "skipped": 0,
+      "unexpectedFailures": 7
+    },
+    "native": {
+      "executed": 56,
+      "passed": 41,
+      "failed": 15,
+      "assertionFailures": 40,
+      "skipped": 0,
+      "unexpectedFailures": 5
+    },
+    "ui": {
+      "executed": 3,
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "resultBundleVerified": true
+    },
+    "summary": {
+      "executed": 4,
+      "passed": 2,
+      "failed": 2,
+      "assertionFailures": 4,
+      "skipped": 0
+    }
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -79,7 +105,8 @@
     "twoHourRun1": "NOT_RUN",
     "twoHourRun2": "NOT_RUN",
     "offlineInference": "NOT_RUN",
-    "inPlaceRenewal": "NOT_RUN"
+    "inPlaceRenewal": "NOT_RUN",
+    "persistentFileProtection": "NOT_RUN"
   },
   "verifiedComplete": false,
   "lastEphemeralArtifact": {
@@ -186,7 +213,8 @@
       "repairCommit": "695b99ba9857488ec759bf3b723feb73f734b3b8",
       "repairPushed": true,
       "repairCompiled": true,
-      "greenVerified": false
+      "greenVerified": true,
+      "greenSourceCommit": "cdf4a06f6a4a9cd226e306941fd0199a18bf418c"
     }
   },
   "nativeUI": {
@@ -198,32 +226,22 @@
     "assertionFailures": 3,
     "skipped": 0,
     "implementationExists": true,
-    "greenVerified": false,
+    "greenVerified": true,
     "physicalExtensionEvidence": false,
     "latestRun": {
-      "expectedCases": 3,
-      "startedCases": 2,
-      "completedCases": 1,
-      "passedCompletedCases": 1,
-      "failedCompletedCases": 0,
-      "observedAssertionFailures": 0,
-      "notStartedCases": 1,
-      "conclusion": "cancelled",
-      "resultBundleVerified": false,
-      "aggregateVerified": false,
-      "completedCase": "testSharedActivityStopControlDispatchesItsExactSessionToTheApplicationOwner",
-      "incompleteCase": "testSharedActivityTerminalTimerIsFixedAndStopIsDisabled",
-      "notStartedCase": "testStartExplainsMissingSpeechModelWithoutClaimingRecording"
+      "executed": 3,
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "conclusion": "success",
+      "resultBundleVerified": true,
+      "aggregateVerified": true,
+      "scope": "Threeexistingrecording/activitycontrolUIcasesonly; newhistory/notesUIandphysicalextensionstillpending."
     },
-    "latestSourceCommit": "6b5fd0c074672c467f0d26c5797683b706ec8263",
-    "latestRunUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40027966192"
+    "latestSourceCommit": "cdf4a06f6a4a9cd226e306941fd0199a18bf418c",
+    "latestRunUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40038154279"
   },
-  "activeCIRun": {
-    "sourceCommit": "cdf4a06f6a4a9cd226e306941fd0199a18bf418c",
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40038154279",
-    "status": "in_progress",
-    "ordinal": 1
-  },
+  "activeCIRun": null,
   "pendingPushScope": null,
   "repositoryVisibility": "PUBLIC",
   "publication": {
@@ -245,7 +263,7 @@
     "billingSettingsChanged": false
   },
   "ciCostGuard": {
-    "verifiedAt": "2026-10-23T23:04:43.761Z",
+    "verifiedAt": "2026-10-24T06:09:57.433Z",
     "basis": "Verified PUBLIC repository and officially free standard macos-15-intel runner",
     "evidence": "docs/evidence/T01_PUBLIC_REPOSITORY.md",
     "standardRunnerOnly": true,
@@ -334,10 +352,12 @@
     "newNativeCases": 8,
     "expectedCore": 224,
     "expectedNative": 56,
-    "productionImplemented": false,
-    "redVerified": false,
+    "productionImplemented": true,
+    "redVerified": true,
     "sourceCommit": "cdf4a06f6a4a9cd226e306941fd0199a18bf418c",
-    "runId": 40038154279
+    "runId": 40038154279,
+    "redVerifiedAt": "2026-10-24T05:49:57.365Z",
+    "greenVerified": false
   },
   "nativeASRTestFirst": {
     "testCount": 10,
@@ -431,17 +451,33 @@
   },
   "nativePrivacyTestFirst": {
     "testCount": 7,
-    "redVerified": false,
-    "productionImplemented": false,
+    "redVerified": true,
+    "productionImplemented": true,
     "evidence": "docs/evidence/T12_PRIVACY_TDD.md",
-    "sourceCommit": "7659a1980b53fc17d624973c6666d83084234ab6",
-    "runId": 40036438183,
+    "sourceCommit": "cdf4a06f6a4a9cd226e306941fd0199a18bf418c",
+    "runId": 40038154279,
     "inActiveBuildPaths": true,
     "compileIssue": {
       "runId": 40036438183,
       "executed": 0,
       "red": false,
       "labelsRepaired": true
+    },
+    "platformLimitation": "Simulatorreturnsnilprotectionmetadata evenforsourcesetComplete independentlyofpolicy. Keepphysicalassertionspending; nopretendmetadata/pass.",
+    "physicalOracle": {
+      "path": "Tests/PhysicalDeviceTests/NativePersistentPrivacyTests.swift",
+      "sha256": "3abdf26b1175adc6919065931e9ed13193d5d9e2d45f01bbe73919e43bd37105",
+      "assertionsUnchanged": true,
+      "testCount": 7,
+      "compiled": false,
+      "executed": 0,
+      "status": "NOT_RUN"
+    },
+    "simulatorSupportedCases": {
+      "path": "Tests/NativeAppTests/NativeStoragePolicyTests.swift",
+      "testCount": 5,
+      "executed": false,
+      "protectionClassClaim": false
     }
   },
   "remainingBaseline": [
@@ -467,8 +503,9 @@
       "Debounced notes must bind immutable meeting UUID/revision at input time",
       "Playback/start require one atomic resource ownership gate"
     ],
-    "testsExecuted": false,
-    "repairsImplemented": false
+    "testsExecuted": true,
+    "repairsImplemented": true,
+    "scope": "Rename/bound-notesreceiver andplaybackadmission implementedafteractualRED. UIeditreservation3newcases remainstubpendingRED; ownerlease/deletionUI/startuprecovery/scopedplayercleanupstillpending."
   },
   "ciInvocationHistory": [
     {
@@ -492,18 +529,47 @@
       },
       "classification": "progress",
       "result": "Actual199core+59scripts+85TSAN GREEN and failed native semantic quality preserved at7659a19; privacy tests activated and three P1 integration findings persisted/pushed in aed1c8a. Prior native job still confirmed live."
+    },
+    {
+      "id": "2026-10-24-continuation-07",
+      "maxNewRuns": 6,
+      "newRunIds": [
+        40038154279
+      ],
+      "limitReached": false,
+      "costGuardObservedAt": "2026-10-23T23:04:43.760Z",
+      "costGuardBasis": "Live PUBLIC repo and owner ADMIN verified. Official GitHub billing page rechecked: standard public hosted runners free; larger runners prohibited; no artifacts uploaded without storage headroom.",
+      "jobLimits": {
+        "coreMinutes": 15,
+        "summaryQualityMinutes": 15,
+        "nativeMinutes": 25
+      },
+      "classification": "progress",
+      "result": "Ownerpausecheckpoint8e5dd3a. Test-firstcdf4a06 run completed whilepaused; resultsnowread."
     }
   ],
   "executionPause": {
     "requestedByOwner": true,
-    "paused": true,
+    "paused": false,
     "requestedAtUTC": "2026-10-23T23:14:31.300Z",
-    "reason": "Owner asks to pause work and continue later.",
+    "reason": "Owner explicitly requested Resume LocalMinutes.",
     "agentsStopped": true,
     "candidateResearchSubprocessesActive": false,
     "localCIWatchStopped": true,
     "existingHostedWorkflowMayFinish": true,
     "hostedRunId": 40038154279,
-    "resumeAction": "On explicit owner resume, read required docs and actual Git/public cost guard; inspect existing run40038154279 at exactcdf4a06f6a4a9cd226e306941fd0199a18bf418c before starting any workflow. Record224core/56native/4actualsummary results. Compiler/tool failures are notRED. Only after genuine assertions implement recovery/deletion/boundnotes/rename/playback/privacy/formatter, preserving original tests. Then regress/review/push/exactSHA GREEN. No candidate/signing/locking/endurance/renewal pass exists."
+    "resumeAction": "On explicit owner resume, read required docs and actual Git/public cost guard; inspect existing run40038154279 at exactcdf4a06f6a4a9cd226e306941fd0199a18bf418c before starting any workflow. Record224core/56native/4actualsummary results. Compiler/tool failures are notRED. Only after genuine assertions implement recovery/deletion/boundnotes/rename/playback/privacy/formatter, preserving original tests. Then regress/review/push/exactSHA GREEN. No candidate/signing/locking/endurance/renewal pass exists.",
+    "resumedAtUTC": "2026-10-24T05:49:57.365Z"
+  },
+  "newTestFirstSlice": {
+    "task": "T16.2 inputreservation",
+    "testCount": 3,
+    "stub": "reserveManualNoteEdit returnsnil",
+    "expectedCore": 228,
+    "redVerified": false,
+    "productionImplemented": false,
+    "additionalIntegration": "One mandatory actual HTTPS download/import/lease/CPU inference test, no skips/mocks",
+    "expectedNativeSimulator": 54,
+    "physicalCasesCompiledOnly": 7
   }
 }

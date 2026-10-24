@@ -130,3 +130,8 @@ The real verifiedQwen2.5-1.5B Q4_K_M model ran on verifiedWindowsllama.cppb11798
 
 
 Native summary confirmation: source7659a19/run40036438183 executed real b5046/Qwen,4tests2pass2fail4assertions0skip. Same owner/task/date failures persist; three bounded Windows prompt retries remain stopped. The native job is not a fourth prompt repair. No owner credential or additional spend is needed to diagnose this internal quality failure. Three other unexecuted P1 library/playback interleavings are documented in docs/drafts/T16Deletion/INTEGRATION_REVIEW.md; their fixes require new regression RED. Current6/6 run budget permits observing the active native job and saving local work, not a seventh dispatch.
+
+
+## SIMULATOR_FILE_PROTECTION_UNOBSERVABLE — physical metadata gate
+
+Confirmedatcdf4a06/run40038154279: directSDKsetCompleteonoriginalfixturefollowedbygetreturnsnil independentlyofthethen-nooppolicy. Simulatorcannotprovephysicalclass/lockedaccess. Preserveall7fullclassassertionsbyte-identicallyinPhysicalDeviceTests;compileonhostedmacOSforiPhoneOS,butexecutionremainsNOT_RUNuntilrealdeviceevidence. FiveindependentSimulatorFScasescoverbackup/POSIX/atomicwrites/SQLite/CAFwithoutclaimingclasssuccess. Noretriesorclassspoofing; noowneractionneededforcurrentindependentcodework. Actualphonevalidationwillbeconsolidatedwithcandidatehandoff.

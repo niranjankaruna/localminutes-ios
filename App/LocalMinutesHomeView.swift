@@ -105,7 +105,9 @@ private struct MeetingDetailView: View {
                     .padding(.vertical, 5)
                 }
                 if let playbackMessage { Text(playbackMessage).font(.caption).foregroundStyle(.secondary) }
-                if services.playback != nil { Button("Stop playback") { stopPlayback() } }
+                if services.playback != nil || application.playbackOwnership?.hasPlaybackOwnership == true {
+                    Button("Stop playback") { stopPlayback() }
+                }
             }
             Section("Export") {
                 if let text = try? controller.export(markdown: false) {
@@ -147,8 +149,12 @@ private struct MeetingDetailView: View {
                 meetingID: id, manifest: manifest, meetingDirectory: directory) else {
                 playbackMessage = "Audio is unavailable at this time."; return
             }
-            try services.playAudio(at: location)
-            playbackMessage = "Playing the selected audio segment."
+            switch await application.playAudio(at: location) {
+            case .playing: playbackMessage = "Playing the selected audio segment."
+            case .blockedByRecording: playbackMessage = "Stop recording before playing meeting audio."
+            case .cleanupPending: playbackMessage = "Audio cleanup is pending. Tap Stop playback to retry."
+            default: playbackMessage = "This audio segment could not be played."
+            }
         } catch {
             stopPlayback()
             playbackMessage = "This audio segment could not be played."
@@ -156,7 +162,8 @@ private struct MeetingDetailView: View {
     }
 
     private func stopPlayback() {
-        services.stopPlayback()
+        playbackMessage = application.stopPlayback() == .cleanupPending
+            ? "Audio cleanup is pending. Tap Stop playback to retry." : nil
     }
 }
 

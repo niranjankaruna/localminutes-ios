@@ -76,3 +76,8 @@ the formatter, then prove focused/regression GREEN. Keep the original actual
 model quality gate mandatory and preserve its correct owner/evidence assertions.
 
 Test-first sourcecdf4a06f6a4a9cd226e306941fd0199a18bf418c pushed and remoteHEAD verified before implementation. Hosted run40038154279 active; compatible assertion RED remains pending.
+
+
+## Actual RED read on owner resume
+
+Test-firstcdf4a06f6a4a9cd226e306941fd0199a18bf418c/run40038154279 isterminalFAILED. HostedmacOS/Xcode26.2 compiledandran224corecases:199pass25fail57assertions(7unexpected)0skip. All25newcasesfailed:8actualCAF/SQLiterecovery,6owneddeletion,2boundnotes,2renameepoch and7formattercases. Actualfiles/nativefixturesand original199regressionspassed. Examples: noquarantine/journal/metadata deletion, wrongnote/selectionafterheldSQLite read, notImplemented recovery, emptycanonicalenvelope/no budgetrejection. This isbehavioralRED, notcompile/tool failure. Onlyafterreadingandpersistingthisevidence isimplementationauthorized. Ignoredfull log:.agent-local/TDD-cdf4a06-terminal.log.

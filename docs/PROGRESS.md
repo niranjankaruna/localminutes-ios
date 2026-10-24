@@ -530,3 +530,31 @@ Owner explicitly requested pausing work and continuing later. All three agents a
 Project state remainsIN_PROGRESS; goalexecution is pausedbyowner. No baseline/device/artifact completion claimed. All free-signing/extension, ActionButton, lockedcontinuation/coldstart, offlinephone, renewal and both owner-run125minute gates remainNOT_RUN. Separateartifactstorageheadroom and internal summaryquality concerns remain. Candidate research pause evidence:T17_CANDIDATE_PAUSE.md; no modelreplacement made.
 
 Exactresume: On explicit owner resume, read required docs and actual Git/public cost guard; inspect existing run40038154279 at exactcdf4a06f6a4a9cd226e306941fd0199a18bf418c before starting any workflow. Record224core/56native/4actualsummary results. Compiler/tool failures are notRED. Only after genuine assertions implement recovery/deletion/boundnotes/rename/playback/privacy/formatter, preserving original tests. Then regress/review/push/exactSHA GREEN. No candidate/signing/locking/endurance/renewal pass exists.
+
+
+## Owner resumed — 2026-10-24T05:49:57.365Z
+
+
+
+## Actual RED read on owner resume
+
+Test-firstcdf4a06f6a4a9cd226e306941fd0199a18bf418c/run40038154279 isterminalFAILED. HostedmacOS/Xcode26.2 compiledandran224corecases:199pass25fail57assertions(7unexpected)0skip. All25newcasesfailed:8actualCAF/SQLiterecovery,6owneddeletion,2boundnotes,2renameepoch and7formattercases. Actualfiles/nativefixturesand original199regressionspassed. Examples: noquarantine/journal/metadata deletion, wrongnote/selectionafterheldSQLite read, notImplemented recovery, emptycanonicalenvelope/no budgetrejection. This isbehavioralRED, notcompile/tool failure. Onlyafterreadingandpersistingthisevidence isimplementationauthorized. Ignoredfull log:.agent-local/TDD-cdf4a06-terminal.log.
+
+
+## Actual native RED read on owner resume
+
+Exactcdf4a06/run40038154279 compiledbothactualdevice/simulatorproducts andexecuted56app-hostedXCTest:41pass15fail40assertions(5unexpected)0skip. All8newplaybackcasesfailed againstexplicitnotImplemented/ignoredadmission: staleplaybacknotblocked, playernotactivated/stopped, faileddeactivationadmittedcapture. All7privacycasesfailed:5notImplemented policyerrors, missingdefaultModels/Meetings andbackupflags, nilprotectionmetadata. Existing41nativecasespassed, includingthepreparing-toggle repairandtranscriptfinishbarrier. SeparaterealUI3/3pass,0fail/skip; xcresultagrees. Thisauthorizesmissingpolicy/admissionbehavior; itdoesnotprovephysicalprotection. ThesymlinkfixtureitselfreturnsnilaftersettingCompletebeforepolicy, demonstratingunsupportedSimulatorprotectionmetadata. Preservephysicalassertions/gate; noemulatedattributes orfakepass. FullworkflowremainsFAILED; packagingnotrun.
+
+OriginalrealQwen4casesremain2pass2fail4assertions0skip. No candidatechange/download happened duringpause. Continuation08 starts0/6newruns; existingterminalrunwasreadbeforenewdispatch. NextimplementationisnowauthorizedonlyfortheseactualREDcontracts; allphysical/signing/locked/endurance/renewalgatesremainNOT_RUN.
+
+
+## Implementation after actual RED; physical oracle preserved
+
+Root and3boundedagents implementedonlyafter reading/persistingcdf4a06assertions: durableCAF/SQLite recoveryplan/quarantine/globalgaps; owneddeletionjournal/leases; immutablebound-note receiver andrenameepochs; synchronousplayback/startgenerationgate withfailureownershipretained; sharednativepersistentpolicyandatomicprotectedpublication; canonicalpinnedQwen envelope. Sourceisnotyetcompiled/GREEN. UIinputcapturestillawaits3newtest-first reservationcases andnil-returningstub; automaticrecovery/deletionUI/ownerleaseintegrationandfullplaybackremainunfinished.
+
+Theoriginal7NativePersistentPrivacyTests were moved byte-for-byte toTests/PhysicalDeviceTests/NativePersistentPrivacyTests.swift. SHA2563abdf26b1175adc6919065931e9ed13193d5d9e2d45f01bbe73919e43bd37105 matchesgitHEAD sourceexactly. Everyphysicalprotectionassertionremainsstrictandmandatory. NewactualSimulator5casescoverexistingpolicy behaviorusingrealbackupflags/POSIX/bytes/SQLiteWAL/CAF/atomicrename/symlinkfailure. A nilSDKgetterexplicitlyreportsUNVERIFIED; physical7executed0/NOT_RUN isloggedandpersisted, nevercountedaspassing. Dedicatedphysicaltesttarget/schemebuildsforiPhoneOSwithoutsigning/execution. Thisisaplatform-correct harnessrepairbasedonactualindependentnilmetadata evidence, notanacceptancewaiver orsimulatedencryption. Deviceaccess/lock/backupnetwork/renewalstillrequirephoneevidence; ownerneedsnoMacsubscription.
+
+LocalWindows59Node tests passed0fail/skip afteraninitialsandbox-onlysymlinkEPERM; sanctionedunsandboxedrerunpassedunchangedtests. NoSwift/nativeGREENfromthat. CostpolicyofficialsourceandlivePUBLICreporecheckedbeforedispatch; no paidrunners/upload/billingchanges.
+
+
+NextsourcealsorequiresactualHTTPSmodeldownload/import/reopen/leases/CPUrecognitionofthelicensedfixture (72,654,782bytes,4pinnedartifacts). Read-onlyHEADchains reachedonlyalready-approvedhuggingface.co/us.aws.cdn.hf.co; no allowlistchange. Newone-casecoverageofexistingproductionadaptermustnotbeskippedormocked. Expected228core,54Simulatornative,3UI,4actualQwen;7unchangedphysicalclassassertionscompile-onlyandNOT_RUN.

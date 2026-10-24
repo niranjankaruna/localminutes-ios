@@ -6,7 +6,7 @@ import Observation
 /// Persistent app services outlive every view. Paths remain stable across an
 /// in-place signing refresh; preservation still requires physical verification.
 @MainActor @Observable
-final class LocalMinutesServices {
+final class LocalMinutesServices: PlaybackHardware {
     let models: ModelInstallationManager
     let store: SQLiteMeetingStore
     let live: LiveTranscriptionSession
@@ -38,7 +38,13 @@ final class LocalMinutesServices {
             in: .userDomainMask, appropriateFor: nil, create: true)
             .appendingPathComponent("LocalMinutes", isDirectory: true)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        try PersistentFilePolicy.protectDirectory(root)
         let modelRoot = root.appendingPathComponent("Models", isDirectory: true)
+        let meetings = root.appendingPathComponent("Meetings", isDirectory: true)
+        for directory in [modelRoot, meetings] {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            try PersistentFilePolicy.protectDirectory(directory)
+        }
         let transport = HTTPSModelTransport(stagingRootURL: modelRoot.appendingPathComponent(".staging"),
             allowedHosts: ["huggingface.co", "us.aws.cdn.hf.co", "cdn-lfs.huggingface.co",
                            "cdn-lfs-us-1.hf.co", "cas-bridge.xethub.hf.co"])
@@ -46,7 +52,6 @@ final class LocalMinutesServices {
             availableBytes: { try ModelStoragePolicy.availableBytes(at: $0) },
             downloader: { artifact, destination in try await transport.download(artifact, to: destination) })
         let database = try SQLiteMeetingStore(databaseURL: root.appendingPathComponent("meetings.sqlite"))
-        let meetings = root.appendingPathComponent("Meetings", isDirectory: true)
         models = manager; store = database; meetingsDirectory = meetings
         live = LiveTranscriptionSession(models: manager, store: database, meetingsDirectory: meetings)
         library = MeetingLibraryController(store: database)
@@ -82,25 +87,22 @@ final class LocalMinutesServices {
 
     func cancelDownload() { operation?.cancel() }
 
-    func playAudio(at location: MeetingPlaybackLocation) throws {
-        stopPlayback()
-        do {
-            let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .default)
-            try session.setActive(true)
-            ownsPlaybackSession = true
-            let audio = try AVAudioPlayer(contentsOf: location.fileURL)
-            audio.currentTime = Double(location.frameOffset) / 16_000
-            guard audio.prepareToPlay(), audio.play() else { throw MeetingPlaybackError.unreadableAudio }
-            playback = audio
-        } catch { stopPlayback(); throw error }
+    func startPlayback(at location: MeetingPlaybackLocation) throws {
+        let session = AVAudioSession.sharedInstance()
+        try session.setCategory(.playback, mode: .default)
+        ownsPlaybackSession = true
+        try session.setActive(true)
+        let audio = try AVAudioPlayer(contentsOf: location.fileURL)
+        audio.currentTime = Double(location.frameOffset) / 16_000
+        guard audio.prepareToPlay(), audio.play() else { throw MeetingPlaybackError.unreadableAudio }
+        playback = audio
     }
 
-    func stopPlayback() {
+    func stopPlayback() throws {
         playback?.stop()
         playback = nil
         if ownsPlaybackSession {
-            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
             ownsPlaybackSession = false
         }
     }

@@ -1,0 +1,5 @@
+# T09 actual production download and inference integration
+
+One mandatory case testActualPinnedHTTPSDownloadInstallsReopensImportsAndRecognizesUnderLease downloads all4 actual pinned speech artifacts (72,654,782bytes) using the unchanged production HTTPS transport/host policy and real installer. Independent stream hashes, license/selection metadata, lease deletion guard, Files-style import/reopen and actual native CPU recognition of the existing licensed fixture are required. No opt-in, skipped network result, URLProtocol double or mocked inference. Request20s/resource75s bounds per artifact.
+
+Read-only actualHEADchains used huggingface.co redirects to us.aws.cdn.hf.co (ONNX) or huggingface.co (tokens), all approved; reported lengths match manifest. Fullchains stay ignored. No production allowlist change. This expands integration evidence for existing behavior; no fabricated failing test is required if it already works. Hosted compile/execution pending, never claimed as GREEN from HEAD.

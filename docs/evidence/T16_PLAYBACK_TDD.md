@@ -26,3 +26,8 @@ native total56. Compatible compile/RED and exact pushed source are pending.
 No prior test/assertion was changed; no physical-device result is claimed.
 
 Test-first sourcecdf4a06f6a4a9cd226e306941fd0199a18bf418c pushed and remoteHEAD verified before implementation. Hosted run40038154279 active; compatible assertion RED remains pending.
+
+
+## Actual native RED read on owner resume
+
+Exactcdf4a06/run40038154279 compiledbothactualdevice/simulatorproducts andexecuted56app-hostedXCTest:41pass15fail40assertions(5unexpected)0skip. All8newplaybackcasesfailed againstexplicitnotImplemented/ignoredadmission: staleplaybacknotblocked, playernotactivated/stopped, faileddeactivationadmittedcapture. All7privacycasesfailed:5notImplemented policyerrors, missingdefaultModels/Meetings andbackupflags, nilprotectionmetadata. Existing41nativecasespassed, includingthepreparing-toggle repairandtranscriptfinishbarrier. SeparaterealUI3/3pass,0fail/skip; xcresultagrees. Thisauthorizesmissingpolicy/admissionbehavior; itdoesnotprovephysicalprotection. ThesymlinkfixtureitselfreturnsnilaftersettingCompletebeforepolicy, demonstratingunsupportedSimulatorprotectionmetadata. Preservephysicalassertions/gate; noemulatedattributes orfakepass. FullworkflowremainsFAILED; packagingnotrun.

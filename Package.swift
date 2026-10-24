@@ -21,13 +21,13 @@ let package = Package(
         .binaryTarget(name: "llama", path: ".agent-local/native-llm/llama.xcframework"),
         .target(name: "LocalMinutesCore", path: "Core"),
         .target(name: "LocalMinutesRecording", dependencies: ["LocalMinutesCore"], path: "Recording"),
-        .target(name: "LocalMinutesModels", path: "Models"),
-        .target(name: "LocalMinutesPersistence", path: "Persistence", linkerSettings: [.linkedLibrary("sqlite3")]),
+        .target(name: "LocalMinutesModels", dependencies: ["LocalMinutesCore"], path: "Models"),
+        .target(name: "LocalMinutesPersistence", dependencies: ["LocalMinutesCore"], path: "Persistence", linkerSettings: [.linkedLibrary("sqlite3")]),
         .target(name: "LocalMinutesTranscription", dependencies: [
             .product(name: "sherpa-onnx", package: "sherpa-onnx"),
             "LocalMinutesCore", "LocalMinutesRecording", "LocalMinutesModels", "LocalMinutesPersistence"
         ], path: "Transcription"),
-        .target(name: "LocalMinutesMeetingLibrary", dependencies: ["LocalMinutesPersistence", "LocalMinutesRecording"], path: "MeetingLibrary"),
+        .target(name: "LocalMinutesMeetingLibrary", dependencies: ["LocalMinutesCore", "LocalMinutesPersistence", "LocalMinutesRecording"], path: "MeetingLibrary"),
         .target(name: "LocalMinutesSummary", dependencies: ["llama"], path: "Summaries",
                 linkerSettings: [.linkedLibrary("c++"), .linkedFramework("Accelerate"), .linkedFramework("Metal")]),
         .testTarget(name: "HarnessTests", path: "Tests/HarnessTests"),

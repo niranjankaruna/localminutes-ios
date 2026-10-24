@@ -25,8 +25,7 @@ public final class MeetingLibraryController {
     }
 
     /// Test scheduling only: real SQLite mutation/read still occur. Public
-    /// production construction always supplies nil. This does not repair the
-    /// stale projection; its failing assertion must execute before that change.
+    /// production construction always supplies nil.
     init(store: SQLiteMeetingStore,
          afterRenameRead: @escaping @MainActor @Sendable (UUID) async -> Void) {
         self.store = store
@@ -57,15 +56,22 @@ public final class MeetingLibraryController {
 
     public func rename(_ title: String) async {
         guard let id = selected?.id else { return }
+        let request = selectionRequest
         do {
             try await store.renameMeeting(id: id, title: title)
-            if selected?.id == id {
-                let loaded = try await store.meeting(id: id)
-                if let afterRenameRead { await afterRenameRead(id) }
-                selected = loaded
-            }
-            await refresh()
-        } catch { errorMessage = "The meeting name could not be saved." }
+            guard request == selectionRequest, selected?.id == id else { return }
+            let loaded = try await store.meeting(id: id)
+            if let afterRenameRead { await afterRenameRead(id) }
+            guard request == selectionRequest, selected?.id == id else { return }
+            selected = loaded
+            let history = try await store.history()
+            guard request == selectionRequest, selected?.id == id else { return }
+            meetings = history
+            errorMessage = nil
+        } catch {
+            guard request == selectionRequest, selected?.id == id else { return }
+            errorMessage = "The meeting name could not be saved."
+        }
     }
 
     public func saveNotes(_ text: String) async {
@@ -84,6 +90,23 @@ public final class MeetingLibraryController {
                 errorMessage = "The latest note has not been saved."
             }
         }
+    }
+
+    /// Test-first interface only. A user edit must bind its meeting and reserve
+    /// its revision synchronously, before any debounce/navigation suspension.
+    /// Actual hosted assertion RED is required before implementing reservation.
+    public func reserveManualNoteEdit(_ text: String) -> StoredManualNote? { nil }
+
+    /// The editor binds the identity and revision before debounce/navigation.
+    /// A late save still commits to its original meeting, while a storage error
+    /// is returned to that operation without rewriting another screen's state.
+    public func saveNotes(_ edit: StoredManualNote) async throws {
+        let request = selectionRequest
+        try await store.saveManualNote(edit)
+        guard request == selectionRequest, selected?.id == edit.meetingID,
+              note == nil || (note?.editRevision ?? -1) <= edit.editRevision else { return }
+        note = edit
+        errorMessage = nil
     }
 
     public func search(_ query: String) async {

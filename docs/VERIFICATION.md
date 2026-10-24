@@ -125,3 +125,9 @@ Terminal7659a19/run40036438183:199core+59scripts+85TSAN GREEN; actualQwen2/4pass
 
 
 Ownerpause 2026-10-23T23:14:31.300Z: no new validation pass. Test-firstcdf4a06/run40038154279 was live atpause; requireactualterminalsource-matched results onresume. Allagents/localwatch stopped; existinghostedbuildmayfinish. Lastknown199core/59scripts/85TSAN GREEN; realQwen2/4pass; no completednewnativecases/IPA/deviceevidence. Exactresumenextaction persistedinSTATE/BACKLOG.
+
+
+Resumeactualcdf4a06/run40038154279:224core199pass25fail57assert0skip;56native41pass15fail40assert0skip;recordingUI3/3passandxcresultverified;realQwen2/4pass4assert0skip. New25core+8playback+privacyareactualREDbeforeimplementation. SimulatorindependentlycannotreportsourceCompleteclass;physicalprotectionremainsunverified. NoIPA/phonepass.
+
+
+PhysicaloraclepreservedbyteexactSHA3abdf26b1175adc6919065931e9ed13193d5d9e2d45f01bbe73919e43bd37105 inPhysicalDeviceTests;7devicecases NOT_RUN (compilepending),5newSimulator-supportedrealFScasesunexecuted. ProductpolicyimplementationawaitsCI. Originalstrongclassassertionsnotweakened; nofakeattribute/class/lockpass. WindowsNode59/59passedunchangedafterinitialsandboxEPERM.

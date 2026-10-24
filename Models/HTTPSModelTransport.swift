@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(LocalMinutesCore)
+import LocalMinutesCore
+#endif
 
 // The transfer owns only operation staging. Installation and inference readiness
 // remain the verified model manager's and native recognizer's responsibilities.
@@ -117,6 +120,6 @@ public enum ModelStoragePolicy {
     }
 
     public static func protectPersistentDirectory(_ directory: URL) throws {
-        throw ModelTransportError.notImplemented
+        try PersistentFilePolicy.protectDirectory(directory)
     }
 }

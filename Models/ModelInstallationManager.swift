@@ -1,5 +1,8 @@
 import CryptoKit
 import Foundation
+#if canImport(LocalMinutesCore)
+import LocalMinutesCore
+#endif
 
 // App-owned installation authority. A verified handle establishes integrity;
 // only a successful native recognizer load can establish inference readiness.
@@ -66,8 +69,11 @@ public actor ModelInstallationManager {
         defer { removeOwnedStaging(staging) }
         for artifact in manifest.artifacts {
             try Task.checkCancellation()
-            try FileManager.default.copyItem(at: source.appendingPathComponent(artifact.fileName),
-                to: staging.appendingPathComponent(artifact.fileName))
+            let destination = staging.appendingPathComponent(artifact.fileName)
+            try FileManager.default.copyItem(at: source.appendingPathComponent(artifact.fileName), to: destination)
+            // Copy can retain the import source's stronger protection class.
+            // Change only the app-owned copy, never the external source.
+            try PersistentFilePolicy.protectItem(destination, within: rootURL)
         }
         // Verify the copied bytes as well: source mutation must not publish a
         // handle that only describes an earlier validation of external files.
@@ -94,6 +100,7 @@ public actor ModelInstallationManager {
             }
             try Task.checkCancellation()
             try verifyFile(destination, artifact: artifact)
+            try PersistentFilePolicy.protectItem(destination, within: rootURL)
         }
         try validateFiles(in: staging, manifest: manifest, containsMetadata: false)
         return try publish(staging, manifest: manifest)
@@ -179,6 +186,11 @@ public actor ModelInstallationManager {
         try createDirectory(parent)
         let staging = parent.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: staging, withIntermediateDirectories: false)
+        do { try PersistentFilePolicy.protectItem(staging, within: rootURL) }
+        catch {
+            removeOwnedStaging(staging)
+            throw error
+        }
         return staging
     }
 
@@ -194,7 +206,11 @@ public actor ModelInstallationManager {
     private func publish(_ staging: URL, manifest: ModelManifest) throws -> VerifiedModel {
         try Task.checkCancellation()
         let manifestBytes = try JSONEncoder().encode(manifest)
-        try manifestBytes.write(to: staging.appendingPathComponent("manifest.json"), options: .atomic)
+        try PersistentFilePolicy.writeAtomically(manifestBytes,
+            to: staging.appendingPathComponent("manifest.json"), within: rootURL)
+        // All installed bytes and metadata receive the policy before moving
+        // the immutable set and before the current pointer can reference it.
+        try PersistentFilePolicy.protectDirectory(staging)
         let modelDirectory = rootURL.appendingPathComponent(manifest.modelID, isDirectory: true)
         try createDirectory(modelDirectory)
         let revisionDirectory = modelDirectory.appendingPathComponent(manifest.revision, isDirectory: true)
@@ -209,7 +225,8 @@ public actor ModelInstallationManager {
                 try requireRegularFile(pointer, name: "current.json")
             }
             let selection = Selection(schemaVersion: 1, revision: manifest.revision, installationID: id)
-            try JSONEncoder().encode(selection).write(to: pointer, options: .atomic)
+            try PersistentFilePolicy.writeAtomically(try JSONEncoder().encode(selection),
+                to: pointer, within: rootURL)
         } catch {
             // This directory has never been published or leased. Preserve the
             // previous pointer and remove only the operation's immutable set.
@@ -273,11 +290,28 @@ public actor ModelInstallationManager {
     }
 
     private func createDirectory(_ url: URL) throws {
-        guard url.isFileURL else { throw ModelInstallationError.invalidInstallation }
+        guard url.isFileURL,
+              url.standardizedFileURL == rootURL || url.standardizedFileURL.path.hasPrefix(rootURL.path + "/") else {
+            throw ModelInstallationError.invalidInstallation
+        }
         if !FileManager.default.fileExists(atPath: url.path) {
-            try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+            let parent = url.deletingLastPathComponent()
+            if url.standardizedFileURL != rootURL {
+                try createDirectory(parent)
+                try PersistentFilePolicy.protectItem(parent, within: rootURL)
+            } else {
+                // The configured root's immediate parent is chosen by the app;
+                // never create intermediate paths through an unchecked link.
+                try requireDirectory(parent)
+            }
+            try FileManager.default.createDirectory(at: url, withIntermediateDirectories: false)
         }
         try requireDirectory(url)
+        if url.standardizedFileURL == rootURL {
+            try PersistentFilePolicy.protectDirectory(url)
+        } else {
+            try PersistentFilePolicy.protectItem(url, within: rootURL)
+        }
     }
 
     private func requireDirectory(_ url: URL) throws {

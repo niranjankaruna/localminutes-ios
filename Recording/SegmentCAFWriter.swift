@@ -1,6 +1,9 @@
 import AVFoundation
 import AudioToolbox
 import Foundation
+#if SWIFT_PACKAGE
+import LocalMinutesCore
+#endif
 
 public enum SegmentWriterError: Error, Equatable {
     case invalidConfiguration, directoryNotEmpty, formatMismatch, finished, ioFailed
@@ -57,6 +60,7 @@ public final class SegmentCAFWriter {
                 try FileManager.default.createDirectory(at: self.directory, withIntermediateDirectories: true,
                                                         attributes: [.posixPermissions: 0o700])
             }
+            try PersistentFilePolicy.protectDirectory(self.directory)
         } catch let error as SegmentWriterError { throw error }
         catch { throw SegmentWriterError.ioFailed }
     }
@@ -124,6 +128,7 @@ public final class SegmentCAFWriter {
         file = try AVAudioFile(forWriting: url, settings: settings, commonFormat: .pcmFormatFloat32, interleaved: false)
         fileURL = url
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+        try PersistentFilePolicy.protectItem(url, within: directory)
     }
 
     private func closeSegment() throws {
@@ -148,8 +153,7 @@ public final class SegmentCAFWriter {
     private func persist(_ manifest: AudioCaptureManifest) throws {
         let url = directory.appendingPathComponent("capture-manifest.json")
         let data = try JSONEncoder().encode(manifest)
-        try data.write(to: url, options: .atomic)
-        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+        try PersistentFilePolicy.writeAtomically(data, to: url, within: directory)
         try synchronize(url)
     }
 

@@ -46,7 +46,11 @@ final class RecordingApplication {
             activityBackend: IOSLiveActivityBackend(), preparation: preparation
         )
         self.services = services
-        playbackOwnership = nil
+        if let services {
+            playbackOwnership = PlaybackOwnershipController(owner: owner, hardware: services)
+        } else {
+            playbackOwnership = nil
+        }
         self.owner = owner
         router = RecordingIntentRouter(owner: owner)
         foreground = nil
@@ -63,12 +67,22 @@ final class RecordingApplication {
     }
 
     func perform(_ action: RecordingIntentAction) async throws -> RecordingIntentOutcome {
+        var audioReservation: UUID?
+        defer {
+            if let audioReservation {
+                playbackOwnership?.recordingActionCompleted(operationID: audioReservation)
+            }
+        }
         switch action {
         case .start, .toggle:
-            services?.stopPlayback()
-            // Test-first injection only: this no-op result is deliberately not
-            // enforced until the native ownership contract has actual RED.
-            _ = playbackOwnership?.prepareForRecording()
+            if let playbackOwnership {
+                let operationID = UUID()
+                audioReservation = operationID
+                guard playbackOwnership.prepareForRecording(operationID: operationID) == .allowed else {
+                    lastOutcome = .cleanupPending
+                    return .cleanupPending
+                }
+            }
         case .stop: break
         }
         let outcome: RecordingIntentOutcome
@@ -135,12 +149,12 @@ final class RecordingApplication {
     }
 
     func playAudio(at location: MeetingPlaybackLocation) async -> PlaybackOwnershipResult {
-        guard let playbackOwnership else { return .notImplemented }
+        guard let playbackOwnership else { return .unavailable }
         return await playbackOwnership.play(at: location)
     }
 
     func stopPlayback() -> PlaybackOwnershipResult {
-        playbackOwnership?.stop() ?? .notImplemented
+        playbackOwnership?.stop() ?? .stopped
     }
 }
 #endif

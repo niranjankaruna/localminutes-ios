@@ -1,5 +1,8 @@
 import Foundation
 import SQLite3
+#if SWIFT_PACKAGE
+import LocalMinutesCore
+#endif
 
 /// Non-Sendable native owner. Created inside, retained only by, and synchronously
 /// accessed through SQLiteMeetingStore. Its destructor handles abandoned stores
@@ -12,6 +15,9 @@ final class MeetingSQLiteConnection {
         guard databaseURL.isFileURL, !databaseURL.path.isEmpty else {
             throw MeetingStoreError.invalidInput
         }
+        let directory = databaseURL.deletingLastPathComponent()
+        do { try PersistentFilePolicy.protectDirectory(directory) }
+        catch { throw MeetingStoreError.databaseFailure }
         var opened: OpaquePointer?
         let result = sqlite3_open_v2(databaseURL.path, &opened,
             SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX, nil)
@@ -25,6 +31,7 @@ final class MeetingSQLiteConnection {
             guard version == 0 || version == 1 || version == 2 else {
                 throw MeetingStoreError.unsupportedSchemaVersion(Int(version))
             }
+            try PersistentFilePolicy.protectItem(databaseURL, within: directory)
             // Future schema detection precedes all persistent schema mutations.
             guard sqlite3_busy_timeout(opened, 1_000) == SQLITE_OK else {
                 throw MeetingStoreError.databaseFailure

@@ -3,8 +3,7 @@ import Foundation
 import LocalMinutesPersistence
 #endif
 
-extension MeetingLibraryController {
-    /// No-op test-first overload. The UI captures the immutable meeting UUID,
-    /// revision and text when the edit occurs, before any debounce suspension.
-    public func saveNotes(_ edit: StoredManualNote) async throws {}
-}
+// The immutable StoredManualNote overload is implemented inside
+// MeetingLibraryController so its private(set) state remains encapsulated.
+// UI scheduling must capture that value before debounce; native UI wiring is
+// a separate test-first integration gate.
