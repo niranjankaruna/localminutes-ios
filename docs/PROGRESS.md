@@ -850,3 +850,5 @@ Original7nativeapp checksPASS; actualPhi resumepass445.283s; speechrecovery10PAS
 ## C6 checkpoint — native Parakeet transcribes real audio
 
 048481c/run40130455240: directnativeCoreML5PASS20.762s; nativeapp10PASS2.206s; speechrecovery10PASS51.471s; portable277/281PASS,4fixturepathfailures corrected withoutrelaxingdataoracles. NativeEquip/replay provide genuine independentRED; finalguards nowenabled andinstalledmanifest metadata accepted strictly, allawaitnextsourceGREEN. NoMVP2artifactdelivered.6/6invocationrunsused, goalIN_PROGRESSactive, noexternalcodeblocker. Exactnexttask STATE.nextAction: fresh legitimateboundedcontinuation verifies/packages finalsourceWITHParakeet, deliverschecksummedIPA, continuesMVP3; phonegatesNOT_RUN.
+
+Final repaircode5ac056f2e365233db655eae9e534e184b484d97c is pushed andlocal/HTTPSremoteHEADmatched. Code isawaiting GREEN, notdelivered. Workflow nowcanverifyandpackage together with packageMVP2=true onstandardAppleSilicon, summaryResume=false preservesalready-provedPhi scope. Nextlegitimategoalcontinuation mustuseactualcurrentHEAD forsource/draft/manifest, mayincludecheckpoint-onlymetadataafter5ac. No7thCI dispatchedthisinvocation.

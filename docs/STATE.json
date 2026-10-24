@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T20:47:50.404Z",
+  "lastUpdated": "2026-10-24T20:50:29.603Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -11,9 +11,9 @@
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "At NEXT legitimate goal continuation preserve/archive this6-run invocation record, recheck costguard, create fresh bounded invocation. Commit/push final repairs (exactreviewed nativeEquip, captured replay afterRED, strictinstalledmanifest.json acceptance, corrected realCAF fixture) and candidateGuide/workflowpackageMVP2 option. Create owner-only unpublished draft mvp-preview-<exactsource12> targeting finalfullSHA BEFORE dispatch. Run mvp2-parakeet summaryResume=false packageMVP2=true at exactsource; require all focused portable/nativeapp/nativeCoreML/recovery GREEN + package. Inspect actual8nativecases and7library cases; boundedfix only genuinefailures. DownloadIPA/checksum/buildmanifest; independentlymatchSHA/ZIPsource/build/schema, deliverMVP2WITHParakeet viaiLoaderguide, thencontinueMVP3. PhysicalgatesremainNOT_RUN; neverclaimVERIFIED_COMPLETE.",
+  "nextAction": "Final code candidate5ac056f is committed/pushed, worktreeclean atverification. NEXT legitimategoalcontinuation: retaincompleted6-run invocationrecord; recheckauth/publicfree costguard; startfreshboundedinvocation. Readactualcurrentlocal/remoteHEAD (checkpoint-onlycommitmayfollow5ac). Create owner-only unpublished draft mvp-preview-<currentSHA12> with target=currentFULLSHA. Dispatch mvp2-parakeet summaryResume=false packageMVP2=true for EXACTcurrentSHA; require ALL281portable/10nativeapp/8nativeCoreML/10speechrecovery plusarm64app+extensionpackage GREEN. Focus remaining7previousfailures: corrected7libraryfixtures; installednativeLive; actualEquip; capturednativeReplay. Onlyboundedfixgenuinefailures. IndependentlyverifyIPA/checksum/buildmanifest/ZIPsource/version3/schema5, deliverMVP2WITHnativeParakeet+iLoaderguide, continueMVP3. PhysicalphonegatesNOT_RUN, overallnotVERIFIED_COMPLETE.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "048481c8c51bd097ffac6b535cd4101470acf3fd",
+  "remoteBranchHead": "5ac056f2e365233db655eae9e534e184b484d97c",
   "localScriptGreen": {
     "sourceCommit": "0181b311abedb3c32745b015be64d6e7c777032b",
     "platform": "Windows11/Node24.21.0",
@@ -127,7 +127,7 @@
     "T08.4",
     "T08.5"
   ],
-  "remoteBranchHeadScope": "HTTPS HEAD observed after candidate implementation push and before this checkpoint; docs-only later commits may follow.",
+  "remoteBranchHeadScope": "Code candidate verified local=HTTPS remote; later checkpoint-only metadata may advance HEAD without behavior changes. Next CI/package must use actual current HEAD and stamp that exactSHA.",
   "nativeCompileRepair": {
     "status": "CODE_COMPLETE_PENDING_DEVICE",
     "candidatePath": "docs/drafts/T06.1/ActivityKitOperations.swift.pending",
@@ -1870,7 +1870,10 @@
         "durationSeconds": 33.545,
         "scope": "Direct5 actual-model cases PASS20.762s; independent nativeEquip FAIL7assert + replay FAIL9assert provide genuineRED; selectedLive preparefails because installed manifest.json rejected by strict rawassets-only loader."
       }
-    }
+    },
+    "finalRepairCodeCommit": "5ac056f2e365233db655eae9e534e184b484d97c",
+    "finalRepairPushed": true,
+    "finalRepairGREEN": false
   },
   "parakeetNative": {
     "state": "IN_PROGRESS",
