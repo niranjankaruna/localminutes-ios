@@ -378,8 +378,10 @@
           "id": "T06.3",
           "title": "Authenticated foreground latest-meeting shortcut and retained navigation",
           "status": "IN_PROGRESS",
-          "productionImplemented": false,
-          "redEvidence": [],
+          "productionImplemented": true,
+          "redEvidence": [
+            "docs/evidence/MVP3_PRODUCT_GATES_2026_10_24.md"
+          ],
           "greenEvidence": [],
           "deviceEvidence": [],
           "preparedEvidence": "docs/evidence/MVP3_PRODUCT_GATES_2026_10_24.md"
@@ -807,10 +809,12 @@
         {
           "id": "T13.3",
           "title": "Truthful first-PCM elapsed and measured backlog display",
-          "status": "IN_PROGRESS",
-          "productionImplemented": false,
+          "status": "CODE_COMPLETE_PENDING_DEVICE",
+          "productionImplemented": true,
           "redEvidence": [],
-          "greenEvidence": [],
+          "greenEvidence": [
+            "docs/evidence/MVP3_PRODUCT_GATES_2026_10_24.md"
+          ],
           "deviceEvidence": [],
           "preparedEvidence": "docs/evidence/MVP3_PRODUCT_GATES_2026_10_24.md"
         }
@@ -1296,6 +1300,18 @@
           "id": "T20.1",
           "title": "Scene-scoped opaque app-switcher privacy coverage",
           "status": "IN_PROGRESS",
+          "productionImplemented": true,
+          "redEvidence": [
+            "docs/evidence/MVP3_PRODUCT_GATES_2026_10_24.md"
+          ],
+          "greenEvidence": [],
+          "deviceEvidence": [],
+          "preparedEvidence": "docs/evidence/MVP3_PRODUCT_GATES_2026_10_24.md"
+        },
+        {
+          "id": "T20.2",
+          "title": "Distinct spoken model actions and large-text reachable touch targets",
+          "status": "IN_PROGRESS",
           "productionImplemented": false,
           "redEvidence": [],
           "greenEvidence": [],
@@ -1537,9 +1553,9 @@
       }
     }
   ],
-  "executionPausedByOwner": true,
-  "resumeAction": "On owner resume with selected model/effort: read checkpoint and inspect SAME C10 run40134199884 at8edff56a96f051587d727812239937ccba51b9a5. It was confirmedlive beforepause; do not restart solely due observationtimeout. Record actual portableGREEN/nativeRED or compilefailure. Native privacy/latestshortcut remainstubs untilactualRED; progressimplementation pendingGREEN. Continue same4/6invocationbudget, review ASR-only sourcebuild plan after d6actualIPA TTSRED; no strip/relicense. DeliveredMVP2 source35c7 staysavailable. PhysicalgatesNOT_RUN.",
-  "lastUpdated": "2026-10-24T21:30:42.724Z",
+  "executionPausedByOwner": false,
+  "resumeAction": "Review/commit native privacy/latest shortcut implementations after actualC10RED. PrepareC11 same-source focused productGREEN plus bounded45min ASR-only framework build (unpublished draft), run5of6. Keep rootpackage on currentengine until actualcleanframeworkbuild/symbol receipt; nextwireverifiedlocalpackage and realCPU/model+IPA audit for finalgate. PreserveMediumsubagent preference and deliveredMVP2.",
+  "lastUpdated": "2026-10-24T21:38:58.577Z",
   "latestVerification": {
     "sourceCommit": "048481c8c51bd097ffac6b535cd4101470acf3fd",
     "runId": 40130455240,

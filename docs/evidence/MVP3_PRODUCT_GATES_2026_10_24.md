@@ -44,9 +44,40 @@ their assertions execute in the corrected focused run.
 
 ## GREEN and review
 
-PENDING. Complete real app-owned UI wiring after RED, run focused regressions,
-review privacy/lifetimes, retain source/run evidence. Physical permissions,
+C10 source8edff56a96f051587d727812239937ccba51b9a5/run40134199884:
+portable11PASS/0fail/skip0.108s, including all4 progress cases; actual native
+metrics-composition case PASS. The separately compiled native9 cases executed:
+1PASS,8FAIL,28 assertion failures,0skip0.952s. OpenLatest5FAIL18assert,
+privacy2FAIL9assert, original shortcut SDK case FAIL1assert (three versus four).
+Missing opaque cover/accessibility shielding and unavailable/nil navigation
+are genuine behavioral RED; real SQLite/CAF fixtures execute successfully.
+This is the first valid native RED, after preserving C9's compile-only failure.
+
+After owner resume, three explicitly configured GPT-6.1 Sol Medium agents
+implement the native root privacy boundary, authenticated retained router/UI
+shortcut and same-source ASR-only build candidate. No original assertions are
+weakened. Native implementation GREEN, ASR native build/link/model integration
+and consolidated release validation remain PENDING. Physical permissions,
 snapshot/VoiceOver, Action Button and endurance gates stay NOT_RUN.
+
+## Prior delivery
+
+## Model-control accessibility test-first slice
+
+Two ModelBrowserAccessibilityUITests mount the actual Models view/controller
+through a DEBUG-only isolated fixture. Two tiny checksum-verified synthetic
+installations are list/control boundaries only: no model is equipped, evaluated
+or downloaded, and no inference result is claimed. Tests require four distinct
+spoken Equip/Remove labels including purpose and displayed repository identity,
+plus reachable enabled controls with44x44-point targets at AX5. Production
+labels and hit-region behavior remain unchanged until actual hosted RED.
+The existing compiled Release/Debug fixture-boundary gate now includes the
+new fixture markers. Static script checks are not native RED or GREEN.
+
+The next bounded run also builds an ASR-only same-version native candidate;
+the root app package remains on the verified current engine until that build's
+actual artifacts, hashes and symbol receipts are reviewed. No release artifact,
+model integration, final a11y result or native linking is inferred from a script.
 
 ## Prior delivery
 

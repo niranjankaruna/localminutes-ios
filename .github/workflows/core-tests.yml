@@ -23,6 +23,11 @@ on:
         type: boolean
         required: true
         default: false
+      buildASROnly:
+        description: Build and retain the pinned ASR-only native framework candidate
+        type: boolean
+        required: true
+        default: false
 
 permissions:
   contents: read
@@ -32,6 +37,78 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  asr-only-build:
+    if: ${{ inputs.mode == 'mvp3' && inputs.buildASROnly }}
+    runs-on: macos-15
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Verify exact source and standard free-runner guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          c = json.loads(Path('project-config.json').read_text())
+          assert c['github']['visibility'] == 'public' and c['github']['publicationApproved']
+          assert c['ci']['costGuardVerified'] and c['budget']['maximumAdditionalSpendEUR'] == 0
+          assert not c['budget']['allowLargerRunners']
+          PY
+      - name: Build same-revision CPU ASR libraries without speech synthesis
+        run: python3 scripts/prepare_asr_only.py --platform all --jobs 3
+      - name: Package actual framework and reproducibility receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, zipfile
+          root = pathlib.Path('Vendor/SherpaASROnly/Artifacts')
+          framework = root / 'SherpaOnnxC.xcframework'
+          receipt = root / 'SherpaOnnxC.receipt.json'
+          assert framework.is_dir() and receipt.is_file()
+          source = os.environ['GITHUB_SHA']
+          output = pathlib.Path('.agent-local/asr-only-delivery')
+          output.mkdir()
+          archive = output / f'NativeSherpaASR-1.13.8-{source}.zip'
+          with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as z:
+              for path in sorted(root.rglob('*')):
+                  assert not path.is_symlink()
+                  if path.is_file():
+                      z.write(path, path.relative_to(root).as_posix())
+          with zipfile.ZipFile(archive) as z:
+              assert z.testzip() is None
+          digest = hashlib.file_digest(archive.open('rb'), 'sha256').hexdigest()
+          manifest = {'schemaVersion': 1, 'sourceCommit': source,
+              'sherpaRevision': '11afbd009a7f8c08f4bcf2fc1b265d0df4670fbf',
+              'artifact': archive.name, 'sha256': digest, 'sizeBytes': archive.stat().st_size,
+              'nativeLinkAndInference': 'PENDING', 'published': False}
+          (output / 'native-asr-build.json').write_text(json.dumps(manifest, indent=2) + '\n')
+          print(json.dumps(manifest))
+          PY
+      - name: Retain in existing unpublished owner draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="native-asr-11afbd0-${GITHUB_SHA:0:12}"
+          gh release view "$tag" --json isDraft,targetCommitish > .agent-local/asr-only-draft.json
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          release = json.loads(Path('.agent-local/asr-only-draft.json').read_text())
+          assert release['isDraft'] is True and release['targetCommitish'] == os.environ['GITHUB_SHA']
+          PY
+          gh release upload "$tag" .agent-local/asr-only-delivery/*
+
   mvp2-portable:
     if: ${{ inputs.mode == 'mvp2-red' || inputs.mode == 'mvp2' || inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet' }}
     runs-on: macos-15-intel
@@ -184,7 +261,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        testclass: ${{ fromJSON(inputs.mode == 'mvp3' && '["MVP3Contracts"]' || (inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet') && '["NativeMVP2LibraryTests"]' || inputs.mode == 'model-delivery' && '["MVP1Services"]' || (inputs.mode == 'model-integration' || inputs.mode == 'model-repair') && '["NativeAppMetricsTests","NativeModelResourceTests"]' || '["NativeAppMetricsTests"]') }}
+        testclass: ${{ fromJSON(inputs.mode == 'mvp3' && '["MVP3Contracts","MVP3AccessibilityUI"]' || (inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet') && '["NativeMVP2LibraryTests"]' || inputs.mode == 'model-delivery' && '["MVP1Services"]' || (inputs.mode == 'model-integration' || inputs.mode == 'model-repair') && '["NativeAppMetricsTests","NativeModelResourceTests"]' || '["NativeAppMetricsTests"]') }}
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
       NATIVE_TEST_CLASS: ${{ matrix.testclass }}
@@ -236,7 +313,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ "$NATIVE_TEST_CLASS" = MVP3Contracts ]; then
+          native_scheme=LocalMinutesFocusedValidation
+          if [ "$NATIVE_TEST_CLASS" = MVP3AccessibilityUI ]; then
+            native_scheme=LocalMinutes
+            native_cases=(-only-testing:LocalMinutesUITests/ModelBrowserAccessibilityUITests)
+          elif [ "$NATIVE_TEST_CLASS" = MVP3Contracts ]; then
             native_cases=(-only-testing:LocalMinutesAppTests/NativeRootPrivacyTests -only-testing:LocalMinutesAppTests/NativeOpenLatestMeetingIntentTests -only-testing:LocalMinutesAppTests/NativeRecordingProgressTests -only-testing:LocalMinutesAppTests/RecordingSessionOwnerTests/testNativeSDKConformancesAndThreeDiscoverableShortcutsArePresent)
           elif [ "$NATIVE_TEST_CLASS" = MVP1Services ]; then
             native_cases=(-only-testing:LocalMinutesAppTests/NativeAppMetricsTests -only-testing:LocalMinutesAppTests/NativeModelResourceTests)
@@ -245,7 +326,7 @@ jobs:
           else
             native_cases=("-only-testing:LocalMinutesAppTests/$NATIVE_TEST_CLASS")
           fi
-          xcodebuild test -project LocalMinutes.xcodeproj -scheme LocalMinutesFocusedValidation -configuration Debug \
+          xcodebuild test -project LocalMinutes.xcodeproj -scheme "$native_scheme" -configuration Debug \
             -destination "platform=iOS Simulator,id=$LOCALMINUTES_TEST_SIMULATOR" -destination-timeout 120 \
             -parallel-testing-enabled NO -collect-test-diagnostics never "${native_cases[@]}" \
             -derivedDataPath build/focused-app -clonedSourcePackagesDirPath .agent-local/source-packages \
@@ -264,7 +345,11 @@ jobs:
           if [ -f .agent-local/focused-simulator-boot.log ]; then
             tail -40 .agent-local/focused-simulator-boot.log
           fi
-          if [ "$NATIVE_TEST_CLASS" = MVP3Contracts ]; then
+          if [ "$NATIVE_TEST_CLASS" = MVP3AccessibilityUI ]; then
+            node scripts/verify-test-log.mjs .agent-local/focused-app-metrics.log \
+              testInstalledModelSpokenActionsIncludePurposeAndDistinctModelIdentity \
+              testInstalledModelActionsRemainReachableWith44PointTargetsAtLargestAccessibilityText
+          elif [ "$NATIVE_TEST_CLASS" = MVP3Contracts ]; then
             node scripts/verify-test-log.mjs .agent-local/focused-app-metrics.log \
               testPresenterUsesActualDefaultServiceFirstPCMOriginAndMeasuredPendingSamples \
               testActualIntentPublishesNewestMeetingThroughTheRetainedApplicationRouterWithoutRecording \

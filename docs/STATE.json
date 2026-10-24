@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T21:30:42.724Z",
+  "lastUpdated": "2026-10-24T21:38:58.577Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -11,7 +11,7 @@
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "On owner resume with selected model/effort: read checkpoint and inspect SAME C10 run40134199884 at8edff56a96f051587d727812239937ccba51b9a5. It was confirmedlive beforepause; do not restart solely due observationtimeout. Record actual portableGREEN/nativeRED or compilefailure. Native privacy/latestshortcut remainstubs untilactualRED; progressimplementation pendingGREEN. Continue same4/6invocationbudget, review ASR-only sourcebuild plan after d6actualIPA TTSRED; no strip/relicense. DeliveredMVP2 source35c7 staysavailable. PhysicalgatesNOT_RUN.",
+  "nextAction": "Review/commit native privacy/latest shortcut implementations after actualC10RED. PrepareC11 same-source focused productGREEN plus bounded45min ASR-only framework build (unpublished draft), run5of6. Keep rootpackage on currentengine until actualcleanframeworkbuild/symbol receipt; nextwireverifiedlocalpackage and realCPU/model+IPA audit for finalgate. PreserveMediumsubagent preference and deliveredMVP2.",
   "pendingPushCommit": null,
   "remoteBranchHead": "8edff56a96f051587d727812239937ccba51b9a5",
   "localScriptGreen": {
@@ -47,8 +47,8 @@
   "latestCIRun": {
     "runId": 40134199884,
     "sourceCommit": "8edff56a96f051587d727812239937ccba51b9a5",
-    "status": "in_progress",
-    "conclusion": null
+    "status": "completed",
+    "conclusion": "failure"
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -224,12 +224,7 @@
     "latestSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
     "latestRunUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180"
   },
-  "activeCIRun": {
-    "runId": 40134199884,
-    "sourceCommit": "8edff56a96f051587d727812239937ccba51b9a5",
-    "status": "in_progress",
-    "conclusion": null
-  },
+  "activeCIRun": null,
   "pendingPushScope": null,
   "repositoryVisibility": "PUBLIC",
   "publication": {
@@ -662,7 +657,7 @@
     }
   ],
   "executionPause": {
-    "status": "PAUSED_BY_OWNER",
+    "status": "RESUMED_BY_OWNER",
     "requestedAt": "2026-10-24T21:30:42.724Z",
     "reason": "Owner asked to pause so GPT6.1Sol Medium selection can apply; effective current-turn setting is unverified.",
     "sourceCommit": "8edff56a96f051587d727812239937ccba51b9a5",
@@ -673,7 +668,8 @@
       "bootstrap_review",
       "verified_models"
     ],
-    "noNewCIDispatch": true
+    "noNewCIDispatch": true,
+    "resumedAt": "2026-10-24T21:38:58.577Z"
   },
   "newTestFirstSlice": {
     "task": "T16.2 inputreservation",
@@ -1124,9 +1120,9 @@
     "productionRepairImplemented": false,
     "nextAction": "Deferred until owner resumes baseline work; add actual regressions before repair if strict TDD resumes."
   },
-  "executionPausedByOwner": true,
-  "goalPauseAuthorized": true,
-  "goalPauseReason": "Owner asked to pause so GPT6.1Sol Medium selection can apply; effective current-turn setting is unverified.",
+  "executionPausedByOwner": false,
+  "goalPauseAuthorized": false,
+  "goalPauseReason": null,
   "mvpArtifact": {
     "status": "READY_FOR_DEVICE_VALIDATION",
     "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
@@ -2041,7 +2037,7 @@
   "mvp3ProductGates": {
     "state": "IN_PROGRESS",
     "testFirstCommit": "677b477f346292e6922f5995997cf28b84143f4b",
-    "actualREDVerified": false,
+    "actualREDVerified": true,
     "productionImplemented": false,
     "runId": 40133352703,
     "evidence": "docs/evidence/MVP3_PRODUCT_GATES_2026_10_24.md",
@@ -2063,8 +2059,28 @@
       "reason": "IntentResultContainer.value is String?; contains requires XCTUnwrap. No nativeRED inferred."
     },
     "progressImplementedPendingGREEN": true,
-    "nativeREDVerified": false,
-    "correctedRunId": 40134199884
+    "nativeREDVerified": true,
+    "correctedRunId": 40134199884,
+    "progressGREEN": {
+      "sourceCommit": "8edff56a96f051587d727812239937ccba51b9a5",
+      "runId": 40134199884,
+      "portableExecuted": 11,
+      "portablePassed": 11,
+      "failed": 0,
+      "skipped": 0,
+      "nativeCompositionPassed": 1
+    },
+    "nativeRED": {
+      "sourceCommit": "8edff56a96f051587d727812239937ccba51b9a5",
+      "runId": 40134199884,
+      "jobId": 120992126883,
+      "executed": 9,
+      "passed": 1,
+      "failed": 8,
+      "assertionFailures": 28,
+      "skipped": 0
+    },
+    "nativeImplementationPendingGREEN": true
   },
   "nativeDependencyHygiene": {
     "state": "IN_PROGRESS",
@@ -2081,5 +2097,16 @@
     },
     "productionDependencyChanged": false,
     "sourceBuildCandidate": "same sherpa11afbd0 ASR-only; no iOS no-TTS prebuilt verified"
+  },
+  "ownerModelPreference": {
+    "model": "gpt-6.1-sol",
+    "reasoningEffort": "medium",
+    "ownerRequested": true,
+    "rootEffectiveSettingDirectlyObservable": false,
+    "subagentsExplicitlyConfigured": [
+      "mvp3_privacy_medium",
+      "mvp3_navigation_medium",
+      "asr_build_medium"
+    ]
   }
 }

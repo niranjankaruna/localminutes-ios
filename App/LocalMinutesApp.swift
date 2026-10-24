@@ -12,7 +12,9 @@ struct LocalMinutesApp: App {
     var body: some Scene {
         WindowGroup {
             #if DEBUG
-            if LibraryUITestFixture.requested {
+            if ModelBrowserAccessibilityFixture.requested {
+                ModelBrowserAccessibilityFixtureRoot()
+            } else if LibraryUITestFixture.requested {
                 LibraryUITestFixtureRoot()
             } else if ProcessInfo.processInfo.arguments.contains("--ui-test-activity-controls") {
                 RecordingActivityTestScreen(application: application, finished: false)
