@@ -29,6 +29,7 @@ final class RecordingApplication {
     private(set) var owner: RecordingSessionOwner?
     let foreground: (any RecordingForegroundContinuation)?
     private(set) var services: LocalMinutesServices?
+    private(set) var meetingNavigation: MeetingNavigationRouter?
     private(set) var playbackOwnership: PlaybackOwnershipController?
     private(set) var isRestoringLibrary = false
     @ObservationIgnored private var libraryPlaybackReservation: (controller: PlaybackOwnershipController, id: UUID)?
@@ -56,6 +57,7 @@ final class RecordingApplication {
             usageAdmission: services?.recordingAdmission
         )
         self.services = services
+        meetingNavigation = services.map { MeetingNavigationRouter(store: $0.store) }
         if let services {
             playbackOwnership = PlaybackOwnershipController(owner: owner, hardware: services)
         } else {
@@ -75,6 +77,7 @@ final class RecordingApplication {
          playbackOwnership: PlaybackOwnershipController? = nil,
          signalCenter: NotificationCenter? = nil) {
         services = nil
+        meetingNavigation = nil
         self.playbackOwnership = playbackOwnership
         self.owner = owner
         router = RecordingIntentRouter(owner: owner)
@@ -274,6 +277,7 @@ final class RecordingApplication {
     func activateLibraryServices(_ services: LocalMinutesServices) {
         let replacement = RecordingApplication(services: services)
         self.services = replacement.services
+        meetingNavigation = replacement.meetingNavigation
         owner = replacement.owner
         playbackOwnership = replacement.playbackOwnership
         router = replacement.router

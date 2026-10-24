@@ -18,14 +18,26 @@ final class MeetingNavigationRouter {
 
     init(store: SQLiteMeetingStore) { self.store = store }
 
-    // Test-first stub: hosted assertions must prove absent navigation before
-    // latest-row lookup and app-owned publication are implemented.
-    func openLatest() async throws -> LatestMeetingNavigationOutcome { .unavailable }
-}
-
-extension RecordingApplication {
-    // Test-first composition seam. The real owner must retain one router for
-    // its current library; creating one per intent would lose the UI request.
-    var meetingNavigation: MeetingNavigationRouter? { nil }
+    func openLatest() async throws -> LatestMeetingNavigationOutcome {
+        try Task.checkCancellation()
+        requestedMeetingID = nil
+        requestID = nil
+        do {
+            // Read the durable library for each invocation, including meetings
+            // that have not yet appeared in the foreground history projection.
+            let latest = try await store.history(limit: 1).first
+            try Task.checkCancellation()
+            guard let latest else { return .emptyLibrary }
+            requestedMeetingID = latest.id
+            requestID = UUID()
+            return .opened(latest.id)
+        } catch {
+            try Task.checkCancellation()
+            if error is CancellationError { throw error }
+            requestedMeetingID = nil
+            requestID = nil
+            return .unavailable
+        }
+    }
 }
 #endif

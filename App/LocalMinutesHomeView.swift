@@ -8,6 +8,9 @@ struct LocalMinutesHomeView: View {
     let application: RecordingApplication
     @Environment(\.scenePhase) private var scenePhase
     @State private var privacy: RecordingPrivacyController
+    @State private var selectedTab = 0
+    @State private var meetingPath: [UUID] = []
+    @State private var handledMeetingRequestID: UUID?
 
     init(application: RecordingApplication, privacy: RecordingPrivacyController? = nil) {
         self.application = application
@@ -16,20 +19,36 @@ struct LocalMinutesHomeView: View {
 
     var body: some View {
         RecordingPrivacyRoot(controller: privacy) {
-        TabView {
+        TabView(selection: $selectedTab) {
             RecordingControlsView(application: application)
                 .tabItem { Label("Record", systemImage: "mic") }
+                .tag(0)
             if let services = application.services {
-                MeetingHistoryView(services: services, application: application)
+                MeetingHistoryView(services: services, application: application, path: $meetingPath)
                     .tabItem { Label("Meetings", systemImage: "text.book.closed") }
+                    .tag(1)
                 ModelBrowserView(controller: services.modelBrowser)
                     .tabItem { Label("Models", systemImage: "internaldrive") }
+                    .tag(2)
             }
         }
         .id(application.services.map { ObjectIdentifier($0) })
         .disabled(application.isRestoringLibrary || application.services?.maintainingLibrary == true)
         .tint(.teal)
         .task(id: application.services.map { ObjectIdentifier($0) }) { await application.services?.initialize() }
+        .onChange(of: application.meetingNavigation?.requestID, initial: true) { _, requestID in
+            guard requestID != nil, let id = application.meetingNavigation?.requestedMeetingID else {
+                meetingPath = []
+                handledMeetingRequestID = nil
+                return
+            }
+            guard handledMeetingRequestID != requestID else { return }
+            handledMeetingRequestID = requestID
+            selectedTab = 1
+            // Replace any previous detail path. A fresh request is observable
+            // even when the user has since popped this same meeting.
+            meetingPath = [id]
+        }
         .onChange(of: scenePhase) { _, phase in
             do {
                 try application.recordScenePhase(phase)
@@ -48,6 +67,7 @@ struct LocalMinutesHomeView: View {
 private struct MeetingHistoryView: View {
     let services: LocalMinutesServices
     let application: RecordingApplication
+    @Binding var path: [UUID]
     @State private var query = ""
     @State private var pendingDeletion: UUID?
     @State private var confirmingDeletion = false
@@ -62,7 +82,7 @@ private struct MeetingHistoryView: View {
     private var unavailable: Bool { working || services.maintainingLibrary || application.isRestoringLibrary }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             List {
                 if let error = services.library.errorMessage { Text(error).foregroundStyle(.red) }
                 if let actionMessage { Text(actionMessage).foregroundStyle(.secondary) }

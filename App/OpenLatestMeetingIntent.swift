@@ -25,10 +25,20 @@ struct OpenLatestMeetingIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> MeetingNavigationIntentResult {
-        // Minimal unavailable result until the native behavior tests prove RED.
-        // No title, transcript, path or export is returned by this action.
-        .result(value: "Saved meetings are not available.",
-                dialog: IntentDialog("Saved meetings are not available."))
+        try Task.checkCancellation()
+        let outcome = try await (injectedRouter ?? application.meetingNavigation)?.openLatest() ?? .unavailable
+        try Task.checkCancellation()
+        switch outcome {
+        case .opened:
+            return .result(value: "Opening your latest meeting.",
+                           dialog: IntentDialog("Opening your latest meeting."))
+        case .emptyLibrary:
+            return .result(value: "No saved meetings yet.",
+                           dialog: IntentDialog("No saved meetings yet."))
+        case .unavailable:
+            return .result(value: "Saved meetings are not available.",
+                           dialog: IntentDialog("Saved meetings are not available."))
+        }
     }
 }
 

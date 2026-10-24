@@ -85,6 +85,9 @@ struct LocalMinutesShortcuts: AppShortcutsProvider {
         AppShortcut(intent: ToggleMeetingIntent(),
                     phrases: ["Toggle recording with \(.applicationName)"],
                     shortTitle: "Toggle Recording", systemImageName: "record.circle")
+        AppShortcut(intent: OpenLatestMeetingIntent(),
+                    phrases: ["Open latest meeting with \(.applicationName)"],
+                    shortTitle: "Open Latest Meeting", systemImageName: "text.book.closed")
     }
 }
 #endif
