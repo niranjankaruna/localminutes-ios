@@ -16,7 +16,13 @@ final class MeetingSQLiteConnection {
             throw MeetingStoreError.invalidInput
         }
         let directory = databaseURL.deletingLastPathComponent()
-        do { try PersistentFilePolicy.protectDirectory(directory) }
+        do {
+            // A database URL confers ownership of this parent and its exact
+            // SQLite files, not every unrelated source beside the database.
+            // Default App Services performs its own whole-app migration.
+            try PersistentFilePolicy.protectItem(directory, within: directory)
+            try Self.protectDatabaseFiles(at: databaseURL, within: directory)
+        }
         catch { throw MeetingStoreError.databaseFailure }
         var opened: OpaquePointer?
         let result = sqlite3_open_v2(databaseURL.path, &opened,
@@ -78,10 +84,23 @@ final class MeetingSQLiteConnection {
                     try execute("PRAGMA user_version=2")
                 }
             }
+            try Self.protectDatabaseFiles(at: databaseURL, within: directory)
         } catch {
             sqlite3_close_v2(opened)
             handle = nil
             throw error
+        }
+    }
+
+    private static func protectDatabaseFiles(at database: URL, within directory: URL) throws {
+        for suffix in ["", "-wal", "-shm", "-journal"] {
+            let item = URL(fileURLWithPath: database.path + suffix)
+            // fileExists follows links and is false for a dangling link. That
+            // case must still reach the policy's strict ownership validation.
+            let symbolic = try? item.resourceValues(forKeys: [.isSymbolicLinkKey]).isSymbolicLink
+            if FileManager.default.fileExists(atPath: item.path) || symbolic == true {
+                try PersistentFilePolicy.protectItem(item, within: directory)
+            }
         }
     }
 

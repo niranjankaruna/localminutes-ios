@@ -77,7 +77,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p .build
-          swift test --enable-code-coverage --filter '(HarnessTests|CoreTests|RecordingTests|ModelTests|PersistenceTests|ASRTests|MeetingLibraryTests|SummaryPromptFormatterTests|StructuredJSONSchemaTests)' 2>&1 | tee .build/test-output.log
+          swift test --enable-code-coverage --filter '(HarnessTests|CoreTests|RecordingTests|ModelTests|PersistenceTests|ASRTests|MeetingLibraryTests|SummaryPromptFormatterTests|StructuredJSONSchemaTests|SummaryChunkPlannerTests)' 2>&1 | tee .build/test-output.log
           node --test scripts/tests/*.test.mjs
       - name: Require discovered tests and report evidence
         if: always()
@@ -92,6 +92,9 @@ jobs:
           node scripts/verify-test-log.mjs .build/test-output.log testActualPinnedHTTPSDownloadInstallsReopensImportsAndRecognizesUnderLease
           node scripts/verify-test-log.mjs .build/test-output.log testHardLinkedOutsideInodeIsRejectedBeforeAnyPolicyAttributeMutation testCAFConstructorRejectsSymlinkedParentWithoutCreatingOutsideSession testOpeningAndReopeningSQLitePreservesUnrelatedSiblingBytesPermissionsAndBackupFlags testRecoveryRejectsAlteredJournalPlansBeforeQuarantiningHealthyAudioOrChangingDuration testExplicitGapUsesCapturedCountAndOneGlobalTimelineForRecoveryAndActualPlayback testRecoveryCountsOnlyFullyDecodableFramesWhenAnActualCAFDataBodyIsTruncated testDirectoryHintCannotRejectTheSameOwnedStagingPath
           node scripts/verify-test-log.mjs .build/test-output.log testCompilerPreservesCallerFieldOrderAndRequestedJSONTypes testFieldsMustBeNonemptyUniqueAndSafeBoundedIdentifiers testEnumValuesAreJSONAndGBNFLiteralsWithoutRuleInjectionOrUnicodeLoss testEmptyScalarEnumFailsButEmptyEvidenceDomainAllowsOnlyAnEmptyArray testGrammarByteBudgetRejectsInvalidLimitsAndNeverTruncatesACompleteGrammar testFieldAndEnumerationCollectionsAreBoundedAndDuplicateValuesRejected
+          node scripts/verify-test-log.mjs .build/test-output.log testOwnerReservationBlocksRealDeletionBeforeHeldPreparation testCancelledOwnerRetainsUsageThroughHeldTranscriptCleanupBeforeDeletion testStartupPendingAndFailureDenyOwnerBeforeAllPreparationAndOSUseUntilSuccess testExactUsageTokenRejectsStaleReleaseAfterReplacement
+          node scripts/verify-test-log.mjs .build/test-output.log testStartupReplaysDurableDeletionBeforeEnumeratingUnfinishedAudioAndThenAllowsCapture testStartupProcessesUnfinishedMeetingsBeyondOnePageAndIsIdempotentAcrossReopen testStartupRecordsAnIsolatedCorruptMeetingButProcessesHealthyOthersBeforeReady testDatabaseAndDeletionReplayFailuresKeepStartupFailedAndCaptureAdmissionClosed testUnfinishedMeetingsUseExclusiveUUIDKeysetsAndExcludeCompletedFromEveryPage testUnfinishedPaginationDefaultsToOneHundredValidatesBoundsAndReportsAClosedActualDatabase
+          node scripts/verify-test-log.mjs .build/test-output.log testPlannerCountsWholePromptsAndReservesOutputStrictlyBelowContextLimit testPlannerPreservesWholeSentencesSegmentIDsAndGlobalRangesWithoutLossOrReordering testOversizedAtomicSegmentThrowsInsteadOfReturningAPartialOrTruncatedPlan testUnicodeAndEmbeddedRoleTokensRemainSerializedSourceDataForTheTokenizer testPlannerRejectsInvalidBoundsSourceIdentityRangesAndTokenizerCounts testPlannerPropagatesTokenizerFailureAndCancellationWithoutPublishingChunks
       - name: Exercise queue under Thread Sanitizer
         shell: bash
         run: |
@@ -128,13 +131,14 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p .build
-          swift test --filter LocalSummaryRuntimeTests 2>&1 | tee .build/summary-output.log
+          swift test --filter '(LocalSummaryRuntimeTests|ActualPromptTokenizationTests)' 2>&1 | tee .build/summary-output.log
       - name: Require actual summary cases and preserve quality failures
         if: always()
         shell: bash
         run: |
           set -euo pipefail
           node scripts/verify-test-log.mjs .build/summary-output.log testActualQwenProducesValidJSONWithCorrectActionSpeakerAndDecision testActualQwenPreservesUnknownBudgetAndReturnsOnlySuppliedEvidenceIDs testNativeSummaryLoadRejectsMissingAndInvalidGGUF testCancelledNativeGenerationDoesNotPublishAndRuntimeCanBeReused
+          node scripts/verify-test-log.mjs .build/summary-output.log testActualCanonicalTokenizerCountsBudgetBoundariesCancellationAndUnload
 
   # Native SDK assertions run independently during test-first core failures.
   # All three jobs remain mandatory for the overall workflow result.

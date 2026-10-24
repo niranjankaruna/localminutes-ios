@@ -457,7 +457,31 @@
           ],
           "greenEvidence": [],
           "deviceEvidence": [],
-          "testCount": 8
+          "testCount": 11
+        },
+        {
+          "id": "T08.3",
+          "title": "Automatic startup deletion replay and bounded unfinished meeting reconciliation",
+          "status": "IN_PROGRESS",
+          "redEvidence": [
+            "docs/evidence/T08_STARTUP_TDD.md"
+          ],
+          "greenEvidence": [],
+          "deviceEvidence": [],
+          "testCount": 6,
+          "scope": "Test-first stubs only; actual hosted RED pending."
+        },
+        {
+          "id": "T08.4",
+          "title": "Shared recording owner admission across preparation and cleanup",
+          "status": "IN_PROGRESS",
+          "redEvidence": [
+            "docs/evidence/T08_SHARED_ADMISSION_TDD.md"
+          ],
+          "greenEvidence": [],
+          "deviceEvidence": [],
+          "testCount": 4,
+          "scope": "Test-first stubs only; actual hosted RED pending."
         }
       ],
       "redEvidence": [
@@ -466,7 +490,8 @@
       "greenEvidence": [],
       "deviceEvidence": [],
       "blockers": [],
-      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
+      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead.",
+      "latestCheckpoint": "917844b/run40071855360 actual RED read; repairs await exact-SHA GREEN. Next startup/shared-owner/tokenization test-first batch, all physical gates NOT_RUN."
     },
     {
       "id": "T09",
@@ -631,7 +656,8 @@
       "greenEvidence": [],
       "deviceEvidence": [],
       "blockers": [],
-      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
+      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead.",
+      "latestCheckpoint": "917844b/run40071855360 actual RED read; repairs await exact-SHA GREEN. Next startup/shared-owner/tokenization test-first batch, all physical gates NOT_RUN."
     },
     {
       "id": "T13",
@@ -759,7 +785,7 @@
           ],
           "greenEvidence": [],
           "deviceEvidence": [],
-          "testCount": 4
+          "testCount": 7
         },
         {
           "id": "T16.3",
@@ -770,7 +796,7 @@
           ],
           "greenEvidence": [],
           "deviceEvidence": [],
-          "testCount": 8
+          "testCount": 11
         }
       ],
       "redEvidence": [
@@ -779,7 +805,8 @@
       "greenEvidence": [],
       "deviceEvidence": [],
       "blockers": [],
-      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
+      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead.",
+      "latestCheckpoint": "917844b/run40071855360 actual RED read; repairs await exact-SHA GREEN. Next startup/shared-owner/tokenization test-first batch, all physical gates NOT_RUN."
     },
     {
       "id": "T17",
@@ -830,7 +857,8 @@
       "greenEvidence": [],
       "deviceEvidence": [],
       "blockers": [],
-      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
+      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead.",
+      "latestCheckpoint": "917844b/run40071855360 actual RED read; repairs await exact-SHA GREEN. Next startup/shared-owner/tokenization test-first batch, all physical gates NOT_RUN."
     },
     {
       "id": "T18",
@@ -838,7 +866,7 @@
       "milestone": "M6",
       "title": "Implement evidence-linked summary and action pipeline",
       "kind": "feature",
-      "status": "NOT_STARTED",
+      "status": "IN_PROGRESS",
       "dependsOn": [
         "T16",
         "T17"
@@ -851,12 +879,26 @@
         "Tests cover tokenizer chunks, schema, citations, missing owners/dates and checkpoint resume.",
         "Run actual-model semantic evaluation and preserve editing/provenance."
       ],
-      "childTasks": [],
+      "childTasks": [
+        {
+          "id": "T18.1",
+          "title": "Actual canonical tokenizer and bounded whole-segment chunk planning",
+          "status": "IN_PROGRESS",
+          "redEvidence": [
+            "docs/evidence/T18_TOKEN_CHUNK_TDD.md"
+          ],
+          "greenEvidence": [],
+          "deviceEvidence": [],
+          "testCount": 7,
+          "scope": "Test-first stubs only. Full nullable/grounded map-reduce summaries/Q&A still mandatory."
+        }
+      ],
       "redEvidence": [],
       "greenEvidence": [],
       "deviceEvidence": [],
       "blockers": [],
-      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
+      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead.",
+      "latestCheckpoint": "917844b/run40071855360 actual RED read; repairs await exact-SHA GREEN. Next startup/shared-owner/tokenization test-first batch, all physical gates NOT_RUN."
     },
     {
       "id": "T19",

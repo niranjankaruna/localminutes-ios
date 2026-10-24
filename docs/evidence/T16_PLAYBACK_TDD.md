@@ -1,5 +1,23 @@
 # T16 native playback versus recording ownership — test first
 
+## Actual pending/scoped regression RED, 24 October 2026
+
+Source `917844b016664251c545fb70106c50cfceb62694`, terminal failed run
+[40071855360](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40071855360),
+native job `120806812220`: device/simulator and test compilation succeeded;
+57 app-hosted cases executed, 54 passed, three new playback cases failed with
+24 assertions, zero unexpected/skipped. All eight original playback tests
+passed. Global Stop and caller cancellation wrongly allowed the pending player
+to activate; the scoped-request API returned notImplemented. These actual
+behavioral failures were read before authorizing repair.
+
+All five supported storage-policy cases passed, including the strict SQLite
+sidecar-retirement/recreation assertions after the controlled fixture correction.
+Recording UI three of three passed, zero skipped; final reporter/xcresult
+verification is recorded separately. Seven unchanged physical protection cases
+compiled for iPhoneOS, executed zero, explicitly NOT_RUN. Packaging did not run
+after native failures; no IPA was retained.
+
 Eight native cases cover delayed playback after Start/Toggle reservation while
 the real coordinator still reports idle, held preparation, active capture,
 recording admission after playback, failed player deactivation, held Activity

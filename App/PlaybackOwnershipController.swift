@@ -28,8 +28,10 @@ final class PlaybackOwnershipController {
     private let hardware: any PlaybackHardware
     private let afterSnapshot: (@MainActor @Sendable (RecordingSnapshot) async -> Void)?
     private(set) var hasPlaybackOwnership = false
+    private var currentRequestID: UUID?
     private var recordingOperations: Set<UUID> = []
     private var admissionGeneration = UUID()
+    private var stopGeneration = UUID()
 
     init(owner: RecordingSessionOwner, hardware: any PlaybackHardware,
          afterSnapshot: (@MainActor @Sendable (RecordingSnapshot) async -> Void)? = nil) {
@@ -39,7 +41,14 @@ final class PlaybackOwnershipController {
     }
 
     func play(at location: MeetingPlaybackLocation) async -> PlaybackOwnershipResult {
+        await play(at: location, requestID: UUID())
+    }
+
+    /// The caller retains the request ID across suspension and can later close
+    /// only the native player admitted for that exact request.
+    func play(at location: MeetingPlaybackLocation, requestID: UUID) async -> PlaybackOwnershipResult {
         let generation = admissionGeneration
+        let observedStop = stopGeneration
         let snapshot = await owner.snapshot()
         await afterSnapshot?(snapshot)
         // A start can reserve while the domain actor still reports idle. Even
@@ -50,26 +59,43 @@ final class PlaybackOwnershipController {
               ![.preparing, .recording, .stopping].contains(snapshot.phase) else {
             return .blockedByRecording
         }
-        guard stop() == .stopped else { return .cleanupPending }
+        // Stop revokes requests which have not acquired native playback yet.
+        // A cancelled task cannot activate merely because its snapshot arrives.
+        guard observedStop == stopGeneration, !Task.isCancelled else { return .unavailable }
+        guard releaseOwnedPlayback() == .stopped else { return .cleanupPending }
 
         // Claim before calling the SDK: a throwing player initialization may
         // follow a successful session activation and still require cleanup.
         hasPlaybackOwnership = true
+        currentRequestID = requestID
         do {
             try hardware.startPlayback(at: location)
             return .playing
         } catch {
-            return stop() == .stopped ? .unavailable : .cleanupPending
+            return releaseOwnedPlayback() == .stopped ? .unavailable : .cleanupPending
         }
     }
 
     /// With no playback claim, cleanup never invokes SDK deactivation and
     /// therefore cannot deactivate the recording resource's audio session.
     func stop() -> PlaybackOwnershipResult {
+        stopGeneration = UUID()
+        return releaseOwnedPlayback()
+    }
+
+    func stop(expectedRequestID: UUID) -> PlaybackOwnershipResult {
+        guard currentRequestID == expectedRequestID else { return .stopped }
+        return releaseOwnedPlayback()
+    }
+
+    /// Internal replacement/recording cleanup does not revoke the request which
+    /// is currently being admitted. Public global Stop revokes pending requests.
+    private func releaseOwnedPlayback() -> PlaybackOwnershipResult {
         guard hasPlaybackOwnership else { return .stopped }
         do {
             try hardware.stopPlayback()
             hasPlaybackOwnership = false
+            currentRequestID = nil
             return .stopped
         } catch {
             // The player may be stopped, but its session remains owned until
@@ -78,20 +104,12 @@ final class PlaybackOwnershipController {
         }
     }
 
-    /// Test-first scoped interface only. Preserve the working unscoped API
-    /// until native regressions establish RED for request-bound cleanup.
-    func play(at location: MeetingPlaybackLocation, requestID: UUID) async -> PlaybackOwnershipResult {
-        .notImplemented
-    }
-
-    func stop(expectedRequestID: UUID) -> PlaybackOwnershipResult { .notImplemented }
-
     /// MainActor-synchronous admission precedes every Start/Toggle suspension.
     /// Failure is returned before any recording preparation or hardware call.
     func prepareForRecording(operationID: UUID) -> PlaybackRecordingAdmission {
         admissionGeneration = UUID()
         recordingOperations.insert(operationID)
-        return stop() == .stopped ? .allowed : .cleanupPending
+        return releaseOwnedPlayback() == .stopped ? .allowed : .cleanupPending
     }
 
     func recordingActionCompleted(operationID: UUID) {

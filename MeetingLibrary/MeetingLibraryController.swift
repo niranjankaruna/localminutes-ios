@@ -92,9 +92,8 @@ public final class MeetingLibraryController {
         }
     }
 
-    /// Test-first interface only. A user edit must bind its meeting and reserve
-    /// its revision synchronously, before any debounce/navigation suspension.
-    /// Actual hosted assertion RED is required before implementing reservation.
+    /// Binds the meeting and reserves its revision before any debounce or
+    /// navigation suspension. Reservation alone does not perform a SQLite write.
     public func reserveManualNoteEdit(_ text: String) -> StoredManualNote? {
         guard let id = selected?.id, text != (note?.text ?? ""),
               note == nil || note?.meetingID == id else { return nil }
@@ -103,8 +102,12 @@ public final class MeetingLibraryController {
             errorMessage = "The note could not be saved."
             return nil
         }
+        // Canonicalize through the same epoch used by persisted SQLite REAL.
+        // Date's reference-epoch value otherwise retains finer binary precision
+        // than its 1970 representation and can change on a strict round trip.
+        let timestamp = Date(timeIntervalSince1970: Date().timeIntervalSince1970)
         let edit = StoredManualNote(meetingID: id, text: text,
-            editRevision: next.partialValue, modifiedAt: Date())
+            editRevision: next.partialValue, modifiedAt: timestamp)
         note = edit
         return edit
     }

@@ -134,3 +134,10 @@ PhysicaloraclepreservedbyteexactSHA3abdf26b1175adc6919065931e9ed13193d5d9e2d45f0
 
 
 D699native54/53pass/1fixtureassert/0skip,8playbackGREEN;UI3/3GREEN;7physicalcompile-onlyNOT_RUN. Core228/222pass/6fail/8assert/0skip;25recovery/deletion/note/rename/formattercasespass. RawQwen4/1pass/3fail/6assert0skip. Nextlocalpath-hint+reservationrepairsfollowactualRED;newboundary/journal/playbackregressionsnotyetexecuted.
+
+
+## 24 October 2026 — continuation08 run2 terminal evidence
+
+Exact917844b016664251c545fb70106c50cfceb62694/run40071855360 FAILED after genuine behavioral RED: core241exe228pass13fail77assert(1unexpected)0skip; actualQwen4exe1pass3explicit-schema-notImplemented failures0skip; native57exe54pass3newplaybackfail24assert0skip with xcresult confirmation; recordingUI3/3pass and strict reporter/xcresult agree. Physical7 compiled for actual iPhoneOS, executed0/NOT_RUN. No package/retainedIPA. All10actualCPUrecognizer+4livecompositions+1actualHTTPS install/import/reopen/lease/recognition cases passed. Old8recovery and8playback pass; new3recovery/3filesystem/6schema and note timestamp equality are actualRED.
+
+Only after reading/persisting RED: three bounded agents/root repaired journal rederivation/fullCAFdecode/captured-vs-timeline semantics; pending/global/scopedplayback; typed caller-schema actualmodel generation; hardlink guard; CAF parent preflight; exact SQLite-file privacy scope; canonical reservation timestamp. Existing assertions remain unchanged. GREEN remains pending. Next test-first work is automatic startup/deletion recovery and shared owner admission, plus actual-tokenizer chunk planning; no working new behavior precedes RED. Full summary/QA/interruptions/diagnostics/UI/artifact and physical/signing/renewal/endurance gates remain unfinished; project IN_PROGRESS.

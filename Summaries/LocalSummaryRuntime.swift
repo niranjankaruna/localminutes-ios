@@ -80,7 +80,8 @@ public actor LocalSummaryRuntime {
         try Task.checkCancellation()
         let cancellation = SummaryCancellation()
         return try await withTaskCancellationHandler {
-            try generate(prompt: prompt, maximumTokens: maximumTokens, cancellation: cancellation)
+            try generate(prompt: prompt, maximumTokens: maximumTokens,
+                         cancellation: cancellation, grammar: Self.jsonGrammar)
         } onCancel: {
             cancellation.cancel()
         }
@@ -89,12 +90,26 @@ public actor LocalSummaryRuntime {
     public func generateJSON(prompt: String, schema: StructuredJSONSchema,
                              maximumTokens: Int = 192) async throws -> String {
         try Task.checkCancellation()
-        throw LocalSummaryRuntimeError.notImplemented
+        let grammar = try schema.grammar()
+        try Task.checkCancellation()
+        let cancellation = SummaryCancellation()
+        return try await withTaskCancellationHandler {
+            try generate(prompt: prompt, maximumTokens: maximumTokens,
+                         cancellation: cancellation, grammar: grammar)
+        } onCancel: {
+            cancellation.cancel()
+        }
+    }
+
+    public func promptTokenCount(prompt: String) async throws -> Int {
+        try Task.checkCancellation()
+        return 0
     }
 
     public func unload() { resources = nil }
 
-    private func generate(prompt: String, maximumTokens: Int, cancellation: SummaryCancellation) throws -> String {
+    private func generate(prompt: String, maximumTokens: Int, cancellation: SummaryCancellation,
+                          grammar: String) throws -> String {
         guard let resources else { throw LocalSummaryRuntimeError.modelUnavailable }
         guard maximumTokens > 0, maximumTokens <= 1_024, prompt.utf8.count <= 65_536 else {
             throw LocalSummaryRuntimeError.generationFailed
@@ -156,7 +171,7 @@ public actor LocalSummaryRuntime {
             throw LocalSummaryRuntimeError.generationFailed
         }
         defer { llama_sampler_free(sampler) }
-        let grammarSampler = Self.jsonGrammar.withCString { grammar in
+        let grammarSampler = grammar.withCString { grammar in
             "root".withCString { root in llama_sampler_init_grammar(resources.vocabulary, grammar, root) }
         }
         guard let grammarSampler else { throw LocalSummaryRuntimeError.generationFailed }

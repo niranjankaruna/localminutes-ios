@@ -98,6 +98,10 @@ public actor SQLiteMeetingStore {
         return records
     }
 
+    /// Test-first interface only: exclusive canonical-UUID keyset, all states
+    /// except completed, positive page limit at most1,000. No query behavior yet.
+    public func unfinishedMeetings(afterID: UUID?, limit: Int = 100) throws -> [MeetingRecord] { [] }
+
     public func renameMeeting(id: UUID, title: String) throws {
         let database = try connection.database()
         guard !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {

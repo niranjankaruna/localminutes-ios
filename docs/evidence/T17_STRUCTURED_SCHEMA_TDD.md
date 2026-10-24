@@ -76,3 +76,19 @@ fresh-context and CPU constraints. It must not embed answer literals or silently
 correct citations. A grounded summary/Q&A pipeline and unknown-owner acceptance
 need their own actual test-first work and remain mandatory. All physical-device
 gates, including both owner-run125minute meetings, remain pending.
+
+Test-firstsource917844b016664251c545fb70106c50cfceb62694 pushed/remoteverified; actualcompatibleREDpending run40071855360. No newworkingbehaviorbeforeactualassertions.
+
+## Actual hosted RED, 2026-10-24
+
+Source `917844b016664251c545fb70106c50cfceb62694`, run
+[40071855360](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40071855360):
+completed core job `120806812209` compiled and executed all six new schema
+compiler cases. All six failed, 33 assertions, zero unexpected errors/skips:
+empty grammar failed order/types/literals and validation did not throw.
+Completed actual-model job `120806812055` prepared and loaded the pinned real
+Qwen/b5046 CPU runtime, executed all four original quality cases, one passed
+and three failed at the explicit new `notImplemented` overload (three errors,
+zero skips). This is the expected behavioral stub RED, not semantic GREEN.
+The existing original semantic assertions remain unchanged. Compiler/runtime
+implementation may now follow; model correctness must still be proved.

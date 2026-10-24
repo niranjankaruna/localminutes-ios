@@ -3,26 +3,26 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T06:50:15.555Z",
+  "lastUpdated": "2026-10-24T07:20:14.943Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "T08.2",
+  "currentTask": "T08.3",
   "lastVerifiedCommit": "40100fdb9a8349acdbf2d22c63eb25ce959e9388",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017962923",
   "candidateArtifact": null,
-  "nextAction": "Pushnextsource: verifypath-hintregressionrepair/immutableeditreservationUI/WALfixture; prove13newcore+3newnativeP1/schema assertionsactualRED. Onlythenimplementboundary/journal/gap/pendingplay/scoped/schemafeatures. Original4nativequalityassertionsunchanged, nowexplicitcaller-schema stub; rawfailuresremaininevidence. Fullunknownowner/citations/chunkedsummary/QApipelinesstillpending. Max6runscontinuation08 (1used).",
+  "nextAction": "Push reviewed source3 after actual 917844b RED. Verify all existing241core/57native/4semantic regressions and new16core+1actual-tokenizer test-first cases at exact SHA; only then implement startup/pagination/shared owner admission and token planning. Max6 runs continuation08;2used.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "d699fc5bfc266e03d8139869146fd55d7573fef9",
+  "remoteBranchHead": "917844b016664251c545fb70106c50cfceb62694",
   "localScriptGreen": {
-    "sourceCommit": "d699fc5bfc266e03d8139869146fd55d7573fef9",
+    "sourceCommit": null,
+    "sourceScope": "Current reviewed source3 working tree before commit",
     "platform": "Windows11/Node24.21.0",
     "executed": 59,
     "passed": 59,
     "failed": 0,
     "skipped": 0,
-    "nativePackagingVerified": false,
-    "scope": "Sameunchangedscripts/testcontentexecutedbeforecommit; nativeSwiftverificationpending."
+    "nativePackagingVerified": false
   },
   "lastVerifiedNativeBuildCommit": "40100fdb9a8349acdbf2d22c63eb25ce959e9388",
   "lastVerifiedNativeBuildCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017962923",
@@ -33,11 +33,12 @@
     "id": "2026-10-24-continuation-08",
     "maxNewRuns": 6,
     "newRunIds": [
-      40069154630
+      40069154630,
+      40071855360
     ],
     "limitReached": false,
-    "costGuardObservedAt": "2026-10-24T05:49:57.365Z",
-    "costGuardBasis": "Live PUBLIC repo/ADMIN/remote verified; standardpublic macos-15-intel only, no uploads orpaidrunners. Recheckofficialpolicybeforedispatch.",
+    "costGuardObservedAt": "2026-10-24T07:20:14.943Z",
+    "costGuardBasis": "Live PUBLIC/ADMIN/HTTPS origin reverified; official GitHub Actions billing confirms standard public macos-15-intel compute free. No paid/larger runners, cache/upload, artifact retention change or billing mutation. Previous run40071855360 terminal.",
     "jobLimits": {
       "coreMinutes": 15,
       "summaryQualityMinutes": 15,
@@ -45,32 +46,36 @@
     }
   },
   "latestCIRun": {
-    "sourceCommit": "d699fc5bfc266e03d8139869146fd55d7573fef9",
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40069154630",
+    "sourceCommit": "917844b016664251c545fb70106c50cfceb62694",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40071855360",
     "status": "completed",
-    "ordinal": 1,
+    "ordinal": 2,
     "conclusion": "failure",
     "core": {
-      "executed": 228,
-      "passed": 222,
-      "failed": 6,
-      "assertionFailures": 8,
+      "executed": 241,
+      "passed": 228,
+      "failed": 13,
+      "assertionFailures": 77,
+      "unexpected": 1,
       "skipped": 0
     },
     "summary": {
       "executed": 4,
       "passed": 1,
       "failed": 3,
-      "assertionFailures": 6,
-      "skipped": 0
+      "assertionFailures": 3,
+      "unexpected": 3,
+      "skipped": 0,
+      "scope": "New explicit-schema stub RED; original semantic assertions unchanged."
     },
     "native": {
-      "executed": 54,
-      "passed": 53,
-      "failed": 1,
-      "assertionFailures": 1,
+      "executed": 57,
+      "passed": 54,
+      "failed": 3,
+      "assertionFailures": 24,
+      "unexpected": 0,
       "skipped": 0,
-      "scope": "All8playbackpass;4of5storagecasespass;onlyautomaticWALunlinkfixturepreconditionfailed."
+      "resultBundleVerified": true
     },
     "ui": {
       "executed": 3,
@@ -78,7 +83,13 @@
       "failed": 0,
       "skipped": 0,
       "resultBundleVerified": true
-    }
+    },
+    "physical": {
+      "compiled": 7,
+      "executed": 0,
+      "status": "NOT_RUN"
+    },
+    "retainedArtifact": false
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -148,7 +159,7 @@
     "T06.2.1",
     "T06.2.2.1"
   ],
-  "remoteBranchHeadScope": "Exactsourcecommitpushverified; implementedaftercdf4a06RED; neweditreservation3casesstillnil-stubtest-first.",
+  "remoteBranchHeadScope": "ExactsourceHEADpushverified; newboundary/playback/schema test-first stubs, existingpath/reservationrepairsfollowpriorRED.",
   "nativeCompileRepair": {
     "status": "CODE_COMPLETE_PENDING_DEVICE",
     "candidatePath": "docs/drafts/T06.1/ActivityKitOperations.swift.pending",
@@ -604,7 +615,7 @@
   "pendingReviewRegressions": {
     "expectedNewCore": 7,
     "expectedNewNative": 3,
-    "redVerified": false,
+    "redVerified": true,
     "tests": [
       "Forgedrecoveryjournal",
       "Gappedcapture-count/timelineandplayback",
@@ -615,16 +626,30 @@
       "DirectoryURLhintfocusedregression(existingbroaderactualREDalreadyrepaired)",
       "Pendingplaystop/cancel/scopedreplacementcleanup"
     ],
-    "noProductionRepairsBeforeRed": true
+    "noProductionRepairsBeforeRed": true,
+    "redSourceCommit": "917844b016664251c545fb70106c50cfceb62694",
+    "redRunId": 40071855360,
+    "productionImplemented": true,
+    "greenVerified": false
   },
   "nextTestFirstBatch": {
-    "expectedCore": 241,
+    "expectedCore": 257,
     "expectedNativeSimulator": 57,
     "physicalCasesCompiledOnly": 7,
-    "newCoreCases": 13,
-    "newNativeCases": 3,
-    "schemaRuntimeAPI": "explicitorderedcallerschema;compilerandruntimeoverloadareminimalnoopsuntilactualRED",
-    "semanticAssertionsUnchanged": true,
+    "newCoreCases": 16,
+    "newActualModelCases": 1,
+    "expectedActualModelCases": 5,
+    "scope": "T08 startup4 + unfinished pagination2 + shared owner admission4; T18 chunk planner6 + actual tokenizer1. Explicit minimal stubs only until hosted RED.",
+    "actualRedVerified": false,
     "productionRepairsPendingActualRed": true
+  },
+  "latestActualDownloadIntegration": {
+    "sourceCommit": "917844b016664251c545fb70106c50cfceb62694",
+    "runId": 40071855360,
+    "executed": 1,
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0,
+    "scope": "Actual HTTPS four-file pinned install/reopen/import/lease and native CPU recognition; macOS only."
   }
 }

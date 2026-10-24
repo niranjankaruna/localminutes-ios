@@ -51,6 +51,15 @@ public enum PersistentFilePolicy {
                 guard values.isDirectory == true || values.isRegularFile == true else {
                     throw PersistentFilePolicyError.unsupportedItem
                 }
+                if values.isRegularFile == true {
+                    let attributes = try FileManager.default.attributesOfItem(atPath: current.path)
+                    guard let links = attributes[.referenceCount] as? NSNumber else {
+                        throw PersistentFilePolicyError.unsupportedItem
+                    }
+                    // Permission/protection/backup changes affect the inode,
+                    // including links outside this trusted pathname tree.
+                    guard links.uint64Value == 1 else { throw PersistentFilePolicyError.unsafePath }
+                }
                 if current.path != path.path, values.isDirectory != true {
                     throw PersistentFilePolicyError.unsafePath
                 }

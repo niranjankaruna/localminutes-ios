@@ -50,6 +50,7 @@ public final class SegmentCAFWriter {
         self.maximumSegmentFrames = maximumSegmentFrames
         self.scratch = scratch
         do {
+            try Self.preflightDirectory(self.directory)
             var isDirectory: ObjCBool = false
             if FileManager.default.fileExists(atPath: self.directory.path, isDirectory: &isDirectory) {
                 guard isDirectory.boolValue else { throw SegmentWriterError.ioFailed }
@@ -63,6 +64,44 @@ public final class SegmentCAFWriter {
             try PersistentFilePolicy.protectDirectory(self.directory)
         } catch let error as SegmentWriterError { throw error }
         catch { throw SegmentWriterError.ioFailed }
+    }
+
+    /// Only OS-provided support/temp boundaries may contain recording storage.
+    /// Trust the OS boundary's canonical alias (for example /var on Darwin),
+    /// then inspect every caller-owned component before any mkdir can follow a
+    /// link and create files outside that boundary.
+    private static func preflightDirectory(_ directory: URL) throws {
+        let manager = FileManager.default
+        let osRoots = [manager.temporaryDirectory] +
+            manager.urls(for: .applicationSupportDirectory, in: .userDomainMask)
+        let roots = osRoots.flatMap { root in
+            [root.standardizedFileURL, root.resolvingSymlinksInPath().standardizedFileURL]
+        }
+        guard let root = roots.filter({ directory.path.hasPrefix($0.path + "/") })
+            .max(by: { $0.path.count < $1.path.count }) else {
+            throw SegmentWriterError.ioFailed
+        }
+        let suffix = directory.pathComponents.dropFirst(root.pathComponents.count)
+        var current = root
+        for component in suffix {
+            current.appendPathComponent(component)
+            do {
+                let attributes = try manager.attributesOfItem(atPath: current.path)
+                guard attributes[.type] as? FileAttributeType == .typeDirectory else {
+                    throw SegmentWriterError.ioFailed
+                }
+            } catch let error as NSError where error.domain == NSCocoaErrorDomain &&
+                (error.code == NSFileNoSuchFileError || error.code == NSFileReadNoSuchFileError) {
+                // A missing component is allowed only after all existing
+                // ancestors have been inspected; creation happens afterwards.
+            }
+        }
+        let expected = suffix.reduce(root.resolvingSymlinksInPath().standardizedFileURL) {
+            $0.appendingPathComponent($1)
+        }.standardizedFileURL
+        guard directory.resolvingSymlinksInPath().standardizedFileURL.path == expected.path else {
+            throw SegmentWriterError.ioFailed
+        }
     }
 
     public func append(_ buffer: AVAudioPCMBuffer) throws {

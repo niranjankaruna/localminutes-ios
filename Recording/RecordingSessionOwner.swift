@@ -68,6 +68,7 @@ public final class RecordingSessionOwner {
     private let capture: MicrophoneCaptureRuntime
     private let activities: LiveActivityController
     private let beforeReservation: (@MainActor @Sendable () async -> Void)?
+    private let usageAdmission: (any RecordingUsageAdmission)?
     private var current: RecordingOwnerEpoch?
 
     public private(set) var completedManifest: AudioCaptureManifest?
@@ -76,10 +77,11 @@ public final class RecordingSessionOwner {
         permission: any CapturePermissionSource,
         hardware: any CaptureHardware,
         activityBackend: any LiveActivityBackend,
-        preparation: any RecordingPreparationSource
+        preparation: any RecordingPreparationSource,
+        usageAdmission: (any RecordingUsageAdmission)? = nil
     ) {
         self.init(permission: permission, hardware: hardware, activityBackend: activityBackend,
-                  preparation: preparation, beforeReservation: nil)
+                  preparation: preparation, beforeReservation: nil, usageAdmission: usageAdmission)
     }
 
     /// Deterministic scheduling hook only. Public production construction
@@ -89,11 +91,14 @@ public final class RecordingSessionOwner {
         hardware: any CaptureHardware,
         activityBackend: any LiveActivityBackend,
         preparation: any RecordingPreparationSource,
-        beforeReservation: (@MainActor @Sendable () async -> Void)?
+        beforeReservation: (@MainActor @Sendable () async -> Void)?,
+        usageAdmission: (any RecordingUsageAdmission)? = nil
     ) {
         let bridge = RecordingOwnerEventBridge()
         self.preparation = preparation
         self.beforeReservation = beforeReservation
+        // Test-first interface only: use begins after compatible behavioral RED.
+        self.usageAdmission = usageAdmission
         capture = MicrophoneCaptureRuntime(permission: permission, hardware: hardware,
                                             normalizedSink: preparation.normalizedSink) {
             bridge.capture($0)

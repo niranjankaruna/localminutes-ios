@@ -76,13 +76,19 @@ public actor MeetingRecoveryCoordinator {
         catch { throw MeetingRecoveryError.invalidManifest }
         try validate(manifest, for: meetingID, directory: directory)
         let reportURL = directory.appendingPathComponent("recovery-report.json")
+        // Rebuild the plan from the source manifest and actual decoded files on
+        // every attempt. A journal is retry evidence, never file-move authority.
+        // This also recognizes a previously quarantined corrupt/tail file, so a
+        // real metadata failure can be retried without classifying it as lost.
+        let observed = try inspect(manifest, directory: directory, rows: rows)
         let report: MeetingRecoveryReport
         if FileManager.default.fileExists(atPath: reportURL.path), meeting.recordingState != .completed {
             do { report = try JSONDecoder().decode(MeetingRecoveryReport.self, from: boundedData(reportURL)) }
             catch { throw MeetingRecoveryError.invalidManifest }
             try validate(report, against: manifest)
+            guard report == observed else { throw MeetingRecoveryError.invalidManifest }
         } else {
-            report = try inspect(manifest, directory: directory, rows: rows)
+            report = observed
         }
         // Finished meetings may be inspected, but recovery never rewrites them.
         guard meeting.recordingState != .completed else { return report }
@@ -165,14 +171,16 @@ public actor MeetingRecoveryCoordinator {
             throw MeetingRecoveryError.invalidManifest
         }
         var previousEnd: Int64 = 0
+        var capturedFrames: Int64 = 0
         var names: Set<String> = []
         for segment in manifest.segments {
             guard safeAudioName(segment.relativePath), names.insert(segment.relativePath).inserted else {
                 throw MeetingRecoveryError.unsafePath
             }
             let end = segment.startFrame.addingReportingOverflow(segment.frameCount)
+            let captured = capturedFrames.addingReportingOverflow(segment.frameCount)
             guard segment.startFrame >= previousEnd, segment.frameCount > 0,
-                  segment.frameCount <= 960_000, !end.overflow else {
+                  segment.frameCount <= 960_000, !end.overflow, !captured.overflow else {
                 throw MeetingRecoveryError.invalidManifest
             }
             let file = directory.appendingPathComponent(segment.relativePath)
@@ -180,8 +188,11 @@ public actor MeetingRecoveryCoordinator {
                 throw MeetingRecoveryError.unsafePath
             }
             previousEnd = end.partialValue
+            capturedFrames = captured.partialValue
         }
-        guard previousEnd == manifest.totalFrames else { throw MeetingRecoveryError.invalidManifest }
+        // totalFrames is captured audio, matching the existing playback mapper.
+        // Global timeline extent can be larger when the manifest contains gaps.
+        guard capturedFrames == manifest.totalFrames else { throw MeetingRecoveryError.invalidManifest }
     }
 
     private func inspect(_ manifest: AudioCaptureManifest, directory: URL,
@@ -191,21 +202,28 @@ public actor MeetingRecoveryCoordinator {
         var gaps: [AudioRecoveryGap] = []
         var quarantine: Set<String> = []
         let committed = Set(manifest.segments.map(\.relativePath))
+        let quarantineDirectory = directory.appendingPathComponent("RecoveryQuarantine", isDirectory: true)
+        let hasQuarantine = FileManager.default.fileExists(atPath: quarantineDirectory.path)
+        if hasQuarantine, try kind(quarantineDirectory) != .typeDirectory {
+            throw MeetingRecoveryError.unsafePath
+        }
         for segment in manifest.segments {
             if segment.startFrame > previousEnd {
                 gaps.append(.init(startSample: previousEnd, endSample: segment.startFrame, reason: .manifestGap))
             }
             let end = segment.startFrame + segment.frameCount // Checked above.
             let file = directory.appendingPathComponent(segment.relativePath)
-            if !FileManager.default.fileExists(atPath: file.path) {
+            let saved = quarantineDirectory.appendingPathComponent(segment.relativePath)
+            let originalExists = FileManager.default.fileExists(atPath: file.path)
+            let savedExists = hasQuarantine && FileManager.default.fileExists(atPath: saved.path)
+            guard !(originalExists && savedExists) else { throw MeetingRecoveryError.invalidManifest }
+            if !originalExists && !savedExists {
                 gaps.append(.init(startSample: segment.startFrame, endSample: end, reason: .missingAudio))
             } else {
-                var valid = false
-                if let audio = try? AVAudioFile(forReading: file) {
-                    valid = audio.length == segment.frameCount && audio.fileFormat.sampleRate == 16_000
-                        && audio.fileFormat.channelCount == 1 && audio.fileFormat.commonFormat == .pcmFormatInt16
-                    audio.close()
-                }
+                let valid = fullyReadable(savedExists ? saved : file, expectedFrames: segment.frameCount)
+                // A healthy committed file in quarantine cannot be justified by
+                // a report claiming corruption. Preserve it and fail closed.
+                guard !(savedExists && valid) else { throw MeetingRecoveryError.invalidManifest }
                 if valid { durable += segment.frameCount }
                 else {
                     gaps.append(.init(startSample: segment.startFrame, endSample: end, reason: .corruptAudio))
@@ -217,20 +235,57 @@ public actor MeetingRecoveryCoordinator {
         for file in try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil) {
             if safeAudioName(file.lastPathComponent), !committed.contains(file.lastPathComponent) {
                 guard try kind(file) == .typeRegular else { throw MeetingRecoveryError.unsafePath }
+                if hasQuarantine, FileManager.default.fileExists(atPath:
+                    quarantineDirectory.appendingPathComponent(file.lastPathComponent).path) {
+                    throw MeetingRecoveryError.invalidManifest
+                }
                 quarantine.insert(file.lastPathComponent)
             }
         }
+        if hasQuarantine {
+            for file in try FileManager.default.contentsOfDirectory(at: quarantineDirectory,
+                includingPropertiesForKeys: nil) {
+                if safeAudioName(file.lastPathComponent), !committed.contains(file.lastPathComponent) {
+                    guard try kind(file) == .typeRegular else { throw MeetingRecoveryError.unsafePath }
+                    quarantine.insert(file.lastPathComponent)
+                }
+            }
+        }
         return MeetingRecoveryReport(meetingID: manifest.sessionID, durableFrameCount: durable,
-            timelineEndSample: manifest.totalFrames,
-            resumeFromSample: min(rows.map(\.endSample).max() ?? 0, manifest.totalFrames),
+            timelineEndSample: previousEnd,
+            resumeFromSample: min(rows.map(\.endSample).max() ?? 0, previousEnd),
             gaps: gaps, quarantinedFiles: quarantine.sorted())
     }
 
+    /// Container length can describe frames whose PCM bytes were never written.
+    /// Decode every claimed frame using one bounded buffer before counting the
+    /// segment as durable; short reads/native errors quarantine the whole segment.
+    private func fullyReadable(_ file: URL, expectedFrames: Int64) -> Bool {
+        do {
+            let audio = try AVAudioFile(forReading: file)
+            defer { audio.close() }
+            guard audio.length == expectedFrames, audio.fileFormat.sampleRate == 16_000,
+                  audio.fileFormat.channelCount == 1, audio.fileFormat.commonFormat == .pcmFormatInt16,
+                  let buffer = AVAudioPCMBuffer(pcmFormat: audio.processingFormat, frameCapacity: 4_096) else {
+                return false
+            }
+            var decoded: Int64 = 0
+            while decoded < expectedFrames {
+                let requested = AVAudioFrameCount(min(Int64(buffer.frameCapacity), expectedFrames - decoded))
+                try audio.read(into: buffer, frameCount: requested)
+                guard buffer.frameLength > 0, buffer.frameLength <= requested else { return false }
+                decoded += Int64(buffer.frameLength)
+            }
+            return decoded == expectedFrames
+        } catch { return false }
+    }
+
     private func validate(_ report: MeetingRecoveryReport, against manifest: AudioCaptureManifest) throws {
+        let timelineEnd = manifest.segments.last.map { $0.startFrame + $0.frameCount } ?? 0
         guard report.meetingID == manifest.sessionID,
-              report.timelineEndSample == manifest.totalFrames,
+              report.timelineEndSample == timelineEnd,
               report.durableFrameCount >= 0, report.durableFrameCount <= manifest.totalFrames,
-              report.resumeFromSample >= 0, report.resumeFromSample <= manifest.totalFrames,
+              report.resumeFromSample >= 0, report.resumeFromSample <= report.timelineEndSample,
               Set(report.quarantinedFiles).count == report.quarantinedFiles.count,
               report.quarantinedFiles.allSatisfy(safeAudioName) else {
             throw MeetingRecoveryError.invalidManifest
