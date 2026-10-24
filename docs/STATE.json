@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T18:05:12.297Z",
+  "lastUpdated": "2026-10-24T18:09:40.581Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -1694,6 +1694,7 @@
     "sqliteSnapshot": 5,
     "actualRED": false,
     "productionBehavior": "NOT_IMPLEMENTED_STUBS_ONLY",
-    "evidence": "docs/evidence/MVP1_MODEL_DELIVERY_2026_10_24.md"
+    "evidence": "docs/evidence/MVP1_MODEL_DELIVERY_2026_10_24.md",
+    "testFirstCommit": "31513b124855a0f9d4f137f76d4ab5801c95511f"
   }
 }

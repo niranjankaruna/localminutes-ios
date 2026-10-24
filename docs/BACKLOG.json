@@ -1445,7 +1445,7 @@
   ],
   "executionPausedByOwner": false,
   "resumeAction": "Next bounded invocation: read current required checkpoint, verify Git/PUBLIC zero-spend guard and terminal GREEN run40117673355 at4aec851; run targeted MVP2 portable RED (summaryresume4, HTTPresume11, archive10, SQLite snapshot5) plus actual-model recovery RED (integrity2, selectedmodel5). Implement only after actual assertions; keep modelchoice IPA4aec851 separate from test-first branch HEAD. No full-suite-per-edit run.",
-  "lastUpdated": "2026-10-24T18:05:12.297Z",
+  "lastUpdated": "2026-10-24T18:09:40.583Z",
   "latestVerification": {
     "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
     "runId": 40079629180,
@@ -1597,6 +1597,7 @@
     "sqliteSnapshot": 5,
     "actualRED": false,
     "productionBehavior": "NOT_IMPLEMENTED_STUBS_ONLY",
-    "evidence": "docs/evidence/MVP1_MODEL_DELIVERY_2026_10_24.md"
+    "evidence": "docs/evidence/MVP1_MODEL_DELIVERY_2026_10_24.md",
+    "testFirstCommit": "31513b124855a0f9d4f137f76d4ab5801c95511f"
   }
 }
