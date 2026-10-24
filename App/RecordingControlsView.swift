@@ -8,6 +8,7 @@ struct RecordingControlsView: View {
     let application: RecordingApplication
     @Environment(\.scenePhase) private var scenePhase
     @State private var snapshot: RecordingSnapshot?
+    @State private var progress: RecordingProgress?
     @State private var isStarting = false
     @State private var isStopping = false
     @State private var commandError: String?
@@ -26,6 +27,9 @@ struct RecordingControlsView: View {
                         .font(.title2.weight(.semibold))
                     status
                         .frame(maxWidth: .infinity, alignment: .leading)
+                    if snapshot?.phase == .recording {
+                        recordingProgress
+                    }
                     VStack(spacing: 12) {
                         Button {
                             Task { await start() }
@@ -88,6 +92,51 @@ struct RecordingControlsView: View {
         }
     }
 
+    private var recordingProgress: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if let elapsed = progress?.elapsedSeconds {
+                Text("Elapsed \(elapsedTime(elapsed))")
+                    .monospacedDigit()
+                    .accessibilityIdentifier("recording.elapsed")
+            } else {
+                Text("Elapsed time unavailable")
+                    .accessibilityIdentifier("recording.elapsed")
+            }
+            Group {
+                switch progress?.status ?? .unknown {
+                case .caughtUp:
+                    Text("Transcription is caught up.")
+                        .foregroundStyle(.secondary)
+                case .processing:
+                    if let seconds = progress?.backlogSeconds {
+                        Text("Processing audio: about \(seconds, specifier: "%.1f") seconds queued.")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("Transcription progress is not available yet.")
+                            .foregroundStyle(.secondary)
+                    }
+                case .lagging:
+                    if let seconds = progress?.backlogSeconds {
+                        Text("Transcription is behind: about \(seconds, specifier: "%.1f") seconds queued.")
+                            .foregroundStyle(.orange)
+                    } else {
+                        Text("Transcription progress is not available yet.")
+                            .foregroundStyle(.secondary)
+                    }
+                case .unknown:
+                    Text("Transcription progress is not available yet.")
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .font(.caption)
+            .accessibilityIdentifier("recording.backlog")
+        }
+    }
+
+    private func elapsedTime(_ seconds: Int64) -> String {
+        String(format: "%02lld:%02lld:%02lld", seconds / 3_600, (seconds / 60) % 60, seconds % 60)
+    }
+
     @ViewBuilder
     private var status: some View {
         if isStopping || snapshot?.cleanupPending == true || snapshot?.phase == .stopping {
@@ -117,6 +166,12 @@ struct RecordingControlsView: View {
         let latest = await owner.snapshot()
         guard !Task.isCancelled else { return }
         snapshot = latest
+        let recorder = application.services?.metrics
+        let origin = recorder?.firstAudioQueuedAtNanoseconds
+        let sampled = recorder?.snapshot()
+        let observedAt = recorder?.nowNanoseconds() ?? 0
+        progress = RecordingProgressPresenter.make(recording: latest,
+            firstAudioQueuedAtNanoseconds: origin, observedAtNanoseconds: observedAt, metrics: sampled)
     }
 
     private func start() async {

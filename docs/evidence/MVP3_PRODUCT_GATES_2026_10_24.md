@@ -67,3 +67,9 @@ RED; parser correction permits legitimate empty tables while retaining required
 CPU recognizer entrypoint checks. No stripping/relicensing/runtime replacement
 is an acceptable way to manufacture GREEN. Source/build inventory and actual
 CPU model regressions remain required after any ASR-only rebuild.
+
+Root repeated this three-case actual artifact audit at pushed test source
+d6efa438161bfe23079e6409707fe127201e74c0:2PASS/1FAIL/0skip,0.316s, exit1.
+Both controls passed,21 defined TTS symbols remain. Exact source log stays
+ignored at .agent-local/native-hygiene/d6efa43-red.log. This confirms RED before
+the separately prepared same-revision ASR-only dependency repair.
