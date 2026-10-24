@@ -1,10 +1,14 @@
 import Foundation
 
-public enum StructuredJSONType: Equatable, Sendable {
+public indirect enum StructuredJSONType: Equatable, Sendable {
     case string
     case boolean
     case stringEnumeration([String])
     case stringArray(allowedValues: [String])
+    case object([StructuredJSONField])
+    case array(element: StructuredJSONType, maximumItems: Int)
+    case nullable(StructuredJSONType)
+    case integerEnumeration([Int64])
 }
 
 public struct StructuredJSONField: Equatable, Sendable {
@@ -21,6 +25,7 @@ public enum StructuredJSONSchemaError: Error, Equatable, Sendable {
     case emptyFields, invalidFieldName, duplicateFieldName, tooManyFields
     case emptyEnumeration, duplicateEnumerationValue, invalidEnumerationValue, tooManyEnumerationValues
     case invalidBounds, grammarTooLarge
+    case unsupportedType
 }
 
 /// Caller-owned field order/types and supplied evidence IDs. No answer values
@@ -64,6 +69,8 @@ public struct StructuredJSONSchema: Equatable, Sendable {
                     rules.append("field-\(index) ::= \"[\" ws (enum-\(index) (\",\" ws enum-\(index))*)? \"]\" ws")
                     rules.append("enum-\(index) ::= (\(alternatives)) ws")
                 }
+            case .object, .array, .nullable, .integerEnumeration:
+                throw StructuredJSONSchemaError.unsupportedType
             }
             // Reject growing domains before constructing another field. The
             // final check below includes all separators and root punctuation.

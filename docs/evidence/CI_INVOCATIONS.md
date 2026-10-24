@@ -197,3 +197,8 @@ Native runtime/model experiment is real but remains separate desktop evidence.
 ## 2026-10-24-continuation-08 — terminal
 
 Six permitted run IDs:40069154630,40071855360,40073883889,40075611744,40077503748,40079629180. All terminal. Final source `db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04` / [run40079629180](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180) SUCCESS:269core+59scripts+85TSAN+5actualmodel+59native+3UI+2bundle+13archive cases pass,0fail/skip/reported races. Standard public macos-15-intel,15/15/35minute job bounds, no uploads/paid infrastructure/billing changes. Physical7compiled/0executedNOT_RUN. No retained candidate. See [checkpoint](CONTINUATION_08_CHECKPOINT.md) for exact scope and artifact metadata. No run7/rerun; next bounded invocation starts with T12.2 assertion RED.
+
+
+## 2026-10-24-continuation-09
+
+Previous turn classification: progress. Exact db1b8d5/run40079629180 SUCCESS and docs-only8dbe8c9 remote reverified. PUBLIC/ADMIN and official free standard hosted-runner compute verified; no uploads/paid runners/billing mutations. Six-run cap, one active branch run and15/15/35minute job bounds. Test-first T12.2/T13.1/T18.3/T19.2 source ready;0/6 new runs at preparation.

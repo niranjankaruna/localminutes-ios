@@ -618,3 +618,8 @@ Bounded child components T17.2/T17.3/T18.1/T18.2/T19.1 are verified within their
 An unsigned12,632,611-byte IPA was verified on the ephemeral runner (SHA256 `e3eba563ccbd549987a43ed29c5da591fbf3a41cfa5357fc96e99372b0f721c0`), **not retained or delivered**. candidateArtifact remains null; ARTIFACT_STORAGE_HEADROOM_UNVERIFIED affects delivery only. All signing/extension/ActionButton/locked/offline-phone/renewal/protection and owner2x125-minute gates remain NOT_RUN.
 
 Six of six runs are terminal. No seventh dispatch/re-run/code-triggering push this invocation. Reviewed T12Signals3/T13Metrics5/T18Pipeline5/T19QA4 drafts remain inactive, uncompiled and NOT_RUN. **Next:** Next bounded invocation: read required documents and verify Git/remote, terminal run40079629180 at db1b8d5, and zero-spend cost guard. Activate T12.2 three interruption/signal tests with minimal stubs and strict reporting, commit/push test-first, and prove hosted assertion RED before implementation. T13Metrics/T18Pipeline/T19QA drafts are inactive NOT_RUN and may be delegated within one branch and six runs. Current invocation is at six of six terminal runs: no run7, rerun or code-triggering push.
+
+
+## Continuation09 test-first activation
+
+Previous turn: progress, exact db1b8d5 full GREEN reverified. Activated17 new cases:13core+2native+2actualQwen, expected282core/61native/7actualmodel/3UI. Only minimal empty/no-op/throwing interfaces added; no new behavior before compatible assertions. Source push/RED pending. See [TDD evidence](evidence/T12_T13_T18_T19_TDD.md). Current bounded budget0/6 new runs; public standard compute guard reverified, no uploads or paid infrastructure. All physical gates remain NOT_RUN.

@@ -3,15 +3,15 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T09:18:23.358Z",
+  "lastUpdated": "2026-10-24T09:27:50.540Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "T12.2 interruption test-first activation (next bounded invocation)",
+  "currentTask": "T12.2 interruption plus bounded T13/T18/T19 test-first integration",
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "Next bounded invocation: read required documents and verify Git/remote, terminal run40079629180 at db1b8d5, and zero-spend cost guard. Activate T12.2 three interruption/signal tests with minimal stubs and strict reporting, commit/push test-first, and prove hosted assertion RED before implementation. T13Metrics/T18Pipeline/T19QA drafts are inactive NOT_RUN and may be delegated within one branch and six runs. Current invocation is at six of six terminal runs: no run7, rerun or code-triggering push.",
+  "nextAction": "Push reviewed test-first interfaces/tests; require core282/native61/actualQwen7 discovery and actual missing-behavior assertions before implementing each corresponding slice. No production before compatible RED. Prior db1b8d5 remains last full GREEN.",
   "pendingPushCommit": null,
   "remoteBranchHead": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "localScriptGreen": {
@@ -30,32 +30,16 @@
     "ARTIFACT_STORAGE_HEADROOM_UNVERIFIED"
   ],
   "ciInvocation": {
-    "id": "2026-10-24-continuation-08",
+    "id": "2026-10-24-continuation-09",
     "maxNewRuns": 6,
-    "newRunIds": [
-      40069154630,
-      40071855360,
-      40073883889,
-      40075611744,
-      40077503748,
-      40079629180
-    ],
-    "limitReached": true,
-    "costGuardObservedAt": "2026-10-24T07:20:14.943Z",
-    "costGuardBasis": "Live PUBLIC/ADMIN/HTTPS origin reverified; official GitHub Actions billing confirms standard public macos-15-intel compute free. No paid/larger runners, cache/upload, artifact retention change or billing mutation. Previous run40071855360 terminal.",
+    "newRunIds": [],
+    "limitReached": false,
+    "costGuardObservedAt": "2026-10-24T09:27:50.539Z",
+    "costGuardBasis": "Live PUBLIC/ADMIN/HTTPS origin and terminal prior run40079629180 reverified; official https://docs.github.com/en/billing/concepts/product-billing/github-actions rechecked. Standard public macos-15-intel compute free; no larger/paid runner, uploads/caches or billing mutation.",
     "jobLimits": {
       "coreMinutes": 15,
       "summaryQualityMinutes": 15,
       "nativeMinutes": 35
-    },
-    "finalResult": {
-      "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
-      "runId": 40079629180,
-      "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
-      "status": "completed",
-      "conclusion": "success",
-      "completedAt": "2026-10-24T09:07:57Z",
-      "evidence": "docs/evidence/CONTINUATION_08_CHECKPOINT.md"
     }
   },
   "latestCIRun": {
@@ -124,13 +108,7 @@
     "fullNativeGreenVerified": true,
     "fullNativeGreenCommit": "b6f4bdf0231d72d279ae690c5ce20936b8225459"
   },
-  "completedThisInvocation": [
-    "T17.2",
-    "T17.3",
-    "T18.1",
-    "T18.2",
-    "T19.1"
-  ],
+  "completedThisInvocation": [],
   "codeCompletePendingDevice": [
     "T05",
     "T05.3",
@@ -150,10 +128,7 @@
     "validatedRepairAttempts": 1,
     "missingLookupPolicyNeedsRegressionRed": false
   },
-  "codeCompletedThisInvocation": [
-    "T08.4",
-    "T08.5"
-  ],
+  "codeCompletedThisInvocation": [],
   "codeCompletionScope": "Only named bounded child components are verified: canonical formatter, flat caller schema, tokenizer/whole-segment planner, extractive decoder/merge and selected-meeting FTS. Shared owner lifetime and native Start-before-model startup are code complete pending device validation. Full baseline, summaries/Q&A/UI, resource admission and physical gates remain IN_PROGRESS.",
   "ownerCompositionTestFirst": {
     "testCount": 12,
@@ -279,7 +254,23 @@
     "currentCheckpoint": "docs/evidence/CONTINUATION_08_CHECKPOINT.md",
     "currentSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04"
   },
-  "parallelTasks": [],
+  "parallelTasks": [
+    {
+      "agent": "/root/bootstrap_review",
+      "scope": "T13 test-first activation",
+      "status": "completed"
+    },
+    {
+      "agent": "/root/verified_models",
+      "scope": "T18 test-first activation",
+      "status": "completed"
+    },
+    {
+      "agent": "/root/meeting_storage",
+      "scope": "T19 test-first activation",
+      "status": "completed"
+    }
+  ],
   "oneHourPush": {
     "startedAt": "2026-10-23T22:06:40Z",
     "targetCheckpointAt": "2026-10-23T23:06:40Z",
@@ -600,6 +591,37 @@
       },
       "classification": "progress",
       "result": "Ownerpausecheckpoint8e5dd3a. Test-firstcdf4a06 run completed whilepaused; resultsnowread."
+    },
+    {
+      "id": "2026-10-24-continuation-08",
+      "maxNewRuns": 6,
+      "newRunIds": [
+        40069154630,
+        40071855360,
+        40073883889,
+        40075611744,
+        40077503748,
+        40079629180
+      ],
+      "limitReached": true,
+      "costGuardObservedAt": "2026-10-24T07:20:14.943Z",
+      "costGuardBasis": "Live PUBLIC/ADMIN/HTTPS origin reverified; official GitHub Actions billing confirms standard public macos-15-intel compute free. No paid/larger runners, cache/upload, artifact retention change or billing mutation. Previous run40071855360 terminal.",
+      "jobLimits": {
+        "coreMinutes": 15,
+        "summaryQualityMinutes": 15,
+        "nativeMinutes": 35
+      },
+      "finalResult": {
+        "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+        "runId": 40079629180,
+        "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
+        "status": "completed",
+        "conclusion": "success",
+        "completedAt": "2026-10-24T09:07:57Z",
+        "evidence": "docs/evidence/CONTINUATION_08_CHECKPOINT.md"
+      },
+      "classification": "progress",
+      "result": "Exact db1b8d5 full regression GREEN and reviewed docs checkpoint8dbe8c9, all six runs terminal."
     }
   ],
   "executionPause": {
@@ -770,38 +792,20 @@
     },
     "evidence": "docs/evidence/CONTINUATION_08_CHECKPOINT.md"
   },
-  "inactiveTestFirstDrafts": [
-    {
-      "task": "T12.2",
-      "path": "docs/drafts/T12Signals/README.md",
-      "testCount": 3,
-      "compiled": false,
-      "executed": false,
-      "productionImplemented": false
-    },
-    {
-      "task": "T13.1",
-      "path": "docs/drafts/T13Metrics/README.md",
-      "testCount": 5,
-      "compiled": false,
-      "executed": false,
-      "productionImplemented": false
-    },
-    {
-      "task": "T18.3",
-      "path": "docs/drafts/T18Pipeline/README.md",
-      "testCount": 5,
-      "compiled": false,
-      "executed": false,
-      "productionImplemented": false
-    },
-    {
-      "task": "T19.2",
-      "path": "docs/drafts/T19QA/README.md",
-      "testCount": 4,
-      "compiled": false,
-      "executed": false,
-      "productionImplemented": false
-    }
-  ]
+  "inactiveTestFirstDrafts": [],
+  "testFirstActivation": {
+    "evidence": "docs/evidence/T12_T13_T18_T19_TDD.md",
+    "newCore": 13,
+    "newNative": 2,
+    "newActualQwen": 2,
+    "expectedCore": 282,
+    "expectedNative": 61,
+    "expectedActualQwen": 7,
+    "expectedUI": 3,
+    "redVerified": false,
+    "compiled": false,
+    "productionImplemented": false,
+    "sourceCommit": null,
+    "runId": null
+  }
 }

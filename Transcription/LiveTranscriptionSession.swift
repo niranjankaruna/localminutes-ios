@@ -32,13 +32,15 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
     private let store: SQLiteMeetingStore
     private let meetingsDirectory: URL
     private let router: TranscriptSinkRouter
+    @ObservationIgnored private let metrics: TranscriptionMetricsRecorder?
     @ObservationIgnored private var current: LiveTranscriptEpoch?
 
     public init(models: ModelInstallationManager, store: SQLiteMeetingStore,
-                meetingsDirectory: URL) {
+                meetingsDirectory: URL, metrics: TranscriptionMetricsRecorder? = nil) {
         self.models = models
         self.store = store
         self.meetingsDirectory = meetingsDirectory
+        self.metrics = metrics
         let router = TranscriptSinkRouter()
         self.router = router
         normalizedSink = router

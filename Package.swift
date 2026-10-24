@@ -11,7 +11,8 @@ let package = Package(
         .library(name: "LocalMinutesPersistence", targets: ["LocalMinutesPersistence"]),
         .library(name: "LocalMinutesTranscription", targets: ["LocalMinutesTranscription"]),
         .library(name: "LocalMinutesMeetingLibrary", targets: ["LocalMinutesMeetingLibrary"]),
-        .library(name: "LocalMinutesSummary", targets: ["LocalMinutesSummary"])
+        .library(name: "LocalMinutesSummary", targets: ["LocalMinutesSummary"]),
+        .library(name: "LocalMinutesQuestionAnswering", targets: ["LocalMinutesQuestionAnswering"])
     ],
     dependencies: [
         .package(url: "https://github.com/k2-fsa/sherpa-onnx",
@@ -30,13 +31,15 @@ let package = Package(
         .target(name: "LocalMinutesMeetingLibrary", dependencies: ["LocalMinutesCore", "LocalMinutesPersistence", "LocalMinutesRecording"], path: "MeetingLibrary"),
         .target(name: "LocalMinutesSummary", dependencies: ["llama"], path: "Summaries",
                 linkerSettings: [.linkedLibrary("c++"), .linkedFramework("Accelerate"), .linkedFramework("Metal")]),
+        .target(name: "LocalMinutesQuestionAnswering", dependencies: ["LocalMinutesPersistence", "LocalMinutesSummary"], path: "QuestionAnswering"),
         .testTarget(name: "HarnessTests", path: "Tests/HarnessTests"),
         .testTarget(name: "CoreTests", dependencies: ["LocalMinutesCore"], path: "Tests/CoreTests"),
         .testTarget(name: "RecordingTests", dependencies: ["LocalMinutesRecording", "LocalMinutesCore"], path: "Tests/RecordingTests"),
         .testTarget(name: "ModelTests", dependencies: ["LocalMinutesModels"], path: "Tests/ModelTests"),
         .testTarget(name: "PersistenceTests", dependencies: ["LocalMinutesPersistence"], path: "Tests/PersistenceTests", linkerSettings: [.linkedLibrary("sqlite3")]),
-        .testTarget(name: "ASRTests", dependencies: ["LocalMinutesTranscription", "LocalMinutesCore", "LocalMinutesModels", "LocalMinutesPersistence", "LocalMinutesRecording"], path: "Tests/ASRTests"),
+        .testTarget(name: "ASRTests", dependencies: ["LocalMinutesTranscription", "LocalMinutesCore", "LocalMinutesModels", "LocalMinutesPersistence", "LocalMinutesRecording", "LocalMinutesMeetingLibrary"], path: "Tests/ASRTests"),
         .testTarget(name: "MeetingLibraryTests", dependencies: ["LocalMinutesMeetingLibrary", "LocalMinutesPersistence", "LocalMinutesRecording", "LocalMinutesCore"], path: "Tests/MeetingLibraryTests"),
-        .testTarget(name: "SummaryTests", dependencies: ["LocalMinutesSummary", "llama"], path: "Tests/SummaryTests")
+        .testTarget(name: "SummaryTests", dependencies: ["LocalMinutesSummary", "llama"], path: "Tests/SummaryTests"),
+        .testTarget(name: "QuestionAnsweringTests", dependencies: ["LocalMinutesQuestionAnswering", "LocalMinutesPersistence", "LocalMinutesSummary"], path: "Tests/QuestionAnsweringTests")
     ]
 )

@@ -692,10 +692,12 @@
           "testCount": 3,
           "draftPath": "docs/drafts/T12Signals/README.md",
           "inActiveBuildPaths": false,
-          "redEvidence": [],
+          "redEvidence": [
+            "docs/evidence/T12_T13_T18_T19_TDD.md"
+          ],
           "greenEvidence": [],
           "deviceEvidence": [],
-          "scope": "Reviewed inactive three-case test-first draft. Next bounded invocation activates minimal interfaces and strict tests, then requires hosted assertion RED before any interruption behavior.",
+          "scope": "Test-first interfaces and reviewed tests activated; compiled assertion RED pending. No new working behavior.",
           "draft": "docs/drafts/T12Signals/README.md"
         }
       ],
@@ -712,7 +714,7 @@
       "milestone": "M4",
       "title": "Implement endurance metrics and diagnostic export",
       "kind": "feature",
-      "status": "NOT_STARTED",
+      "status": "IN_PROGRESS",
       "dependsOn": [
         "T12"
       ],
@@ -729,13 +731,15 @@
         {
           "id": "T13.1",
           "title": "Bounded measured transcription metrics and strict private export",
-          "status": "NOT_STARTED",
+          "status": "IN_PROGRESS",
           "draft": "docs/drafts/T13Metrics/README.md",
           "testCount": 5,
-          "redEvidence": [],
+          "redEvidence": [
+            "docs/evidence/T12_T13_T18_T19_TDD.md"
+          ],
           "greenEvidence": [],
           "deviceEvidence": [],
-          "scope": "Inactive test-first preparation only; uncompiled/NOT_RUN. No new production behavior before actual hosted assertion RED."
+          "scope": "Test-first interfaces and reviewed tests activated; compiled assertion RED pending. No new working behavior."
         }
       ],
       "redEvidence": [],
@@ -999,13 +1003,15 @@
         {
           "id": "T18.3",
           "title": "Actual grounded summary pipeline and bounded nested citation schema",
-          "status": "NOT_STARTED",
+          "status": "IN_PROGRESS",
           "draft": "docs/drafts/T18Pipeline/README.md",
           "testCount": 5,
-          "redEvidence": [],
+          "redEvidence": [
+            "docs/evidence/T12_T13_T18_T19_TDD.md"
+          ],
           "greenEvidence": [],
           "deviceEvidence": [],
-          "scope": "Inactive test-first preparation only; uncompiled/NOT_RUN. No new production behavior before actual hosted assertion RED."
+          "scope": "Test-first interfaces and reviewed tests activated; compiled assertion RED pending. No new working behavior."
         }
       ],
       "redEvidence": [],
@@ -1054,13 +1060,15 @@
         {
           "id": "T19.2",
           "title": "Actual selected-meeting question answering and refusal",
-          "status": "NOT_STARTED",
+          "status": "IN_PROGRESS",
           "draft": "docs/drafts/T19QA/README.md",
           "testCount": 4,
-          "redEvidence": [],
+          "redEvidence": [
+            "docs/evidence/T12_T13_T18_T19_TDD.md"
+          ],
           "greenEvidence": [],
           "deviceEvidence": [],
-          "scope": "Inactive test-first preparation only; uncompiled/NOT_RUN. No new production behavior before actual hosted assertion RED."
+          "scope": "Test-first interfaces and reviewed tests activated; compiled assertion RED pending. No new working behavior."
         }
       ],
       "redEvidence": [],
@@ -1198,8 +1206,8 @@
     }
   ],
   "executionPausedByOwner": false,
-  "resumeAction": "Next bounded invocation: read required documents and verify Git/remote, terminal run40079629180 at db1b8d5, and zero-spend cost guard. Activate T12.2 three interruption/signal tests with minimal stubs and strict reporting, commit/push test-first, and prove hosted assertion RED before implementation. T13Metrics/T18Pipeline/T19QA drafts are inactive NOT_RUN and may be delegated within one branch and six runs. Current invocation is at six of six terminal runs: no run7, rerun or code-triggering push.",
-  "lastUpdated": "2026-10-24T09:18:23.358Z",
+  "resumeAction": "Push reviewed test-first interfaces/tests; require core282/native61/actualQwen7 discovery and actual missing-behavior assertions before implementing each corresponding slice. No production before compatible RED. Prior db1b8d5 remains last full GREEN.",
+  "lastUpdated": "2026-10-24T09:27:50.540Z",
   "latestVerification": {
     "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
     "runId": 40079629180,
