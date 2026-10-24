@@ -29,8 +29,9 @@ final class ModelBrowserController {
     init(services: LocalMinutesServices) { self.services = services }
 
     var compatibility: HuggingFaceCompatibilityAssessment? {
-        guard let repository, let result = Optional(repository.assessment(for: purpose, fileName: selectedFileName,
-            maximumDownloadBytes: resources.freeDiskBytes ?? Int64.max)) else { return nil }
+        guard let repository else { return nil }
+        let result = repository.assessment(for: purpose, fileName: selectedFileName,
+            maximumDownloadBytes: resources.freeDiskBytes ?? Int64.max)
         return ModelRuntimeCompatibility.assess(repository: repository, format: result,
             availableProfiles: [.streamingZipformerONNX, .whisperGGML, .llamaGGUF])
     }
@@ -40,10 +41,7 @@ final class ModelBrowserController {
     }
     var canDownload: Bool {
         guard !isWorking, !isInspecting, let assessment = compatibility else { return false }
-        // Whisper format inspection predates its native adapter. This build has
-        // the adapter linked; its actual audio and live-session gates stay separate.
         let recognized = assessment.status == .supported
-            || (assessment.status == .plannedRuntime && assessment.profile == .whisperGGML)
         guard recognized, assessment.profile != nil, !assessment.selectedFiles.isEmpty else { return false }
         return resourceAssessment?.status != .insufficientStorage
     }

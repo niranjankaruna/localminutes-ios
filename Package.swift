@@ -32,7 +32,7 @@ let package = Package(
             "LocalMinutesCore", "LocalMinutesRecording", "LocalMinutesModels", "LocalMinutesPersistence", "LocalMinutesMeetingLibrary"
         ], path: "Transcription"),
         .target(name: "LocalMinutesMeetingLibrary", dependencies: ["LocalMinutesCore", "LocalMinutesPersistence", "LocalMinutesRecording"], path: "MeetingLibrary"),
-        .target(name: "LocalMinutesSummary", dependencies: ["llama"], path: "Summaries",
+        .target(name: "LocalMinutesSummary", dependencies: ["llama", "LocalMinutesPersistence"], path: "Summaries",
                 linkerSettings: [.linkedLibrary("c++"), .linkedFramework("Accelerate"), .linkedFramework("Metal")]),
         .target(name: "LocalMinutesQuestionAnswering", dependencies: ["LocalMinutesPersistence", "LocalMinutesSummary"], path: "QuestionAnswering"),
         .target(name: "LocalMinutesIntelligence", dependencies: ["LocalMinutesCore", "LocalMinutesModels", "LocalMinutesPersistence", "LocalMinutesSummary", "LocalMinutesQuestionAnswering"], path: "Intelligence"),
@@ -43,7 +43,7 @@ let package = Package(
         .testTarget(name: "PersistenceTests", dependencies: ["LocalMinutesPersistence"], path: "Tests/PersistenceTests", linkerSettings: [.linkedLibrary("sqlite3")]),
         .testTarget(name: "ASRTests", dependencies: ["LocalMinutesTranscription", "LocalMinutesCore", "LocalMinutesModels", "LocalMinutesPersistence", "LocalMinutesRecording", "LocalMinutesMeetingLibrary"], path: "Tests/ASRTests"),
         .testTarget(name: "MeetingLibraryTests", dependencies: ["LocalMinutesMeetingLibrary", "LocalMinutesPersistence", "LocalMinutesRecording", "LocalMinutesCore"], path: "Tests/MeetingLibraryTests"),
-        .testTarget(name: "SummaryTests", dependencies: ["LocalMinutesSummary", "llama"], path: "Tests/SummaryTests"),
+        .testTarget(name: "SummaryTests", dependencies: ["LocalMinutesSummary", "LocalMinutesPersistence", "llama"], path: "Tests/SummaryTests"),
         .testTarget(name: "QuestionAnsweringTests", dependencies: ["LocalMinutesQuestionAnswering", "LocalMinutesPersistence", "LocalMinutesSummary"], path: "Tests/QuestionAnsweringTests"),
         .testTarget(name: "IntelligenceTests", dependencies: ["LocalMinutesIntelligence", "LocalMinutesCore", "LocalMinutesModels", "LocalMinutesPersistence", "LocalMinutesSummary", "LocalMinutesQuestionAnswering"], path: "Tests/IntelligenceTests")
     ]

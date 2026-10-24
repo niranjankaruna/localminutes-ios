@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(LocalMinutesCore)
+import LocalMinutesCore
+#endif
 
 /// Exact resume identity supplied by the planner and its leased real model.
 /// Digests cover original source/notes and the complete ordered chunk plan.
@@ -56,15 +59,193 @@ public enum SummaryCheckpointError: Error, Equatable, Sendable {
     case limitExceeded, corruptCheckpoint
 }
 
-/// TEST-FIRST boundary only. No working checkpoint persistence is implemented
-/// until compatible hosted behavioral RED is recorded. The directory is owned
-/// exclusively by the app's summary checkpoints, not the meeting database.
+/// One app-owned actor serializes a directory dedicated to summary checkpoints.
+/// A protected replacement is synced before atomic publication. Reopening is
+/// recovery of progress only: the pipeline must revalidate every saved map.
 public actor SummaryCheckpointStore {
-    public init(directoryURL: URL) throws {}
+    private struct Envelope: Codable {
+        let schemaVersion: Int
+        let checkpoint: StoredSummaryCheckpoint
+    }
 
-    public func save(_ map: SummaryMapCheckpoint, matching identity: SummaryCheckpointIdentity) throws {}
+    private static let maximumMaps = 128
+    private static let maximumMapBytes = 65_536
+    // Codable represents map Data as base64. This bound covers every allowed
+    // map plus bounded identity/framing overhead without unbounded disk reads.
+    private static let maximumEnvelopeBytes = 12 * 1_048_576
+    private let directoryURL: URL
+    private let canonicalDirectoryPath: String
 
-    public func load(matching identity: SummaryCheckpointIdentity) throws -> StoredSummaryCheckpoint? { nil }
+    public init(directoryURL: URL) throws {
+        guard directoryURL.isFileURL,
+              directoryURL.host == nil || directoryURL.host == "" || directoryURL.host == "localhost" else {
+            throw PersistentFilePolicyError.invalidRoot
+        }
+        let directory = directoryURL.standardizedFileURL
+        guard directory.path != "/", directory.path.hasPrefix("/") else {
+            throw PersistentFilePolicyError.invalidRoot
+        }
+        let parent = directory.deletingLastPathComponent()
+        try PersistentFilePolicy.validateItem(parent, within: parent)
+        if try !Self.exists(directory) {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
+        }
+        try PersistentFilePolicy.validateItem(directory, within: parent)
+        // This root belongs exclusively to checkpoints. Preflight the complete
+        // existing tree before changing any protection/backup/POSIX metadata.
+        try PersistentFilePolicy.protectDirectory(directory)
+        self.directoryURL = directory
+        canonicalDirectoryPath = directory.resolvingSymlinksInPath().standardizedFileURL.path
+    }
 
-    public func remove(jobID: UUID, meetingID: UUID) throws {}
+    public func save(_ map: SummaryMapCheckpoint, matching identity: SummaryCheckpointIdentity) throws {
+        try Task.checkCancellation()
+        try Self.validate(identity)
+        try validateDirectory()
+        let current = try read(jobID: identity.jobID)
+        if let current, current.identity != identity { throw SummaryCheckpointError.identityMismatch }
+        try Self.validate(map, for: identity)
+        var maps = current?.maps ?? []
+        if map.index < maps.count {
+            guard maps[map.index] == map else { throw SummaryCheckpointError.conflictingMap }
+            // Identical replay is a read-only success, including after reopen.
+            return
+        }
+        guard map.index == maps.count else { throw SummaryCheckpointError.nonContiguousMap }
+        maps.append(map)
+        let checkpoint = StoredSummaryCheckpoint(identity: identity, maps: maps)
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        let data = try encoder.encode(Envelope(schemaVersion: 1, checkpoint: checkpoint))
+        guard data.count <= Self.maximumEnvelopeBytes else { throw SummaryCheckpointError.limitExceeded }
+        // No suspension occurs between this admission and publication. A late
+        // cancellation may leave this complete valid map available for resume;
+        // it can never publish an unfinished generated meeting document.
+        try Task.checkCancellation()
+        try PersistentFilePolicy.writeAtomically(data, to: file(for: identity.jobID), within: directoryURL)
+    }
+
+    public func load(matching identity: SummaryCheckpointIdentity) throws -> StoredSummaryCheckpoint? {
+        try Task.checkCancellation()
+        try Self.validate(identity)
+        try validateDirectory()
+        guard let checkpoint = try read(jobID: identity.jobID) else { return nil }
+        guard checkpoint.identity == identity else { throw SummaryCheckpointError.identityMismatch }
+        return checkpoint
+    }
+
+    public func remove(jobID: UUID, meetingID: UUID) throws {
+        try Task.checkCancellation()
+        try validateDirectory()
+        guard let checkpoint = try read(jobID: jobID) else { return }
+        guard checkpoint.identity.meetingID == meetingID else { throw SummaryCheckpointError.identityMismatch }
+        let url = file(for: jobID)
+        try PersistentFilePolicy.validateItem(url, within: directoryURL)
+        try Task.checkCancellation()
+        try FileManager.default.removeItem(at: url)
+    }
+
+    private func file(for jobID: UUID) -> URL {
+        directoryURL.appendingPathComponent(jobID.uuidString + ".json", isDirectory: false)
+    }
+
+    private func validateDirectory() throws {
+        try PersistentFilePolicy.validateItem(directoryURL, within: directoryURL.deletingLastPathComponent())
+        let values = try URL(fileURLWithPath: directoryURL.path).resourceValues(forKeys: [.isDirectoryKey])
+        guard values.isDirectory == true,
+              directoryURL.resolvingSymlinksInPath().standardizedFileURL.path == canonicalDirectoryPath else {
+            throw PersistentFilePolicyError.unsafePath
+        }
+    }
+
+    private func read(jobID: UUID) throws -> StoredSummaryCheckpoint? {
+        let url = file(for: jobID)
+        guard try Self.exists(url) else { return nil }
+        try PersistentFilePolicy.validateItem(url, within: directoryURL)
+        let values = try URL(fileURLWithPath: url.path).resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey])
+        guard values.isRegularFile == true, let count = values.fileSize,
+              count > 0, count <= Self.maximumEnvelopeBytes else {
+            throw SummaryCheckpointError.corruptCheckpoint
+        }
+        let handle = try FileHandle(forReadingFrom: url)
+        defer { try? handle.close() }
+        var data = Data()
+        data.reserveCapacity(count)
+        while data.count <= Self.maximumEnvelopeBytes {
+            try Task.checkCancellation()
+            let remaining = Self.maximumEnvelopeBytes + 1 - data.count
+            guard let bytes = try handle.read(upToCount: min(65_536, remaining)), !bytes.isEmpty else { break }
+            data.append(bytes)
+        }
+        guard !data.isEmpty, data.count <= Self.maximumEnvelopeBytes else {
+            throw SummaryCheckpointError.corruptCheckpoint
+        }
+        let envelope: Envelope
+        do { envelope = try JSONDecoder().decode(Envelope.self, from: data) }
+        catch { throw SummaryCheckpointError.corruptCheckpoint }
+        let checkpoint = envelope.checkpoint
+        guard envelope.schemaVersion == 1, checkpoint.identity.jobID == jobID,
+              !checkpoint.maps.isEmpty, checkpoint.maps.count <= Self.maximumMaps,
+              checkpoint.maps.count <= checkpoint.identity.totalChunks else {
+            throw SummaryCheckpointError.corruptCheckpoint
+        }
+        do {
+            try Self.validate(checkpoint.identity)
+            for (index, map) in checkpoint.maps.enumerated() {
+                guard map.index == index else { throw SummaryCheckpointError.corruptCheckpoint }
+                try Self.validate(map, for: checkpoint.identity)
+            }
+        } catch { throw SummaryCheckpointError.corruptCheckpoint }
+        return checkpoint
+    }
+
+    private static func validate(_ identity: SummaryCheckpointIdentity) throws {
+        guard hex(identity.sourceSHA256, count: 64), hex(identity.planSHA256, count: 64),
+              hex(identity.modelRevision, count: 40), hex(identity.modelSHA256, count: 64),
+              metadata(identity.modelID, maximumBytes: 256),
+              metadata(identity.runtimeVersion, maximumBytes: 128),
+              metadata(identity.promptVersion, maximumBytes: 128),
+              (64...32_768).contains(identity.contextTokenLimit),
+              (1...1_024).contains(identity.reservedOutputTokens),
+              identity.reservedOutputTokens < identity.contextTokenLimit,
+              (1...maximumMaps).contains(identity.totalChunks) else {
+            throw SummaryCheckpointError.invalidInput
+        }
+    }
+
+    private static func validate(_ map: SummaryMapCheckpoint, for identity: SummaryCheckpointIdentity) throws {
+        guard map.mapJSON.count <= maximumMapBytes else { throw SummaryCheckpointError.limitExceeded }
+        guard (0..<identity.totalChunks).contains(map.index), hex(map.chunkSHA256, count: 64),
+              !map.mapJSON.isEmpty else { throw SummaryCheckpointError.invalidInput }
+        let object: [String: Any]
+        do {
+            guard let decoded = try JSONSerialization.jsonObject(with: map.mapJSON) as? [String: Any] else {
+                throw SummaryCheckpointError.invalidInput
+            }
+            object = decoded
+        } catch { throw SummaryCheckpointError.invalidInput }
+        guard let meeting = object["meeting_id"] as? String, UUID(uuidString: meeting) == identity.meetingID,
+              object["summary_points"] is [Any], object["decisions"] is [Any], object["actions"] is [Any] else {
+            throw SummaryCheckpointError.invalidInput
+        }
+    }
+
+    private static func hex(_ value: String, count: Int) -> Bool {
+        value.utf8.count == count && value.utf8.allSatisfy { (48...57).contains($0) || (97...102).contains($0) }
+    }
+
+    private static func metadata(_ value: String, maximumBytes: Int) -> Bool {
+        !value.isEmpty && value.utf8.count <= maximumBytes && value.utf8.allSatisfy { (33...126).contains($0) }
+    }
+
+    private static func exists(_ url: URL) throws -> Bool {
+        do {
+            // File attributes recognize a dangling symlink too; it must fail
+            // ownership validation instead of becoming an absent checkpoint.
+            _ = try FileManager.default.attributesOfItem(atPath: url.path)
+            return true
+        } catch let error as CocoaError where error.code == .fileReadNoSuchFile || error.code == .fileNoSuchFile {
+            return false
+        }
+    }
 }

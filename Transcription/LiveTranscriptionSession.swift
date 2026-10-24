@@ -73,9 +73,8 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
         // another lease or replace the active sink during model loading.
         let epoch = LiveTranscriptEpoch(id: sessionID)
         current = epoch
-        // A completed epoch has already closed ingress and joined its consumer.
-        // Reset once per new reservation, never on an active/coalesced prepare.
-        metrics?.beginEpoch()
+        // Metrics reset after the reserved epoch resolves its verified model,
+        // before any consumer starts. Coalesced preparations never reset it.
         let operation = Task { await self.prepare(epoch) }
         epoch.preparation = operation
         return await withTaskCancellationHandler {
@@ -112,6 +111,7 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
             guard model.manifest == selected, model.manifest.sampleRate == 16_000 else {
                 throw StreamingASRError.invalidModel
             }
+            metrics?.beginEpoch(modelRevision: selected.revision, runtimeVersion: selected.runtimeVersion)
             let recognizer: LiveSpeechRecognizer
             if let whisper = model.files[.whisper] {
                 guard model.files.count == 1, selected.artifacts.count == 1,

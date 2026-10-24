@@ -72,11 +72,11 @@ jobs:
     if: ${{ inputs.mode == 'candidate-summary-parts' || inputs.mode == 'model-catalog' || inputs.mode == 'model-integration' || inputs.mode == 'model-repair' || inputs.mode == 'model-delivery' }}
     name: Native focused (${{ matrix.testclass }})
     runs-on: macos-15-intel
-    timeout-minutes: 15
+    timeout-minutes: ${{ inputs.mode == 'model-delivery' && 18 || 15 }}
     strategy:
       fail-fast: false
       matrix:
-        testclass: ${{ fromJSON((inputs.mode == 'model-integration' || inputs.mode == 'model-repair' || inputs.mode == 'model-delivery') && '["NativeAppMetricsTests","NativeModelResourceTests"]' || '["NativeAppMetricsTests"]') }}
+        testclass: ${{ fromJSON(inputs.mode == 'model-delivery' && '["MVP1Services"]' || (inputs.mode == 'model-integration' || inputs.mode == 'model-repair') && '["NativeAppMetricsTests","NativeModelResourceTests"]' || '["NativeAppMetricsTests"]') }}
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
       NATIVE_TEST_CLASS: ${{ matrix.testclass }}
@@ -128,9 +128,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          if [ "$NATIVE_TEST_CLASS" = MVP1Services ]; then
+            native_cases=(-only-testing:LocalMinutesAppTests/NativeAppMetricsTests -only-testing:LocalMinutesAppTests/NativeModelResourceTests)
+          else
+            native_cases=("-only-testing:LocalMinutesAppTests/$NATIVE_TEST_CLASS")
+          fi
           xcodebuild test -project LocalMinutes.xcodeproj -scheme LocalMinutesFocusedValidation -configuration Debug \
             -destination "platform=iOS Simulator,id=$LOCALMINUTES_TEST_SIMULATOR" -destination-timeout 120 \
-            -parallel-testing-enabled NO -collect-test-diagnostics never -only-testing:"LocalMinutesAppTests/$NATIVE_TEST_CLASS" \
+            -parallel-testing-enabled NO -collect-test-diagnostics never "${native_cases[@]}" \
             -derivedDataPath build/focused-app -clonedSourcePackagesDirPath .agent-local/source-packages \
             -resultBundlePath .agent-local/focused-app-metrics.xcresult \
             CODE_SIGNING_ALLOWED=NO LOCALMINUTES_SOURCE_COMMIT="$GITHUB_SHA" 2>&1 | tee .agent-local/focused-app-metrics.log
@@ -154,16 +159,19 @@ jobs:
             testDefaultServicesRetainOneLiveRecorderWithActualBuildAndModelPins \
             testAppScenePhaseControlRecordsTruthfulBoundedVisibilityCheckpoints \
             testAppPersistsProtectedAtomicMetricsJSONAndExportsOnlyValidatedFacts
+            if [ "$NATIVE_TEST_CLASS" = MVP1Services ]; then
+              node scripts/verify-test-log.mjs .agent-local/focused-app-metrics.log testModelResourcesReadActualVolumeAndPhysicalRAMWithoutFabricatedCapacity testModelResourcesDoNotInventFreeStorageForAnUnusablePath
+            fi
           fi
 
   selected-model-integration:
-    if: ${{ inputs.mode == 'model-integration' || inputs.mode == 'model-repair' }}
+    if: ${{ inputs.mode == 'model-integration' || inputs.mode == 'model-repair' || inputs.mode == 'model-delivery' }}
     name: Selected model (${{ matrix.flow }})
     runs-on: macos-15-intel
     timeout-minutes: ${{ matrix.flow == 'selected-summary' && 18 || 12 }}
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(inputs.mode == 'model-repair' && '{"include":[{"flow":"recovery-replay","filter":"RecoveredTranscriptionReplayTests","testcase":"testActualASRReplaysOnlyUntranscribedDurableCAFPreservesGlobalRangesAndIsIdempotentAfterReopen"}]}' || '{"include":[{"flow":"whisper-native","filter":"WhisperSpeechRecognizerTests","testcase":"testWhisperRollingWindowsPublishActualSpeechGlobalRangesAndNoRepeatedFinals"},{"flow":"whisper-live","filter":"SelectedWhisperLiveSessionTests","testcase":"testEquippedWhisperStreamsLicensedSpeechBeforeStopAndPersistsFinalGlobalRanges"},{"flow":"selected-summary","filter":"ActualSelectedModelIntelligenceTests","testcase":"testActualSelectedPhiDefaultLoaderSavesSummaryAndGuideAnswerWithOriginalsPreserved"}]}') }}
+      matrix: ${{ fromJSON(inputs.mode == 'model-delivery' && '{"include":[{"flow":"recovery-replay","filter":"RecoveredTranscriptionReplayTests","testcase":"testActualASRReplaysOnlyUntranscribedDurableCAFPreservesGlobalRangesAndIsIdempotentAfterReopen"},{"flow":"speech-metrics","filter":"ASRTests[.](SelectedWhisperLiveSessionTests|LiveTranscriptionSessionTests/(testActualCPUConsumerPublishesPrivateMonotonicProgressBeforeFinalFlush|testActualSequentialMeetingsReuseOneSessionWithIndependentMetricsEpochs))","testcase":"testEquippedWhisperStreamsLicensedSpeechBeforeStopAndPersistsFinalGlobalRanges"}]}' || inputs.mode == 'model-repair' && '{"include":[{"flow":"recovery-replay","filter":"RecoveredTranscriptionReplayTests","testcase":"testActualASRReplaysOnlyUntranscribedDurableCAFPreservesGlobalRangesAndIsIdempotentAfterReopen"}]}' || '{"include":[{"flow":"whisper-native","filter":"WhisperSpeechRecognizerTests","testcase":"testWhisperRollingWindowsPublishActualSpeechGlobalRangesAndNoRepeatedFinals"},{"flow":"whisper-live","filter":"SelectedWhisperLiveSessionTests","testcase":"testEquippedWhisperStreamsLicensedSpeechBeforeStopAndPersistsFinalGlobalRanges"},{"flow":"selected-summary","filter":"ActualSelectedModelIntelligenceTests","testcase":"testActualSelectedPhiDefaultLoaderSavesSummaryAndGuideAnswerWithOriginalsPreserved"}]}') }}
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
       MODEL_FLOW: ${{ matrix.flow }}
@@ -181,10 +189,13 @@ jobs:
           python3 docs/drafts/T17/prepare_native_summary.py --framework-only
           if [ "$MODEL_FLOW" = selected-summary ]; then
             python3 docs/drafts/T17/prepare_phi3_candidate.py
-          elif [ "$MODEL_FLOW" = recovery-replay ]; then
+          elif [[ "$MODEL_FLOW" == recovery-replay || "$MODEL_FLOW" == speech-metrics ]]; then
             python3 docs/drafts/T10/prepare_native_fixture.py
             printf 'LOCALMINUTES_ASR_MODEL_DIRECTORY=%s/.agent-local/asr-evaluation/native-fixtures/model\n' "$PWD" >> "$GITHUB_ENV"
             printf 'LOCALMINUTES_ASR_FIXTURE_PATH=%s/.agent-local/asr-evaluation/native-fixtures/6930-75918-0000.flac\n' "$PWD" >> "$GITHUB_ENV"
+            if [ "$MODEL_FLOW" = speech-metrics ]; then
+              python3 docs/drafts/T10/prepare_whisper_fixture.py
+            fi
           else
             python3 docs/drafts/T10/prepare_whisper_fixture.py
           fi
@@ -199,7 +210,12 @@ jobs:
           swift test --filter "$MODEL_FILTER" 2>&1 | tee .build/selected-model.log
       - name: Require real selected-flow assertions
         if: always()
-        run: node scripts/verify-test-log.mjs .build/selected-model.log "$MODEL_CASE"
+        shell: bash
+        run: |
+          node scripts/verify-test-log.mjs .build/selected-model.log "$MODEL_CASE"
+          if [ "$MODEL_FLOW" = speech-metrics ]; then
+            node scripts/verify-test-log.mjs .build/selected-model.log testActualCPUConsumerPublishesPrivateMonotonicProgressBeforeFinalFlush testActualSequentialMeetingsReuseOneSessionWithIndependentMetricsEpochs
+          fi
 
   phi3-candidate:
     if: ${{ inputs.mode == 'candidate' || inputs.mode == 'candidate-summary' || inputs.mode == 'candidate-summary-parts' || inputs.mode == 'model-catalog' }}

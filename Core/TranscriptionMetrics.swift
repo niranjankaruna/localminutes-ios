@@ -74,6 +74,7 @@ public final class TranscriptionMetricsRecorder: Sendable {
         let queuedAt: UInt64
     }
     private struct State: Sendable {
+        var identity: MetricsBuildIdentity
         var captured: Int64 = 0
         var processed: Int64 = 0
         var work: UInt64 = 0
@@ -88,7 +89,8 @@ public final class TranscriptionMetricsRecorder: Sendable {
         var checkpoints: [MetricsCheckpoint] = []
         var errors: [MetricsErrorCategory: UInt64] = [:]
 
-        init(capacity: Int) {
+        init(identity: MetricsBuildIdentity, capacity: Int) {
+            self.identity = identity
             pending.reserveCapacity(129)
             completed.reserveCapacity(capacity)
             partial.reserveCapacity(capacity)
@@ -96,7 +98,6 @@ public final class TranscriptionMetricsRecorder: Sendable {
             checkpoints.reserveCapacity(capacity)
         }
     }
-    private let identity: MetricsBuildIdentity
     private let capacity: Int
     private let clock: any MetricsMonotonicClock
     private let state: Mutex<State>
@@ -106,10 +107,9 @@ public final class TranscriptionMetricsRecorder: Sendable {
         guard sampleRate == 16_000, (1...128).contains(capacity) else {
             throw MetricsValidationError.invalidConfiguration
         }
-        self.identity = identity
         self.capacity = capacity
         self.clock = clock
-        state = Mutex(State(capacity: capacity))
+        state = Mutex(State(identity: identity, capacity: capacity))
     }
 
     public func nowNanoseconds() -> UInt64 { clock.nowNanoseconds() }
@@ -119,18 +119,28 @@ public final class TranscriptionMetricsRecorder: Sendable {
     /// to the recorder; audio counters, timings and errors belong to a meeting.
     public func beginEpoch() {
         state.withLock { value in
-            let visibility = value.visibility
-            let lastTime = value.lastTime
-            value = State(capacity: capacity)
-            value.visibility = visibility
-            value.lastTime = lastTime
+            let identity = value.identity
+            reset(&value, identity: identity)
         }
     }
 
-    /// TEST-FIRST selected-model seam. Pins intentionally remain unchanged
-    /// until the new identity regression has a compatible hosted assertion RED.
+    /// Bind the new meeting's selected model while retaining this binary's
+    /// build/source provenance. Publish identity and cleared counters together.
     public func beginEpoch(modelRevision: String, runtimeVersion: String) {
-        beginEpoch()
+        state.withLock { value in
+            let identity = MetricsBuildIdentity(sourceCommit: value.identity.sourceCommit,
+                modelRevision: modelRevision, runtimeVersion: runtimeVersion,
+                buildNumber: value.identity.buildNumber)
+            reset(&value, identity: identity)
+        }
+    }
+
+    private func reset(_ value: inout State, identity: MetricsBuildIdentity) {
+        let visibility = value.visibility
+        let lastTime = value.lastTime
+        value = State(identity: identity, capacity: capacity)
+        value.visibility = visibility
+        value.lastTime = lastTime
     }
 
     public func audioQueued(startSample: Int64, frameCount: Int, queueDepth: Int) throws {
@@ -229,7 +239,7 @@ public final class TranscriptionMetricsRecorder: Sendable {
 
     public func snapshot() -> TranscriptionMetricsSnapshot {
         state.withLock { value in
-            .init(schemaVersion: 1, identity: identity, capturedSampleCount: value.captured,
+            .init(schemaVersion: 1, identity: value.identity, capturedSampleCount: value.captured,
                 processedSampleCount: value.processed, processingWallNanoseconds: value.work,
                 realTimeFactor: value.processed == 0 ? nil :
                     Double(value.work) / (Double(value.processed) / 16_000 * 1_000_000_000),
@@ -321,11 +331,9 @@ public enum MetricsExportCodec {
 
     private static func validate(_ value: TranscriptionMetricsSnapshot) throws {
         let identity = value.identity
-        let parts = identity.runtimeVersion.split(separator: ".", omittingEmptySubsequences: false)
         guard hexRevision(identity.sourceCommit), hexRevision(identity.modelRevision),
               identity.buildNumber > 0, identity.buildNumber <= Int(UInt32.max),
-              identity.runtimeVersion.utf8.count <= 32, (1...4).contains(parts.count),
-              parts.allSatisfy({ !$0.isEmpty && $0.utf8.allSatisfy({ (48...57).contains($0) }) }) else {
+              validRuntimeVersion(identity.runtimeVersion) else {
             throw MetricsValidationError.invalidIdentity
         }
         guard value.schemaVersion == 1, value.capturedSampleCount >= 0,
@@ -377,5 +385,20 @@ public enum MetricsExportCodec {
 
     private static func hexRevision(_ value: String) -> Bool {
         value.utf8.count == 40 && value.utf8.allSatisfy { (48...57).contains($0) || (97...102).contains($0) }
+    }
+
+    private static func validRuntimeVersion(_ value: String) -> Bool {
+        guard !value.isEmpty, value.utf8.count <= 32 else { return false }
+        if value.hasPrefix("llama.cpp-b") {
+            let build = value.dropFirst("llama.cpp-b".count)
+            return !build.isEmpty && build.utf8.allSatisfy { (48...57).contains($0) }
+        }
+        let numeric: Substring
+        if value.hasPrefix("sherpa-onnx-") { numeric = value.dropFirst("sherpa-onnx-".count) }
+        else if value.hasPrefix("whisper.cpp-") { numeric = value.dropFirst("whisper.cpp-".count) }
+        else { numeric = value[...] }
+        let parts = numeric.split(separator: ".", omittingEmptySubsequences: false)
+        return (1...4).contains(parts.count)
+            && parts.allSatisfy { !$0.isEmpty && $0.utf8.allSatisfy { (48...57).contains($0) } }
     }
 }

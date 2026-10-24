@@ -263,10 +263,11 @@ private final class ReplayFixture {
         }
     }
 
-    func coordinator(afterClaim: (@Sendable () async -> Void)? = nil) -> MeetingTranscriptionReplayCoordinator {
-        if let afterClaim {
+    func coordinator(afterClaim: (@Sendable () async -> Void)? = nil,
+                     afterCheckpoint: (@Sendable (TranscriptionReplayCheckpoint) async -> Void)? = nil) -> MeetingTranscriptionReplayCoordinator {
+        if afterClaim != nil || afterCheckpoint != nil {
             return .init(store: store, models: models, recordingsRoot: recordings, usage: usage, admission: admission,
-                afterClaim: afterClaim)
+                afterClaim: afterClaim ?? {}, afterCheckpoint: afterCheckpoint)
         }
         return .init(store: store, models: models, recordingsRoot: recordings, usage: usage, admission: admission)
     }
@@ -300,4 +301,125 @@ private func assertReplaySpeech(_ text: String, file: StaticString = #filePath, 
         previous = next
     }
     XCTAssertLessThanOrEqual(Double(previous[actual.count]) / Double(expected.count), 0.15, file: file, line: line)
+}
+
+/// Separate mandatory MVP2 negatives. The original three-case primitive filter
+/// deliberately does not establish checkpoint-integrity completion.
+@MainActor
+final class TranscriptionReplayCheckpointIntegrityTests: XCTestCase {
+    func testCursorOnlyJumpToTimelineEndCannotSkipRemainingActualSpeechAfterReopen() async throws {
+        let f = try await ReplayFixture.create(utterances: 2)
+        do {
+            let legitimate = try await interruptedAfterRealCheckpoint(f)
+            let committed = try await f.store.transcript(meetingID: f.id)
+            XCTAssertEqual(committed.count, 2)
+            let original = try captureSources(f)
+            let metadata = try await f.store.meeting(id: f.id)
+            let note = try await f.store.manualNote(meetingID: f.id)
+            let url = f.directory.appendingPathComponent("transcription-replay.json")
+            var object = try XCTUnwrap(try JSONSerialization.jsonObject(with: legitimate) as? [String: Any])
+            let originalPoint = try XCTUnwrap(object["checkpoint"] as? [String: Any])
+            var changedPoint = originalPoint
+            XCTAssertLessThan((originalPoint["nextGlobalSample"] as? NSNumber)?.int64Value ?? Int64.max, f.timelineEnd)
+            changedPoint["nextGlobalSample"] = f.timelineEnd
+            object["checkpoint"] = changedPoint
+            // Every existing model/row/manifest/recovery binding remains intact.
+            let tampered = try JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])
+            try PersistentFilePolicy.writeAtomically(tampered, to: url, within: f.directory)
+            try await f.store.close()
+            let reopened = try SQLiteMeetingStore(databaseURL: f.database)
+            do {
+                let replay = MeetingTranscriptionReplayCoordinator(store: reopened, models: f.models,
+                    recordingsRoot: f.recordings, usage: f.usage, admission: f.admission)
+                do {
+                    _ = try await replay.replay(meetingID: f.id)
+                    XCTFail("Changing only the replay cursor must not authorize skipping untranscribed durable speech")
+                } catch { XCTAssertEqual(error as? TranscriptionReplayError, .invalidCheckpoint) }
+                let after = try await reopened.transcript(meetingID: f.id)
+                let afterMeeting = try await reopened.meeting(id: f.id)
+                let afterNote = try await reopened.manualNote(meetingID: f.id)
+                XCTAssertEqual(after, committed); XCTAssertEqual(afterMeeting, metadata); XCTAssertEqual(afterNote, note)
+                XCTAssertEqual(try captureSources(f), original)
+                XCTAssertEqual(f.admission.snapshot().phase, .idle)
+                try PersistentFilePolicy.writeAtomically(legitimate, to: url, within: f.directory)
+                _ = try await replay.replay(meetingID: f.id)
+                let resumed = try await reopened.transcript(meetingID: f.id)
+                XCTAssertEqual(resumed.count, 3, "A valid checkpoint must still replay the second real utterance")
+                XCTAssertEqual(Array(resumed.prefix(committed.count)), committed)
+                for row in resumed.dropFirst() { assertReplaySpeech(row.text) }
+                XCTAssertEqual(try captureSources(f), original)
+                try await reopened.close()
+            } catch { try? await reopened.close(); throw error }
+        } catch { await f.cleanup(); throw error }
+        await f.cleanup()
+    }
+
+    func testOmittedCheckpointModelRevisionIsRejectedWithoutSourceOrOriginalRowMutation() async throws {
+        let f = try await ReplayFixture.create(utterances: 2)
+        do {
+            let legitimate = try await interruptedAfterRealCheckpoint(f)
+            let committed = try await f.store.transcript(meetingID: f.id)
+            let original = try captureSources(f)
+            let url = f.directory.appendingPathComponent("transcription-replay.json")
+            var object = try XCTUnwrap(try JSONSerialization.jsonObject(with: legitimate) as? [String: Any])
+            var point = try XCTUnwrap(object["checkpoint"] as? [String: Any])
+            point.removeValue(forKey: "modelRevision")
+            object["checkpoint"] = point
+            try PersistentFilePolicy.writeAtomically(try JSONSerialization.data(withJSONObject: object, options: [.sortedKeys]),
+                to: url, within: f.directory)
+            try await f.store.close()
+            let reopened = try SQLiteMeetingStore(databaseURL: f.database)
+            do {
+                let replay = MeetingTranscriptionReplayCoordinator(store: reopened, models: f.models,
+                    recordingsRoot: f.recordings, usage: f.usage, admission: f.admission)
+                do { _ = try await replay.replay(meetingID: f.id); XCTFail("A checkpoint without its model pin is not replay authority") }
+                catch { XCTAssertEqual(error as? TranscriptionReplayError, .invalidCheckpoint) }
+                let rows = try await reopened.transcript(meetingID: f.id)
+                XCTAssertEqual(rows, committed); XCTAssertEqual(rows.first, f.original)
+                XCTAssertEqual(try captureSources(f), original)
+                XCTAssertEqual(f.admission.snapshot().phase, .idle)
+                try await reopened.close()
+            } catch { try? await reopened.close(); throw error }
+        } catch { await f.cleanup(); throw error }
+        await f.cleanup()
+    }
+
+    private func interruptedAfterRealCheckpoint(_ f: ReplayFixture) async throws -> Data {
+        let pause = ReplayPause()
+        let prefix = f.prefixFrames, end = f.timelineEnd
+        let replay = f.coordinator(afterCheckpoint: { point in
+            if point.nextGlobalSample > prefix && point.nextGlobalSample < end { await pause.wait() }
+        })
+        let work = Task { try await replay.replay(meetingID: f.id) }
+        do {
+            let deadline = ContinuousClock.now.advanced(by: .seconds(30))
+            while !(await pause.entered), ContinuousClock.now < deadline {
+                try await Task.sleep(for: .milliseconds(10))
+            }
+            let entered = await pause.entered
+            XCTAssertTrue(entered, "The integrity fixture needs a real row+checkpoint after the first actual ASR utterance")
+            guard entered else { throw TranscriptionReplayError.invalidCheckpoint }
+            let rows = try await f.store.transcript(meetingID: f.id)
+            XCTAssertEqual(rows.count, 2); XCTAssertEqual(rows.first, f.original)
+            if rows.count == 2 { assertReplaySpeech(rows[1].text) }
+            let bytes = try Data(contentsOf: f.directory.appendingPathComponent("transcription-replay.json"))
+            work.cancel(); await pause.release()
+            do { _ = try await work.value; XCTFail("Cancelled replay unexpectedly completed") }
+            catch is CancellationError { }
+            catch { XCTFail("Expected cancellation after real checkpoint cleanup") }
+            XCTAssertEqual(f.admission.snapshot().phase, .idle)
+            return bytes
+        } catch {
+            work.cancel(); await pause.release(); _ = try? await work.value
+            throw error
+        }
+    }
+
+    private func captureSources(_ f: ReplayFixture) throws -> [String: String] {
+        var sources: [String: String] = [:]
+        for file in f.manifest.segments.map(\.relativePath) + ["capture-manifest.json", "recovery-report.json"] {
+            sources[file] = replayDigest(try Data(contentsOf: f.directory.appendingPathComponent(file)))
+        }
+        return sources
+    }
 }

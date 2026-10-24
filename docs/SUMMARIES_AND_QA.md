@@ -1,11 +1,11 @@
 # Local summaries and questions
 
-**Current status: screens and model wiring compile, but the pinned model has not passed the summary/Q&A quality gate. Incorrect or unsupported output is rejected, and some requests return an error. This is a feature preview.**
+**Current status: actual selected Phi summary/Q&A flows pass on hosted macOS. Model-choice MVP packaging is pending; representative meeting quality, long-meeting resume and physical-phone behavior remain unverified. Unsupported output is rejected.**
 
 This feature preview adds Summary and Ask sections to a saved meeting. It requires the separate local summary-model download.
 
 1. Install the new unsigned IPA over the existing app through iLoader using the same Apple Account and installed bundle-ID settings. Avoid uninstalling to preserve the existing container; actual renewal/data preservation remains unverified.
-2. Open **Models → Download summary model**. The pinned Qwen download is about1.12GB. Wait for **Summary model verified**. Model setup needs internet; generation uses the installed model locally.
+2. Open **Models → Summary**, look up `microsoft/Phi-3-mini-4k-instruct-gguf`, select `Phi-3-mini-4k-instruct-q4.gguf` (about2.39GB), Download, then **Equip**. Compatible alternatives can also be installed and selected. Model setup needs internet; generation uses the equipped model locally. See [model choices](MVP1_MODELS.md).
 3. Stop recording, open **Meetings**, and select the meeting. Tap **Generate summary**. Keep the app in the foreground until generation finishes.
 4. Edit the generated summary separately from your original notes. Changes autosave; **Save summary** retries a failed save. A revision-conflict message protects a newer saved copy from being overwritten.
 5. Enter a question under **Ask this meeting**, then tap **Ask**. Saved answers and supporting original quotes appear only in the selected meeting. Use **Play source** to open the cited audio position.

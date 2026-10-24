@@ -1,4 +1,6 @@
 import Foundation
+import AVFoundation
+import CryptoKit
 #if SWIFT_PACKAGE
 import LocalMinutesCore
 import LocalMinutesModels
@@ -42,23 +44,449 @@ public enum TranscriptionReplayError: Error, Equatable, Sendable {
     case meetingInUse, invalidCheckpoint, invalidAudio, metadataFailure, modelUnavailable
 }
 
-/// TEST-FIRST recovery seam. No model loading, filesystem mutation or working
-/// replay exists before these actual-model acceptance tests reach hosted RED.
+/// Replays closed durable audio only. One shared meeting/model claim outlives
+/// cancellation, native drain, checkpoint publication and model-file release.
 @MainActor
 public final class MeetingTranscriptionReplayCoordinator {
+    @MainActor
+    private final class Use: HeavyModelResourceLifecycle {
+        let id: UUID
+        let models: ModelInstallationManager
+        let meetingLease: MeetingRecordingLease
+        var gateLease: HeavyModelUseLease?
+        var modelLease: ModelLease?
+        var recognizer: CPUStreamingRecognizer?
+        var work: Task<TranscriptionReplayReport, Error>?
+        var completion: Task<TranscriptionReplayReport, Error>?
+        var resourcesReleased = false
+        init(id: UUID, models: ModelInstallationManager, meetingLease: MeetingRecordingLease) {
+            self.id = id; self.models = models; self.meetingLease = meetingLease
+        }
+        func requestCancellation() { work?.cancel() }
+        func drain() async throws { if let work { _ = await work.result } }
+        func unloadAndReleaseModel() async throws {
+            if let recognizer { await recognizer.unload(); self.recognizer = nil }
+            if let modelLease { try await models.release(modelLease); self.modelLease = nil }
+            resourcesReleased = true
+        }
+    }
+    private struct Journal: Codable {
+        let schemaVersion: Int
+        let checkpoint: TranscriptionReplayCheckpoint
+        let recoverySHA256: String
+        let rowsSHA256: String
+    }
+    private struct RowProof: Codable {
+        let id: UUID, sequence: Int, start: Int64, end: Int64, text: String, revision: String
+    }
+    private struct Gap: Sendable {
+        let start: Int64, end: Int64
+        let reason: AudioRecoveryGapReason
+    }
+    private struct Plan: Sendable {
+        let manifest: AudioCaptureManifest
+        let manifestBytes: Data
+        let report: MeetingRecoveryReport
+        let reportBytes: Data
+        let healthy: [StoredAudioSegment]
+    }
+    private let store: SQLiteMeetingStore
+    private let models: ModelInstallationManager
+    private let recordingsRoot: URL
+    private let usage: MeetingUsageRegistry
+    private let admission: HeavyModelAdmission
+    private let afterClaim: (@Sendable () async -> Void)?
+    private let afterCheckpoint: (@Sendable (TranscriptionReplayCheckpoint) async -> Void)?
+    private var current: Use?
+
     public init(store: SQLiteMeetingStore, models: ModelInstallationManager,
-                recordingsRoot: URL, usage: MeetingUsageRegistry, admission: HeavyModelAdmission) { }
+                recordingsRoot: URL, usage: MeetingUsageRegistry, admission: HeavyModelAdmission) {
+        self.store = store; self.models = models; self.recordingsRoot = recordingsRoot.standardizedFileURL
+        self.usage = usage; self.admission = admission; afterClaim = nil; afterCheckpoint = nil
+    }
 
     // Scheduling boundaries only. Production uses the public initializer; these
     // never replace file decoding, persistence, or actual model inference.
     init(store: SQLiteMeetingStore, models: ModelInstallationManager,
          recordingsRoot: URL, usage: MeetingUsageRegistry, admission: HeavyModelAdmission,
-         afterClaim: @escaping @Sendable () async -> Void) { }
-
-    public func replay(meetingID: UUID) async throws -> TranscriptionReplayReport {
-        .init(meetingID: meetingID, durableFrameCount: 0, replayedFrameCount: 0,
-              timelineEndSample: 0, insertedSegmentIDs: [], gaps: [])
+         afterClaim: @escaping @Sendable () async -> Void,
+         afterCheckpoint: (@Sendable (TranscriptionReplayCheckpoint) async -> Void)? = nil) {
+        self.store = store; self.models = models; self.recordingsRoot = recordingsRoot.standardizedFileURL
+        self.usage = usage; self.admission = admission; self.afterClaim = afterClaim
+        self.afterCheckpoint = afterCheckpoint
     }
 
-    public func checkpoint(meetingID: UUID) async throws -> TranscriptionReplayCheckpoint? { nil }
+    public func replay(meetingID: UUID) async throws -> TranscriptionReplayReport {
+        try Task.checkCancellation()
+        guard current == nil else { throw TranscriptionReplayError.meetingInUse }
+        let meetingLease: MeetingRecordingLease
+        do { meetingLease = try usage.beginRecording(meetingID: meetingID) }
+        catch { throw TranscriptionReplayError.meetingInUse }
+        let use = Use(id: meetingID, models: models, meetingLease: meetingLease)
+        do { use.gateLease = try admission.acquire(purpose: .streamingASR, requestID: meetingID, resource: use) }
+        catch { usage.endRecording(meetingLease); throw TranscriptionReplayError.meetingInUse }
+        current = use
+        let work = Task { @MainActor in
+            await self.afterClaim?()
+            try Task.checkCancellation()
+            return try await self.perform(use)
+        }
+        use.work = work
+        let completion = Task { @MainActor in
+            let result = await work.result
+            guard let lease = use.gateLease else { throw TranscriptionReplayError.meetingInUse }
+            do { try await self.admission.cancelAndDrain(lease) }
+            catch HeavyModelAdmissionError.staleLease where use.resourcesReleased { }
+            // Only this invocation can release its exact meeting claim.
+            self.usage.endRecording(use.meetingLease)
+            if self.current === use { self.current = nil }
+            return try result.get()
+        }
+        use.completion = completion
+        return try await withTaskCancellationHandler { try await completion.value } onCancel: { work.cancel() }
+    }
+
+    public func checkpoint(meetingID: UUID) async throws -> TranscriptionReplayCheckpoint? {
+        let directory = try checkedDirectory(meetingID)
+        return try readJournal(directory)?.checkpoint
+    }
+
+    private func perform(_ use: Use) async throws -> TranscriptionReplayReport {
+        let directory = try checkedDirectory(use.id)
+        let initialRows = try await store.transcript(meetingID: use.id)
+        guard let meeting = try await store.meeting(id: use.id) else { throw TranscriptionReplayError.metadataFailure }
+        try Task.checkCancellation()
+        let reportURL = directory.appendingPathComponent("recovery-report.json")
+        if try !Self.exists(reportURL) {
+            _ = try await MeetingRecoveryCoordinator(store: store, recordingsRoot: recordingsRoot).recover(meetingID: use.id)
+        }
+        let root = recordingsRoot
+        let meetingID = use.id
+        let inspection = Task.detached(priority: .userInitiated) {
+            try Self.inspect(directory: directory, root: root, id: meetingID)
+        }
+        let plan = try await withTaskCancellationHandler { try await inspection.value } onCancel: { inspection.cancel() }
+        try Task.checkCancellation()
+        try validateRows(initialRows, plan: plan, id: use.id)
+        let journal = try readJournal(directory)
+        var resume = initialRows.last?.endSample ?? 0
+        if let journal {
+            let point = journal.checkpoint
+            guard journal.schemaVersion == 1, point.schemaVersion == 1, point.meetingID == use.id,
+                  point.manifestSHA256 == Self.digest(plan.manifestBytes),
+                  point.modelRevision == StreamingEnglishModel.manifest.revision,
+                  point.nextGlobalSample >= 0, point.nextGlobalSample <= plan.report.timelineEndSample,
+                  point.committedSequence >= -1, point.committedSequence < initialRows.count,
+                  journal.recoverySHA256 == Self.digest(plan.reportBytes),
+                  journal.rowsSHA256 == (try rowsDigest(Array(initialRows.prefix(point.committedSequence + 1)))) else {
+                throw TranscriptionReplayError.invalidCheckpoint
+            }
+            let committedEnd = point.committedSequence >= 0 ? initialRows[point.committedSequence].endSample : 0
+            guard point.nextGlobalSample >= committedEnd else { throw TranscriptionReplayError.invalidCheckpoint }
+            resume = max(resume, point.nextGlobalSample)
+        }
+        // The filesystem report is immutable evidence. Its original resume hint
+        // may precede rows later committed by replay; it is not the replay cursor.
+        guard plan.report.resumeFromSample == 0 || initialRows.contains(where: { $0.endSample == plan.report.resumeFromSample }) else {
+            throw TranscriptionReplayError.invalidCheckpoint
+        }
+        try quarantine(plan, directory: directory)
+        if meeting.recordingState != .completed {
+            try await store.updateRecordingState(id: use.id, state: .recovered, capturedSampleCount: plan.report.durableFrameCount)
+        }
+        let remaining = plan.healthy.filter { $0.startFrame + $0.frameCount > resume }
+        if remaining.isEmpty {
+            if journal == nil {
+                try writeCheckpoint(id: use.id, next: plan.report.timelineEndSample, rows: initialRows, plan: plan, directory: directory)
+            }
+            return .init(meetingID: use.id, durableFrameCount: plan.report.durableFrameCount,
+                replayedFrameCount: 0, timelineEndSample: plan.report.timelineEndSample,
+                insertedSegmentIDs: [], gaps: plan.report.gaps)
+        }
+        let lease = try await models.acquire(modelID: StreamingEnglishModel.manifest.modelID)
+        use.modelLease = lease
+        guard lease.model.manifest == StreamingEnglishModel.manifest,
+              let encoder = lease.model.files[.encoder], let decoder = lease.model.files[.decoder],
+              let joiner = lease.model.files[.joiner], let tokens = lease.model.files[.tokens] else {
+            throw TranscriptionReplayError.modelUnavailable
+        }
+        let recognizer = CPUStreamingRecognizer(files: .init(encoder: encoder, decoder: decoder,
+            joiner: joiner, tokens: tokens, revision: lease.model.manifest.revision,
+            runtimeVersion: lease.model.manifest.runtimeVersion))
+        use.recognizer = recognizer
+        try await recognizer.load()
+        try Task.checkCancellation()
+        var rows = initialRows
+        var inserted: [UUID] = []
+        var replayed: Int64 = 0
+        var relative: Int64 = 0
+        var globalCursor = resume
+        var utteranceStart = resume
+        var streamActive = false
+        let reader = ReplayCAFReader()
+        do {
+            for segment in remaining {
+                try Task.checkCancellation()
+                let start = max(resume, segment.startFrame)
+                if streamActive && start != globalCursor {
+                    let ending = try await recognizer.finish()
+                    try await commit(ending.text, start: utteranceStart, end: globalCursor,
+                        rows: &rows, inserted: &inserted, plan: plan, directory: directory, id: use.id)
+                    streamActive = false
+                }
+                if !streamActive {
+                    try await recognizer.start(epochID: use.id)
+                    relative = 0; globalCursor = start; utteranceStart = start; streamActive = true
+                }
+                try await reader.open(directory.appendingPathComponent(segment.relativePath),
+                    expectedFrames: segment.frameCount, offset: start - segment.startFrame)
+                while let samples = try await reader.next() {
+                    try Task.checkCancellation()
+                    let output = try await recognizer.accept(samples: samples, sourceStartSample: relative)
+                    relative += Int64(samples.count); globalCursor += Int64(samples.count); replayed += Int64(samples.count)
+                    if output.isEndpoint {
+                        try await commit(output.text, start: utteranceStart, end: globalCursor,
+                            rows: &rows, inserted: &inserted, plan: plan, directory: directory, id: use.id)
+                        try await recognizer.resetAfterEndpoint()
+                        utteranceStart = globalCursor
+                    }
+                }
+                await reader.close()
+            }
+            if streamActive {
+                let ending = try await recognizer.finish()
+                try await commit(ending.text, start: utteranceStart, end: globalCursor,
+                    rows: &rows, inserted: &inserted, plan: plan, directory: directory, id: use.id)
+            }
+            try Task.checkCancellation()
+            try writeCheckpoint(id: use.id, next: plan.report.timelineEndSample, rows: rows, plan: plan, directory: directory)
+            return .init(meetingID: use.id, durableFrameCount: plan.report.durableFrameCount,
+                replayedFrameCount: replayed, timelineEndSample: plan.report.timelineEndSample,
+                insertedSegmentIDs: inserted, gaps: plan.report.gaps)
+        } catch {
+            await reader.close()
+            await recognizer.cancel()
+            throw error
+        }
+    }
+
+    private func commit(_ text: String, start: Int64, end: Int64,
+        rows: inout [StoredTranscriptSegment], inserted: inout [UUID], plan: Plan,
+        directory: URL, id: UUID) async throws {
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        try Task.checkCancellation()
+        guard end > start, start >= (rows.last?.endSample ?? 0), end <= plan.report.timelineEndSample else {
+            throw TranscriptionReplayError.invalidAudio
+        }
+        let seed = "\(id.uuidString)|\(Self.digest(plan.manifestBytes))|\(StreamingEnglishModel.manifest.revision)|\(start)|\(end)"
+        let bytes = Array(SHA256.hash(data: Data(seed.utf8)).prefix(16))
+        let uuid = UUID(uuid: (bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
+            bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15]))
+        let row = StoredTranscriptSegment(id: uuid, meetingID: id, sequence: rows.count,
+            startSample: start, endSample: end, text: text, modelRevision: StreamingEnglishModel.manifest.revision)
+        try await store.appendFinalizedSegments([row], to: id)
+        rows.append(row); inserted.append(row.id)
+        let checkpoint = try writeCheckpoint(id: id, next: end, rows: rows, plan: plan, directory: directory)
+        await afterCheckpoint?(checkpoint)
+    }
+
+    @discardableResult
+    private func writeCheckpoint(id: UUID, next: Int64, rows: [StoredTranscriptSegment], plan: Plan, directory: URL) throws -> TranscriptionReplayCheckpoint {
+        let point = TranscriptionReplayCheckpoint(meetingID: id, manifestSHA256: Self.digest(plan.manifestBytes),
+            modelRevision: StreamingEnglishModel.manifest.revision, nextGlobalSample: next, committedSequence: rows.count - 1)
+        let journal = Journal(schemaVersion: 1, checkpoint: point, recoverySHA256: Self.digest(plan.reportBytes),
+            rowsSHA256: try rowsDigest(rows))
+        try PersistentFilePolicy.writeAtomically(try JSONEncoder().encode(journal),
+            to: directory.appendingPathComponent("transcription-replay.json"), within: directory)
+        return point
+    }
+
+    private func readJournal(_ directory: URL) throws -> Journal? {
+        let file = directory.appendingPathComponent("transcription-replay.json")
+        guard try Self.exists(file) else { return nil }
+        do { return try JSONDecoder().decode(Journal.self, from: Self.bounded(file, root: recordingsRoot)) }
+        catch { throw TranscriptionReplayError.invalidCheckpoint }
+    }
+
+    private func rowsDigest(_ rows: [StoredTranscriptSegment]) throws -> String {
+        let proof = rows.map { RowProof(id: $0.id, sequence: $0.sequence, start: $0.startSample,
+            end: $0.endSample, text: $0.text, revision: $0.modelRevision) }
+        let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
+        return Self.digest(try encoder.encode(proof))
+    }
+
+    private func validateRows(_ rows: [StoredTranscriptSegment], plan: Plan, id: UUID) throws {
+        var previous: Int64 = 0
+        for (index, row) in rows.enumerated() {
+            guard row.meetingID == id, row.sequence == index, row.startSample >= previous,
+                  row.endSample > row.startSample, row.endSample <= plan.report.timelineEndSample,
+                  !plan.report.gaps.contains(where: { row.startSample < $0.endSample && row.endSample > $0.startSample }) else {
+                throw TranscriptionReplayError.invalidCheckpoint
+            }
+            previous = row.endSample
+        }
+    }
+
+    private func checkedDirectory(_ id: UUID) throws -> URL {
+        let directory = recordingsRoot.appendingPathComponent(id.uuidString, isDirectory: true)
+        do {
+            try PersistentFilePolicy.validateItem(directory, within: recordingsRoot)
+            var pending = [directory]; var count = 0
+            while let parent = pending.popLast() {
+                for child in try FileManager.default.contentsOfDirectory(at: parent, includingPropertiesForKeys: nil) {
+                    count += 1
+                    guard count <= 8_192 else { throw TranscriptionReplayError.invalidAudio }
+                    try PersistentFilePolicy.validateItem(child, within: recordingsRoot)
+                    if try child.resourceValues(forKeys: [.isDirectoryKey]).isDirectory == true { pending.append(child) }
+                }
+            }
+        } catch { throw TranscriptionReplayError.invalidAudio }
+        return directory
+    }
+
+    private func quarantine(_ plan: Plan, directory: URL) throws {
+        guard !plan.report.quarantinedFiles.isEmpty else { return }
+        let quarantine = directory.appendingPathComponent("RecoveryQuarantine", isDirectory: true)
+        if try !Self.exists(quarantine) {
+            try FileManager.default.createDirectory(at: quarantine, withIntermediateDirectories: false)
+        }
+        try PersistentFilePolicy.protectItem(quarantine, within: directory)
+        for name in plan.report.quarantinedFiles {
+            let source = directory.appendingPathComponent(name)
+            let destination = quarantine.appendingPathComponent(name)
+            if try Self.exists(source) {
+                guard try !Self.exists(destination) else { throw TranscriptionReplayError.invalidAudio }
+                try PersistentFilePolicy.validateItem(source, within: directory)
+                try FileManager.default.moveItem(at: source, to: destination)
+            }
+        }
+    }
+
+    private nonisolated static func inspect(directory: URL, root: URL, id: UUID) throws -> Plan {
+        let manifestBytes = try bounded(directory.appendingPathComponent("capture-manifest.json"), root: root)
+        let manifest = try JSONDecoder().decode(AudioCaptureManifest.self, from: manifestBytes)
+        let reportBytes = try bounded(directory.appendingPathComponent("recovery-report.json"), root: root)
+        let report = try JSONDecoder().decode(MeetingRecoveryReport.self, from: reportBytes)
+        guard manifest.schemaVersion == 1, manifest.sessionID == id, manifest.totalFrames >= 0,
+              manifest.segments.count <= 4_096, report.meetingID == id else { throw TranscriptionReplayError.invalidAudio }
+        var names: Set<String> = []; var quarantineNames: Set<String> = []
+        var previous: Int64 = 0; var total: Int64 = 0; var durable: Int64 = 0
+        var gaps: [Gap] = []; var healthy: [StoredAudioSegment] = []
+        let quarantine = directory.appendingPathComponent("RecoveryQuarantine", isDirectory: true)
+        for segment in manifest.segments {
+            try Task.checkCancellation()
+            let end = segment.startFrame.addingReportingOverflow(segment.frameCount)
+            let sum = total.addingReportingOverflow(segment.frameCount)
+            guard audioName(segment.relativePath), names.insert(segment.relativePath).inserted,
+                  segment.startFrame >= previous, segment.frameCount > 0, segment.frameCount <= 960_000,
+                  !end.overflow, !sum.overflow else { throw TranscriptionReplayError.invalidAudio }
+            if segment.startFrame > previous { gaps.append(.init(start: previous, end: segment.startFrame, reason: .manifestGap)) }
+            let original = directory.appendingPathComponent(segment.relativePath)
+            let saved = quarantine.appendingPathComponent(segment.relativePath)
+            let originalExists = try exists(original), savedExists = try exists(saved)
+            guard !(originalExists && savedExists) else { throw TranscriptionReplayError.invalidAudio }
+            if !originalExists && !savedExists {
+                gaps.append(.init(start: segment.startFrame, end: end.partialValue, reason: .missingAudio))
+            } else {
+                let file = savedExists ? saved : original
+                try PersistentFilePolicy.validateItem(file, within: root)
+                guard try file.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile == true else {
+                    throw TranscriptionReplayError.invalidAudio
+                }
+                let readable = try fullyReadable(file, frames: segment.frameCount)
+                guard !(savedExists && readable) else { throw TranscriptionReplayError.invalidAudio }
+                if readable { healthy.append(segment); durable += segment.frameCount }
+                else {
+                    gaps.append(.init(start: segment.startFrame, end: end.partialValue, reason: .corruptAudio))
+                    quarantineNames.insert(segment.relativePath)
+                }
+            }
+            previous = end.partialValue; total = sum.partialValue
+        }
+        for parent in [directory, quarantine] where try exists(parent) {
+            for file in try FileManager.default.contentsOfDirectory(at: parent, includingPropertiesForKeys: nil)
+                where audioName(file.lastPathComponent) && !names.contains(file.lastPathComponent) {
+                try PersistentFilePolicy.validateItem(file, within: root)
+                guard try file.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile == true else {
+                    throw TranscriptionReplayError.invalidAudio
+                }
+                guard quarantineNames.insert(file.lastPathComponent).inserted else { throw TranscriptionReplayError.invalidAudio }
+            }
+        }
+        guard total == manifest.totalFrames, report.durableFrameCount == durable, report.timelineEndSample == previous,
+              report.resumeFromSample >= 0, report.resumeFromSample <= previous,
+              report.quarantinedFiles == quarantineNames.sorted(), gaps.count == report.gaps.count,
+              zip(gaps, report.gaps).allSatisfy({ $0.0.start == $0.1.startSample && $0.0.end == $0.1.endSample && $0.0.reason == $0.1.reason }) else {
+            throw TranscriptionReplayError.invalidAudio
+        }
+        return Plan(manifest: manifest, manifestBytes: manifestBytes, report: report,
+            reportBytes: reportBytes, healthy: healthy)
+    }
+
+    private nonisolated static func fullyReadable(_ url: URL, frames: Int64) throws -> Bool {
+        do {
+            let file = try AVAudioFile(forReading: url)
+            defer { file.close() }
+            guard file.length == frames, file.fileFormat.sampleRate == 16_000,
+                  file.fileFormat.channelCount == 1, file.fileFormat.commonFormat == .pcmFormatInt16,
+                  let buffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: 3_200) else { return false }
+            var count: Int64 = 0
+            while count < frames {
+                try Task.checkCancellation()
+                try file.read(into: buffer, frameCount: AVAudioFrameCount(min(3_200, frames - count)))
+                guard buffer.frameLength > 0 else { return false }
+                count += Int64(buffer.frameLength)
+            }
+            return count == frames
+        } catch is CancellationError { throw CancellationError() }
+        catch { return false }
+    }
+    private nonisolated static func bounded(_ file: URL, root: URL) throws -> Data {
+        try PersistentFilePolicy.validateItem(file, within: root)
+        let values = try file.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey])
+        guard values.isRegularFile == true, let size = values.fileSize, (1...1_048_576).contains(size) else {
+            throw TranscriptionReplayError.invalidAudio
+        }
+        return try Data(contentsOf: file)
+    }
+    private nonisolated static func audioName(_ value: String) -> Bool {
+        value.range(of: #"^segment-[0-9]{6}\.caf$"#, options: .regularExpression) != nil
+    }
+    private nonisolated static func exists(_ file: URL) throws -> Bool {
+        do { _ = try FileManager.default.attributesOfItem(atPath: file.path); return true }
+        catch let error as CocoaError where error.code == .fileReadNoSuchFile || error.code == .fileNoSuchFile { return false }
+    }
+    private nonisolated static func digest(_ data: Data) -> String {
+        SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+    }
+}
+
+/// All native file decoding stays off MainActor and uses one bounded PCM buffer.
+private actor ReplayCAFReader {
+    private var file: AVAudioFile?
+    private var buffer: AVAudioPCMBuffer?
+    private var remaining: Int64 = 0
+    func open(_ url: URL, expectedFrames: Int64, offset: Int64) throws {
+        close()
+        let opened = try AVAudioFile(forReading: url, commonFormat: .pcmFormatFloat32, interleaved: false)
+        guard opened.length == expectedFrames, offset >= 0, offset < expectedFrames,
+              opened.processingFormat.sampleRate == 16_000, opened.processingFormat.channelCount == 1,
+              let scratch = AVAudioPCMBuffer(pcmFormat: opened.processingFormat, frameCapacity: 3_200) else {
+            opened.close(); throw TranscriptionReplayError.invalidAudio
+        }
+        opened.framePosition = offset
+        file = opened; buffer = scratch; remaining = expectedFrames - offset
+    }
+    func next() throws -> [Float]? {
+        guard remaining > 0 else { return nil }
+        guard let file, let buffer else { throw TranscriptionReplayError.invalidAudio }
+        let requested = AVAudioFrameCount(min(3_200, remaining))
+        try file.read(into: buffer, frameCount: requested)
+        guard buffer.frameLength == requested, let samples = buffer.floatChannelData?.pointee else {
+            throw TranscriptionReplayError.invalidAudio
+        }
+        remaining -= Int64(buffer.frameLength)
+        return Array(UnsafeBufferPointer(start: samples, count: Int(buffer.frameLength)))
+    }
+    func close() { file?.close(); file = nil; buffer = nil; remaining = 0 }
 }

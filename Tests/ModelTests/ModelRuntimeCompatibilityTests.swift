@@ -77,6 +77,10 @@ final class ModelRuntimeCompatibilityTests: XCTestCase {
         let unknown = try repository(files: files)
         XCTAssertEqual(ModelRuntimeCompatibility.assess(repository: unknown,
             format: format(.llamaGGUF, files: files), availableProfiles: available).status, .unverified)
+        let nested = [file("quant/chosen.gguf")]
+        XCTAssertEqual(ModelRuntimeCompatibility.assess(repository: try repository(type: "phi3", files: nested),
+            format: format(.llamaGGUF, files: nested), availableProfiles: available).status, .unsupported,
+            "Do not advertise nested GGUF readiness while the loader requires a root-level remote file")
     }
 
     func testWhisperVariantsUseActualAvailableEngineWithoutRestrictingPublisherOrClaimingQuality() throws {

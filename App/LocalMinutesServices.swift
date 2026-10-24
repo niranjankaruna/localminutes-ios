@@ -52,16 +52,16 @@ final class LocalMinutesServices: PlaybackHardware {
     @ObservationIgnored private var intelligenceCleanup: (id: UUID, task: Task<Void, Never>)?
 
     static let summaryManifest = ModelManifest(
-        modelID: "qwen2.5-1.5b-instruct-q4_k_m", purpose: .summary,
-        upstreamRepository: URL(string: "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF")!,
-        revision: "91cad51170dc346986eccefdc2dd33a9da36ead9",
-        licenseIdentifier: "Apache-2.0",
-        licenseNotice: "Qwen2.5-1.5B-Instruct by the Qwen team, Alibaba Cloud. Apache License 2.0: https://www.apache.org/licenses/LICENSE-2.0. Original model and license: https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF.",
+        modelID: "phi3-mini-4k-instruct-q4", purpose: .summary,
+        upstreamRepository: URL(string: "https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf")!,
+        revision: "a64113399c2f6b8ad3e11c394733a2ddadaa7f33",
+        licenseIdentifier: "MIT",
+        licenseNotice: "Phi-3-mini-4k-instruct by Microsoft. MIT license and attribution: https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf/blob/a64113399c2f6b8ad3e11c394733a2ddadaa7f33/LICENSE. Model card: https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf/blob/a64113399c2f6b8ad3e11c394733a2ddadaa7f33/README.md.",
         runtimeVersion: "llama.cpp-b5046",
-        artifacts: [.init(role: .summary, fileName: "qwen2.5-1.5b-instruct-q4_k_m.gguf",
-            byteCount: 1_117_320_736,
-            sha256: "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e",
-            downloadURL: URL(string: "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/91cad51170dc346986eccefdc2dd33a9da36ead9/qwen2.5-1.5b-instruct-q4_k_m.gguf")!,
+        artifacts: [.init(role: .summary, fileName: "Phi-3-mini-4k-instruct-q4.gguf",
+            byteCount: 2_393_231_072,
+            sha256: "8a83c7fb9049a9b2e92266fa7ad04933bb53aa1e85136b7b30f1b8000ff2edef",
+            downloadURL: URL(string: "https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf/resolve/a64113399c2f6b8ad3e11c394733a2ddadaa7f33/Phi-3-mini-4k-instruct-q4.gguf")!,
             digestProvenance: .independentlyDownloaded)])
 
     /// Explicit roots are an internal storage boundary for owned native test
@@ -189,8 +189,8 @@ final class LocalMinutesServices: PlaybackHardware {
         guard operation == nil else { return }
         modelError = nil
         operationMessage = manifest.purpose == .speechRecognition ?
-            "Downloading and verifying speech model (73 MB)…" :
-            "Downloading and verifying summary model (1.12 GB)…"
+            "Downloading and verifying speech model…" :
+            "Downloading and verifying summary model…"
         operation = Task {
             do { _ = try await models.download(manifest) }
             catch is CancellationError { modelError = "Download cancelled. The previous model was preserved." }

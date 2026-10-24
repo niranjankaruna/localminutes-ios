@@ -1,7 +1,9 @@
 import AVFoundation
 import CryptoKit
+import Dispatch
 import Foundation
 import XCTest
+import LocalMinutesCore
 import LocalMinutesModels
 import LocalMinutesPersistence
 import LocalMinutesRecording
@@ -13,6 +15,7 @@ import LocalMinutesRecording
 final class SelectedWhisperLiveSessionTests: XCTestCase {
     func testEquippedWhisperStreamsLicensedSpeechBeforeStopAndPersistsFinalGlobalRanges() async throws {
         let environment = ProcessInfo.processInfo.environment
+        let sourceCommit = try XCTUnwrap(environment["GITHUB_SHA"], "Hosted source identity is a setup prerequisite")
         let modelURL = URL(fileURLWithPath: try XCTUnwrap(environment["LOCALMINUTES_WHISPER_MODEL_PATH"]))
         let audioURL = URL(fileURLWithPath: try XCTUnwrap(environment["LOCALMINUTES_WHISPER_FIXTURE_PATH"]))
         let modelSize = (try FileManager.default.attributesOfItem(atPath: modelURL.path)[.size] as? NSNumber)?.int64Value
@@ -57,8 +60,15 @@ final class SelectedWhisperLiveSessionTests: XCTestCase {
             artifacts: [.init(role: .whisper, fileName: "ggml-tiny.en.bin", byteCount: 77_704_715, sha256: digest,
                 downloadURL: URL(string: repository + "/resolve/" + revision + "/ggml-tiny.en.bin")!,
                 digestProvenance: .independentlyDownloaded)])
+        let initialIdentity = MetricsBuildIdentity(sourceCommit: sourceCommit,
+            modelRevision: StreamingEnglishModel.manifest.revision,
+            runtimeVersion: StreamingEnglishModel.manifest.runtimeVersion, buildNumber: 1)
+        let metrics = try TranscriptionMetricsRecorder(identity: initialIdentity,
+            clock: SelectedWhisperMetricsClock())
+        XCTAssertEqual(metrics.snapshot().identity, initialIdentity)
         let session = LiveTranscriptionSession(models: models, store: store,
-            meetingsDirectory: root.appendingPathComponent("Meetings"), selectedSpeechModel: { manifest })
+            meetingsDirectory: root.appendingPathComponent("Meetings"), metrics: metrics,
+            selectedSpeechModel: { manifest })
         let id = UUID()
         var capture: AudioCaptureManifest?
         do {
@@ -75,6 +85,11 @@ final class SelectedWhisperLiveSessionTests: XCTestCase {
                 try await store.close(); try remove(root)
                 return
             }
+            let selectedIdentity = metrics.snapshot().identity
+            XCTAssertEqual(selectedIdentity.modelRevision, manifest.revision)
+            XCTAssertEqual(selectedIdentity.runtimeVersion, manifest.runtimeVersion)
+            XCTAssertEqual(selectedIdentity.sourceCommit, initialIdentity.sourceCommit)
+            XCTAssertEqual(selectedIdentity.buildNumber, initialIdentity.buildNumber)
             do { try await models.remove(modelID: manifest.modelID); XCTFail("Live Whisper must retain its model lease") }
             catch { XCTAssertEqual(error as? ModelInstallationError, .modelInUse) }
             let writer = try SegmentCAFWriter(directory: directory, sessionID: id, maximumSegmentFrames: 32_000)
@@ -101,6 +116,11 @@ final class SelectedWhisperLiveSessionTests: XCTestCase {
                 "Actual selected Whisper must publish speech before finish, not defer all inference until Stop")
             let failure = await session.finish(sessionID: id, manifest: captured)
             XCTAssertNil(failure)
+            let measured = metrics.snapshot()
+            XCTAssertEqual(measured.identity, selectedIdentity)
+            XCTAssertEqual(measured.capturedSampleCount, Int64(samples.count))
+            XCTAssertEqual(measured.processedSampleCount, Int64(samples.count))
+            XCTAssertEqual(try MetricsExportCodec.decodeValidated(MetricsExportCodec.encode(measured)), measured)
             XCTAssertEqual(session.transcript.receivedSampleCount, Int64(samples.count))
             XCTAssertEqual(session.transcript.partial, "")
             let rows = try await store.transcript(meetingID: id)
@@ -154,4 +174,8 @@ final class SelectedWhisperLiveSessionTests: XCTestCase {
               root.resolvingSymlinksInPath() == root else { throw StreamingASRError.invalidModel }
         try FileManager.default.removeItem(at: root)
     }
+}
+
+private struct SelectedWhisperMetricsClock: MetricsMonotonicClock {
+    func nowNanoseconds() -> UInt64 { DispatchTime.now().uptimeNanoseconds }
 }

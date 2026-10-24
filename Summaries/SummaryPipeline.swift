@@ -1,4 +1,30 @@
 import Foundation
+#if canImport(LocalMinutesPersistence)
+import LocalMinutesPersistence
+#endif
+
+/// Disk-backed implementations persist transport bytes only. Every recovered
+/// map must still pass the pipeline's source, chunk and grounding validation.
+public protocol SummaryCheckpointing: Sendable {
+    func save(_ map: SummaryMapCheckpoint, matching identity: SummaryCheckpointIdentity) async throws
+    func load(matching identity: SummaryCheckpointIdentity) async throws -> StoredSummaryCheckpoint?
+}
+
+extension SummaryCheckpointStore: SummaryCheckpointing {}
+
+public struct SummaryPipelineResumeConfiguration: Sendable {
+    public let jobID: UUID
+    public let modelID: String
+    public let modelSHA256: String
+    public let runtimeVersion: String
+    public let checkpoints: any SummaryCheckpointing
+
+    public init(jobID: UUID, modelID: String, modelSHA256: String,
+                runtimeVersion: String, checkpoints: any SummaryCheckpointing) {
+        self.jobID = jobID; self.modelID = modelID; self.modelSHA256 = modelSHA256
+        self.runtimeVersion = runtimeVersion; self.checkpoints = checkpoints
+    }
+}
 
 public typealias SummaryMapJSONGenerator = @Sendable (String, StructuredJSONSchema, Int) async throws -> String
 
@@ -24,14 +50,19 @@ public actor SummaryPipeline {
     private let reservedOutputTokens: Int
     private let tokenizer: SummaryTokenCounter
     private let generator: SummaryMapJSONGenerator
+    // TEST-FIRST ignored hook. Working resume awaits its hosted behavioral RED;
+    // the default pipeline and every existing semantic oracle remain unchanged.
+    private let resume: SummaryPipelineResumeConfiguration?
     private var state = SummaryPipelineSnapshot(phase: .idle, meetingID: nil, result: nil)
 
     public init(modelRevision: String, promptVersion: String = "grounded-map-v1",
                 contextTokenLimit: Int = 4_096, reservedOutputTokens: Int = 1_024,
-                tokenizer: @escaping SummaryTokenCounter, generator: @escaping SummaryMapJSONGenerator) {
+                tokenizer: @escaping SummaryTokenCounter, generator: @escaping SummaryMapJSONGenerator,
+                resume: SummaryPipelineResumeConfiguration? = nil) {
         self.modelRevision = modelRevision; self.promptVersion = promptVersion
         self.contextTokenLimit = contextTokenLimit; self.reservedOutputTokens = reservedOutputTokens
         self.tokenizer = tokenizer; self.generator = generator
+        self.resume = resume
     }
 
     public func summarize(selectedMeetingID: UUID, source: GroundedSummarySource) async throws -> GroundedSummary {

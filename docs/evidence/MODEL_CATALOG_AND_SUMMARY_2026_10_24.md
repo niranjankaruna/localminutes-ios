@@ -71,7 +71,7 @@ Exact source `d0fe973b0045d5fb11c3dc0a33bd62ab5c39a991`,
 - Actual selected Whisper live session: job120933345309, 1 PASS, zero failures/
   skips,16.771s. Licensed speech is published before stop and durable global
   ranges retained. Separate native Whisper 4-case job120933345190 is SUCCESS.
-- Portable job120933345263:60 tests,57 PASS,2 failed cases/3 assertions,0 skipped
+- Portable job120933345263:60 tests,58 PASS,2 failed cases/3 assertions,0 skipped
   (counts reported by XCTest); HF30, selection/inventory12, pure-summary16 pass.
   Both actual resource-reader tests fail against the nil stub: physical RAM and
   owned-volume free capacity absent. This is genuine RED before OS-backed reader.
@@ -97,3 +97,58 @@ durable summary checkpoints and actual CAF ASR recovery replay. No production
 behavior for these new cases precedes their hosted assertion RED. Expensive
 selected Phi/Whisper generations already passing are excluded from this batch.
 MVP1 is not delivered yet; no physical gate or VERIFIED_COMPLETE claim.
+
+## Final repair RED and first resource GREEN
+
+Test-first source `c93633213c9cde7fa9d25bc004f26113f98ef265`,
+[run40116270957](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40116270957),
+job120938092705, exact module-qualified focused filter in workflow:
+80 executed,66 PASS,14 failed cases,62 assertions,0 skipped,3.593s.
+
+- Actual resource reader2 PASS after its preceding2-case RED. macOS host facts
+  only; iOS advisory memory/native resource cases remain separate.
+- Installation identities3 executed/1PASS/2FAIL,3 assertions,1.166s: nested
+  variants collide and exact Unicode path bytes are lost. Full remote paths
+  now enter an order-independent length-framed byte digest; GREEN pending.
+- Runtime readiness6 executed/1PASS/5FAIL,13 assertions,0.020s: wrong Zipformer
+  tuples, unknown GGUF families and missing engines were advertised supported.
+  Policy now checks actual compiled adapters, reviewed Zipformer pins and
+  Qwen2/Phi3 scope; unavailable/unknown stays explicit. GREEN pending.
+- Metrics7 executed/4PASS/3FAIL,7 assertions,0.018s: exact engine labels rejected
+  and selected epoch model/runtime pins remain stale. Repair binds model pins
+  atomically while retaining binary identity/clock/visibility and restricts
+  diagnostic version labels. Existing negative privacy checks remain enabled.
+- Durable summary checkpoint4 executed/0PASS/4FAIL,39 assertions,0.165s:
+  reopen/provenance/contiguity/conflict/cancel contracts fail against no-op.
+  Protected atomic sidecar implementation follows RED; app pipeline resume is
+  still a separate unimplemented MVP2 step, not inferred complete from storage.
+
+Separate job120938092779:3 actual CAF/model-install/SQLite recovery cases FAIL,
+21 assertions,0 skips,14.987s. The no-op performs no inference: original-only
+transcript, zero replayed samples, missing gaps/checkpoint and ignored registry
+claim prove absent replay after setup. Production replay follows this RED and
+must run actual CPU ASR to pass; no synthetic recognizer is substituted.
+
+Default starter summary pin now promotes the measured Phi candidate after its
+real summary and default-loader GREEN. Qwen's failed quality evidence/oracles
+stay preserved. Existing installed models/meeting data are not deleted.
+Decision and owner usage: SUMMARY_MODEL_DECISION.md and MVP1_MODELS.md.
+
+Native c936332 result is now observed: resource job120938092784,2 PASS,0fail/
+skip,0.012s on iOS26.2 Simulator. Metrics job120938092614,3executed/2PASS/1FAIL,
+1assertion,0skip,1.055s, same engine-version codec failure. Standard XCTest
+output now permits strict discovery; no simulator launch defect remains.
+
+Final delivery batch will verify only relevant model/metrics/storage regressions,
+changed real speech flows, five native service/resource cases and the real
+iPhone app/extension package. Already-passing Phi inference is not repeated.
+Separate future SummaryResumePipelineTests and replay checkpoint-integrity
+tests remain tests-first pending actual RED, explicitly outside MVP1 scope;
+the existing full validation mode retains them. There is no full-suite claim.
+
+Review found an MVP2 replay cursor-integrity defect: changing nextGlobalSample
+can skip untranscribed audio despite intact other hashes. Explicit regression
+is prepared before repair. Replay stays unwired in the app and is not a shipped
+recovery feature merely because the initial three primitive cases may pass.
+Same-model recovery for chosen Whisper variants and actual app resume wiring
+also remain MVP2 work. Persisted summary transport alone does not resume a job.

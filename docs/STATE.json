@@ -3,15 +3,15 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T17:27:41.486Z",
+  "lastUpdated": "2026-10-24T17:34:34.094Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "MVP1 selected Whisper and Phi flows pass; final resource, compatibility and diagnostics repairs; MVP2 recovery tests staged",
+  "currentTask": "MVP1 final model-runtime/identity/metrics repairs after actual RED; MVP2 durable replay/checkpoint primitives implementing in parallel",
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "Obtain focused RED for nested model identities, runtime scope, selected metrics and durable recovery. Repair after actual assertions, then build/checksum/deliver MVP1 and continue MVP2 without owner prompt.",
+  "nextAction": "Finish RED-backed repairs, review and batch focused GREEN with an exact-source iPhone package; deliver MVP1 immediately when verified, then continue MVP2. Do not repeat passed Phi generations.",
   "pendingPushCommit": null,
   "remoteBranchHead": "6d914fe0117964c7019a71d5b9332c9dba3758b4",
   "localScriptGreen": {
@@ -39,7 +39,8 @@
       40107527439,
       40109131483,
       40111205922,
-      40114656922
+      40114656922,
+      40116270957
     ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-24T17:22:00Z",
@@ -1581,9 +1582,28 @@
       "skipped": 0,
       "durationSeconds": 571.357
     },
-    "resourceReader": "ACTUAL_RED_2_CASES_3_ASSERTIONS",
+    "resourceReader": "HOSTED_GREEN_2_CASES_0_SKIPS",
     "nativeMetrics": "2_PASS_1_FAIL_ENGINE_VERSION_CODEC",
-    "delivery": "PENDING"
+    "delivery": "PENDING",
+    "finalRepairRun": {
+      "sourceCommit": "c93633213c9cde7fa9d25bc004f26113f98ef265",
+      "runId": 40116270957,
+      "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40116270957",
+      "portable": {
+        "executed": 80,
+        "passed": 66,
+        "failed": 14,
+        "assertionFailures": 62,
+        "skipped": 0
+      },
+      "actualReplay": {
+        "executed": 3,
+        "passed": 0,
+        "failed": 3,
+        "assertionFailures": 21,
+        "skipped": 0
+      }
+    }
   },
   "ownerDirection": {
     "continueAcrossMVPDelivery": true,

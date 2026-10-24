@@ -51,9 +51,10 @@
   "models": {
     "asrCandidate": "csukuangfj/sherpa-onnx-streaming-zipformer-en-2023-06-26",
     "asrProvider": "cpu",
-    "summaryCandidate": "Qwen/Qwen2.5-1.5B-Instruct-GGUF",
-    "summaryQuantization": "Q4_K_M",
-    "pinnedManifestStatus": "PINNED_CANDIDATES_NATIVE_QUALITY_PENDING"
+    "summaryCandidate": "microsoft/Phi-3-mini-4k-instruct-gguf",
+    "summaryQuantization": "Q4",
+    "pinnedManifestStatus": "PINNED_CANDIDATES_NATIVE_QUALITY_PENDING",
+    "summaryDecision": "docs/SUMMARY_MODEL_DECISION.md"
   },
   "safety": {
     "allowMeetingUploads": false,

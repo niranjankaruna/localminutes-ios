@@ -199,7 +199,7 @@ extension LiveTranscriptionSessionTests {
         }
         let identity = MetricsBuildIdentity(
             sourceCommit: source,
-            modelRevision: NativeASRFixture.revision, runtimeVersion: "1.13.8", buildNumber: 1)
+            modelRevision: NativeASRFixture.revision, runtimeVersion: StreamingEnglishModel.manifest.runtimeVersion, buildNumber: 1)
         let metrics = try TranscriptionMetricsRecorder(identity: identity, capacity: 128, clock: LiveMetricsTestClock())
         let session = LiveTranscriptionSession(models: h.models, store: h.store,
                                                meetingsDirectory: h.meetings, metrics: metrics)
@@ -500,7 +500,7 @@ extension LiveTranscriptionSessionTests {
             throw MetricsASRDraftError.missingSourceIdentity
         }
         let identity = MetricsBuildIdentity(sourceCommit: source, modelRevision: NativeASRFixture.revision,
-            runtimeVersion: "1.13.8", buildNumber: 1)
+            runtimeVersion: StreamingEnglishModel.manifest.runtimeVersion, buildNumber: 1)
         let metrics = try TranscriptionMetricsRecorder(identity: identity, capacity: 128, clock: LiveMetricsTestClock())
         let session = LiveTranscriptionSession(models: h.models, store: h.store,
             meetingsDirectory: h.meetings, metrics: metrics)

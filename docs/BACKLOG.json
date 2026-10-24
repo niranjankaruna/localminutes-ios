@@ -1431,15 +1431,20 @@
           "status": "NOT_STARTED"
         }
       ],
-      "redEvidence": [],
-      "greenEvidence": [],
+      "redEvidence": [
+        "docs/evidence/MODEL_CATALOG_AND_SUMMARY_2026_10_24.md"
+      ],
+      "greenEvidence": [
+        "docs/evidence/MODEL_CATALOG_AND_SUMMARY_2026_10_24.md"
+      ],
       "deviceEvidence": [],
-      "blockers": []
+      "blockers": [],
+      "nextAction": "Finish RED-backed repairs, review and batch focused GREEN with an exact-source iPhone package; deliver MVP1 immediately when verified, then continue MVP2. Do not repeat passed Phi generations."
     }
   ],
   "executionPausedByOwner": false,
-  "resumeAction": "Await owner choice: one compatible local-model comparison capped30min, or save build/stop model work. No candidate download/inference or further testing without that choice. Current Qwen1.5B unknown owner/date and evidence cases fail; keep raw oracles/pins and rejection guards. First MVP remains unchanged. Updated preview is in build/delivery/Summary-QA-40101392948, with a schema4 downgrade warning.",
-  "lastUpdated": "2026-10-24T15:31:15.814076Z",
+  "resumeAction": "Finish RED-backed repairs, review and batch focused GREEN with an exact-source iPhone package; deliver MVP1 immediately when verified, then continue MVP2. Do not repeat passed Phi generations.",
+  "lastUpdated": "2026-10-24T17:34:34.094Z",
   "latestVerification": {
     "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
     "runId": 40079629180,
@@ -1529,5 +1534,33 @@
       "nativeBuildPerformed": false
     },
     "newCommits": []
+  },
+  "deliverySequence": [
+    {
+      "id": "MVP1",
+      "scope": "HF model browser/resources/install/remove/independent Equip, selected Whisper and Phi integration, updated IPA",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "id": "MVP2",
+      "scope": "Recovery ASR replay, durable summary resume, resumable downloads/Files import, diagnostics and full backup/restore",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "id": "MVP3",
+      "scope": "Release-candidate privacy/accessibility/offline integration/regression, package and guides",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "MVP4",
+      "scope": "Owner phone acceptance: extension/Lock Screen/Action Button/two125min runs/offline/renewal preservation",
+      "status": "NOT_STARTED"
+    }
+  ],
+  "ownerDeliveryDirection": {
+    "continueAfterEachDelivery": true,
+    "pauseOnlyAtOwnerRequest": true,
+    "repeatedFullSuitePerChange": false,
+    "priorCapsRevoked": true
   }
 }
