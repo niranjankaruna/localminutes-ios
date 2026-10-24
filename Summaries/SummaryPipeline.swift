@@ -110,19 +110,28 @@ public actor SummaryPipeline {
                                   outputItemLimit: Int) throws -> StructuredJSONSchema {
         guard !segments.isEmpty, segments.count <= 256 else { throw GroundedSummaryError.limitExceeded }
         let maximumItems = min(segments.count, outputItemLimit)
+        // This pipeline is deliberately extractive: the current chunk is the
+        // vocabulary, not a fixture answer. The model still chooses categories,
+        // source IDs, ownership and deadlines; all resulting links are validated.
+        // Keep the unconstrained path for larger source strings rather than
+        // excluding their evidence or exceeding the compiler's literal bound.
+        var seen: Set<Data> = []
+        let sourceTexts = segments.map(\.text).filter { seen.insert(Data($0.utf8)).inserted }
+        let extractiveText: StructuredJSONType = sourceTexts.allSatisfy({ $0.utf8.count <= 1_024 })
+            ? .stringEnumeration(sourceTexts) : .string
         let citation: StructuredJSONType = .object([
             .init(name: "source_id", type: .stringEnumeration(segments.map(\.id))),
             .init(name: "start_sample", type: .integerEnumeration(Array(Set(segments.map(\.startSample))).sorted())),
             .init(name: "end_sample", type: .integerEnumeration(Array(Set(segments.map(\.endSample))).sorted())),
-            .init(name: "quote", type: .string)
+            .init(name: "quote", type: extractiveText)
         ])
         let evidence: StructuredJSONType = .array(element: citation, maximumItems: 1)
         let point: StructuredJSONType = .object([
-            .init(name: "evidence", type: evidence), .init(name: "text", type: .string)
+            .init(name: "evidence", type: evidence), .init(name: "text", type: extractiveText)
         ])
         let action: StructuredJSONType = .object([
             .init(name: "evidence", type: evidence),
-            .init(name: "task", type: .string), .init(name: "owner", type: .nullable(.string)),
+            .init(name: "task", type: extractiveText), .init(name: "owner", type: .nullable(.string)),
             .init(name: "due", type: .nullable(.string))
         ])
         return .init(fields: [

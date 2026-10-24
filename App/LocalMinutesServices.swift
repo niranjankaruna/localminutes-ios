@@ -1,7 +1,12 @@
 #if os(iOS)
 import AVFoundation
+import Dispatch
 import Foundation
 import Observation
+
+private struct AppMetricsClock: MetricsMonotonicClock {
+    func nowNanoseconds() -> UInt64 { DispatchTime.now().uptimeNanoseconds }
+}
 
 /// Persistent app services outlive every view. Paths remain stable across an
 /// in-place signing refresh; preservation still requires physical verification.
@@ -10,10 +15,22 @@ final class LocalMinutesServices: PlaybackHardware {
     let heavyAdmission: HeavyModelAdmission?
     let recordingAdmission: RecordingHeavyModelAdmission?
     let intelligence: IntelligenceSession?
-    let metrics: TranscriptionMetricsRecorder? = nil
+    let metrics: TranscriptionMetricsRecorder?
+    private let diagnosticsDirectory: URL
 
-    func persistMetricsCheckpoint() throws -> URL { throw MetricsValidationError.notImplemented }
-    func exportMetrics() throws -> Data { throw MetricsValidationError.notImplemented }
+    func persistMetricsCheckpoint() throws -> URL {
+        guard let metrics else { throw MetricsValidationError.invalidIdentity }
+        let bytes = try MetricsExportCodec.encode(metrics.snapshot())
+        let destination = diagnosticsDirectory.appendingPathComponent("transcription-metrics.json")
+        try PersistentFilePolicy.writeAtomically(bytes, to: destination, within: diagnosticsDirectory)
+        return destination
+    }
+    func exportMetrics() throws -> Data {
+        let file = try persistMetricsCheckpoint()
+        let bytes = try Data(contentsOf: file)
+        _ = try MetricsExportCodec.decodeValidated(bytes)
+        return bytes
+    }
     let models: ModelInstallationManager
     let store: SQLiteMeetingStore
     let live: LiveTranscriptionSession
@@ -60,7 +77,8 @@ final class LocalMinutesServices: PlaybackHardware {
         try PersistentFilePolicy.protectDirectory(root)
         let modelRoot = root.appendingPathComponent("Models", isDirectory: true)
         let meetings = root.appendingPathComponent("Meetings", isDirectory: true)
-        for directory in [modelRoot, meetings] {
+        let diagnostics = root.appendingPathComponent("Diagnostics", isDirectory: true)
+        for directory in [modelRoot, meetings, diagnostics] {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             try PersistentFilePolicy.protectDirectory(directory)
         }
@@ -71,8 +89,16 @@ final class LocalMinutesServices: PlaybackHardware {
             availableBytes: { try ModelStoragePolicy.availableBytes(at: $0) },
             downloader: { artifact, destination in try await transport.download(artifact, to: destination) })
         let database = try SQLiteMeetingStore(databaseURL: root.appendingPathComponent("meetings.sqlite"))
+        guard let source = Bundle.main.object(forInfoDictionaryKey: "LocalMinutesSourceCommit") as? String,
+              let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String,
+              let number = Int(build) else { throw MetricsValidationError.invalidIdentity }
+        let metrics = try TranscriptionMetricsRecorder(identity: .init(sourceCommit: source,
+            modelRevision: StreamingEnglishModel.manifest.revision,
+            runtimeVersion: StreamingEnglishModel.manifest.runtimeVersion, buildNumber: number),
+            clock: AppMetricsClock())
+        self.metrics = metrics; diagnosticsDirectory = diagnostics
         models = manager; store = database; meetingsDirectory = meetings
-        live = LiveTranscriptionSession(models: manager, store: database, meetingsDirectory: meetings)
+        live = LiveTranscriptionSession(models: manager, store: database, meetingsDirectory: meetings, metrics: metrics)
         library = MeetingLibraryController(store: database)
         let usage = MeetingUsageRegistry(requiresStartup: true)
         self.usage = usage

@@ -20,6 +20,8 @@ struct LocalMinutesHomeView: View {
         .tint(.teal)
         .task { await application.services?.initialize() }
         .onChange(of: scenePhase) { _, phase in
+            do { try application.recordScenePhase(phase) }
+            catch { application.services?.metrics?.recordError(.writeFailed) }
             if phase == .background { application.services?.cancelCurrentIntelligence() }
         }
     }
@@ -320,7 +322,7 @@ private struct ModelSettingsView: View {
                 }
                 Section("Privacy and renewal") {
                     Text("After installation, speech processing uses local files and the CPU. Downloads need internet.")
-                    Text("Refresh the same app with Sideloadly every seven days. Keep its bundle IDs and do not delete it before renewing.")
+                    Text("Refresh the same app with iLoader every seven days. Keep its bundle IDs and do not delete it before renewing.")
                     Text("Record meetings only with the participants’ consent.")
                 }
             }

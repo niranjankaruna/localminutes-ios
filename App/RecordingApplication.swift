@@ -83,7 +83,16 @@ final class RecordingApplication {
     }
 
     func flushSignals() async { await signalMonitor.flush() }
-    func recordScenePhase(_ scenePhase: ScenePhase) throws {}
+    func recordScenePhase(_ scenePhase: ScenePhase) throws {
+        let visibility: MetricsVisibility
+        switch scenePhase {
+        case .active: visibility = .foreground
+        case .background: visibility = .background
+        default: visibility = .unknown
+        }
+        try services?.metrics?.visibilityChanged(visibility)
+        if let services { _ = try services.persistMetricsCheckpoint() }
+    }
 
     private static func bindSignals(_ monitor: IOSRecordingSignalMonitor, to owner: RecordingSessionOwner) {
         var observedID: UUID?
