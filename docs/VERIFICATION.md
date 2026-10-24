@@ -290,3 +290,14 @@ Owner explicitly requested pause after MVP within60minutes; delivery finished be
 Owner explicitly requested pause, then confirmation. All3subagents were interrupted. Resumed batch made no CI/test dispatch and no new IPA; last MVP run40092475736 remains SUCCESS. Five source files contain uncompiled WIP: IOSRecordingSignalMonitor, IOSCaptureHardware, RecordingSessionOwner, LocalSummaryRuntime, LiveTranscriptionSession. Low-space/route/thermal/fresh-engine/native logging edits have no compile or physical evidence. Summary/Q&A UI/default-services work was still in inspection and has not been implemented in this resumed batch.
 
 State/backlog saved with exact next action. No background build/test/agent work continues. Resume only on owner request after reboot; finish missing app functionality and integrate/review this WIP before one batched build.
+
+
+## Summary/Q&A functional batch resumed24October2026
+
+Owner explicitly resumed8f6fc1f and requested finishing summaries/Q&A without polishing or repeated test runs. Required files, clean saved Git state/auth/PUBLIC-ADMIN/HTTPS remote and terminal previousMVP build were rechecked. ExistingMVP stays unchanged. No new scaffold, schema/model/pin/test-oracle replacement or paid resource.
+
+ActualAppServicesnowretainsoneHeavyModelAdmission, recording bridge and realdefaultpinnedIntelligenceSession; owner bindsbridge and exact monitorstorageDirectory. Added selected-meeting Summary/Ask controller/view: separately persisted generated originals, serializedrevision-CAS editable summary, actualGenerate/Ask, selectedsavedQA, strict original-sourcequotes/timedplayback, provenance/export, scopedcancel, truthfulmissing-model/busy/errors. Automaticlibrary startup and backgroundcancel wired. Newcaptureaction drainsLLM beforeASR; navigationplaybackcleanup usesexistingrequest-scopedownership.
+
+Summary output defensivebudgeting keepsactualcanonicaltokenizer andallmaps/validation/merge, capsdefaultmap2sources andcategoryitems≤sourcecount,1citation/item. Priorfailurecause remainsUNKNOWN; this is not a measuredtoken-exhaustionrepair. Existing128map/128item andlongsegmentlimits remain materialforlongmeetings; no silenttruncation or full2hsummaryqualityclaim. Notes remaincontextonly. FinalQAattempt3 unchanged, no fourthblindpromptedit. All original tests/oracles/modelpins remain unchanged.
+
+Oneend-of-batch features workflow will compile/packageactualnewiPhone source and observe3actualmodel flowsonseparatestandardpublicmacOSjobs (service,summary,questions). No per-change/fullregressionloop. Outputsremaininunpublishedownerdraft; no Actions artifact storage or public release. Implementation exists; compile/model/nativeUI/physical resultsarepending.

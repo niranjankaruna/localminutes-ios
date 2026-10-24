@@ -51,7 +51,7 @@ final class RecordingApplication {
         let owner = RecordingSessionOwner(
             permission: IOSCapturePermissionSource(), hardware: IOSCaptureHardware(),
             activityBackend: IOSLiveActivityBackend(), preparation: preparation,
-            usageAdmission: services?.usage
+            usageAdmission: services?.recordingAdmission
         )
         self.services = services
         if let services {
@@ -60,9 +60,10 @@ final class RecordingApplication {
             playbackOwnership = nil
         }
         self.owner = owner
+        services?.recordingAdmission?.bind(owner: owner)
         router = RecordingIntentRouter(owner: owner)
         foreground = nil
-        let monitor = IOSRecordingSignalMonitor(owner: owner)
+        let monitor = IOSRecordingSignalMonitor(owner: owner, storageDirectory: services?.meetingsDirectory)
         signalMonitor = monitor
         Self.bindSignals(monitor, to: owner)
     }
@@ -105,6 +106,18 @@ final class RecordingApplication {
                 guard services.startup.state == .ready else {
                     lastOutcome = .cleanupPending
                     return .cleanupPending
+                }
+                // A new capture action takes priority over post-recording
+                // generation. The same shared gate remains held until its real
+                // worker, runtime and installation lease are fully released.
+                if let intelligence = services.intelligence,
+                   let held = services.heavyAdmission?.snapshot().lease,
+                   held.purpose != .streamingASR {
+                    do { try await intelligence.cancelAndDrain(requestID: held.requestID) }
+                    catch {
+                        lastOutcome = .cleanupPending
+                        return .cleanupPending
+                    }
                 }
             }
         case .stop: break

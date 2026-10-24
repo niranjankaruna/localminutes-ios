@@ -3,15 +3,15 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T12:57:19.624Z",
+  "lastUpdated": "2026-10-24T13:32:03.203Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "Paused for workstation restart; resumed functional batch saved uncompiled",
+  "currentTask": "T17/T18/T19 functionalbatch readyforonecurrent-source build and parallelmodel observations",
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "WAIT for explicit owner resume after reboot. Then read required docs and inspect saved WIP; finish summary/Q&A app screens and real default shared model wiring, integrate exact storageDirectory into production signal monitor, review current pressure/native logging changes, and make one batched build under owner no-per-change-testing preference. Existing delivered MVP remains build/delivery/MVP-40092475736; no replacement IPA created in this resumed batch.",
+  "nextAction": "Commit/push featurebatch; create unpublished drafttargetingexactcommit; dispatch modefeatures once. Observe independent build/service/summary/questions; downloadIPA+hash whenbuildsucceeds, recordexactmodelresultswithoutinferringfullbaselinecompletion.",
   "pendingPushCommit": null,
   "remoteBranchHead": "3e25aae6117b9cad9d0251bded2f345b3155bdcf",
   "localScriptGreen": {
@@ -30,25 +30,13 @@
     "ARTIFACT_STORAGE_HEADROOM_UNVERIFIED"
   ],
   "ciInvocation": {
-    "id": "2026-10-24-continuation-09",
+    "id": "2026-10-24-summary-qa-batch",
     "maxNewRuns": 6,
-    "newRunIds": [
-      40082088572,
-      40084170930,
-      40086780531,
-      40089155104,
-      40091141417,
-      40092475736
-    ],
-    "limitReached": true,
-    "costGuardObservedAt": "2026-10-24T11:35:40.281Z",
-    "costGuardBasis": "Live GitHub PUBLIC/ADMIN, configured publication approval, exact HTTPS origin/task branch/main reverified 24October11:35UTC. Previously rechecked official GitHub Actions standard public runner free-compute terms; unchanged macos-15-intel only, no upload/cache, larger runner, paid resource or billing mutation.",
-    "jobLimits": {
-      "coreMinutes": 15,
-      "summaryQualityMinutes": 30,
-      "nativeMinutes": 35,
-      "mvpPackageMinutes": 25
-    }
+    "plannedNewRuns": 1,
+    "newRunIds": [],
+    "limitReached": false,
+    "costGuardObservedAt": "2026-10-24T13:19:55.441Z",
+    "costGuardBasis": "Live PUBLIC/ADMIN repository, genuine existing auth, exact remote8f6fc1f and terminal previousMVP run40092475736 reverified. Standard publicmacos-15-intel only; existing official GitHub free-compute/release-storage evidence, unpublished draft retention, no paid/larger runner/storage/billing mutation."
   },
   "latestCIRun": {
     "sourceCommit": "3e25aae6117b9cad9d0251bded2f345b3155bdcf",
@@ -1091,8 +1079,8 @@
     "productionRepairImplemented": false,
     "nextAction": "Deferred until owner resumes baseline work; add actual regressions before repair if strict TDD resumes."
   },
-  "executionPausedByOwner": true,
-  "goalPauseAuthorized": true,
+  "executionPausedByOwner": false,
+  "goalPauseAuthorized": false,
   "goalPauseReason": "Owner requested pause to restart the workstation, then asked for confirmation. All3workers interrupted; no active build or test run.",
   "mvpArtifact": {
     "status": "READY_FOR_DEVICE_VALIDATION",
@@ -1136,5 +1124,27 @@
     ],
     "scope": "WIP low-space reserve/polling, route/thermal monitoring, fresh capture engine, scoped failure interruption and bounded native logging. No new compile/device result. Summary/Q&A UI and default Services wiring were being inspected but no source edits were made for those yet.",
     "workers": "All3interrupted; no automatic continuation authorized until owner resumes."
+  },
+  "summaryQABatch": {
+    "status": "IN_PROGRESS",
+    "startedAt": "2026-10-24T13:15:50Z",
+    "ownerDirection": "Resume savedcheckpoint, finish summaries/Q&A withoutpolishing/repeatedtests.",
+    "scope": [
+      "Actual default shared heavy model/service wiring",
+      "Selected summary/QA UI with durable separate edits/citations/cancellation/export",
+      "Bounded summary output planning"
+    ],
+    "newTestsWritten": 0,
+    "executedModelChecks": 0,
+    "modelQualityVerified": false,
+    "implemented": [
+      "DefaultServices retains actual pinned IntelligenceSession and one shared ASR/LLM gate",
+      "Selected Summary/Ask screens with durable original generated JSON and CAS editable copy",
+      "Saved selected QA rows, strict original citations/playback and generated export",
+      "Background/navigation cancels matching model work; new recording drains post-recording generation before capture",
+      "Defensive small source-derived summary maps/one citation/output item bounds"
+    ],
+    "limits": "Existing128maps/totalitems guard and atomicsegment/tool context limits remain; notes are context only, not standalone cited summary sources. Quality/native UI/device behavior not yet proven.",
+    "validationPlan": "One workflow at endofbatch: current-source iPhone compile/package plus3independent real pinned model flow observations inparallel. Existingfullregression/per-change testloops are notdispatched. Original tests/oracles/pins unchanged."
   }
 }

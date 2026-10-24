@@ -7,10 +7,9 @@ import Observation
 /// in-place signing refresh; preservation still requires physical verification.
 @MainActor @Observable
 final class LocalMinutesServices: PlaybackHardware {
-    // Test-first composition seams. No working heavy bridge before hosted RED.
-    let heavyAdmission: HeavyModelAdmission? = nil
-    let recordingAdmission: RecordingHeavyModelAdmission? = nil
-    let intelligence: IntelligenceSession? = nil
+    let heavyAdmission: HeavyModelAdmission?
+    let recordingAdmission: RecordingHeavyModelAdmission?
+    let intelligence: IntelligenceSession?
     let metrics: TranscriptionMetricsRecorder? = nil
 
     func persistMetricsCheckpoint() throws -> URL { throw MetricsValidationError.notImplemented }
@@ -30,6 +29,7 @@ final class LocalMinutesServices: PlaybackHardware {
     private(set) var playback: AVAudioPlayer?
     @ObservationIgnored private var ownsPlaybackSession = false
     @ObservationIgnored private var operation: Task<Void, Never>?
+    @ObservationIgnored private var intelligenceCleanup: (id: UUID, task: Task<Void, Never>)?
 
     static let summaryManifest = ModelManifest(
         modelID: "qwen2.5-1.5b-instruct-q4_k_m", purpose: .summary,
@@ -77,6 +77,28 @@ final class LocalMinutesServices: PlaybackHardware {
         let usage = MeetingUsageRegistry(requiresStartup: true)
         self.usage = usage
         startup = LibraryStartupCoordinator(store: database, recordingsRoot: meetings, usage: usage)
+        let admission = HeavyModelAdmission()
+        heavyAdmission = admission
+        recordingAdmission = RecordingHeavyModelAdmission(usageRegistry: usage, heavyAdmission: admission)
+        intelligence = IntelligenceSession(store: database, models: manager, admission: admission,
+            manifest: Self.summaryManifest)
+    }
+
+    /// Retain cancellation independently of the scene/view that requested it.
+    /// The captured request identity can never cancel a later meeting's work.
+    func cancelCurrentIntelligence() {
+        guard let intelligence else { return }
+        let snapshot = intelligence.snapshot()
+        guard let id = snapshot.requestID,
+              [.loading, .generating, .saving, .draining, .failed].contains(snapshot.phase),
+              intelligenceCleanup?.id != id else { return }
+        let task = Task { @MainActor [weak self] in
+            do { try await intelligence.cancelAndDrain(requestID: id) }
+            catch IntelligenceSessionError.staleRequest { }
+            catch { self?.modelError = "Local model cleanup is pending. Return to the meeting and tap Cancel to retry." }
+            if self?.intelligenceCleanup?.id == id { self?.intelligenceCleanup = nil }
+        }
+        intelligenceCleanup = (id, task)
     }
 
     /// The retained coordinator coalesces callers and finishes admitted recovery

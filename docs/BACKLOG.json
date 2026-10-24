@@ -1020,9 +1020,9 @@
           "greenEvidence": [],
           "deviceEvidence": [],
           "redVerified": false,
-          "productionImplemented": false,
+          "productionImplemented": true,
           "draft": "docs/drafts/T17AppAdmission/README.md",
-          "scope": "Two active portable real-owner/CAF/admission composition cases and one native default Services identity case. Nil/pass-through seams only; require actual hosted assertion RED before production wiring."
+          "scope": "ActualAppServicesnowownsoneHeavyModelAdmission sharedbyactualRecordingSessionOwner bridge and realIntelligenceSession. PortablebridgepostRED andproductionwiringimplemented; native/fullregressionsnotrununderownerbatchpreference."
         }
       ],
       "redEvidence": [
@@ -1032,7 +1032,7 @@
       "deviceEvidence": [],
       "blockers": [],
       "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead.",
-      "latestCheckpoint": "917844b/run40071855360 actual RED read; repairs await exact-SHA GREEN. Next startup/shared-owner/tokenization test-first batch, all physical gates NOT_RUN."
+      "latestCheckpoint": "Resumedownerfunctionalbatch: actualServices/sharedgate and Summary/Ask UI implemented, sourceboundedmapoutputpolicy, oneendofbatchbuild/parallelmodelobservations pending. No native/model/device successclaim."
     },
     {
       "id": "T18",
@@ -1139,7 +1139,7 @@
       "deviceEvidence": [],
       "blockers": [],
       "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead.",
-      "latestCheckpoint": "917844b/run40071855360 actual RED read; repairs await exact-SHA GREEN. Next startup/shared-owner/tokenization test-first batch, all physical gates NOT_RUN."
+      "latestCheckpoint": "Resumedownerfunctionalbatch: actualServices/sharedgate and Summary/Ask UI implemented, sourceboundedmapoutputpolicy, oneendofbatchbuild/parallelmodelobservations pending. No native/model/device successclaim."
     },
     {
       "id": "T19",
@@ -1197,7 +1197,8 @@
       "greenEvidence": [],
       "deviceEvidence": [],
       "blockers": [],
-      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
+      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead.",
+      "latestCheckpoint": "Resumedownerfunctionalbatch: actualServices/sharedgate and Summary/Ask UI implemented, sourceboundedmapoutputpolicy, oneendofbatchbuild/parallelmodelobservations pending. No native/model/device successclaim."
     },
     {
       "id": "T20",
@@ -1340,9 +1341,9 @@
       "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
     }
   ],
-  "executionPausedByOwner": true,
-  "resumeAction": "WAIT for explicit owner resume after reboot. Then read required docs and inspect saved WIP; finish summary/Q&A app screens and real default shared model wiring, integrate exact storageDirectory into production signal monitor, review current pressure/native logging changes, and make one batched build under owner no-per-change-testing preference. Existing delivered MVP remains build/delivery/MVP-40092475736; no replacement IPA created in this resumed batch.",
-  "lastUpdated": "2026-10-24T12:57:19.624Z",
+  "executionPausedByOwner": false,
+  "resumeAction": "Commit/push featurebatch; create unpublished drafttargetingexactcommit; dispatch modefeatures once. Observe independent build/service/summary/questions; downloadIPA+hash whenbuildsucceeds, recordexactmodelresultswithoutinferringfullbaselinecompletion.",
+  "lastUpdated": "2026-10-24T13:32:03.203Z",
   "latestVerification": {
     "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
     "runId": 40079629180,

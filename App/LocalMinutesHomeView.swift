@@ -5,6 +5,7 @@ import SwiftUI
 @MainActor
 struct LocalMinutesHomeView: View {
     let application: RecordingApplication
+    @Environment(\.scenePhase) private var scenePhase
     var body: some View {
         TabView {
             RecordingControlsView(application: application)
@@ -17,6 +18,10 @@ struct LocalMinutesHomeView: View {
             }
         }
         .tint(.teal)
+        .task { await application.services?.initialize() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .background { application.services?.cancelCurrentIntelligence() }
+        }
     }
 }
 
@@ -65,14 +70,18 @@ private struct MeetingDetailView: View {
     let services: LocalMinutesServices
     let application: RecordingApplication
     let id: UUID
+    @Environment(\.scenePhase) private var scenePhase
     @State private var title = ""
     @State private var search = ""
     @State private var controller: MeetingLibraryController
+    @State private var intelligenceController: MeetingIntelligenceController
     @State private var playbackMessage: String?
+    @State private var playbackRequestID: UUID?
 
     init(services: LocalMinutesServices, application: RecordingApplication, id: UUID) {
         self.services = services; self.application = application; self.id = id
         _controller = State(initialValue: MeetingLibraryController(store: services.store))
+        _intelligenceController = State(initialValue: MeetingIntelligenceController(services: services, meetingID: id))
     }
 
     var body: some View {
@@ -86,6 +95,9 @@ private struct MeetingDetailView: View {
             Section("Original notes") {
                 MeetingNotesEditor(controller: controller)
             }
+            MeetingIntelligenceView(controller: intelligenceController, playCitation: { sample in
+                await playSegment(at: sample)
+            })
             Section("Transcript") {
                 TextField("Find in this transcript", text: $search)
                     .onChange(of: search) { _, query in Task { await controller.search(query) } }
@@ -125,8 +137,15 @@ private struct MeetingDetailView: View {
         .task(id: id) {
             await controller.open(id: id)
             title = controller.selected?.title ?? ""
+            await intelligenceController.load()
         }
-        .onDisappear { stopPlayback() }
+        .onDisappear {
+            stopOwnedPlayback()
+            intelligenceController.leaveMeeting()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .background { intelligenceController.leaveMeeting() }
+        }
         .privacySensitive()
     }
 
@@ -136,32 +155,50 @@ private struct MeetingDetailView: View {
     }
 
     private func playSegment(at sample: Int64) async {
+        let requestID = UUID()
+        playbackRequestID = requestID
         if let state = await application.owner?.snapshot(),
            state.cleanupPending || [.preparing, .recording, .stopping].contains(state.phase) {
+            guard playbackRequestID == requestID else { return }
             playbackMessage = "Stop recording before playing meeting audio."
+            playbackRequestID = nil
             return
         }
+        guard playbackRequestID == requestID else { return }
         do {
             let directory = services.meetingsDirectory.appendingPathComponent(id.uuidString, isDirectory: true)
             let manifest = try JSONDecoder().decode(AudioCaptureManifest.self,
                 from: Data(contentsOf: directory.appendingPathComponent("capture-manifest.json")))
             guard let location = try MeetingPlaybackMapper.locate(globalSample: sample,
                 meetingID: id, manifest: manifest, meetingDirectory: directory) else {
-                playbackMessage = "Audio is unavailable at this time."; return
+                playbackMessage = "Audio is unavailable at this time."
+                playbackRequestID = nil
+                return
             }
-            switch await application.playAudio(at: location) {
+            let result = await application.playAudio(at: location, requestID: requestID)
+            guard playbackRequestID == requestID else { return }
+            switch result {
             case .playing: playbackMessage = "Playing the selected audio segment."
             case .blockedByRecording: playbackMessage = "Stop recording before playing meeting audio."
             case .cleanupPending: playbackMessage = "Audio cleanup is pending. Tap Stop playback to retry."
             default: playbackMessage = "This audio segment could not be played."
             }
         } catch {
-            stopPlayback()
+            guard playbackRequestID == requestID else { return }
+            stopOwnedPlayback()
             playbackMessage = "This audio segment could not be played."
         }
     }
 
+    private func stopOwnedPlayback() {
+        guard let requestID = playbackRequestID else { return }
+        playbackRequestID = nil
+        playbackMessage = application.stopPlayback(expectedRequestID: requestID) == .cleanupPending
+            ? "Audio cleanup is pending. Tap Stop playback to retry." : nil
+    }
+
     private func stopPlayback() {
+        playbackRequestID = nil
         playbackMessage = application.stopPlayback() == .cleanupPending
             ? "Audio cleanup is pending. Tap Stop playback to retry." : nil
     }

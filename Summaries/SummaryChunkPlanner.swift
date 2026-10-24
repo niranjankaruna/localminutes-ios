@@ -39,18 +39,22 @@ public struct SummaryChunkPlanner: Sendable {
     public let contextTokenLimit: Int
     public let reservedOutputTokens: Int
     public let promptPrefix: String
+    public let maximumSegmentsPerChunk: Int?
     private let tokenizer: SummaryTokenCounter
 
     public init(contextTokenLimit: Int = 4_096, reservedOutputTokens: Int = 512,
-                promptPrefix: String, tokenizer: @escaping SummaryTokenCounter) {
+                promptPrefix: String, maximumSegmentsPerChunk: Int? = nil,
+                tokenizer: @escaping SummaryTokenCounter) {
         self.contextTokenLimit = contextTokenLimit; self.reservedOutputTokens = reservedOutputTokens
-        self.promptPrefix = promptPrefix; self.tokenizer = tokenizer
+        self.promptPrefix = promptPrefix; self.maximumSegmentsPerChunk = maximumSegmentsPerChunk
+        self.tokenizer = tokenizer
     }
 
     public func plan(_ segments: [SummaryEvidenceSegment]) async throws -> [SummaryInputChunk] {
         try Task.checkCancellation()
         guard (64...4_096).contains(contextTokenLimit), (1...1_024).contains(reservedOutputTokens),
               reservedOutputTokens < contextTokenLimit,
+              maximumSegmentsPerChunk.map({ (1...256).contains($0) }) ?? true,
               promptPrefix.utf8.count <= 65_536 - Self.evidenceMarker.utf8.count - 2 else {
             throw SummaryChunkPlannerError.invalidConfiguration
         }
@@ -81,6 +85,13 @@ public struct SummaryChunkPlanner: Sendable {
         var pendingTokens = 0
         for segment in segments {
             try Task.checkCancellation()
+            if let maximumSegmentsPerChunk, pending.count == maximumSegmentsPerChunk {
+                chunks.append(SummaryInputChunk(segments: pending, prompt: pendingPrompt,
+                    promptTokenCount: pendingTokens, reservedOutputTokens: reservedOutputTokens))
+                pending = []
+                pendingPrompt = ""
+                pendingTokens = 0
+            }
             let candidate = pending + [segment]
             let candidatePrompt = try makePrompt(candidate)
             if let count = try await acceptedTokenCount(candidatePrompt) {

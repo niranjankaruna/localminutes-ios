@@ -8,7 +8,7 @@ on:
         required: true
         type: choice
         default: mvp
-        options: [mvp, validation]
+        options: [mvp, features, validation]
       sourceCommit:
         description: Reviewed app source for the MVP package
         required: true
@@ -344,25 +344,30 @@ jobs:
   # Owner-requested MVP delivery: compile/package only, no test runner or model weights.
   # The workflow definition and the reviewed app source are recorded separately.
   mvp-package:
-    if: ${{ inputs.mode == 'mvp' }}
+    if: ${{ inputs.mode == 'mvp' || inputs.mode == 'features' }}
     runs-on: macos-15-intel
     timeout-minutes: 25
     permissions:
       contents: write
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
-      EXPECTED_SOURCE: ${{ inputs.sourceCommit }}
+      EXPECTED_SOURCE: ${{ inputs.mode == 'features' && github.sha || inputs.sourceCommit }}
+      DELIVERY_MODE: ${{ inputs.mode }}
     steps:
-      - name: Check out the last fully passing app source
+      - name: Check out the exact selected app source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ inputs.sourceCommit }}
+          ref: ${{ inputs.mode == 'features' && github.sha || inputs.sourceCommit }}
           persist-credentials: false
       - name: Verify exact reviewed source and zero-spend packaging guard
         shell: bash
         run: |
           set -euo pipefail
-          test "$EXPECTED_SOURCE" = 'db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04'
+          if [ "$DELIVERY_MODE" = 'features' ]; then
+            test "$EXPECTED_SOURCE" = "$GITHUB_SHA"
+          else
+            test "$EXPECTED_SOURCE" = 'db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04'
+          fi
           test "$(git rev-parse HEAD)" = "$EXPECTED_SOURCE"
           python3 - <<'PY'
           import json
@@ -432,3 +437,60 @@ jobs:
           PY
           gh release upload "$MVP_TAG" --repo "$GITHUB_REPOSITORY" \
             build/package/*.ipa build/package/*.sha256 build/package/build-manifest.json
+
+  # One end-of-batch real-model observation per independent flow, in parallel.
+  # Existing full validation is preserved separately; no per-change test loop.
+  feature-model-check:
+    if: ${{ inputs.mode == 'features' }}
+    name: Local model (${{ matrix.flow }})
+    runs-on: macos-15-intel
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - flow: service
+            filter: ActualIntelligenceCompositionTests
+            cases: testDefaultPinnedQwenServiceSavesSummaryAndSelectedAnswerThenReleasesActualInstallation
+          - flow: summary
+            filter: ActualSummaryPipelineTests
+            cases: testActualQwenMapsAndValidatesGroundedDecisionsActionsAndUnknownAttributes
+          - flow: questions
+            filter: ActualQwenMeetingQuestionTests
+            cases: testActualPinnedQwenAnswersSelectedBudgetAndPreservesUnknownOwnerDespiteOtherMeetingAnswer
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+      MODEL_FILTER: ${{ matrix.filter }}
+      MODEL_CASE: ${{ matrix.cases }}
+    steps:
+      - name: Check out exact batched source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Verify zero-spend guard and prepare the actual pinned model
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          c = json.loads(Path('project-config.json').read_text())
+          assert c['ci']['costGuardVerified'] is True
+          assert c['budget']['maximumAdditionalSpendEUR'] == 0
+          assert c['budget']['allowLargerRunners'] is False
+          assert c['github']['visibility'] == 'public'
+          PY
+          python3 docs/drafts/T17/prepare_native_summary.py
+      - name: Exercise this actual local-model flow once
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .build
+          swift test --filter "$MODEL_FILTER" 2>&1 | tee .build/feature-model-output.log
+      - name: Record the actual flow result without hiding failures
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/verify-test-log.mjs .build/feature-model-output.log "$MODEL_CASE"
