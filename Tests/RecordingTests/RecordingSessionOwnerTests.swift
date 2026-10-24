@@ -1489,8 +1489,12 @@ extension RecordingSessionOwnerTests {
         XCTAssertTrue(StartMeetingIntent.isDiscoverable)
         XCTAssertTrue(StopMeetingIntent.isDiscoverable)
         XCTAssertTrue(ToggleMeetingIntent.isDiscoverable)
+        // Preserve the original three recording controls and require the
+        // separately authenticated fourth navigation action as well.
+        XCTAssertTrue(OpenLatestMeetingIntent.isDiscoverable)
+        XCTAssertEqual(String(localized: OpenLatestMeetingIntent.title), "Open Latest LocalMinutes Meeting")
         XCTAssertFalse(StopRecordingActivityIntent.isDiscoverable)
-        XCTAssertEqual(LocalMinutesShortcuts.appShortcuts.count, 3)
+        XCTAssertEqual(LocalMinutesShortcuts.appShortcuts.count, 4)
         if #available(iOS 26.0, *) {
             for modes in [StartMeetingIntent.supportedModes, StopMeetingIntent.supportedModes,
                           ToggleMeetingIntent.supportedModes] {

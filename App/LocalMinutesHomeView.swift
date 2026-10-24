@@ -7,7 +7,15 @@ import UniformTypeIdentifiers
 struct LocalMinutesHomeView: View {
     let application: RecordingApplication
     @Environment(\.scenePhase) private var scenePhase
+    @State private var privacy: RecordingPrivacyController
+
+    init(application: RecordingApplication, privacy: RecordingPrivacyController? = nil) {
+        self.application = application
+        _privacy = State(initialValue: privacy ?? RecordingPrivacyController())
+    }
+
     var body: some View {
+        RecordingPrivacyRoot(controller: privacy) {
         TabView {
             RecordingControlsView(application: application)
                 .tabItem { Label("Record", systemImage: "mic") }
@@ -31,6 +39,7 @@ struct LocalMinutesHomeView: View {
             }
             catch { application.services?.metrics?.recordError(.writeFailed) }
             if phase == .background { application.services?.cancelCurrentIntelligence() }
+        }
         }
     }
 }

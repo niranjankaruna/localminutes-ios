@@ -8,7 +8,7 @@ on:
         required: true
         type: choice
         default: mvp
-        options: [mvp, features, package, validation, candidate, candidate-summary, candidate-summary-parts, model-catalog, model-integration, model-repair, model-delivery, mvp2-red, mvp2, mvp2-integration, mvp2-parakeet]
+        options: [mvp, features, package, validation, candidate, candidate-summary, candidate-summary-parts, model-catalog, model-integration, model-repair, model-delivery, mvp2-red, mvp2, mvp2-integration, mvp2-parakeet, mvp3]
       sourceCommit:
         description: Reviewed app source for the MVP package
         required: true
@@ -127,9 +127,9 @@ jobs:
         run: node scripts/verify-test-log.mjs .build/mvp2-recovery.log testCursorOnlyJumpToTimelineEndCannotSkipRemainingActualSpeechAfterReopen testActualWhisperPreparationPersistsCoherentImmutableMeetingPinBeforeFirstAudioFrame
 
   focused-portable:
-    if: ${{ inputs.mode == 'candidate-summary-parts' || inputs.mode == 'model-catalog' || inputs.mode == 'model-integration' || inputs.mode == 'model-repair' || inputs.mode == 'model-delivery' }}
+    if: ${{ inputs.mode == 'candidate-summary-parts' || inputs.mode == 'model-catalog' || inputs.mode == 'model-integration' || inputs.mode == 'model-repair' || inputs.mode == 'model-delivery' || inputs.mode == 'mvp3' }}
     runs-on: macos-15-intel
-    timeout-minutes: 8
+    timeout-minutes: 12
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     steps:
@@ -150,7 +150,9 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           mkdir -p .build
-          if [[ "${{ inputs.mode }}" == model-integration || "${{ inputs.mode }}" == model-repair || "${{ inputs.mode }}" == model-delivery ]]; then
+          if [ "${{ inputs.mode }}" = mvp3 ]; then
+            swift test --filter 'CoreTests[.](RecordingProgressPresenterTests|TranscriptionMetricsTests)' 2>&1 | tee .build/focused-portable.log
+          elif [[ "${{ inputs.mode }}" == model-integration || "${{ inputs.mode }}" == model-repair || "${{ inputs.mode }}" == model-delivery ]]; then
             swift test --filter 'ModelTests[.](HuggingFaceRepositoryTests|ModelSelectionTests|ModelDeviceResourceReaderTests|ModelInstallationIdentityTests|ModelRuntimeCompatibilityTests)|CoreTests[.]TranscriptionMetricsTests|PersistenceTests[.]SummaryCheckpointStoreTests|SummaryTests[.](SummaryPipelineTests|GroundedSummaryTests|NestedStructuredSchemaTests|StructuredJSONSchemaTests)' 2>&1 | tee .build/focused-portable.log
           elif [ "${{ inputs.mode }}" = model-catalog ]; then
             swift test --filter 'ModelTests[.](HuggingFaceRepositoryTests|ModelSelectionTests)|ASRTests[.]WhisperSpeechRecognizerTests|SummaryTests[.](SummaryPipelineTests|GroundedSummaryTests|NestedStructuredSchemaTests|StructuredJSONSchemaTests)' 2>&1 | tee .build/focused-portable.log
@@ -162,7 +164,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "${{ inputs.mode }}" == model-integration || "${{ inputs.mode }}" == model-repair || "${{ inputs.mode }}" == model-delivery ]]; then
+          if [ "${{ inputs.mode }}" = mvp3 ]; then
+            node scripts/verify-test-log.mjs .build/focused-portable.log testFirstPCMElapsedSurvivesPresenterRecreationAndDoesNotUseTranscribedDuration testMeasuredBacklogWarnsStrictlyAboveFiveSecondsAndReportsRealCatchUp
+          elif [[ "${{ inputs.mode }}" == model-integration || "${{ inputs.mode }}" == model-repair || "${{ inputs.mode }}" == model-delivery ]]; then
             node scripts/verify-test-log.mjs .build/focused-portable.log testInstalledInventoryListsBothAlternativesDeterministicallyWithoutChangingEquipment
           elif [ "${{ inputs.mode }}" = model-catalog ]; then
             node scripts/verify-test-log.mjs .build/focused-portable.log testWhisperLoadsActualPinnedModelOnCPUOutsideMainThread
@@ -173,14 +177,14 @@ jobs:
         run: node --test scripts/tests/whisper-package-policy.test.mjs scripts/tests/package-audit.test.mjs scripts/tests/ios-artifacts.test.mjs
 
   focused-app-metrics:
-    if: ${{ inputs.mode == 'candidate-summary-parts' || inputs.mode == 'model-catalog' || inputs.mode == 'model-integration' || inputs.mode == 'model-repair' || inputs.mode == 'model-delivery' || inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet' }}
+    if: ${{ inputs.mode == 'candidate-summary-parts' || inputs.mode == 'model-catalog' || inputs.mode == 'model-integration' || inputs.mode == 'model-repair' || inputs.mode == 'model-delivery' || inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet' || inputs.mode == 'mvp3' }}
     name: Native focused (${{ matrix.testclass }})
-    runs-on: ${{ inputs.mode == 'mvp2-parakeet' && 'macos-15' || 'macos-15-intel' }}
+    runs-on: ${{ (inputs.mode == 'mvp2-parakeet' || inputs.mode == 'mvp3') && 'macos-15' || 'macos-15-intel' }}
     timeout-minutes: ${{ (inputs.mode == 'model-delivery' || inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet') && 18 || 15 }}
     strategy:
       fail-fast: false
       matrix:
-        testclass: ${{ fromJSON((inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet') && '["NativeMVP2LibraryTests"]' || inputs.mode == 'model-delivery' && '["MVP1Services"]' || (inputs.mode == 'model-integration' || inputs.mode == 'model-repair') && '["NativeAppMetricsTests","NativeModelResourceTests"]' || '["NativeAppMetricsTests"]') }}
+        testclass: ${{ fromJSON(inputs.mode == 'mvp3' && '["MVP3Contracts"]' || (inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet') && '["NativeMVP2LibraryTests"]' || inputs.mode == 'model-delivery' && '["MVP1Services"]' || (inputs.mode == 'model-integration' || inputs.mode == 'model-repair') && '["NativeAppMetricsTests","NativeModelResourceTests"]' || '["NativeAppMetricsTests"]') }}
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
       NATIVE_TEST_CLASS: ${{ matrix.testclass }}
@@ -232,7 +236,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ "$NATIVE_TEST_CLASS" = MVP1Services ]; then
+          if [ "$NATIVE_TEST_CLASS" = MVP3Contracts ]; then
+            native_cases=(-only-testing:LocalMinutesAppTests/NativeRootPrivacyTests -only-testing:LocalMinutesAppTests/NativeOpenLatestMeetingIntentTests -only-testing:LocalMinutesAppTests/NativeRecordingProgressTests -only-testing:LocalMinutesAppTests/RecordingSessionOwnerTests/testNativeSDKConformancesAndThreeDiscoverableShortcutsArePresent)
+          elif [ "$NATIVE_TEST_CLASS" = MVP1Services ]; then
             native_cases=(-only-testing:LocalMinutesAppTests/NativeAppMetricsTests -only-testing:LocalMinutesAppTests/NativeModelResourceTests)
           elif [ "$NATIVE_TEST_CLASS" = NativeMVP2LibraryTests ]; then
             native_cases=(-only-testing:LocalMinutesAppTests/NativeMVP2LibraryTests -only-testing:LocalMinutesAppTests/NativeMVP2AdmissionRaceTests)
@@ -258,7 +264,14 @@ jobs:
           if [ -f .agent-local/focused-simulator-boot.log ]; then
             tail -40 .agent-local/focused-simulator-boot.log
           fi
-          if [ "$NATIVE_TEST_CLASS" = NativeMVP2LibraryTests ]; then
+          if [ "$NATIVE_TEST_CLASS" = MVP3Contracts ]; then
+            node scripts/verify-test-log.mjs .agent-local/focused-app-metrics.log \
+              testPresenterUsesActualDefaultServiceFirstPCMOriginAndMeasuredPendingSamples \
+              testActualIntentPublishesNewestMeetingThroughTheRetainedApplicationRouterWithoutRecording \
+              testOwningSceneNotificationsOpaqueCoverTheHostedRootAndRestoreAccessibility \
+              testActualHomeRootPrivacyPreservesRunningOwnedCaptureAndRealCAFFlush \
+              testNativeSDKConformancesAndThreeDiscoverableShortcutsArePresent
+          elif [ "$NATIVE_TEST_CLASS" = NativeMVP2LibraryTests ]; then
             node scripts/verify-test-log.mjs .agent-local/focused-app-metrics.log \
               testDefaultAppManagerResumesPinnedDownloadThroughItsConfiguredTransportAndPublishesVerifiedInstallation \
               testAppSceneSamplingUsesActualResidentMemoryAndOneRetainedPrivateEnduranceRecorder \
