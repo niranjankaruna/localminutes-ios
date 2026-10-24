@@ -3,15 +3,15 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T15:54:49.444Z",
+  "lastUpdated": "2026-10-24T16:21:43.118Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "T24 model catalogue/Equip/Whisper tests-first; T18.3 source-bound summary and T13.2 diagnostics repairs after actualRED",
+  "currentTask": "MVP1 model chooser: implemented HF/Equip/Whisper after actualRED; integration/phone-resource/inventory tests-first",
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "Dispatch one focused model-catalog run: existing summary/native diagnostics GREEN checks plus new HF/selection/Whisper RED contracts. Implement new model behavior only after those actual assertion failures; then integrate the native model browser and selected speech/summary runtimes.",
+  "nextAction": "Run model-integration focused batch: verify core model features and real Whisper, record selected-loader/live-engine/inventory/native-resource RED. Complete actual app cards and runtime wiring, produce MVP1IPA, then continue MVP2 without pausing.",
   "pendingPushCommit": null,
   "remoteBranchHead": "6d914fe0117964c7019a71d5b9332c9dba3758b4",
   "localScriptGreen": {
@@ -36,7 +36,8 @@
     "maxNewRuns": 6,
     "plannedNewRuns": 1,
     "newRunIds": [
-      40107527439
+      40107527439,
+      40109131483
     ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-24T15:29:10Z",
@@ -1386,7 +1387,10 @@
     "timeCapRemoved": true,
     "instruction": "No need for cap, continue to work until get finished. But do not run full testsuite for every change.",
     "regressionPolicy": "Focused behavior checks during work; one broader integration checkpoint after batch",
-    "projectCompletionGateUnchanged": true
+    "projectCompletionGateUnchanged": true,
+    "deliverEachMVP": true,
+    "continueImmediatelyToNext": true,
+    "pauseOnlyOnOwnerRequest": true
   },
   "modelCatalogue": {
     "status": "IN_PROGRESS",
@@ -1417,8 +1421,91 @@
       "whisper.cpp",
       "llama.cpp"
     ],
-    "whisperRuntime": "TEST_FIRST_STUB_NOT_IMPLEMENTED",
-    "newBehaviorRedVerified": false,
-    "evidence": "docs/evidence/MODEL_CATALOG_AND_SUMMARY_2026_10_24.md"
-  }
+    "whisperRuntime": "IMPLEMENTED_PENDING_ACTUAL_GREEN",
+    "newBehaviorRedVerified": true,
+    "evidence": "docs/evidence/MODEL_CATALOG_AND_SUMMARY_2026_10_24.md",
+    "redSourceCommit": "c26880dc156cb29d71d1860eafc09e5b4fba255b",
+    "redRunId": 40109131483,
+    "redCounts": {
+      "huggingFace": {
+        "executed": 30,
+        "failed": 30,
+        "assertionFailures": 73
+      },
+      "selection": {
+        "executed": 10,
+        "failed": 10,
+        "assertionFailures": 32
+      },
+      "whisper": {
+        "executed": 4,
+        "failed": 4,
+        "assertionFailures": 237
+      },
+      "allFocused": {
+        "executed": 61,
+        "passed": 16,
+        "failed": 45,
+        "assertionFailures": 343,
+        "skipped": 0
+      }
+    },
+    "implementedComponents": [
+      "HFmetadata/card/format/resources",
+      "durable Equip/Unequip",
+      "singleGGML installation",
+      "actualCPUWhisper rolling adapter"
+    ],
+    "integrationPending": [
+      "native browser/resources",
+      "selected Whisper capture",
+      "selected GGUF defaultloader",
+      "installed inventory"
+    ]
+  },
+  "summaryCandidateValidated": {
+    "sourceCommit": "c26880dc156cb29d71d1860eafc09e5b4fba255b",
+    "runId": 40109131483,
+    "positive": {
+      "jobId": 120916967959,
+      "passed": 1,
+      "failed": 0,
+      "seconds": 420.128
+    },
+    "unknown": {
+      "jobId": 120916967935,
+      "passed": 1,
+      "failed": 0,
+      "seconds": 403.036
+    },
+    "scope": "Two actual Phi summarysmokes only; original oracles unchanged. Not representativequality/defaultservice/phone validation."
+  },
+  "nativeMetricsVerification": {
+    "sourceCommit": "c26880dc156cb29d71d1860eafc09e5b4fba255b",
+    "runId": 40109131483,
+    "jobId": 120916968033,
+    "result": "CANCELLED15min; zero completed XCTestcases, not a behavior result. Keep original84ff actualRED3cases/10assertions; next focused native cases remain mandatory."
+  },
+  "deliveryStages": [
+    {
+      "id": 1,
+      "title": "Model-choiceMVP",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "id": 2,
+      "title": "ReliabilityanddataMVP",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": 3,
+      "title": "Releasecandidate",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": 4,
+      "title": "Verifiedfinalphoneacceptance",
+      "status": "NOT_STARTED"
+    }
+  ]
 }

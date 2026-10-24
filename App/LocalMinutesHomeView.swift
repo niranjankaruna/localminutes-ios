@@ -20,7 +20,12 @@ struct LocalMinutesHomeView: View {
         .tint(.teal)
         .task { await application.services?.initialize() }
         .onChange(of: scenePhase) { _, phase in
-            do { try application.recordScenePhase(phase) }
+            do {
+                try application.recordScenePhase(phase)
+                if phase == .background, let services = application.services {
+                    _ = try services.persistMetricsCheckpoint()
+                }
+            }
             catch { application.services?.metrics?.recordError(.writeFailed) }
             if phase == .background { application.services?.cancelCurrentIntelligence() }
         }

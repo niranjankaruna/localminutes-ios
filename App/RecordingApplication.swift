@@ -91,7 +91,6 @@ final class RecordingApplication {
         default: visibility = .unknown
         }
         try services?.metrics?.visibilityChanged(visibility)
-        if let services { _ = try services.persistMetricsCheckpoint() }
     }
 
     private static func bindSignals(_ monitor: IOSRecordingSignalMonitor, to owner: RecordingSessionOwner) {

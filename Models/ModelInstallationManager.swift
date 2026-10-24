@@ -139,6 +139,10 @@ public actor ModelInstallationManager {
         return handle(manifest: manifest, id: selection.installationID, directory: directory)
     }
 
+    /// TEST-FIRST inventory seam. Metadata listing remains unimplemented until
+    /// its own compatible assertion RED; it is not an inference readiness check.
+    public func installedManifests() throws -> [ModelManifest] { [] }
+
     public func acquire(modelID: String) throws -> ModelLease {
         guard let model = try current(modelID: modelID) else { throw ModelInstallationError.modelMissing }
         let token = UUID()
@@ -266,8 +270,15 @@ public actor ModelInstallationManager {
         }
         switch manifest.purpose {
         case .speechRecognition:
-            guard roles == [.encoder, .decoder, .joiner, .tokens], manifest.sampleRate == 16_000,
-                  manifest.featureDimension == 80 else { throw ModelInstallationError.invalidManifest }
+            if roles == [.whisper] {
+                guard manifest.artifacts.count == 1, manifest.sampleRate == 16_000,
+                      manifest.featureDimension == nil, manifest.runtimeVersion == "whisper.cpp-1.7.5" else {
+                    throw ModelInstallationError.invalidManifest
+                }
+            } else {
+                guard roles == [.encoder, .decoder, .joiner, .tokens], manifest.sampleRate == 16_000,
+                      manifest.featureDimension == 80 else { throw ModelInstallationError.invalidManifest }
+            }
         case .summary:
             guard roles == [.summary] else { throw ModelInstallationError.invalidManifest }
         }
