@@ -156,5 +156,16 @@ final class RecordingApplication {
     func stopPlayback() -> PlaybackOwnershipResult {
         playbackOwnership?.stop() ?? .stopped
     }
+
+    /// No-op scoped surface pending the new native behavioral RED.
+    func playAudio(at location: MeetingPlaybackLocation,
+                   requestID: UUID) async -> PlaybackOwnershipResult {
+        guard let playbackOwnership else { return .notImplemented }
+        return await playbackOwnership.play(at: location, requestID: requestID)
+    }
+
+    func stopPlayback(expectedRequestID: UUID) -> PlaybackOwnershipResult {
+        playbackOwnership?.stop(expectedRequestID: expectedRequestID) ?? .notImplemented
+    }
 }
 #endif

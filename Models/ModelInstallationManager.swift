@@ -196,7 +196,7 @@ public actor ModelInstallationManager {
 
     private func removeOwnedStaging(_ staging: URL) {
         let parent = rootURL.appendingPathComponent(".staging", isDirectory: true)
-        guard staging.deletingLastPathComponent().standardizedFileURL == parent.standardizedFileURL,
+        guard staging.deletingLastPathComponent().standardizedFileURL.path == parent.standardizedFileURL.path,
               UUID(uuidString: staging.lastPathComponent) != nil else { return }
         if FileManager.default.fileExists(atPath: staging.path) {
             try? FileManager.default.removeItem(at: staging)
@@ -290,13 +290,14 @@ public actor ModelInstallationManager {
     }
 
     private func createDirectory(_ url: URL) throws {
+        let path = url.standardizedFileURL.path
         guard url.isFileURL,
-              url.standardizedFileURL == rootURL || url.standardizedFileURL.path.hasPrefix(rootURL.path + "/") else {
+              path == rootURL.path || path.hasPrefix(rootURL.path + "/") else {
             throw ModelInstallationError.invalidInstallation
         }
         if !FileManager.default.fileExists(atPath: url.path) {
             let parent = url.deletingLastPathComponent()
-            if url.standardizedFileURL != rootURL {
+            if path != rootURL.path {
                 try createDirectory(parent)
                 try PersistentFilePolicy.protectItem(parent, within: rootURL)
             } else {
@@ -307,7 +308,7 @@ public actor ModelInstallationManager {
             try FileManager.default.createDirectory(at: url, withIntermediateDirectories: false)
         }
         try requireDirectory(url)
-        if url.standardizedFileURL == rootURL {
+        if path == rootURL.path {
             try PersistentFilePolicy.protectDirectory(url)
         } else {
             try PersistentFilePolicy.protectItem(url, within: rootURL)

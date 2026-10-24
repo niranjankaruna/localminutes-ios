@@ -812,6 +812,16 @@
           "greenEvidence": [],
           "deviceEvidence": [],
           "testCount": 7
+        },
+        {
+          "id": "T17.3",
+          "title": "Explicit caller schema and constrained native JSON decoding",
+          "status": "IN_PROGRESS",
+          "redEvidence": [
+            "docs/evidence/T17_STRUCTURED_SCHEMA_TDD.md"
+          ],
+          "greenEvidence": [],
+          "deviceEvidence": []
         }
       ],
       "redEvidence": [

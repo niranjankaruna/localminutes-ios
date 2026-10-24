@@ -114,6 +114,20 @@ final class HTTPSModelTransportTests: XCTestCase {
         XCTAssertEqual(HTTPFixtureProtocol.state.requestCount, 1)
     }
 
+    func testDirectoryHintCannotRejectTheSameOwnedStagingPath() async throws {
+        let h = try ownedDirectory(); defer { try? cleanup(h.root) }
+        HTTPFixtureProtocol.state.configure(HTTPFixtureResponse(bytes: fixture))
+        let stagingWithoutHint = URL(fileURLWithPath: h.staging.path, isDirectory: false)
+        XCTAssertEqual(stagingWithoutHint.standardizedFileURL.path, h.staging.standardizedFileURL.path)
+        XCTAssertFalse(stagingWithoutHint.hasDirectoryPath)
+        XCTAssertTrue(h.staging.hasDirectoryPath)
+        let transport = HTTPSModelTransport(stagingRootURL: stagingWithoutHint,
+            allowedHosts: ["huggingface.co"], configuration: configuration())
+        try await transport.download(artifact(), to: h.output)
+        XCTAssertEqual(try Data(contentsOf: h.output), fixture)
+        XCTAssertEqual(HTTPFixtureProtocol.state.requestCount, 1)
+    }
+
     func testHTTPStatusFailureCannotPublishAStagingFile() async throws {
         let h = try ownedDirectory(); defer { try? cleanup(h.root) }
         HTTPFixtureProtocol.state.configure(HTTPFixtureResponse(status: 403, bytes: fixture))

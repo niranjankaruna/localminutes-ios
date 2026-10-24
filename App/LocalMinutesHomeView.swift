@@ -190,25 +190,50 @@ struct MeetingNotesEditor: View {
     let controller: MeetingLibraryController
     @State private var text = ""
     @State private var pending: Task<Void, Never>?
+    @State private var lastEdit: StoredManualNote?
+    @State private var saveError: String?
     var body: some View {
-        TextEditor(text: $text)
+        VStack(alignment: .leading) {
+            TextEditor(text: $text)
             .frame(minHeight: 120)
             .accessibilityLabel("Original meeting notes")
-            .task(id: controller.selected?.id) { text = controller.note?.text ?? "" }
+            .task(id: controller.selected?.id) {
+                if let edit = lastEdit, edit.meetingID != controller.selected?.id {
+                    pending?.cancel()
+                    Task { await persist(edit) }
+                    lastEdit = nil
+                    saveError = nil
+                }
+                text = controller.note?.text ?? ""
+            }
             .onChange(of: text) { _, value in
-                guard value != controller.note?.text else { return }
                 pending?.cancel()
+                guard let edit = controller.reserveManualNoteEdit(value) else { return }
+                lastEdit = edit
                 pending = Task {
                     try? await Task.sleep(for: .milliseconds(300))
                     guard !Task.isCancelled else { return }
-                    await controller.saveNotes(value)
+                    await persist(edit)
                 }
             }
             .onDisappear {
                 pending?.cancel()
-                let value = text
-                if value != controller.note?.text { Task { await controller.saveNotes(value) } }
+                if let edit = lastEdit { Task { await persist(edit) } }
             }
+            if let saveError { Text(saveError).font(.caption).foregroundStyle(.red) }
+        }
+    }
+
+    private func persist(_ edit: StoredManualNote) async {
+        do {
+            try await controller.saveNotes(edit)
+            guard controller.selected?.id == edit.meetingID, lastEdit == edit else { return }
+            lastEdit = nil
+            saveError = nil
+        } catch {
+            guard controller.selected?.id == edit.meetingID, lastEdit == edit else { return }
+            saveError = "The latest note has not been saved. Keep this meeting open and try again."
+        }
     }
 }
 

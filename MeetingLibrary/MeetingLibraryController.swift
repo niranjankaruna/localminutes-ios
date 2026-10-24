@@ -95,7 +95,19 @@ public final class MeetingLibraryController {
     /// Test-first interface only. A user edit must bind its meeting and reserve
     /// its revision synchronously, before any debounce/navigation suspension.
     /// Actual hosted assertion RED is required before implementing reservation.
-    public func reserveManualNoteEdit(_ text: String) -> StoredManualNote? { nil }
+    public func reserveManualNoteEdit(_ text: String) -> StoredManualNote? {
+        guard let id = selected?.id, text != (note?.text ?? ""),
+              note == nil || note?.meetingID == id else { return nil }
+        let next = (note?.editRevision ?? 0).addingReportingOverflow(1)
+        guard !next.overflow else {
+            errorMessage = "The note could not be saved."
+            return nil
+        }
+        let edit = StoredManualNote(meetingID: id, text: text,
+            editRevision: next.partialValue, modifiedAt: Date())
+        note = edit
+        return edit
+    }
 
     /// The editor binds the identity and revision before debounce/navigation.
     /// A late save still commits to its original meeting, while a storage error

@@ -9,6 +9,12 @@ import XCTest
 // Expanded coverage of existing policy behavior after its recorded RED. These
 // cases verify real Simulator-supported filesystem/SQLite/CAF operations. They
 // never stand in for the unchanged physical protection-class oracle.
+private enum StoragePolicySQLiteFixtureError: Error {
+    case closed
+    case nativeFailure(operation: String, code: Int32)
+    case unexpectedJournalMode, incompleteCheckpoint, persistentWALStillEnabled
+}
+
 @MainActor
 private final class StoragePolicyFixture {
     let parent: URL
@@ -38,26 +44,94 @@ private final class StoragePolicyWALConnection {
     private var handle: OpaquePointer?
     init(database: URL) throws {
         var opened: OpaquePointer?
-        guard sqlite3_open_v2(database.path, &opened,
-            SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX, nil) == SQLITE_OK,
-            let opened else {
-            if let opened { sqlite3_close_v2(opened) }
-            throw MeetingStoreError.databaseFailure
+        let status = sqlite3_open_v2(database.path, &opened,
+            SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX, nil)
+        guard status == SQLITE_OK, let opened else {
+            if let opened { sqlite3_close(opened) }
+            throw StoragePolicySQLiteFixtureError.nativeFailure(operation: "open", code: status)
         }
         handle = opened
         do {
-            try execute("PRAGMA journal_mode=WAL")
+            let busyStatus = sqlite3_busy_timeout(opened, 1_000)
+            guard busyStatus == SQLITE_OK else {
+                throw StoragePolicySQLiteFixtureError.nativeFailure(operation: "busy-timeout", code: busyStatus)
+            }
+            try setJournalMode("WAL")
             try execute("PRAGMA wal_autocheckpoint=0")
-        } catch { close(); throw error }
+        } catch { try? close(); throw error }
     }
     private func execute(_ sql: String) throws {
-        guard let handle, sqlite3_exec(handle, sql, nil, nil, nil) == SQLITE_OK else {
-            throw MeetingStoreError.databaseFailure
+        guard let handle else { throw StoragePolicySQLiteFixtureError.closed }
+        let status = sqlite3_exec(handle, sql, nil, nil, nil)
+        guard status == SQLITE_OK else {
+            throw StoragePolicySQLiteFixtureError.nativeFailure(operation: "execute", code: status)
         }
     }
-    func close() {
-        if let handle { sqlite3_close_v2(handle) }
-        handle = nil
+    private func setJournalMode(_ mode: String) throws {
+        guard let handle else { throw StoragePolicySQLiteFixtureError.closed }
+        var statement: OpaquePointer?
+        let prepared = sqlite3_prepare_v2(handle, "PRAGMA journal_mode=\(mode)", -1, &statement, nil)
+        guard prepared == SQLITE_OK, let statement else {
+            if let statement { sqlite3_finalize(statement) }
+            throw StoragePolicySQLiteFixtureError.nativeFailure(operation: "prepare-journal-mode", code: prepared)
+        }
+        defer { sqlite3_finalize(statement) }
+        let first = sqlite3_step(statement)
+        guard first == SQLITE_ROW else {
+            throw StoragePolicySQLiteFixtureError.nativeFailure(operation: "set-journal-mode", code: first)
+        }
+        guard let text = sqlite3_column_text(statement, 0) else {
+            throw StoragePolicySQLiteFixtureError.unexpectedJournalMode
+        }
+        let bytes = UnsafeBufferPointer(start: text, count: Int(sqlite3_column_bytes(statement, 0)))
+        let actual = String(decoding: bytes, as: UTF8.self)
+        guard actual.caseInsensitiveCompare(mode) == .orderedSame else {
+            throw StoragePolicySQLiteFixtureError.unexpectedJournalMode
+        }
+        let finished = sqlite3_step(statement)
+        guard finished == SQLITE_DONE else {
+            throw StoragePolicySQLiteFixtureError.nativeFailure(operation: "finish-journal-mode", code: finished)
+        }
+    }
+
+    /// All other fixture connections must already be closed. SQLite itself
+    /// flushes and retires the WAL; no filesystem removal of journal data occurs.
+    func retireWALAndClose() throws {
+        guard let handle else { throw StoragePolicySQLiteFixtureError.closed }
+        var logFrames: Int32 = -1
+        var checkpointedFrames: Int32 = -1
+        let checkpoint = sqlite3_wal_checkpoint_v2(handle, "main", SQLITE_CHECKPOINT_TRUNCATE,
+                                                   &logFrames, &checkpointedFrames)
+        guard checkpoint == SQLITE_OK else {
+            throw StoragePolicySQLiteFixtureError.nativeFailure(operation: "truncate-checkpoint", code: checkpoint)
+        }
+        guard logFrames == 0, checkpointedFrames == 0 else {
+            throw StoragePolicySQLiteFixtureError.incompleteCheckpoint
+        }
+        var persistence: Int32 = 0
+        let disabled = sqlite3_file_control(handle, "main", SQLITE_FCNTL_PERSIST_WAL, &persistence)
+        guard disabled == SQLITE_OK else {
+            throw StoragePolicySQLiteFixtureError.nativeFailure(operation: "disable-persist-wal", code: disabled)
+        }
+        persistence = -1
+        let queried = sqlite3_file_control(handle, "main", SQLITE_FCNTL_PERSIST_WAL, &persistence)
+        guard queried == SQLITE_OK else {
+            throw StoragePolicySQLiteFixtureError.nativeFailure(operation: "query-persist-wal", code: queried)
+        }
+        guard persistence == 0 else { throw StoragePolicySQLiteFixtureError.persistentWALStillEnabled }
+        // Apple SQLite can retain sidecars at ordinary close. An explicit mode
+        // transition makes this fixture's subsequent recreation deterministic.
+        try setJournalMode("DELETE")
+        try close()
+    }
+
+    func close() throws {
+        guard let handle else { return }
+        let status = sqlite3_close(handle)
+        guard status == SQLITE_OK else {
+            throw StoragePolicySQLiteFixtureError.nativeFailure(operation: "close", code: status)
+        }
+        self.handle = nil
     }
 }
 
@@ -233,7 +307,7 @@ final class NativeStoragePolicyTests: XCTestCase {
         let h = try StoragePolicyFixture(); defer { h.cleanup() }
         let database = h.root.appendingPathComponent("meetings.sqlite")
         let external = try StoragePolicyWALConnection(database: database)
-        defer { external.close() }
+        defer { try? external.close() }
         let first = try SQLiteMeetingStore(databaseURL: database)
         let original = MeetingRecord(id: UUID(), title: "Original storage-policy fixture",
             createdAt: Date(timeIntervalSince1970: 1_000), recordingState: .recording)
@@ -242,9 +316,11 @@ final class NativeStoragePolicyTests: XCTestCase {
         XCTAssertTrue(sidecars.allSatisfy { FileManager.default.fileExists(atPath: $0.path) })
         for item in [h.root, database] + sidecars { try assertPolicy(item, within: h.root) }
         try await first.close()
-        external.close()
+        try external.retireWALAndClose()
         XCTAssertTrue(sidecars.allSatisfy { !FileManager.default.fileExists(atPath: $0.path) },
                       "The subsequent checks must exercise newly created sidecars")
+        let recreated = try StoragePolicyWALConnection(database: database)
+        defer { try? recreated.close() }
         let reopened = try SQLiteMeetingStore(databaseURL: database)
         let later = MeetingRecord(id: UUID(), title: "Later original storage-policy fixture",
             createdAt: Date(timeIntervalSince1970: 2_000), recordingState: .completed)
@@ -255,6 +331,7 @@ final class NativeStoragePolicyTests: XCTestCase {
         XCTAssertEqual(firstRestored, original)
         XCTAssertEqual(laterRestored, later)
         try await reopened.close()
+        try recreated.close()
 
         let meetings = h.root.appendingPathComponent("Meetings", isDirectory: true)
         try FileManager.default.createDirectory(at: meetings, withIntermediateDirectories: false)

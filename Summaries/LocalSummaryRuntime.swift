@@ -86,6 +86,12 @@ public actor LocalSummaryRuntime {
         }
     }
 
+    public func generateJSON(prompt: String, schema: StructuredJSONSchema,
+                             maximumTokens: Int = 192) async throws -> String {
+        try Task.checkCancellation()
+        throw LocalSummaryRuntimeError.notImplemented
+    }
+
     public func unload() { resources = nil }
 
     private func generate(prompt: String, maximumTokens: Int, cancellation: SummaryCancellation) throws -> String {

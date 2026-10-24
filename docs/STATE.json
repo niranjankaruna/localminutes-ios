@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T06:09:57.433Z",
+  "lastUpdated": "2026-10-24T06:50:15.555Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -11,17 +11,18 @@
   "lastVerifiedCommit": "40100fdb9a8349acdbf2d22c63eb25ce959e9388",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017962923",
   "candidateArtifact": null,
-  "nextAction": "Pushimplemented228core/54simnative/3UI gate plusunchanged4actualQwen. New3edit-reservationcases proveREDbeforeimmutableUIeditcapture; realHFdownload/inference integrationmustactuallyrun. Physical7classassertionsunchangedcompile-onlyNOT_RUN. Fixfailureswithrecordedsourceevidence, preservemandatorygates, maximum6newrunscontinuation08. No artifactupload orpaidrunners.",
+  "nextAction": "Pushnextsource: verifypath-hintregressionrepair/immutableeditreservationUI/WALfixture; prove13newcore+3newnativeP1/schema assertionsactualRED. Onlythenimplementboundary/journal/gap/pendingplay/scoped/schemafeatures. Original4nativequalityassertionsunchanged, nowexplicitcaller-schema stub; rawfailuresremaininevidence. Fullunknownowner/citations/chunkedsummary/QApipelinesstillpending. Max6runscontinuation08 (1used).",
   "pendingPushCommit": null,
-  "remoteBranchHead": "cdf4a06f6a4a9cd226e306941fd0199a18bf418c",
+  "remoteBranchHead": "d699fc5bfc266e03d8139869146fd55d7573fef9",
   "localScriptGreen": {
-    "sourceCommit": "6b5fd0c074672c467f0d26c5797683b706ec8263",
-    "platform": "Windows 11 / Node 24.21.0",
+    "sourceCommit": "d699fc5bfc266e03d8139869146fd55d7573fef9",
+    "platform": "Windows11/Node24.21.0",
     "executed": 59,
     "passed": 59,
     "failed": 0,
     "skipped": 0,
-    "nativePackagingVerified": false
+    "nativePackagingVerified": false,
+    "scope": "Sameunchangedscripts/testcontentexecutedbeforecommit; nativeSwiftverificationpending."
   },
   "lastVerifiedNativeBuildCommit": "40100fdb9a8349acdbf2d22c63eb25ce959e9388",
   "lastVerifiedNativeBuildCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017962923",
@@ -31,7 +32,9 @@
   "ciInvocation": {
     "id": "2026-10-24-continuation-08",
     "maxNewRuns": 6,
-    "newRunIds": [],
+    "newRunIds": [
+      40069154630
+    ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-24T05:49:57.365Z",
     "costGuardBasis": "Live PUBLIC repo/ADMIN/remote verified; standardpublic macos-15-intel only, no uploads orpaidrunners. Recheckofficialpolicybeforedispatch.",
@@ -42,25 +45,32 @@
     }
   },
   "latestCIRun": {
-    "sourceCommit": "cdf4a06f6a4a9cd226e306941fd0199a18bf418c",
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40038154279",
+    "sourceCommit": "d699fc5bfc266e03d8139869146fd55d7573fef9",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40069154630",
     "status": "completed",
+    "ordinal": 1,
     "conclusion": "failure",
     "core": {
-      "executed": 224,
-      "passed": 199,
-      "failed": 25,
-      "assertionFailures": 57,
-      "skipped": 0,
-      "unexpectedFailures": 7
+      "executed": 228,
+      "passed": 222,
+      "failed": 6,
+      "assertionFailures": 8,
+      "skipped": 0
+    },
+    "summary": {
+      "executed": 4,
+      "passed": 1,
+      "failed": 3,
+      "assertionFailures": 6,
+      "skipped": 0
     },
     "native": {
-      "executed": 56,
-      "passed": 41,
-      "failed": 15,
-      "assertionFailures": 40,
+      "executed": 54,
+      "passed": 53,
+      "failed": 1,
+      "assertionFailures": 1,
       "skipped": 0,
-      "unexpectedFailures": 5
+      "scope": "All8playbackpass;4of5storagecasespass;onlyautomaticWALunlinkfixturepreconditionfailed."
     },
     "ui": {
       "executed": 3,
@@ -68,13 +78,6 @@
       "failed": 0,
       "skipped": 0,
       "resultBundleVerified": true
-    },
-    "summary": {
-      "executed": 4,
-      "passed": 2,
-      "failed": 2,
-      "assertionFailures": 4,
-      "skipped": 0
     }
   },
   "localReporterRed": {
@@ -145,7 +148,7 @@
     "T06.2.1",
     "T06.2.2.1"
   ],
-  "remoteBranchHeadScope": "Exact local/remote test-first source verified afterpush; no production implementation of new behaviors.",
+  "remoteBranchHeadScope": "Exactsourcecommitpushverified; implementedaftercdf4a06RED; neweditreservation3casesstillnil-stubtest-first.",
   "nativeCompileRepair": {
     "status": "CODE_COMPLETE_PENDING_DEVICE",
     "candidatePath": "docs/drafts/T06.1/ActivityKitOperations.swift.pending",
@@ -428,6 +431,23 @@
       "appAndExtension": true,
       "nativeTestsExecuted": 0,
       "scope": "App/extension products compile; new privacy test fixture prevented test bundle compilation. No UI/package/device pass."
+    },
+    "recoveryDeletionRenameFormatter": {
+      "sourceCommit": "d699fc5bfc266e03d8139869146fd55d7573fef9",
+      "runId": 40069154630,
+      "passed": 25,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "8recovery+6deletion+2boundreceiver+2rename+7formattercomponentcasesonly;reviewregressionsandappwiringremainpending."
+    },
+    "nativePlaybackGate": {
+      "sourceCommit": "d699fc5bfc266e03d8139869146fd55d7573fef9",
+      "runId": 40069154630,
+      "executed": 8,
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Original8capture/playbackownershipcasesonly;3newpending/cancel/scopedregressionsnotyetRED."
     }
   },
   "summaryQuality": {
@@ -447,7 +467,10 @@
       "assertionFailures": 4,
       "skipped": 0
     },
-    "candidateResearchPause": "docs/evidence/T17_CANDIDATE_PAUSE.md"
+    "candidateResearchPause": "docs/evidence/T17_CANDIDATE_PAUSE.md",
+    "typedSchemaExperiment": "docs/evidence/T18_STRUCTURED_DECODING_EXPERIMENT.md",
+    "phiComparison": "docs/evidence/T17_PHI_CANDIDATE.md",
+    "productionCandidateChanged": false
   },
   "nativePrivacyTestFirst": {
     "testCount": 7,
@@ -469,15 +492,19 @@
       "sha256": "3abdf26b1175adc6919065931e9ed13193d5d9e2d45f01bbe73919e43bd37105",
       "assertionsUnchanged": true,
       "testCount": 7,
-      "compiled": false,
+      "compiled": true,
       "executed": 0,
-      "status": "NOT_RUN"
+      "status": "NOT_RUN",
+      "compiledSource": "d699fc5bfc266e03d8139869146fd55d7573fef9"
     },
     "simulatorSupportedCases": {
       "path": "Tests/NativeAppTests/NativeStoragePolicyTests.swift",
       "testCount": 5,
-      "executed": false,
-      "protectionClassClaim": false
+      "executed": true,
+      "protectionClassClaim": false,
+      "passed": 4,
+      "failed": 1,
+      "fixtureRepair": "ExplicitactualSQLitecheckpoint/PERSIST_WAL/DELETE/checkedclose/re-enableWAL;strictold-files-goneassertretained."
     }
   },
   "remainingBaseline": [
@@ -566,10 +593,38 @@
     "testCount": 3,
     "stub": "reserveManualNoteEdit returnsnil",
     "expectedCore": 228,
-    "redVerified": false,
-    "productionImplemented": false,
+    "redVerified": true,
+    "productionImplemented": true,
     "additionalIntegration": "One mandatory actual HTTPS download/import/lease/CPU inference test, no skips/mocks",
     "expectedNativeSimulator": 54,
-    "physicalCasesCompiledOnly": 7
+    "physicalCasesCompiledOnly": 7,
+    "redSourceCommit": "d699fc5bfc266e03d8139869146fd55d7573fef9",
+    "redRunId": 40069154630
+  },
+  "pendingReviewRegressions": {
+    "expectedNewCore": 7,
+    "expectedNewNative": 3,
+    "redVerified": false,
+    "tests": [
+      "Forgedrecoveryjournal",
+      "Gappedcapture-count/timelineandplayback",
+      "NativeCAFbodytruncation",
+      "Hardlinkattributeescape",
+      "CAFsymlinkedparentcreation",
+      "SQLiteunrelatedsiblingattrs",
+      "DirectoryURLhintfocusedregression(existingbroaderactualREDalreadyrepaired)",
+      "Pendingplaystop/cancel/scopedreplacementcleanup"
+    ],
+    "noProductionRepairsBeforeRed": true
+  },
+  "nextTestFirstBatch": {
+    "expectedCore": 241,
+    "expectedNativeSimulator": 57,
+    "physicalCasesCompiledOnly": 7,
+    "newCoreCases": 13,
+    "newNativeCases": 3,
+    "schemaRuntimeAPI": "explicitorderedcallerschema;compilerandruntimeoverloadareminimalnoopsuntilactualRED",
+    "semanticAssertionsUnchanged": true,
+    "productionRepairsPendingActualRed": true
   }
 }

@@ -78,6 +78,14 @@ final class PlaybackOwnershipController {
         }
     }
 
+    /// Test-first scoped interface only. Preserve the working unscoped API
+    /// until native regressions establish RED for request-bound cleanup.
+    func play(at location: MeetingPlaybackLocation, requestID: UUID) async -> PlaybackOwnershipResult {
+        .notImplemented
+    }
+
+    func stop(expectedRequestID: UUID) -> PlaybackOwnershipResult { .notImplemented }
+
     /// MainActor-synchronous admission precedes every Start/Toggle suspension.
     /// Failure is returned before any recording preparation or hardware call.
     func prepareForRecording(operationID: UUID) -> PlaybackRecordingAdmission {

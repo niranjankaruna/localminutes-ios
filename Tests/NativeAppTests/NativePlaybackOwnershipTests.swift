@@ -525,5 +525,90 @@ final class NativePlaybackOwnershipTests: XCTestCase {
             XCTAssertEqual(admitted, .playing)
         }
     }
+
+    func testGlobalStopRevokesAPlayAwaitingItsSnapshotAndALaterPlayCanStart() async throws {
+        try await withHarness(holdSnapshot: true) { h in
+            let pending = Task { await h.application.playAudio(at: h.location) }
+            defer { pending.cancel(); h.snapshotLatch?.release() }
+            let observedIdle = await playbackEventually { h.snapshotLatch?.isWaiting == true }
+            XCTAssertTrue(observedIdle)
+            XCTAssertEqual(h.probe.snapshots.first?.phase, .idle)
+            XCTAssertEqual(h.application.stopPlayback(), .stopped)
+            h.snapshotLatch?.release()
+            let revoked = try await self.complete { await pending.value }
+            XCTAssertEqual(revoked, .unavailable,
+                "A view's global Stop must revoke its not-yet-activated play request")
+            XCTAssertTrue(h.playback.starts.isEmpty, "Offscreen playback must never activate after Stop")
+            XCTAssertEqual(h.playback.deactivationCalls, 0)
+            XCTAssertFalse(h.playback.isActive)
+            XCTAssertFalse(h.ownership.hasPlaybackOwnership)
+            let later = try await self.complete { await h.application.playAudio(at: h.location) }
+            XCTAssertEqual(later, .playing)
+            XCTAssertEqual(h.playback.starts, [h.location])
+            XCTAssertTrue(h.playback.isActive)
+            XCTAssertTrue(h.ownership.hasPlaybackOwnership)
+        }
+    }
+
+    func testCancelledPendingPlayCannotActivateAndALaterPlayCanStart() async throws {
+        try await withHarness(holdSnapshot: true) { h in
+            let pending = Task { await h.application.playAudio(at: h.location) }
+            defer { pending.cancel(); h.snapshotLatch?.release() }
+            let observedIdle = await playbackEventually { h.snapshotLatch?.isWaiting == true }
+            XCTAssertTrue(observedIdle)
+            XCTAssertEqual(h.probe.snapshots.first?.phase, .idle)
+            pending.cancel()
+            h.snapshotLatch?.release()
+            let cancelled = try await self.complete { await pending.value }
+            XCTAssertEqual(cancelled, .unavailable,
+                "Cancellation must be checked before native audio-session activation")
+            XCTAssertTrue(h.playback.starts.isEmpty)
+            XCTAssertEqual(h.playback.deactivationCalls, 0)
+            XCTAssertFalse(h.playback.isActive)
+            XCTAssertFalse(h.ownership.hasPlaybackOwnership)
+            let later = try await self.complete { await h.application.playAudio(at: h.location) }
+            XCTAssertEqual(later, .playing)
+            XCTAssertEqual(h.playback.starts, [h.location])
+            XCTAssertTrue(h.playback.isActive)
+        }
+    }
+
+    func testScopedOldRequestCleanupCannotStopAReplacementPlayer() async throws {
+        try await withHarness { h in
+            let firstID = UUID()
+            let replacementID = UUID()
+            let playbackDirectory = h.location.fileURL.deletingLastPathComponent()
+            let manifest = try JSONDecoder().decode(AudioCaptureManifest.self,
+                from: Data(contentsOf: playbackDirectory.appendingPathComponent("capture-manifest.json")))
+            let replacement = try XCTUnwrap(MeetingPlaybackMapper.locate(globalSample: 32,
+                meetingID: manifest.sessionID, manifest: manifest, meetingDirectory: playbackDirectory))
+            let first = try await self.complete {
+                await h.application.playAudio(at: h.location, requestID: firstID)
+            }
+            XCTAssertEqual(first, .playing)
+            let second = try await self.complete {
+                await h.application.playAudio(at: replacement, requestID: replacementID)
+            }
+            XCTAssertEqual(second, .playing)
+            XCTAssertEqual(h.playback.starts, [h.location, replacement])
+            XCTAssertEqual(h.playback.stopCalls, 1)
+            XCTAssertEqual(h.playback.deactivationCalls, 1)
+            XCTAssertTrue(h.playback.isActive)
+            let staleCleanup = h.application.stopPlayback(expectedRequestID: firstID)
+            XCTAssertEqual(staleCleanup, .stopped)
+            XCTAssertEqual(h.playback.stopCalls, 1,
+                "Old view cleanup must not stop the replacement request's player")
+            XCTAssertEqual(h.playback.deactivationCalls, 1)
+            XCTAssertTrue(h.playback.isActive)
+            XCTAssertTrue(h.ownership.hasPlaybackOwnership)
+            let matchingCleanup = h.application.stopPlayback(expectedRequestID: replacementID)
+            XCTAssertEqual(matchingCleanup, .stopped)
+            XCTAssertEqual(h.playback.stopCalls, 2)
+            XCTAssertEqual(h.playback.deactivationCalls, 2)
+            XCTAssertFalse(h.playback.isActive)
+            XCTAssertFalse(h.ownership.hasPlaybackOwnership)
+            XCTAssertEqual(h.capture.activations, 0)
+        }
+    }
 }
 #endif

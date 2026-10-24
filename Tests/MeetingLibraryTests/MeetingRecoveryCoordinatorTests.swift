@@ -186,6 +186,206 @@ final class MeetingRecoveryCoordinatorTests: XCTestCase {
         XCTAssertEqual(rows.count, 1)
         try await reopened.close()
     }
+
+    func testRecoveryRejectsAlteredJournalPlansBeforeQuarantiningHealthyAudioOrChangingDuration() async throws {
+        for alteration in ["healthyQuarantine", "falseDurableCount"] {
+            let f = try RecoveryFixture(); defer { f.cleanup() }
+            try await f.seed()
+            _ = try await f.coordinator().recover(meetingID: f.id)
+            let beforeRow = try await f.store.meeting(id: f.id)
+            let beforeRows = try await f.store.transcript(meetingID: f.id)
+            let originalBytes = try Dictionary(uniqueKeysWithValues: f.manifest.segments.map {
+                ($0.relativePath, try Data(contentsOf: f.directory.appendingPathComponent($0.relativePath)))
+            })
+            let reportURL = f.directory.appendingPathComponent("recovery-report.json")
+            var object = try XCTUnwrap(JSONSerialization.jsonObject(with:
+                Data(contentsOf: reportURL)) as? [String: Any])
+            // Preserve every other field, including any manifest binding. This
+            // changes a legitimate bounded journal rather than fabricating one.
+            if alteration == "healthyQuarantine" {
+                object["quarantinedFiles"] = [f.manifest.segments[0].relativePath]
+            } else {
+                object["durableFrameCount"] = 0
+            }
+            let alteredData = try JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])
+            try alteredData.write(to: reportURL, options: .atomic)
+            do {
+                _ = try await f.coordinator().recover(meetingID: f.id)
+                XCTFail("An inconsistent \(alteration) journal must not authorize file moves or metadata changes")
+            } catch { XCTAssertEqual(error as? MeetingRecoveryError, .invalidManifest) }
+            for (name, bytes) in originalBytes {
+                XCTAssertEqual(try? Data(contentsOf: f.directory.appendingPathComponent(name)), bytes)
+            }
+            let afterRow = try await f.store.meeting(id: f.id)
+            let afterRows = try await f.store.transcript(meetingID: f.id)
+            XCTAssertEqual(afterRow, beforeRow)
+            XCTAssertEqual(afterRows, beforeRows)
+            XCTAssertEqual(try Data(contentsOf: reportURL), alteredData,
+                           "Rejecting an untrusted plan must not silently replace its evidence")
+            XCTAssertFalse(FileManager.default.fileExists(atPath:
+                f.directory.appendingPathComponent("RecoveryQuarantine").path))
+            try await f.store.close()
+        }
+    }
+
+    func testExplicitGapUsesCapturedCountAndOneGlobalTimelineForRecoveryAndActualPlayback() async throws {
+        let f = try RecoveryFixture(); defer { f.cleanup() }
+        try await f.seed()
+        try FileManager.default.removeItem(at:
+            f.directory.appendingPathComponent(f.manifest.segments[2].relativePath))
+        let gapped = AudioCaptureManifest(schemaVersion: 1, sessionID: f.id, totalFrames: 8,
+            segments: [f.manifest.segments[0],
+                StoredAudioSegment(relativePath: f.manifest.segments[1].relativePath,
+                                   startFrame: 8, frameCount: 4)])
+        try JSONEncoder().encode(gapped).write(to: f.manifestURL, options: .atomic)
+        let report: MeetingRecoveryReport
+        do { report = try await f.coordinator().recover(meetingID: f.id) }
+        catch {
+            XCTFail("A valid captured-count manifest with an explicit global gap must recover: \(type(of: error))")
+            return
+        }
+        XCTAssertEqual(report.durableFrameCount, 8)
+        XCTAssertEqual(report.timelineEndSample, 12)
+        XCTAssertEqual(report.resumeFromSample, 4)
+        XCTAssertEqual(report.gaps.map(\.startSample), [4])
+        XCTAssertEqual(report.gaps.map(\.endSample), [8])
+        XCTAssertEqual(report.gaps.map(\.reason), [.manifestGap])
+        XCTAssertTrue(report.quarantinedFiles.isEmpty)
+        let persisted = try JSONDecoder().decode(AudioCaptureManifest.self,
+            from: Data(contentsOf: f.manifestURL))
+        XCTAssertEqual(persisted, gapped, "Recovery must preserve the original sample mapping")
+        let location = try XCTUnwrap(MeetingPlaybackMapper.locate(globalSample: 9,
+            meetingID: f.id, manifest: persisted, meetingDirectory: f.directory))
+        XCTAssertEqual(location.fileURL.lastPathComponent, gapped.segments[1].relativePath)
+        XCTAssertEqual(location.frameOffset, 1)
+        let audio = try AVAudioFile(forReading: location.fileURL)
+        defer { audio.close() }
+        audio.framePosition = location.frameOffset
+        let buffer = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: audio.processingFormat, frameCapacity: 1))
+        try audio.read(into: buffer, frameCount: 1)
+        XCTAssertEqual(buffer.frameLength, 1)
+        XCTAssertEqual(buffer.floatChannelData![0][0], Float(5) / 32, accuracy: 0.0002)
+        let missing = try MeetingPlaybackMapper.locate(globalSample: 6,
+            meetingID: f.id, manifest: persisted, meetingDirectory: f.directory)
+        XCTAssertNil(missing, "The missing global samples must not be clamped onto real audio")
+        let row = try await f.store.meeting(id: f.id)
+        XCTAssertEqual(row?.capturedSampleCount, 8)
+        try await f.store.close()
+    }
+
+    func testRecoveryCountsOnlyFullyDecodableFramesWhenAnActualCAFDataBodyIsTruncated() async throws {
+        let f = try RecoveryFixture(); defer { f.cleanup() }
+        try await f.seed()
+        let segment = f.manifest.segments[2]
+        let file = f.directory.appendingPathComponent(segment.relativePath)
+        let original = try Data(contentsOf: file)
+        let originalRead = observeNativeCAF(file)
+        XCTAssertTrue(originalRead.opened)
+        XCTAssertFalse(originalRead.readFailed)
+        XCTAssertEqual(originalRead.samples.count, 4)
+        let fixture = try truncateCAFDataBody(original, keepingPCMBytes: 2)
+        XCTAssertEqual(fixture.bytes.prefix(fixture.audioStart), original.prefix(fixture.audioStart),
+                       "Keep the real CAF headers/edit count while removing PCM body bytes")
+        XCTAssertLessThan(fixture.bytes.count, original.count)
+        try fixture.bytes.write(to: file, options: .atomic)
+        let observation = observeNativeCAF(file)
+        let samplesMatch = observation.samples.count == originalRead.samples.count &&
+            zip(observation.samples, originalRead.samples).allSatisfy { pair in abs(pair.0 - pair.1) < 0.0002 }
+        print("RECOVERY_TRUNCATED_CAF opened=\(observation.opened) headerFrames=\(observation.headerFrames.map { String($0) } ?? "unavailable") decodedFrames=\(observation.samples.count) readFailed=\(observation.readFailed) originalSamplesMatch=\(samplesMatch)")
+        XCTAssertFalse(observation.opened && !observation.readFailed && samplesMatch,
+                       "A physically truncated PCM body cannot supply all original native samples")
+        let report = try await f.coordinator().recover(meetingID: f.id)
+        XCTAssertEqual(report.durableFrameCount, 8,
+                       "Container length alone must not claim all frames of the incomplete segment")
+        XCTAssertEqual(report.timelineEndSample, 12)
+        XCTAssertEqual(report.gaps.map(\.startSample), [8])
+        XCTAssertEqual(report.gaps.map(\.endSample), [12])
+        XCTAssertEqual(report.gaps.map(\.reason), [.corruptAudio])
+        XCTAssertEqual(report.quarantinedFiles, [segment.relativePath])
+        XCTAssertFalse(FileManager.default.fileExists(atPath: file.path))
+        XCTAssertEqual(try Data(contentsOf: f.directory.appendingPathComponent("RecoveryQuarantine")
+            .appendingPathComponent(segment.relativePath)), fixture.bytes)
+        var readable: Int64 = 0
+        for healthy in f.manifest.segments where !report.quarantinedFiles.contains(healthy.relativePath) {
+            let decoded = observeNativeCAF(f.directory.appendingPathComponent(healthy.relativePath))
+            XCTAssertTrue(decoded.opened)
+            XCTAssertFalse(decoded.readFailed)
+            XCTAssertEqual(Int64(decoded.samples.count), healthy.frameCount)
+            readable += Int64(decoded.samples.count)
+        }
+        XCTAssertEqual(report.durableFrameCount, readable)
+        let row = try await f.store.meeting(id: f.id)
+        XCTAssertEqual(row?.capturedSampleCount, readable)
+        try await f.store.close()
+    }
+}
+
+private struct NativeCAFObservation {
+    var opened = false
+    var headerFrames: Int64?
+    var samples: [Float] = []
+    var readFailed = false
+}
+
+/// Actual AVFoundation open/read results are reported even if this platform
+/// already rejects the incomplete body at open or reports its shorter length.
+private func observeNativeCAF(_ file: URL) -> NativeCAFObservation {
+    var result = NativeCAFObservation()
+    do {
+        let audio = try AVAudioFile(forReading: file)
+        defer { audio.close() }
+        result.opened = true
+        result.headerFrames = audio.length
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: audio.processingFormat, frameCapacity: 16) else {
+            result.readFailed = true
+            return result
+        }
+        // Fixture segments contain four frames. The bound protects this helper
+        // from a malformed native header without treating a header as evidence.
+        while result.samples.count < 64 {
+            try audio.read(into: buffer, frameCount: 16)
+            guard buffer.frameLength > 0 else { break }
+            guard let plane = buffer.floatChannelData?[0] else {
+                result.readFailed = true
+                break
+            }
+            result.samples.append(contentsOf: UnsafeBufferPointer(start: plane, count: Int(buffer.frameLength)))
+        }
+    } catch { result.readFailed = true }
+    return result
+}
+
+private enum CAFTruncationFixtureError: Error { case invalidNativeCAF }
+
+/// Apple's CAF layout: 8-byte file header, then fourcc + big-endian Int64 chunk
+/// length; data begins with a 4-byte edit count. The actual native header is kept.
+/// https://developer.apple.com/library/archive/documentation/MusicAudio/Reference/CAFSpec/CAF_spec/CAF_spec.html
+private func truncateCAFDataBody(_ original: Data, keepingPCMBytes: Int) throws -> (bytes: Data, audioStart: Int) {
+    guard original.count >= 8, String(decoding: original.prefix(4), as: UTF8.self) == "caff",
+          keepingPCMBytes >= 0 else { throw CAFTruncationFixtureError.invalidNativeCAF }
+    var offset = 8
+    while offset <= original.count - 12 {
+        let type = String(decoding: original[offset..<(offset + 4)], as: UTF8.self)
+        let lengthBits = original[(offset + 4)..<(offset + 12)].reduce(UInt64(0)) { ($0 << 8) | UInt64($1) }
+        let bodyStart = offset + 12
+        let length: Int
+        if lengthBits == UInt64.max, type == "data" {
+            length = original.count - bodyStart
+        } else {
+            guard let value = Int(exactly: lengthBits), value >= 0,
+                  value <= original.count - bodyStart else { throw CAFTruncationFixtureError.invalidNativeCAF }
+            length = value
+        }
+        if type == "data" {
+            guard length >= 4, keepingPCMBytes < length - 4 else {
+                throw CAFTruncationFixtureError.invalidNativeCAF
+            }
+            let audioStart = bodyStart + 4
+            return (Data(original.prefix(audioStart + keepingPCMBytes)), audioStart)
+        }
+        offset = bodyStart + length
+    }
+    throw CAFTruncationFixtureError.invalidNativeCAF
 }
 
 @MainActor

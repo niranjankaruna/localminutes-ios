@@ -75,7 +75,7 @@ public final class HTTPSModelTransport: @unchecked Sendable {
     private func validateDestination(_ destination: URL, artifact: ModelArtifact) throws {
         let directory = destination.deletingLastPathComponent().standardizedFileURL
         guard destination.isFileURL, destination.lastPathComponent == artifact.fileName,
-              directory.deletingLastPathComponent().standardizedFileURL == stagingRootURL,
+              directory.deletingLastPathComponent().standardizedFileURL.path == stagingRootURL.path,
               UUID(uuidString: directory.lastPathComponent) != nil else {
             throw ModelTransportError.invalidDestination
         }
