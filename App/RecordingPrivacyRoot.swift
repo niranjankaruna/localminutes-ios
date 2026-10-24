@@ -28,16 +28,19 @@ final class RecordingPrivacyController {
         let observation = RecordingPrivacyObservation(center: center)
         for name in [UIScene.willDeactivateNotification, UIScene.didEnterBackgroundNotification,
                      UIScene.didActivateNotification] {
+            let activationEvent = name == UIScene.didActivateNotification
             observation.tokens.append(center.addObserver(forName: name, object: scene, queue: .main) {
                 [weak self, weak window, weak scene] notification in
+                let matchesOwningScene = notification.object as? UIScene === scene
                 // The main operation queue invokes this synchronously for UIKit's
                 // main-thread scene notifications. No Task or animation delays
                 // protection until after the OS snapshot boundary.
                 MainActor.assumeIsolated {
                     guard let self, let window, let scene,
                           self.window === window,
-                          notification.object as? UIScene === scene else { return }
-                    if notification.name == UIScene.didActivateNotification {
+                          window.windowScene === scene,
+                          matchesOwningScene else { return }
+                    if activationEvent {
                         self.reveal()
                     } else {
                         self.obscure(window)

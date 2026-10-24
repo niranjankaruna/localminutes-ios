@@ -1,7 +1,7 @@
 import XCTest
 
-/// Simulator product flow only. The future DEBUG hook seeds actual SQLite and
-/// actual synthetic CAF files, never fake inference or a parallel mock screen.
+/// Simulator product flow only. The DEBUG hook seeds actual SQLite and
+/// synthetic CAF/prior generated documents, never inference or a mock screen.
 @MainActor
 final class LibraryProductUITests: XCTestCase {
     func testActualHistoryDetailsAndTranscriptSearchStayWithinTheSelectedMeeting() {
@@ -125,14 +125,31 @@ final class LibraryProductUITests: XCTestCase {
             waitForValue(expectedSummary, of: restoredSummary)
         } else { XCTFail("Generated editor must retain a visible value") }
         app.tabBars.buttons["Models"].tap()
-        let missing = app.staticTexts["Optional download · 1.12 GB"]
+        // The owner replaced the legacy single-Qwen settings screen with the
+        // repository browser and independent Equip choices. Preserve missing-
+        // model semantics against that actual screen; do not make a network call.
+        let summaryPurpose = app.segmentedControls.buttons["Summary"]
+        XCTAssertTrue(summaryPurpose.waitForExistence(timeout: 5))
+        guard summaryPurpose.exists else { return }
+        summaryPurpose.tap()
+        let missing = app.staticTexts["No verified model installed for this purpose."]
         reveal(missing, in: app)
         XCTAssertTrue(missing.waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["Download summary model"].exists)
-        XCTAssertTrue(app.buttons["Download summary model"].isEnabled)
-        XCTAssertFalse(app.staticTexts["Summary model verified"].exists)
-        XCTAssertFalse(app.buttons["Remove summary model"].exists)
-        XCTAssertTrue(app.staticTexts["Summary quality and app integration are still being verified."].exists)
+        XCTAssertFalse(app.buttons.matching(NSPredicate(format: "label BEGINSWITH[c] %@", "Equip")).firstMatch.exists)
+        XCTAssertFalse(app.buttons["Remove"].exists, "No installed model can be offered for removal")
+        XCTAssertFalse(app.buttons["Download selected model"].exists,
+            "Download requires an explicitly inspected compatible file; absent weights cannot be shown as ready")
+        let repository = app.textFields["Hugging Face repository"]
+        for _ in 0..<6 {
+            if repository.exists && repository.isHittable { break }
+            app.swipeDown()
+        }
+        XCTAssertTrue(repository.exists); XCTAssertTrue(repository.isHittable)
+        guard repository.exists && repository.isHittable else { return }
+        repository.tap(); repository.typeText("microsoft/Phi-3-mini-4k-instruct-gguf")
+        XCTAssertTrue(app.buttons["Look up repository"].exists)
+        XCTAssertTrue(app.buttons["Look up repository"].isEnabled,
+            "The missing-model flow must expose the current Phi repository lookup without pretending to install it")
     }
 
     private func libraryApp(token: UUID) -> XCUIApplication {
@@ -150,7 +167,9 @@ final class LibraryProductUITests: XCTestCase {
         meetings.tap()
         XCTAssertTrue(app.staticTexts["UI Library Alpha"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["UI Library Beta"].exists)
-        return app.staticTexts["UI Library Alpha"].exists && app.staticTexts["UI Library Beta"].exists
+        let ready = app.staticTexts["UI Library Alpha"].exists && app.staticTexts["UI Library Beta"].exists
+        if ready { print("LIBRARY_UI_REAL_FIXTURE_READY") }
+        return ready
     }
 
     private func openMeeting(_ title: String, in app: XCUIApplication) -> Bool {

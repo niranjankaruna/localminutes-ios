@@ -16,8 +16,7 @@ let package = Package(
         .library(name: "LocalMinutesIntelligence", targets: ["LocalMinutesIntelligence"])
     ],
     dependencies: [
-        .package(url: "https://github.com/k2-fsa/sherpa-onnx",
-                 revision: "11afbd009a7f8c08f4bcf2fc1b265d0df4670fbf"),
+        .package(name: "sherpa-onnx", path: "Vendor/SherpaASROnly"),
         .package(url: "https://github.com/FluidInference/FluidAudio.git",
                  revision: "c79c4106b954f81205113c3343e5a7e59a1089b5", traits: [])
     ],

@@ -8,7 +8,7 @@ on:
         required: true
         type: choice
         default: mvp
-        options: [mvp, features, package, validation, candidate, candidate-summary, candidate-summary-parts, model-catalog, model-integration, model-repair, model-delivery, mvp2-red, mvp2, mvp2-integration, mvp2-parakeet, mvp3]
+        options: [mvp, features, package, validation, candidate, candidate-summary, candidate-summary-parts, model-catalog, model-integration, model-repair, model-delivery, mvp2-red, mvp2, mvp2-integration, mvp2-parakeet, mvp3, mvp3-integration]
       sourceCommit:
         description: Reviewed app source for the MVP package
         required: true
@@ -28,6 +28,11 @@ on:
         type: boolean
         required: true
         default: false
+      proveLibraryBootstrap:
+        description: Capture the recorded old nil-fixture failure once, separately from current UI gates
+        type: boolean
+        required: true
+        default: false
 
 permissions:
   contents: read
@@ -37,6 +42,95 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  current-phi-integration:
+    if: ${{ inputs.mode == 'mvp3-integration' }}
+    runs-on: macos-15-intel
+    timeout-minutes: 45
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Prepare current pinned Phi and native libraries
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 scripts/prepare_asr_only.py --platform macos
+          python3 docs/drafts/T17/prepare_native_summary.py --framework-only
+          python3 docs/drafts/T17/prepare_phi3_candidate.py
+      - name: Evaluate real selected service and multi-map refusal quality
+        shell: bash
+        run: |
+          set -euo pipefail
+          export LOCALMINUTES_PHI_MODEL_PATH="$LOCALMINUTES_CANDIDATE_MODEL_PATH"
+          mkdir -p .build
+          swift test --filter 'IntelligenceTests[.]ActualSelectedModelIntelligenceTests|QuestionAnsweringTests[.]Phi3CandidateComparisonTests/testActualPinnedPhi3RepresentativeMultiMapMergeAndUnknownDeadlineRefusal' 2>&1 | tee .build/current-phi-integration.log
+      - name: Require both actual model evaluations without skips
+        if: always()
+        run: node scripts/verify-test-log.mjs .build/current-phi-integration.log testActualSelectedPhiDefaultLoaderSavesSummaryAndGuideAnswerWithOriginalsPreserved testActualPinnedPhi3RepresentativeMultiMapMergeAndUnknownDeadlineRefusal
+
+  library-ui-harness-red:
+    if: ${{ inputs.mode == 'mvp3-integration' && inputs.proveLibraryBootstrap }}
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+      BASELINE_SOURCE: 8edff56a96f051587d727812239937ccba51b9a5
+    steps:
+      - name: Check out the recorded nil-fixture baseline only
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: 8edff56a96f051587d727812239937ccba51b9a5
+          persist-credentials: false
+      - name: Prepare original harness and an available simulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$BASELINE_SOURCE"
+          python3 docs/drafts/T17/prepare_native_summary.py --framework-only
+          mkdir -p .agent-local/tools
+          curl --fail --location --proto '=https' --proto-redir '=https' --retry 2 --retry-delay 4 --max-time 120 https://github.com/yonaskolb/XcodeGen/releases/download/2.46.0/xcodegen.zip -o .agent-local/tools/xcodegen.zip
+          test "$(wc -c < .agent-local/tools/xcodegen.zip | tr -d ' ')" = '4278764'
+          printf '%s  %s\n' '4d9e34b62172d645eed6457cac13fc222569974098ef4ee9c3368bedf0196806' '.agent-local/tools/xcodegen.zip' | shasum -a 256 -c -
+          unzip -q .agent-local/tools/xcodegen.zip -d .agent-local/tools
+          .agent-local/tools/xcodegen/bin/xcodegen generate --spec project.yml
+          xcrun simctl list devices available --json > .agent-local/baseline-simulators.json
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          inventory = json.loads(Path('.agent-local/baseline-simulators.json').read_text())
+          candidates = [(runtime, device) for runtime, devices in inventory['devices'].items()
+              if '.iOS-' in runtime and int(runtime.rsplit('.iOS-', 1)[1].split('-')[0]) >= 18
+              for device in devices if device.get('isAvailable') and device['name'].startswith('iPhone')]
+          assert candidates
+          runtime, device = next((x for x in candidates if x[0].endswith('iOS-26-2')), candidates[0])
+          with open(os.environ['GITHUB_ENV'], 'a') as environment:
+              environment.write('BASELINE_SIMULATOR=' + device['udid'] + '\n')
+          print(json.dumps({'baselineSource': os.environ['BASELINE_SOURCE'], 'runtime': runtime, 'device': device['name']}))
+          PY
+      - name: Observe original nil-fixture failure without hiding RED
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild test -project LocalMinutes.xcodeproj -scheme LocalMinutes -configuration Debug \
+            -destination "platform=iOS Simulator,id=$BASELINE_SIMULATOR" -destination-timeout 120 \
+            -parallel-testing-enabled NO -collect-test-diagnostics never \
+            -only-testing:LocalMinutesUITests/LibraryProductUITests \
+            -derivedDataPath build/library-baseline -clonedSourcePackagesDirPath .agent-local/source-packages \
+            -resultBundlePath .agent-local/library-baseline.xcresult \
+            CODE_SIGNING_ALLOWED=NO LOCALMINUTES_SOURCE_COMMIT="$BASELINE_SOURCE" \
+            2>&1 | tee .agent-local/library-baseline.log
+      - name: Report actual harness-only baseline counts
+        if: always()
+        shell: bash
+        run: |
+          if [ -d .agent-local/library-baseline.xcresult ]; then
+            xcrun xcresulttool get test-results summary --path .agent-local/library-baseline.xcresult
+          fi
+          echo 'This baseline is harness-only evidence at the explicitly recorded old SHA, not current product GREEN.'
+
   asr-only-build:
     if: ${{ inputs.mode == 'mvp3' && inputs.buildASROnly }}
     runs-on: macos-15
@@ -133,6 +227,7 @@ jobs:
           assert c['budget']['allowLargerRunners'] is False
           assert c['github']['visibility'] == 'public'
           PY
+          python3 scripts/prepare_asr_only.py --platform macos
           python3 docs/drafts/T17/prepare_native_summary.py --framework-only
       - name: Run the MVP2 contracts or their focused module regressions
         shell: bash
@@ -183,6 +278,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 scripts/prepare_asr_only.py --platform macos
           python3 docs/drafts/T17/prepare_native_summary.py --framework-only
           python3 docs/drafts/T10/prepare_whisper_fixture.py
           python3 docs/drafts/T10/prepare_native_fixture.py
@@ -217,6 +313,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          python3 scripts/prepare_asr_only.py --platform macos
           python3 docs/drafts/T17/prepare_native_summary.py --framework-only
           if [ "${{ inputs.mode }}" = model-catalog ]; then
             python3 docs/drafts/T10/prepare_whisper_fixture.py
@@ -283,6 +380,7 @@ jobs:
           assert c['budget']['allowLargerRunners'] is False
           assert c['github']['visibility'] == 'public'
           PY
+          python3 scripts/prepare_asr_only.py --platform ios
           python3 docs/drafts/T17/prepare_native_summary.py --framework-only
           mkdir -p .agent-local/tools
           curl --fail --location --proto '=https' --proto-redir '=https' --retry 2 --retry-delay 4 --max-time 120 https://github.com/yonaskolb/XcodeGen/releases/download/2.46.0/xcodegen.zip -o .agent-local/tools/xcodegen.zip
@@ -395,6 +493,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 scripts/prepare_asr_only.py --platform macos
           python3 docs/drafts/T17/prepare_native_summary.py --framework-only
           python3 docs/drafts/T17/prepare_phi3_candidate.py
       - name: Exercise one actual model through cancelled commit and reopened resume
@@ -423,6 +522,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 scripts/prepare_asr_only.py --platform macos
           python3 docs/drafts/T17/prepare_native_summary.py --framework-only
           python3 docs/drafts/T10/prepare_native_parakeet_fixture.py
       - name: Exercise native Core ML TDT and actual selected capture
@@ -469,6 +569,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 scripts/prepare_asr_only.py --platform macos
           python3 docs/drafts/T17/prepare_native_summary.py --framework-only
           if [ "$MODEL_FLOW" = selected-summary ]; then
             python3 docs/drafts/T17/prepare_phi3_candidate.py
@@ -533,6 +634,7 @@ jobs:
           assert c['github']['publicationApproved'] is True
           assert Path(c['ci']['costGuardEvidence'].split('#')[0]).is_file()
           PY
+          python3 scripts/prepare_asr_only.py --platform macos
           python3 docs/drafts/T17/prepare_native_summary.py --framework-only
           python3 docs/drafts/T17/prepare_phi3_candidate.py
       - name: Exercise only the selected actual candidate case
@@ -549,9 +651,9 @@ jobs:
           node scripts/verify-test-log.mjs .build/phi3-candidate-output.log "$CANDIDATE_CASE"
 
   core:
-    if: ${{ inputs.mode == 'validation' }}
-    runs-on: macos-15-intel
-    timeout-minutes: 15
+    if: ${{ inputs.mode == 'validation' || inputs.mode == 'mvp3-integration' }}
+    runs-on: macos-15
+    timeout-minutes: 45
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     steps:
@@ -585,19 +687,26 @@ jobs:
         run: |
           set -euo pipefail
           python3 docs/drafts/T10/prepare_native_fixture.py
+          python3 docs/drafts/T10/prepare_whisper_fixture.py
+          python3 docs/drafts/T10/prepare_native_parakeet_fixture.py
+          python3 scripts/prepare_asr_quality_corpus.py
+          printf 'LOCALMINUTES_PARAKEET_COREML_MODEL_DIRECTORY=%s/.agent-local/parakeet-coreml-fixtures/model\n' "$PWD" >> "$GITHUB_ENV"
+          printf 'LOCALMINUTES_PARAKEET_COREML_FIXTURE_PATH=%s/.agent-local/parakeet-coreml-fixtures/6930-75918-0000.flac\n' "$PWD" >> "$GITHUB_ENV"
+          printf 'LOCALMINUTES_ASR_CORPUS_DIRECTORY=%s/.agent-local/asr-quality-corpus\n' "$PWD" >> "$GITHUB_ENV"
           printf 'LOCALMINUTES_ASR_MODEL_DIRECTORY=%s/.agent-local/asr-evaluation/native-fixtures/model\n' "$PWD" >> "$GITHUB_ENV"
           printf 'LOCALMINUTES_ASR_FIXTURE_PATH=%s/.agent-local/asr-evaluation/native-fixtures/6930-75918-0000.flac\n' "$PWD" >> "$GITHUB_ENV"
       - name: Prepare pinned native summary framework and actual Qwen model
         shell: bash
         run: |
           set -euo pipefail
+          python3 scripts/prepare_asr_only.py --platform macos
           python3 docs/drafts/T17/prepare_native_summary.py --framework-only
       - name: Execute XCTest assertions
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p .build
-          swift test --enable-code-coverage --filter '(HarnessTests|CoreTests|RecordingTests|ModelTests|PersistenceTests|ASRTests|MeetingLibraryTests|SummaryPromptFormatterTests|StructuredJSONSchemaTests|SummaryChunkPlannerTests|GroundedSummaryTests|SummaryTests[.]SummaryPipelineTests|SummaryTests[.]NestedStructuredSchemaTests|QuestionAnsweringTests[.]MeetingQuestionAnswererTests|IntelligenceTests[.]IntelligenceSessionTests)' 2>&1 | tee .build/test-output.log
+          swift test --enable-code-coverage --filter '(HarnessTests|CoreTests|RecordingTests|ModelTests|PersistenceTests|ASRTests|MeetingLibraryTests|SummaryPromptFormatterTests|StructuredJSONSchemaTests|SummaryChunkPlannerTests|GroundedSummaryTests|SummaryTests[.](SummaryPipelineTests|SummaryResumePipelineTests|NestedStructuredSchemaTests)|QuestionAnsweringTests[.]MeetingQuestionAnswererTests|IntelligenceTests[.](IntelligenceSessionTests|SummaryResumeIntelligenceTests))' 2>&1 | tee .build/test-output.log
           node --test scripts/tests/*.test.mjs
       - name: Require discovered tests and report evidence
         if: always()
@@ -655,6 +764,7 @@ jobs:
           assert config['budget']['maximumAdditionalSpendEUR'] == 0
           assert config['budget']['allowLargerRunners'] is False
           PY
+          python3 scripts/prepare_asr_only.py --platform macos
           python3 docs/drafts/T17/prepare_native_summary.py
       - name: Execute all mandatory real-model summary quality tests
         shell: bash
@@ -675,9 +785,9 @@ jobs:
   # Native SDK assertions run independently during test-first core failures.
   # All three jobs remain mandatory for the overall workflow result.
   native-build:
-    if: ${{ inputs.mode == 'validation' }}
-    runs-on: macos-15-intel
-    timeout-minutes: 35
+    if: ${{ inputs.mode == 'validation' || inputs.mode == 'mvp3-integration' }}
+    runs-on: macos-15
+    timeout-minutes: 45
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     steps:
@@ -689,6 +799,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          python3 scripts/prepare_asr_only.py --platform ios
           python3 docs/drafts/T17/prepare_native_summary.py --framework-only
       - name: Verify pinned XcodeGen archive and generate project
         shell: bash
@@ -853,6 +964,7 @@ jobs:
             testSharedActivityStopControlDispatchesItsExactSessionToTheApplicationOwner \
             testSharedActivityTerminalTimerIsFixedAndStopIsDisabled
       - name: Create and verify ephemeral unsigned package without uploading
+        if: ${{ !cancelled() }}
         shell: bash
         run: |
           set -euo pipefail
@@ -866,6 +978,10 @@ jobs:
           console.log(readFileSync(result.manifestPath, 'utf8'));
           console.log(readFileSync(result.checksumPath, 'utf8'));
           JS
+          export LOCALMINUTES_AUDIT_IPA="$PWD/build/package/$(python3 -c "import json;print(json.load(open('build/package/build-manifest.json'))['artifact'])")"
+          export LOCALMINUTES_AUDIT_SOURCE_COMMIT="$GITHUB_SHA"
+          export LOCALMINUTES_AUDIT_IPA_SHA256="$(python3 -c "import json;print(json.load(open('build/package/build-manifest.json'))['sha256'])")"
+          python3 -m unittest discover -s scripts/native-hygiene-tests -p 'test_*.py' -v
 
   # Owner-requested MVP delivery: compile/package only, no test runner or model weights.
   # The workflow definition and the reviewed app source are recorded separately.
@@ -910,6 +1026,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          python3 scripts/prepare_asr_only.py --platform ios
           python3 docs/drafts/T17/prepare_native_summary.py --framework-only
       - name: Generate the reviewed iPhone project
         shell: bash
@@ -1007,6 +1124,7 @@ jobs:
           assert c['budget']['allowLargerRunners'] is False
           assert c['github']['visibility'] == 'public'
           PY
+          python3 scripts/prepare_asr_only.py --platform macos
           python3 docs/drafts/T17/prepare_native_summary.py
       - name: Exercise this actual local-model flow once
         shell: bash
