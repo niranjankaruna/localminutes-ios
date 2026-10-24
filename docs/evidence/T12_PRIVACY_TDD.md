@@ -48,3 +48,8 @@ LocalWindows59Node tests passed0fail/skip afteraninitialsandbox-onlysymlinkEPERM
 
 
 Terminald699fc5/run40069154630: actual54app-hostedcases53pass1fail1assert0skip; all8newplaybackcontractsGREEN, fourstoragecasesGREEN. SQLite-sidecarcasefailedonlyautomaticunlinksetupassert; allsubsequentrealdata/permission/backupassertionspassed. FixturecorrectionusesactualcheckedTRUNCATEcheckpoint/PERSIST_WAL0/DELETE/synchronouscloseandWALre-enable; no manualWALdeletionorweakenedassertion. All3UIcasespass/xcresultagrees (178.94s caseexecution). Physical7strictassertionscompiledforiPhoneOS,EXECUTED0/NOT_RUN,unchangedhash. Packagingstepsskipped;noIPA. FullworkflowFAILED(core6failandQwen3failalso).
+
+
+## Exact-source full regression GREEN
+
+`db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04` / [run40079629180](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180) completed SUCCESS.269core/59scripts/85TSAN/5actualQwen/59native/3UI/2bundle/13archive cases all pass,0failures/skips/reported races; native/UI xcresult agrees. This supersedes earlier pending-GREEN statements for the bounded component above. It does not complete its broad parent feature or any physical gate. Source, artifact, limits and exact remaining work: [continuation08 checkpoint](CONTINUATION_08_CHECKPOINT.md).

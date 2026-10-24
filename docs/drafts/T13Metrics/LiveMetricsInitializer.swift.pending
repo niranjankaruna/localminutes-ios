@@ -1,0 +1,16 @@
+// REPLACE the current LiveTranscriptionSession initializer in its existing class
+// and insert this stored field among its other @ObservationIgnored properties.
+// This is an ignored dependency for the future test-first RED, not working
+// worker instrumentation. Do not append as a standalone source file.
+@ObservationIgnored private let metrics: TranscriptionMetricsRecorder?
+
+public init(models: ModelInstallationManager, store: SQLiteMeetingStore,
+            meetingsDirectory: URL, metrics: TranscriptionMetricsRecorder? = nil) {
+    self.models = models
+    self.store = store
+    self.meetingsDirectory = meetingsDirectory
+    self.metrics = metrics
+    let router = TranscriptSinkRouter()
+    self.router = router
+    normalizedSink = router
+}

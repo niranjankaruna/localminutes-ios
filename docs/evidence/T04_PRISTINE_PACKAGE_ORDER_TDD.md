@@ -31,3 +31,10 @@ Physical7 compiled, zero executed/NOT_RUN. No retained candidate exists.
 Next: require all13 archive cases plus full regressions GREEN at the exact new
 SHA, then checkpoint without dispatching run7. T12 interruption drafts remain
 inactive/uncompiled with no behavioral implementation before their future RED.
+
+Repairsourcedb1b8d51c5ff72bf1d8abfd13f99a1da06a11e04 pushed/remoteverified. Finalallowed[run40079629180](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180) active; GREENstillpending. No new application behavior or test assertions changed.
+
+
+## Repair GREEN
+
+Exact `db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04` / [run40079629180](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180) completed SUCCESS at09:07:57UTC. All13 unchanged actual archive cases pass,0failures/skips, after the pristine product inspection2/2 and before XCTest installation. Full269core/59Node/85TSAN/5actualQwen/59native/3UI regressions also pass. Final ephemeral IPA12,632,611bytes SHA256 `e3eba563ccbd549987a43ed29c5da591fbf3a41cfa5357fc96e99372b0f721c0` created afterward, not retained/delivered. Physical7compiled/0executedNOT_RUN. Sixth run terminal; no run7. [Checkpoint](CONTINUATION_08_CHECKPOINT.md).

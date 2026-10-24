@@ -1,0 +1,93 @@
+// APPEND to Tests/ASRTests/LiveTranscriptionSessionTests.swift after its existing
+// private fixture. Add import Dispatch to that file's import section.
+
+private struct LiveMetricsTestClock: MetricsMonotonicClock {
+    func nowNanoseconds() -> UInt64 { DispatchTime.now().uptimeNanoseconds }
+}
+
+@MainActor
+extension LiveTranscriptionSessionTests {
+    func testActualCPUConsumerPublishesPrivateMonotonicProgressBeforeFinalFlush() async throws {
+        let h = try await LiveSessionFixture.create()
+        guard let source = ProcessInfo.processInfo.environment["GITHUB_SHA"], source.count == 40,
+              source.utf8.allSatisfy({ (48...57).contains($0) || (97...102).contains($0) }) else {
+            XCTFail("Mandatory actual source SHA is missing; setup failure is not metrics RED")
+            await h.cleanup()
+            throw MetricsASRDraftError.missingSourceIdentity
+        }
+        let identity = MetricsBuildIdentity(
+            sourceCommit: source,
+            modelRevision: NativeASRFixture.revision, runtimeVersion: "1.13.8", buildNumber: 1)
+        let metrics = try TranscriptionMetricsRecorder(identity: identity, capacity: 128, clock: LiveMetricsTestClock())
+        let session = LiveTranscriptionSession(models: h.models, store: h.store,
+                                               meetingsDirectory: h.meetings, metrics: metrics)
+        var activeID: UUID?
+        do {
+            let id = UUID()
+            guard case .ready(let directory) = await session.prepare(sessionID: id) else {
+                XCTFail("Actual pinned recognizer preparation must work before metrics assertions")
+                throw MetricsASRDraftError.preparationFailed
+            }
+            activeID = id
+            // A test marker exercises capture of visibility facts. It does not
+            // put macOS into an iPhone Lock Screen or prove locked operation.
+            try metrics.visibilityChanged(.background)
+            let audio = h.speech.samples + NativeASRFixture.trailingSilence
+            let manifest = try feed(audio, session: session, directory: directory, id: id)
+            let hasText = await waitForText(session)
+            XCTAssertTrue(hasText, "The actual CPU consumer must publish speech before finalization")
+            try metrics.checkpoint()
+            let before = metrics.snapshot()
+            XCTAssertGreaterThan(before.processedSampleCount, 0,
+                "An injected recorder must observe actual consumer progress, not only an exported test snapshot")
+            XCTAssertGreaterThan(before.capturedSampleCount, 0)
+            XCTAssertGreaterThan(before.processingWallNanoseconds, 0)
+            XCTAssertGreaterThan(before.peakQueueDepth, 0)
+            XCTAssertTrue(before.realTimeFactor.map { $0.isFinite && $0 > 0 } ?? false)
+            let failure = await session.finish(sessionID: id, manifest: manifest)
+            activeID = nil
+            XCTAssertNil(failure)
+            try metrics.checkpoint()
+            let after = metrics.snapshot()
+            XCTAssertEqual(after.capturedSampleCount, Int64(audio.count))
+            XCTAssertEqual(after.processedSampleCount, Int64(audio.count))
+            XCTAssertGreaterThan(after.processingWallNanoseconds, 0)
+            XCTAssertGreaterThan(after.partialLatency.sampleCount, 0)
+            XCTAssertGreaterThan(after.finalLatency.sampleCount, 0)
+            XCTAssertTrue(after.errors.isEmpty)
+            XCTAssertEqual(after.identity, identity)
+            XCTAssertTrue(after.checkpoints.contains {
+                $0.visibility == .background && $0.processedSampleCount > 0
+            })
+            let times = after.checkpoints.map(\.monotonicNanoseconds)
+            XCTAssertEqual(times, times.sorted())
+            let rows = try await h.store.transcript(meetingID: id)
+            XCTAssertEqual(rows.count, 1)
+            XCTAssertEqual(rows.first?.text.lowercased().split(separator: " ").last, "tents")
+            let data: Data
+            do { data = try MetricsExportCodec.encode(after) }
+            catch {
+                XCTFail("Actual consumer facts need a privacy-safe checkpoint: \(type(of: error))")
+                await h.cleanup(); return
+            }
+            let checkpoint = h.root.appendingPathComponent("metrics-checkpoint.json")
+            try data.write(to: checkpoint, options: .atomic)
+            let reopened = try MetricsExportCodec.decodeValidated(Data(contentsOf: checkpoint))
+            XCTAssertEqual(reopened, after)
+            XCTAssertLessThanOrEqual(data.count, 65_536)
+            let json = try XCTUnwrap(String(data: data, encoding: .utf8))
+            XCTAssertFalse(json.contains(h.root.path))
+            XCTAssertFalse(json.lowercased().contains(NativeASRFixture.reference.lowercased()))
+            for row in rows where !row.text.isEmpty {
+                XCTAssertFalse(json.contains(row.text), "Actual recognized content must never enter metrics JSON")
+            }
+        } catch {
+            if let activeID { _ = await session.finish(sessionID: activeID, manifest: nil) }
+            await h.cleanup()
+            throw error
+        }
+        await h.cleanup()
+    }
+}
+
+private enum MetricsASRDraftError: Error { case preparationFailed, missingSourceIdentity }

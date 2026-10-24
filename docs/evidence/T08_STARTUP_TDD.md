@@ -59,3 +59,8 @@ Test-first source 39d9eaa65f7b030a8bdf87e1447b254508dce2db pushed/remote verifie
 
 Run [40073883889](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40073883889), completed core job120812994468, real macOS Swift compilation and assertions:257executed,239passed,18failed,93assertions,0unexpected/skip. All16new corecases failed meaningfully against explicit stubs. Existing regressions pass except two documented unresolved fixture/scope cases; fullGREEN is not claimed.
 Startup4/4 failed10assertions: notImplemented left readiness unset, closedDB failure wrong, gate ignored. Pagination2/2 failed13assertions: empty pages/invalid sizes/closedDB accepted. These actual failures authorize the six bounded startup/query behaviors. No app-default wiring or ASR replay evidence follows.
+
+
+## Exact-source full regression GREEN
+
+`db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04` / [run40079629180](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180) completed SUCCESS.269core/59scripts/85TSAN/5actualQwen/59native/3UI/2bundle/13archive cases all pass,0failures/skips/reported races; native/UI xcresult agrees. This supersedes earlier pending-GREEN statements for the bounded component above. It does not complete its broad parent feature or any physical gate. Source, artifact, limits and exact remaining work: [continuation08 checkpoint](CONTINUATION_08_CHECKPOINT.md).

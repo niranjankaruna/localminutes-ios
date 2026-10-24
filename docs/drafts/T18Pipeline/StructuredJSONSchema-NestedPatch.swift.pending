@@ -1,0 +1,26 @@
+// APPLY AS A REPLACEMENT OF THE EXISTING ENUM, NOT AS A SECOND DEFINITION.
+// Keep old compiler tests/API unchanged. Add unsupportedType to the existing
+// error enum and the switch stub below to obtain meaningful nested-type RED.
+// This fragment implements no recursive grammar compilation.
+public indirect enum StructuredJSONType: Equatable, Sendable {
+    case string
+    case boolean
+    case stringEnumeration([String])
+    case stringArray(allowedValues: [String])
+    case object([StructuredJSONField])
+    case array(element: StructuredJSONType, maximumItems: Int)
+    case nullable(StructuredJSONType)
+    case integerEnumeration([Int64])
+}
+
+// In StructuredJSONSchemaError, add:
+// case unsupportedType
+//
+// In grammar()'s existing switch, add ONLY this compileable behavioral stub:
+// case .object, .array, .nullable, .integerEnumeration:
+//     throw StructuredJSONSchemaError.unsupportedType
+//
+// Do not implement working recursion before its own compatible assertion RED.
+// Bounds to test/implement later: finite array count1...128, depth<=8, total
+// fields/rules<=1024 and the existing complete grammar UTF8 budget. Source
+// ranges are Int64 enum metadata, never floating-point numbers or estimates.

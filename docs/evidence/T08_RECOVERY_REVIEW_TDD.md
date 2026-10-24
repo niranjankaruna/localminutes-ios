@@ -27,3 +27,8 @@ shared admission remain separate unimplemented requirements.
 
 
 39d9eaa/run40073883889: journal/gap regressions pass; every truncated-body recovery/report/quarantine/metadata assertion now passes. Three remaining assertions fail because the independent healthy-file observation helper requests beyond its four-frame EOF and labels the resulting native EOF error as corruption. Actual truncated observation is opened=true/header4/decoded1/readFailed=true. Correct the observer to request only bounded remaining declared frames and mark a short read as failure; preserve all assertions and actual decode/sample-count checks. Production full readback behavior is already correct for the exercised corpus.
+
+
+## Exact-source full regression GREEN
+
+`db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04` / [run40079629180](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180) completed SUCCESS.269core/59scripts/85TSAN/5actualQwen/59native/3UI/2bundle/13archive cases all pass,0failures/skips/reported races; native/UI xcresult agrees. This supersedes earlier pending-GREEN statements for the bounded component above. It does not complete its broad parent feature or any physical gate. Source, artifact, limits and exact remaining work: [continuation08 checkpoint](CONTINUATION_08_CHECKPOINT.md).

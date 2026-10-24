@@ -72,3 +72,8 @@ Implementation source8b653cb8c33b7abd2d83e747b7bc404d1900f5f5 pushed/remoteverif
 ## Exact-source component GREEN at8b653cb
 
 Source8b653cb8c33b7abd2d83e747b7bc404d1900f5f5/run40077503748 completedcorejob120823956509 SUCCESS:269XCTest+59Node+85ThreadSanitizer casespassed,0failures/skips/reportedraces; strictnamedreportersagree. All6groundeddecoder/merge and6actualSQLiteFTS3cases nowGREEN, includinglegacyv1/v2data preservation, selectedmeeting/operator isolation/rank/deletion postings, sourcequotes/ranges/nullableattribute/conflict/provenance validation. This is component evidence; actualfullLLMmapreduce/groundedQAandUIstillunfinished. Independentactualmodeljob120823956336SUCCESS5/5,0fail/skip,includingall4oldsemanticoraclesandrealcanonicaltokenizer/capacity/cancel/unload. NativeiOS/59cases/UI/package remainlive, so nofullworkflowGREEN/retainedartifact/deviceclaim.
+
+
+## Exact-source full regression GREEN
+
+`db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04` / [run40079629180](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180) completed SUCCESS.269core/59scripts/85TSAN/5actualQwen/59native/3UI/2bundle/13archive cases all pass,0failures/skips/reported races; native/UI xcresult agrees. This supersedes earlier pending-GREEN statements for the bounded component above. It does not complete its broad parent feature or any physical gate. Source, artifact, limits and exact remaining work: [continuation08 checkpoint](CONTINUATION_08_CHECKPOINT.md).

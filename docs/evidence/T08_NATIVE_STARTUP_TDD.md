@@ -49,3 +49,8 @@ Test-first source1f03e5259ead091c616eb4ce3c49f80d1af79018 pushed/remote verified
 Exacttest-first1f03e5259ead091c616eb4ce3c49f80d1af79018/run[40075611744](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40075611744), completednativejob120818174077:59app-hosted cases57pass2newfail15assertions0unexpected/skip; strictreporterandxcresultagree. StartleftstartupnotStarted/originalCAFmetadataunrecovered/nodurablereport. ClosedDBStartincorrectlyreachedmissing-modelpreflightandfailedownerinsteadofremainingidle/cleanupPending. Theseactualnativebehaviorfailuresauthorizeminimalservicesinitialize/start-togglegate/sharedregistryownerwiring. Bothdevice/simulatorbundlechecks2/2passafterstrictinspectionreorder. UI3/3passandxcresultagrees. Physical7compileonly/0executedNOT_RUN. Packagingnotrunafternewnativefailures;nocandidate. Noautomaticviewlaunch/replay/phonepassinferred.
 
 Implementation source8b653cb8c33b7abd2d83e747b7bc404d1900f5f5 pushed/remoteverified; exact-source GREENpending [run40077503748](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40077503748). Existingstrongassertionsremainmandatory.
+
+
+## Exact-source full regression GREEN
+
+`db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04` / [run40079629180](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180) completed SUCCESS.269core/59scripts/85TSAN/5actualQwen/59native/3UI/2bundle/13archive cases all pass,0failures/skips/reported races; native/UI xcresult agrees. This supersedes earlier pending-GREEN statements for the bounded component above. It does not complete its broad parent feature or any physical gate. Source, artifact, limits and exact remaining work: [continuation08 checkpoint](CONTINUATION_08_CHECKPOINT.md).

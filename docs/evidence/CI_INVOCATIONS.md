@@ -192,3 +192,8 @@ six-run cap, one active/branch and6/25minute bounds remain. No artifact upload.
 First source activates23 model-installation and15 SQLite tests with no-op
 interfaces. Require actual153-case discovery and assertion RED before behavior.
 Native runtime/model experiment is real but remains separate desktop evidence.
+
+
+## 2026-10-24-continuation-08 — terminal
+
+Six permitted run IDs:40069154630,40071855360,40073883889,40075611744,40077503748,40079629180. All terminal. Final source `db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04` / [run40079629180](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180) SUCCESS:269core+59scripts+85TSAN+5actualmodel+59native+3UI+2bundle+13archive cases pass,0fail/skip/reported races. Standard public macos-15-intel,15/15/35minute job bounds, no uploads/paid infrastructure/billing changes. Physical7compiled/0executedNOT_RUN. No retained candidate. See [checkpoint](CONTINUATION_08_CHECKPOINT.md) for exact scope and artifact metadata. No run7/rerun; next bounded invocation starts with T12.2 assertion RED.

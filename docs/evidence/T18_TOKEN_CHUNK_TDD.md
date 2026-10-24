@@ -119,3 +119,8 @@ Source39d9eaa65f7b030a8bdf87e1447b254508dce2db/run40073883889, completedactualmo
 
 
 Source1f03e52/run40075611744 completedactualmodeljob120818174083 SUCCESS: all5mandatoryactualQwen/b5046 casespass0fail/skip,286.44seconds; strictreporteragrees. Actualcanonical tokenization/input-output capacity/cancel/unload nowpass, alongwithall4unchangedsemantic/model-size/cancellationcases. Originalunboundedcapacityfailureat39d9eaa remainsarchived/unexplained; boundedcaller-enum positivefixtureestablishescapacityonly, not semantictruth. Fullsummary/QApipeline/phoneadmissionstillunfinished.
+
+
+## Exact-source full regression GREEN
+
+`db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04` / [run40079629180](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180) completed SUCCESS.269core/59scripts/85TSAN/5actualQwen/59native/3UI/2bundle/13archive cases all pass,0failures/skips/reported races; native/UI xcresult agrees. This supersedes earlier pending-GREEN statements for the bounded component above. It does not complete its broad parent feature or any physical gate. Source, artifact, limits and exact remaining work: [continuation08 checkpoint](CONTINUATION_08_CHECKPOINT.md).

@@ -146,3 +146,8 @@ Native summary confirmation: source7659a19/run40036438183 executed real b5046/Qw
 ## SIMULATOR_FILE_PROTECTION_UNOBSERVABLE — physical metadata gate
 
 Confirmedatcdf4a06/run40038154279: directSDKsetCompleteonoriginalfixturefollowedbygetreturnsnil independentlyofthethen-nooppolicy. Simulatorcannotprovephysicalclass/lockedaccess. Preserveall7fullclassassertionsbyte-identicallyinPhysicalDeviceTests;compileonhostedmacOSforiPhoneOS,butexecutionremainsNOT_RUNuntilrealdeviceevidence. FiveindependentSimulatorFScasescoverbackup/POSIX/atomicwrites/SQLite/CAFwithoutclaimingclasssuccess. Noretriesorclassspoofing; noowneractionneededforcurrentindependentcodework. Actualphonevalidationwillbeconsolidatedwithcandidatehandoff.
+
+
+## Continuation 08 execution boundary — not an external blocker
+
+All six permitted runs are terminal. Final `db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04` / [run40079629180](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180) passed all application/model/native/UI/archive groups. No internal archive-ordering blocker remains. The next bounded invocation activates T12.2 tests before behavior; full baseline remains IN_PROGRESS. No owner confirmation is needed for independent development. ARTIFACT_STORAGE_HEADROOM_UNVERIFIED still affects retained delivery only. All physical/signing/renewal gates remain NOT_RUN. Details: [checkpoint](evidence/CONTINUATION_08_CHECKPOINT.md).

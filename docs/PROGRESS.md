@@ -607,3 +607,14 @@ Source8b653cb8c33b7abd2d83e747b7bc404d1900f5f5/run40077503748 completedcorejob12
 
 
 Terminal8b653cb/run40077503748:269core+59Node+85TSAN+5actualQwen+59native+3UIand2nativebundlecasesallPASS,0skips/reportedraces; native/UIxcresultagreementsconfirmed. FullworkflowFAILEDonly13-casearchivegate:12pass,1negativeSimulatorfixturewrongerrorbecauseXCTestad-hocsigned/instrumentedthereusedDebugapp. Inputauditcorrectlyrejects_CodeSignaturebeforeplatformchecks; no guardshouldberelaxed. ActualdevicepositiveIPA/archiveCRC/hash/sourcecasepassesbuttemporaryoutputiscleanedandnocandidateisretained. FixharnessorderingbyrunningALL13archivecasesagainstpristinecompiledproductsbeforeXCTest; leavefinalephemeralpackagecreationafteralltests. Thisis2ndscopedorderingrepairforthesamewithin-runreusecause,withactualassertionRED,notpermission/toolfailure. Sixth/finalCIreservedforthisrepair;T12draftsstayinactive/noT12REDorbehaviorclaim.
+
+
+## 24 October 2026 — continuation 08 terminal checkpoint
+
+**IN_PROGRESS.** Exact source `db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04` / [run 40079629180](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180) completed **SUCCESS** at09:07:57UTC. Actual results:269core XCTest,59Node,85ThreadSanitizer,5actualQwen,59native iOS,3UI,2pristine-product and13archive cases all passed,0failures/skips/reported races. Native/UI strict reporters agree with xcresult. Physical protection:7compiled,0executed/NOT_RUN.
+
+Bounded child components T17.2/T17.3/T18.1/T18.2/T19.1 are verified within their documented scope; T08.4/T08.5 are code complete pending device validation. Recovery/deletion/note/playback/privacy regressions now pass, but broad parent features and full summaries/Q&A/UI remain unfinished. See [the authoritative source/count/scope checkpoint](evidence/CONTINUATION_08_CHECKPOINT.md).
+
+An unsigned12,632,611-byte IPA was verified on the ephemeral runner (SHA256 `e3eba563ccbd549987a43ed29c5da591fbf3a41cfa5357fc96e99372b0f721c0`), **not retained or delivered**. candidateArtifact remains null; ARTIFACT_STORAGE_HEADROOM_UNVERIFIED affects delivery only. All signing/extension/ActionButton/locked/offline-phone/renewal/protection and owner2x125-minute gates remain NOT_RUN.
+
+Six of six runs are terminal. No seventh dispatch/re-run/code-triggering push this invocation. Reviewed T12Signals3/T13Metrics5/T18Pipeline5/T19QA4 drafts remain inactive, uncompiled and NOT_RUN. **Next:** Next bounded invocation: read required documents and verify Git/remote, terminal run40079629180 at db1b8d5, and zero-spend cost guard. Activate T12.2 three interruption/signal tests with minimal stubs and strict reporting, commit/push test-first, and prove hosted assertion RED before implementation. T13Metrics/T18Pipeline/T19QA drafts are inactive NOT_RUN and may be delegated within one branch and six runs. Current invocation is at six of six terminal runs: no run7, rerun or code-triggering push.

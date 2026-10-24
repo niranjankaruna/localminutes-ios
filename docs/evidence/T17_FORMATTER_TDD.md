@@ -81,3 +81,8 @@ Test-first sourcecdf4a06f6a4a9cd226e306941fd0199a18bf418c pushed and remoteHEAD 
 ## Actual RED read on owner resume
 
 Test-firstcdf4a06f6a4a9cd226e306941fd0199a18bf418c/run40038154279 isterminalFAILED. HostedmacOS/Xcode26.2 compiledandran224corecases:199pass25fail57assertions(7unexpected)0skip. All25newcasesfailed:8actualCAF/SQLiterecovery,6owneddeletion,2boundnotes,2renameepoch and7formattercases. Actualfiles/nativefixturesand original199regressionspassed. Examples: noquarantine/journal/metadata deletion, wrongnote/selectionafterheldSQLite read, notImplemented recovery, emptycanonicalenvelope/no budgetrejection. This isbehavioralRED, notcompile/tool failure. Onlyafterreadingandpersistingthisevidence isimplementationauthorized. Ignoredfull log:.agent-local/TDD-cdf4a06-terminal.log.
+
+
+## Exact-source full regression GREEN
+
+`db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04` / [run40079629180](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180) completed SUCCESS.269core/59scripts/85TSAN/5actualQwen/59native/3UI/2bundle/13archive cases all pass,0failures/skips/reported races; native/UI xcresult agrees. This supersedes earlier pending-GREEN statements for the bounded component above. It does not complete its broad parent feature or any physical gate. Source, artifact, limits and exact remaining work: [continuation08 checkpoint](CONTINUATION_08_CHECKPOINT.md).

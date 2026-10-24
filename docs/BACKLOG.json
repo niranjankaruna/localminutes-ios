@@ -455,9 +455,14 @@
           "redEvidence": [
             "docs/evidence/T08_RECOVERY_TDD.md"
           ],
-          "greenEvidence": [],
+          "greenEvidence": [
+            "docs/evidence/CONTINUATION_08_CHECKPOINT.md"
+          ],
           "deviceEvidence": [],
-          "testCount": 11
+          "testCount": 11,
+          "scope": "Eleven actual CAF/SQLite reconciliation and forged-journal/truncation/gap cases pass. Actual ASR replay and all-coordinator admission remain pending.",
+          "greenSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+          "greenRunId": 40079629180
         },
         {
           "id": "T08.3",
@@ -466,34 +471,46 @@
           "redEvidence": [
             "docs/evidence/T08_STARTUP_TDD.md"
           ],
-          "greenEvidence": [],
+          "greenEvidence": [
+            "docs/evidence/CONTINUATION_08_CHECKPOINT.md"
+          ],
           "deviceEvidence": [],
           "testCount": 6,
-          "scope": "Test-first stubs only; actual hosted RED pending."
+          "scope": "Startup component, deletion replay and bounded unfinished pagination pass. Automatic HomeView launch/UI and broad recovery admission remain pending.",
+          "greenSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+          "greenRunId": 40079629180
         },
         {
           "id": "T08.4",
           "title": "Shared recording owner admission across preparation and cleanup",
-          "status": "IN_PROGRESS",
+          "status": "CODE_COMPLETE_PENDING_DEVICE",
           "redEvidence": [
             "docs/evidence/T08_SHARED_ADMISSION_TDD.md"
           ],
-          "greenEvidence": [],
+          "greenEvidence": [
+            "docs/evidence/CONTINUATION_08_CHECKPOINT.md"
+          ],
           "deviceEvidence": [],
           "testCount": 4,
-          "scope": "Test-first stubs only; actual hosted RED pending."
+          "scope": "Four real-owner admission cases pass through preparation, stop and failed cleanup. This scope excludes independent recovery-coordinator admission.",
+          "greenSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+          "greenRunId": 40079629180
         },
         {
           "id": "T08.5",
           "title": "Native default app startup reconciliation before real model preflight",
-          "status": "IN_PROGRESS",
+          "status": "CODE_COMPLETE_PENDING_DEVICE",
           "redEvidence": [
             "docs/evidence/T08_NATIVE_STARTUP_TDD.md"
           ],
-          "greenEvidence": [],
+          "greenEvidence": [
+            "docs/evidence/CONTINUATION_08_CHECKPOINT.md"
+          ],
           "deviceEvidence": [],
           "testCount": 2,
-          "scope": "Test-first only; initialize remains no-op and app guard/admission wiring waits nativeRED."
+          "scope": "Two actual native Start/Toggle startup gates pass with real SQLite/CAF and absent-model failure. Automatic view launch and physical validation remain pending.",
+          "greenSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+          "greenRunId": 40079629180
         }
       ],
       "redEvidence": [
@@ -657,11 +674,16 @@
           "redEvidence": [
             "docs/evidence/T12_PRIVACY_TDD.md"
           ],
-          "greenEvidence": [],
+          "greenEvidence": [
+            "docs/evidence/CONTINUATION_08_CHECKPOINT.md"
+          ],
           "deviceEvidence": [],
           "testCount": 7,
           "testFirstSource": "7659a1980b53fc17d624973c6666d83084234ab6",
-          "nextAction": "ActualiOSnativeREDstillrequired; firstfixturecompilelabelserrorsrepairedwithoutassertionchanges."
+          "nextAction": "Simulator-supported policy and filesystem regressions are GREEN. Keep seven unchanged physical protection tests pending actual iPhone execution; never substitute simulated metadata.",
+          "scope": "All five Simulator-supported policy and filesystem-boundary regressions pass. Seven unchanged physical protection oracles compile only, executed0/NOT_RUN.",
+          "greenSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+          "greenRunId": 40079629180
         },
         {
           "id": "T12.2",
@@ -673,7 +695,8 @@
           "redEvidence": [],
           "greenEvidence": [],
           "deviceEvidence": [],
-          "scope": "Inactive test-first drafts; no compiledREDorworkingbehavior."
+          "scope": "Reviewed inactive three-case test-first draft. Next bounded invocation activates minimal interfaces and strict tests, then requires hosted assertion RED before any interruption behavior.",
+          "draft": "docs/drafts/T12Signals/README.md"
         }
       ],
       "redEvidence": [],
@@ -702,7 +725,19 @@
         "Test metric accuracy, bounded storage, redaction and evidence schema.",
         "Package real-device instructions for 125-minute locked tests and fault runs."
       ],
-      "childTasks": [],
+      "childTasks": [
+        {
+          "id": "T13.1",
+          "title": "Bounded measured transcription metrics and strict private export",
+          "status": "NOT_STARTED",
+          "draft": "docs/drafts/T13Metrics/README.md",
+          "testCount": 5,
+          "redEvidence": [],
+          "greenEvidence": [],
+          "deviceEvidence": [],
+          "scope": "Inactive test-first preparation only; uncompiled/NOT_RUN. No new production behavior before actual hosted assertion RED."
+        }
+      ],
       "redEvidence": [],
       "greenEvidence": [],
       "deviceEvidence": [],
@@ -796,9 +831,14 @@
           "redEvidence": [
             "docs/evidence/T16_INTEGRATION_TDD.md"
           ],
-          "greenEvidence": [],
+          "greenEvidence": [
+            "docs/evidence/CONTINUATION_08_CHECKPOINT.md"
+          ],
           "deviceEvidence": [],
-          "testCount": 6
+          "testCount": 6,
+          "scope": "Six actual SQLite/CAF recoverable deletion cases pass. Safe Delete UI/default-service exposure and full backup remain pending.",
+          "greenSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+          "greenRunId": 40079629180
         },
         {
           "id": "T16.2",
@@ -807,9 +847,14 @@
           "redEvidence": [
             "docs/evidence/T16_INTEGRATION_TDD.md"
           ],
-          "greenEvidence": [],
+          "greenEvidence": [
+            "docs/evidence/CONTINUATION_08_CHECKPOINT.md"
+          ],
           "deviceEvidence": [],
-          "testCount": 7
+          "testCount": 7,
+          "scope": "Immutable note input reservation, delayed receiver and stale rename epoch cases pass; complete native editor/navigation integration coverage remains pending.",
+          "greenSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+          "greenRunId": 40079629180
         },
         {
           "id": "T16.3",
@@ -818,9 +863,14 @@
           "redEvidence": [
             "docs/evidence/T16_PLAYBACK_TDD.md"
           ],
-          "greenEvidence": [],
+          "greenEvidence": [
+            "docs/evidence/CONTINUATION_08_CHECKPOINT.md"
+          ],
           "deviceEvidence": [],
-          "testCount": 11
+          "testCount": 11,
+          "scope": "All eleven native playback/recording ownership cases pass. Request-scoped HomeView cleanup and continuous meeting playback remain pending.",
+          "greenSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+          "greenRunId": 40079629180
         }
       ],
       "redEvidence": [
@@ -856,23 +906,33 @@
         {
           "id": "T17.2",
           "title": "Canonical pinned Qwen chat envelope and full UTF8 budget",
-          "status": "IN_PROGRESS",
+          "status": "VERIFIED_COMPLETE",
           "redEvidence": [
             "docs/evidence/T17_FORMATTER_TDD.md"
           ],
-          "greenEvidence": [],
+          "greenEvidence": [
+            "docs/evidence/CONTINUATION_08_CHECKPOINT.md"
+          ],
           "deviceEvidence": [],
-          "testCount": 7
+          "testCount": 7,
+          "scope": "Bounded canonical Qwen envelope formatter: all seven pure cases and actual native model consumers pass. Full summary pipeline remains pending.",
+          "greenSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+          "greenRunId": 40079629180
         },
         {
           "id": "T17.3",
           "title": "Explicit caller schema and constrained native JSON decoding",
-          "status": "IN_PROGRESS",
+          "status": "VERIFIED_COMPLETE",
           "redEvidence": [
             "docs/evidence/T17_STRUCTURED_SCHEMA_TDD.md"
           ],
-          "greenEvidence": [],
-          "deviceEvidence": []
+          "greenEvidence": [
+            "docs/evidence/CONTINUATION_08_CHECKPOINT.md"
+          ],
+          "deviceEvidence": [],
+          "scope": "Bounded caller-supplied flat schema/GBNF: six compiler cases and all original actual-model semantic oracles pass. Nested schema and app pipeline remain pending.",
+          "greenSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+          "greenRunId": 40079629180
         }
       ],
       "redEvidence": [
@@ -907,26 +967,45 @@
         {
           "id": "T18.1",
           "title": "Actual canonical tokenizer and bounded whole-segment chunk planning",
-          "status": "IN_PROGRESS",
+          "status": "VERIFIED_COMPLETE",
           "redEvidence": [
             "docs/evidence/T18_TOKEN_CHUNK_TDD.md"
           ],
-          "greenEvidence": [],
+          "greenEvidence": [
+            "docs/evidence/CONTINUATION_08_CHECKPOINT.md"
+          ],
           "deviceEvidence": [],
           "testCount": 7,
-          "scope": "Test-first stubs only. Full nullable/grounded map-reduce summaries/Q&A still mandatory."
+          "scope": "Whole-atomic-segment planner6 plus actual canonical tokenizer/capacity/cancel/unload1 pass. Oversized sentence subdivision and full map/reduce remain separate pending work.",
+          "greenSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+          "greenRunId": 40079629180
         },
         {
           "id": "T18.2",
           "title": "Selected-meeting extractive structured summary validation and provenance merge",
-          "status": "IN_PROGRESS",
+          "status": "VERIFIED_COMPLETE",
           "redEvidence": [
             "docs/evidence/T18_GROUNDED_DOMAIN_TDD.md"
           ],
-          "greenEvidence": [],
+          "greenEvidence": [
+            "docs/evidence/CONTINUATION_08_CHECKPOINT.md"
+          ],
           "deviceEvidence": [],
           "testCount": 6,
-          "scope": "Pure validator/merge test-first stubs; no generated-summary model pipeline or UI yet."
+          "scope": "Six pure selected-source extractive validation/provenance merge cases pass. Not general semantic entailment or actual generated-summary pipeline.",
+          "greenSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+          "greenRunId": 40079629180
+        },
+        {
+          "id": "T18.3",
+          "title": "Actual grounded summary pipeline and bounded nested citation schema",
+          "status": "NOT_STARTED",
+          "draft": "docs/drafts/T18Pipeline/README.md",
+          "testCount": 5,
+          "redEvidence": [],
+          "greenEvidence": [],
+          "deviceEvidence": [],
+          "scope": "Inactive test-first preparation only; uncompiled/NOT_RUN. No new production behavior before actual hosted assertion RED."
         }
       ],
       "redEvidence": [],
@@ -959,14 +1038,29 @@
         {
           "id": "T19.1",
           "title": "Actual SQLite FTS evidence restricted to selected meeting",
-          "status": "IN_PROGRESS",
+          "status": "VERIFIED_COMPLETE",
           "redEvidence": [
             "docs/evidence/T19_RETRIEVAL_TDD.md"
           ],
-          "greenEvidence": [],
+          "greenEvidence": [
+            "docs/evidence/CONTINUATION_08_CHECKPOINT.md"
+          ],
           "deviceEvidence": [],
           "testCount": 6,
-          "scope": "Empty query stub; schema3 proposed but no working migration/retrieval before actualRED."
+          "scope": "Six actual SQLite FTS5 schema3 migration/index-maintenance/selected-meeting retrieval cases pass. No Q&A generation or UI claim.",
+          "greenSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+          "greenRunId": 40079629180
+        },
+        {
+          "id": "T19.2",
+          "title": "Actual selected-meeting question answering and refusal",
+          "status": "NOT_STARTED",
+          "draft": "docs/drafts/T19QA/README.md",
+          "testCount": 4,
+          "redEvidence": [],
+          "greenEvidence": [],
+          "deviceEvidence": [],
+          "scope": "Inactive test-first preparation only; uncompiled/NOT_RUN. No new production behavior before actual hosted assertion RED."
         }
       ],
       "redEvidence": [],
@@ -1104,5 +1198,12 @@
     }
   ],
   "executionPausedByOwner": false,
-  "resumeAction": "Implementafterpersistedcdf4a06actualRED: rootCAF/SQLiterecovery+canonicalformatter; boundedagentsowneddeletion/boundnotes/rename, playbackgate, sharedstoragepolicy. Preserveallassertions; diagnoseunsupportedSimulatorprotectionwithseparatephysicalgateinstead offakeattributes. ThenexactSHA224core/56native/fullregressions plusunchangedrealQwenquality."
+  "resumeAction": "Next bounded invocation: read required documents and verify Git/remote, terminal run40079629180 at db1b8d5, and zero-spend cost guard. Activate T12.2 three interruption/signal tests with minimal stubs and strict reporting, commit/push test-first, and prove hosted assertion RED before implementation. T13Metrics/T18Pipeline/T19QA drafts are inactive NOT_RUN and may be delegated within one branch and six runs. Current invocation is at six of six terminal runs: no run7, rerun or code-triggering push.",
+  "lastUpdated": "2026-10-24T09:18:23.358Z",
+  "latestVerification": {
+    "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+    "runId": 40079629180,
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
+    "evidence": "docs/evidence/CONTINUATION_08_CHECKPOINT.md"
+  }
 }

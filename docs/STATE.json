@@ -3,17 +3,17 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T08:49:03.882Z",
+  "lastUpdated": "2026-10-24T09:18:23.358Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "T19.1",
-  "lastVerifiedCommit": "40100fdb9a8349acdbf2d22c63eb25ce959e9388",
-  "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017962923",
+  "currentTask": "T12.2 interruption test-first activation (next bounded invocation)",
+  "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+  "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "Moveall13strictnativearchivecasesbeforeXCTestinstrumentation, preservingassertions; use6th/finalCIrunforfull exactSHAGREEN. KeepT12Signalstest-firstdraftsinactive; no run7. PersistfinalevidenceandnextT12.2test-firstactivation afterrun6.",
+  "nextAction": "Next bounded invocation: read required documents and verify Git/remote, terminal run40079629180 at db1b8d5, and zero-spend cost guard. Activate T12.2 three interruption/signal tests with minimal stubs and strict reporting, commit/push test-first, and prove hosted assertion RED before implementation. T13Metrics/T18Pipeline/T19QA drafts are inactive NOT_RUN and may be delegated within one branch and six runs. Current invocation is at six of six terminal runs: no run7, rerun or code-triggering push.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "8b653cb8c33b7abd2d83e747b7bc404d1900f5f5",
+  "remoteBranchHead": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "localScriptGreen": {
     "sourceCommit": "39d9eaa65f7b030a8bdf87e1447b254508dce2db",
     "sourceScope": "Current reviewed source3 working tree before commit",
@@ -24,8 +24,8 @@
     "skipped": 0,
     "nativePackagingVerified": false
   },
-  "lastVerifiedNativeBuildCommit": "40100fdb9a8349acdbf2d22c63eb25ce959e9388",
-  "lastVerifiedNativeBuildCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017962923",
+  "lastVerifiedNativeBuildCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+  "lastVerifiedNativeBuildCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "blockedItems": [
     "ARTIFACT_STORAGE_HEADROOM_UNVERIFIED"
   ],
@@ -37,80 +37,33 @@
       40071855360,
       40073883889,
       40075611744,
-      40077503748
+      40077503748,
+      40079629180
     ],
-    "limitReached": false,
+    "limitReached": true,
     "costGuardObservedAt": "2026-10-24T07:20:14.943Z",
     "costGuardBasis": "Live PUBLIC/ADMIN/HTTPS origin reverified; official GitHub Actions billing confirms standard public macos-15-intel compute free. No paid/larger runners, cache/upload, artifact retention change or billing mutation. Previous run40071855360 terminal.",
     "jobLimits": {
       "coreMinutes": 15,
       "summaryQualityMinutes": 15,
       "nativeMinutes": 35
+    },
+    "finalResult": {
+      "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+      "runId": 40079629180,
+      "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-10-24T09:07:57Z",
+      "evidence": "docs/evidence/CONTINUATION_08_CHECKPOINT.md"
     }
   },
   "latestCIRun": {
-    "sourceCommit": "8b653cb8c33b7abd2d83e747b7bc404d1900f5f5",
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40077503748",
+    "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
     "status": "completed",
-    "ordinal": 5,
-    "conclusion": "failure",
-    "core": {
-      "executed": 269,
-      "passed": 269,
-      "failed": 0,
-      "skipped": 0
-    },
-    "scripts": {
-      "executed": 59,
-      "passed": 59,
-      "failed": 0,
-      "skipped": 0
-    },
-    "threadSanitizer": {
-      "executed": 85,
-      "passed": 85,
-      "failed": 0,
-      "skipped": 0,
-      "reportedRaces": 0
-    },
-    "summary": {
-      "executed": 5,
-      "passed": 5,
-      "failed": 0,
-      "skipped": 0
-    },
-    "native": {
-      "executed": 59,
-      "passed": 59,
-      "failed": 0,
-      "skipped": 0,
-      "resultBundleVerified": true
-    },
-    "ui": {
-      "executed": 3,
-      "passed": 3,
-      "failed": 0,
-      "skipped": 0,
-      "resultBundleVerified": true
-    },
-    "nativeBundleInspection": {
-      "executed": 2,
-      "passed": 2,
-      "failed": 0,
-      "skipped": 0
-    },
-    "nativePackage": {
-      "executed": 13,
-      "passed": 12,
-      "failed": 1,
-      "skipped": 0,
-      "scope": "Actual device positivepackagepasses. NegativeSimulatorfixturewasmodified/signedbyXCTestbeforetest, soaudiInputTreecorrectlyrejectedsigningmaterialinsteadofplatform."
-    },
-    "physical": {
-      "compiled": 7,
-      "executed": 0,
-      "status": "NOT_RUN"
-    }
+    "ordinal": 6,
+    "conclusion": "success"
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -145,12 +98,12 @@
   },
   "verifiedComplete": false,
   "lastEphemeralArtifact": {
-    "sourceCommit": "40100fdb9a8349acdbf2d22c63eb25ce959e9388",
-    "runUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017962923",
-    "name": "LocalMinutes-1.0-40100fdb9a8349acdbf2d22c63eb25ce959e9388-unsigned.ipa",
-    "sha256": "433e98bd9eb28185cce7958dffdc723cb4516b420ef0e7b8054e4dbf4fa5b9a1",
-    "sizeBytes": 188232,
-    "createdAt": "2026-10-23T20:22:05.665Z",
+    "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+    "runUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
+    "name": "LocalMinutes-1.0-db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04-unsigned.ipa",
+    "sha256": "e3eba563ccbd549987a43ed29c5da591fbf3a41cfa5357fc96e99372b0f721c0",
+    "sizeBytes": 12632611,
+    "createdAt": "2026-10-24T09:07:52.537Z",
     "retained": false
   },
   "captureRuntimeTestFirst": {
@@ -171,16 +124,24 @@
     "fullNativeGreenVerified": true,
     "fullNativeGreenCommit": "b6f4bdf0231d72d279ae690c5ce20936b8225459"
   },
-  "completedThisInvocation": [],
+  "completedThisInvocation": [
+    "T17.2",
+    "T17.3",
+    "T18.1",
+    "T18.2",
+    "T19.1"
+  ],
   "codeCompletePendingDevice": [
     "T05",
     "T05.3",
     "T06.1",
     "T06.1.1",
     "T06.2.1",
-    "T06.2.2.1"
+    "T06.2.2.1",
+    "T08.4",
+    "T08.5"
   ],
-  "remoteBranchHeadScope": "Reviewedsource5implementationspushedandremoteverified; no newactivetests. Allworkingchangesfollowactual1f03e52RED.",
+  "remoteBranchHeadScope": "Verified exact source; later documentation-only checkpoint HEAD is a descendant and has no application/workflow changes.",
   "nativeCompileRepair": {
     "status": "CODE_COMPLETE_PENDING_DEVICE",
     "candidatePath": "docs/drafts/T06.1/ActivityKitOperations.swift.pending",
@@ -189,8 +150,11 @@
     "validatedRepairAttempts": 1,
     "missingLookupPolicyNeedsRegressionRed": false
   },
-  "codeCompletedThisInvocation": [],
-  "codeCompletionScope": "No new top-level baseline task is complete. Exact7659a19 passed199core/59scripts/85TSAN, including actual CPU ASR and live SQLite compositions. Native app compilation/screens/privacy remain pending. Summary action attribution is failed; full summaries and Q&A are unfinished. Three P1 integration races need new regression RED.",
+  "codeCompletedThisInvocation": [
+    "T08.4",
+    "T08.5"
+  ],
+  "codeCompletionScope": "Only named bounded child components are verified: canonical formatter, flat caller schema, tokenizer/whole-segment planner, extractive decoder/merge and selected-meeting FTS. Shared owner lifetime and native Start-before-model startup are code complete pending device validation. Full baseline, summaries/Q&A/UI, resource admission and physical gates remain IN_PROGRESS.",
   "ownerCompositionTestFirst": {
     "testCount": 12,
     "inActiveBuildPaths": true,
@@ -231,7 +195,7 @@
     "greenVerifiedCommit": "7c1ae7c6edda4a4ee23b47299e45f22a6fcef409",
     "additionalModeProbeExecuted": true,
     "uiRedVerified": true,
-    "sourceScope": "Current app/extension device and simulator products compile at7659a19; privacy fixture errors prevented all native/unit/UI execution. Preparing-toggle regression GREEN stillunverified.",
+    "sourceScope": "All current 59 app-hosted cases pass at db1b8d5/run40079629180, including Start/Toggle startup and playback ownership. Physical intent/extension and broader UI gates remain pending.",
     "originalNativeGreenExecuted": 38,
     "hiddenStopSDKMode": "background, observed iOS26.2; no mode declaration change",
     "uiProductionBehaviorImplemented": true,
@@ -271,10 +235,10 @@
       "conclusion": "success",
       "resultBundleVerified": true,
       "aggregateVerified": true,
-      "scope": "Threeexistingrecording/activitycontrolUIcasesonly; newhistory/notesUIandphysicalextensionstillpending."
+      "scope": "Three recording/activity-control UI cases. Full library UI and physical extension pending."
     },
-    "latestSourceCommit": "cdf4a06f6a4a9cd226e306941fd0199a18bf418c",
-    "latestRunUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40038154279"
+    "latestSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+    "latestRunUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180"
   },
   "activeCIRun": null,
   "pendingPushScope": null,
@@ -310,8 +274,10 @@
   "localSourceReview": {
     "commit": "7659a1980b53fc17d624973c6666d83084234ab6",
     "reviewer": "root plus bounded read-only parallel reviews",
-    "scope": "ASR/live buffer and native C ownership reviewed with no further blocker; meeting integration review found three untested P1 scheduling issues requiring regression RED before repair.",
-    "nativeExecutionPending": true
+    "scope": "All identified old rename/bound-note/playback admission regressions now pass. Request-scoped HomeView cleanup and complete flows still require new tests.",
+    "nativeExecutionPending": false,
+    "currentCheckpoint": "docs/evidence/CONTINUATION_08_CHECKPOINT.md",
+    "currentSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04"
   },
   "parallelTasks": [],
   "oneHourPush": {
@@ -407,11 +373,12 @@
   },
   "componentGreen": {
     "verifiedModelInstaller": {
-      "sourceCommit": "b0cdd8ba4fdb3e3eb67d8f812937e50777db612b",
-      "runId": 40034410554,
+      "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+      "runId": 40079629180,
       "executed": 23,
       "passed": 23,
-      "skipped": 0
+      "skipped": 0,
+      "failed": 0
     },
     "sqliteV1": {
       "sourceCommit": "4c520bdb82f6147ae667181bb0b534cadedb960a",
@@ -421,83 +388,106 @@
       "skipped": 0
     },
     "nativeASR": {
-      "sourceCommit": "7659a1980b53fc17d624973c6666d83084234ab6",
-      "runId": 40036438183,
+      "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+      "runId": 40079629180,
       "executed": 10,
       "passed": 10,
-      "skipped": 0
+      "skipped": 0,
+      "failed": 0
     },
     "liveComposition": {
-      "sourceCommit": "7659a1980b53fc17d624973c6666d83084234ab6",
-      "runId": 40036438183,
+      "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+      "runId": 40079629180,
       "positiveActualSpeechCases": 2,
-      "passed": 2,
+      "passed": 4,
       "skipped": 0,
       "largeBufferRegression": "GREEN at7659a19/run40036438183 after2eaa5d6 actual13-assertion RED",
-      "totalCases": 4
+      "totalCases": 4,
+      "executed": 4,
+      "failed": 0
     },
     "notesLibraryTransport": {
-      "sourceCommit": "7659a1980b53fc17d624973c6666d83084234ab6",
-      "runId": 40036438183,
+      "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+      "runId": 40079629180,
       "passed": true,
       "skipped": 0,
-      "scope": "ActualSQLite notes/migration,history/search/screenstate,exports,realCAFmapper,URLSessiontransport; nativeUIKit/audibleplaybacknotverified",
-      "reviewFindingsPending": "docs/drafts/T16Deletion/INTEGRATION_REVIEW.md"
+      "scope": "Real SQLite notes/history/search, text/Markdown export, CAF mapping and URLSession. Native playback ownership tests pass; complete library UI/continuous playback/audio backup pending.",
+      "reviewFindingsPending": "Request-scoped HomeView playback cleanup and safe Delete UI still require tests."
     },
     "core": {
-      "sourceCommit": "7659a1980b53fc17d624973c6666d83084234ab6",
-      "runId": 40036438183,
-      "executed": 199,
-      "passed": 199,
+      "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+      "runId": 40079629180,
+      "executed": 269,
+      "passed": 269,
       "failed": 0,
       "skipped": 0,
       "scriptsPassed": 59,
       "threadSanitizerPassed": 85,
-      "fullWorkflowGreen": false
+      "fullWorkflowGreen": true
     },
     "iOSCompilation": {
-      "sourceCommit": "7659a1980b53fc17d624973c6666d83084234ab6",
-      "runId": 40036438183,
+      "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+      "runId": 40079629180,
       "device": true,
       "simulator": true,
       "appAndExtension": true,
-      "nativeTestsExecuted": 0,
-      "scope": "App/extension products compile; new privacy test fixture prevented test bundle compilation. No UI/package/device pass."
+      "nativeTestsExecuted": 59,
+      "scope": "Both actual native products, 59 Simulator app-hosted tests, 3 UI cases, pristine products and archive verified. Not signed/installed on a physical iPhone."
     },
     "recoveryDeletionRenameFormatter": {
-      "sourceCommit": "d699fc5bfc266e03d8139869146fd55d7573fef9",
-      "runId": 40069154630,
-      "passed": 25,
+      "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+      "runId": 40079629180,
+      "executed": 34,
+      "passed": 34,
       "failed": 0,
       "skipped": 0,
-      "scope": "8recovery+6deletion+2boundreceiver+2rename+7formattercomponentcasesonly;reviewregressionsandappwiringremainpending."
+      "scope": "11 recovery, 6 deletion, 2 bound receiver, 2 rename, 3 input reservation, 3 filesystem scope, 7 canonical formatter cases; not full product completion."
     },
     "nativePlaybackGate": {
-      "sourceCommit": "d699fc5bfc266e03d8139869146fd55d7573fef9",
-      "runId": 40069154630,
-      "executed": 8,
-      "passed": 8,
+      "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+      "runId": 40079629180,
+      "executed": 11,
+      "passed": 11,
       "failed": 0,
       "skipped": 0,
-      "scope": "Original8capture/playbackownershipcasesonly;3newpending/cancel/scopedregressionsnotyetRED."
+      "scope": "Native playback/controller admission and cleanup. Scoped HomeView binding and continuous playback remain pending."
+    },
+    "groundedSummaryValidation": {
+      "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+      "runId": 40079629180,
+      "executed": 6,
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Pure extractive decoder/merger only."
+    },
+    "selectedMeetingFTS": {
+      "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+      "runId": 40079629180,
+      "executed": 6,
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Actual SQLite schema3, index maintenance and selected retrieval only; not Q&A."
     }
   },
   "summaryQuality": {
     "status": "IN_PROGRESS",
     "actualWindowsNativeInference": true,
-    "ownerAttribution": "FAILED",
+    "ownerAttribution": "PASSED_ORIGINAL_FIXED_SYNTHETIC_CASES",
     "boundedWindowsPromptRepairs": 3,
     "retryStopped": true,
     "actualHostedB5046Inference": "EXECUTED",
-    "nextAction": "Three bounded Windows prompt repairs stopped. Preserve exact native semantic failures; use new tests for general quote-first grounding/validation or compare a measured candidate. Do not hardcode owners or weaken original semantic tests.",
+    "nextAction": "Activate reviewed T18.3 pipeline/nested-schema tests and mandatory actual-Qwen pipeline case; obtain behavioral RED before implementation. Full generated summaries, app admission/persistence/UI and representative semantic evaluation remain pending.",
     "nativeTests": {
-      "sourceCommit": "7659a1980b53fc17d624973c6666d83084234ab6",
-      "runId": 40036438183,
-      "executed": 4,
-      "passed": 2,
-      "failed": 2,
-      "assertionFailures": 4,
-      "skipped": 0
+      "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+      "runId": 40079629180,
+      "executed": 5,
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0,
+      "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
+      "scope": "Four original semantic/model-size/cancellation cases plus actual tokenizer/context/cancel/unload. No full pipeline result."
     },
     "candidateResearchPause": "docs/evidence/T17_CANDIDATE_PAUSE.md",
     "typedSchemaExperiment": "docs/evidence/T18_STRUCTURED_DECODING_EXPERIMENT.md",
@@ -509,8 +499,8 @@
     "redVerified": true,
     "productionImplemented": true,
     "evidence": "docs/evidence/T12_PRIVACY_TDD.md",
-    "sourceCommit": "cdf4a06f6a4a9cd226e306941fd0199a18bf418c",
-    "runId": 40038154279,
+    "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+    "runId": 40079629180,
     "inActiveBuildPaths": true,
     "compileIssue": {
       "runId": 40036438183,
@@ -527,32 +517,34 @@
       "compiled": true,
       "executed": 0,
       "status": "NOT_RUN",
-      "compiledSource": "d699fc5bfc266e03d8139869146fd55d7573fef9"
+      "compiledSource": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04"
     },
     "simulatorSupportedCases": {
       "path": "Tests/NativeAppTests/NativeStoragePolicyTests.swift",
       "testCount": 5,
       "executed": true,
       "protectionClassClaim": false,
-      "passed": 4,
-      "failed": 1,
-      "fixtureRepair": "ExplicitactualSQLitecheckpoint/PERSIST_WAL/DELETE/checkedclose/re-enableWAL;strictold-files-goneassertretained."
+      "passed": 5,
+      "failed": 0,
+      "fixtureRepair": "ExplicitactualSQLitecheckpoint/PERSIST_WAL/DELETE/checkedclose/re-enableWAL;strictold-files-goneassertretained.",
+      "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+      "runId": 40079629180
     }
   },
   "remainingBaseline": [
-    "T08 crash/segment recovery and gaps",
-    "T12 privacy metadata and interruption/route/pressure handling",
-    "T13 redacted diagnostics",
-    "T14 owner-run two125minute tests",
-    "T15 native UI coverage/history navigation",
-    "T16 complete owned deletion/continuous playback/full exports",
-    "T17 summary accuracy/resource validation",
-    "T18 tokenizer chunked grounded summaries",
-    "T19 grounded questions",
-    "T20 accessibility/privacy/dependencies",
-    "T21 retained artifact/handover",
-    "T22 offline iPhone/renewal",
-    "T23 completion audit"
+    "T08 actual ASR crash replay, cross-coordinator recovery admission and automatic launch UI",
+    "T12 OS interruption/route/reset, storage reserve/pressure and thermal handling; physical protection",
+    "T13 bounded measured metrics, private durable checkpoints and diagnostics UI",
+    "T14 owner-run two 125-minute iPhone passes",
+    "T15 onboarding, history pagination, complete native flows, manual notes and accessibility",
+    "T16 safe Delete UI, scoped playback task binding, continuous playback and full backup/export",
+    "T17 global ASR/LLM resource admission, model load/cancel/unload and representative quality",
+    "T18 actual grounded map/reduce summaries, nested schema, generated SQLite/editing and resume",
+    "T19 actual selected-meeting question answering/refusal and UI",
+    "T20 accessibility/privacy/dependency hardening",
+    "T21 retained installable artifact and complete handover",
+    "T22 free signing/extension, offline physical iPhone and renewal preservation",
+    "T23 coverage, requirement traceability and independent final audit"
   ],
   "pendingIntegrationRegressions": {
     "status": "IN_PROGRESS",
@@ -564,7 +556,10 @@
     ],
     "testsExecuted": true,
     "repairsImplemented": true,
-    "scope": "Rename/bound-notesreceiver andplaybackadmission implementedafteractualRED. UIeditreservation3newcases remainstubpendingRED; ownerlease/deletionUI/startuprecovery/scopedplayercleanupstillpending."
+    "scope": "Original rename/immutable notes/playback-admission regressions GREEN. Owned deletion component and native Start startup tested; safe Delete UI, scoped HomeView cleanup, all-coordinator recovery admission and automatic launch remain pending.",
+    "greenVerified": true,
+    "greenSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+    "greenRunId": 40079629180
   },
   "ciInvocationHistory": [
     {
@@ -615,9 +610,9 @@
     "agentsStopped": true,
     "candidateResearchSubprocessesActive": false,
     "localCIWatchStopped": true,
-    "existingHostedWorkflowMayFinish": true,
-    "hostedRunId": 40038154279,
-    "resumeAction": "On explicit owner resume, read required docs and actual Git/public cost guard; inspect existing run40038154279 at exactcdf4a06f6a4a9cd226e306941fd0199a18bf418c before starting any workflow. Record224core/56native/4actualsummary results. Compiler/tool failures are notRED. Only after genuine assertions implement recovery/deletion/boundnotes/rename/playback/privacy/formatter, preserving original tests. Then regress/review/push/exactSHA GREEN. No candidate/signing/locking/endurance/renewal pass exists.",
+    "existingHostedWorkflowMayFinish": false,
+    "hostedRunId": 40079629180,
+    "resumeAction": "Next bounded invocation: read required documents and verify Git/remote, terminal run40079629180 at db1b8d5, and zero-spend cost guard. Activate T12.2 three interruption/signal tests with minimal stubs and strict reporting, commit/push test-first, and prove hosted assertion RED before implementation. T13Metrics/T18Pipeline/T19QA drafts are inactive NOT_RUN and may be delegated within one branch and six runs. Current invocation is at six of six terminal runs: no run7, rerun or code-triggering push.",
     "resumedAtUTC": "2026-10-24T05:49:57.365Z"
   },
   "newTestFirstSlice": {
@@ -631,7 +626,10 @@
     "expectedNativeSimulator": 54,
     "physicalCasesCompiledOnly": 7,
     "redSourceCommit": "d699fc5bfc266e03d8139869146fd55d7573fef9",
-    "redRunId": 40069154630
+    "redRunId": 40069154630,
+    "greenVerified": true,
+    "greenSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+    "greenRunId": 40079629180
   },
   "pendingReviewRegressions": {
     "expectedNewCore": 7,
@@ -651,7 +649,9 @@
     "redSourceCommit": "917844b016664251c545fb70106c50cfceb62694",
     "redRunId": 40071855360,
     "productionImplemented": true,
-    "greenVerified": false
+    "greenVerified": true,
+    "greenSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+    "greenRunId": 40079629180
   },
   "nextTestFirstBatch": {
     "expectedCore": 269,
@@ -660,21 +660,26 @@
     "expectedActualModelCases": 5,
     "newCoreCases": 12,
     "newNativeCases": 2,
-    "scope": "Groundedsummaryvalidator/merge6 +actualFTS6 +nativeAppstartup2. AllnewbehaviorsremainminimalstubsuntilRED.",
-    "redVerified": false,
+    "scope": "Historical source4 grounded6/FTS6/native startup2 batch is implemented and GREEN. New inactive drafts are listed separately.",
+    "redVerified": true,
     "sourceCommit": "1f03e5259ead091c616eb4ce3c49f80d1af79018",
     "runId": 40075611744,
     "coreRedVerified": true,
-    "coreRedRun": 40075611744
+    "coreRedRun": 40075611744,
+    "nativeRedVerified": true,
+    "productionImplemented": true,
+    "greenVerified": true,
+    "greenSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+    "greenRunId": 40079629180
   },
   "latestActualDownloadIntegration": {
-    "sourceCommit": "917844b016664251c545fb70106c50cfceb62694",
-    "runId": 40071855360,
+    "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+    "runId": 40079629180,
     "executed": 1,
     "passed": 1,
     "failed": 0,
     "skipped": 0,
-    "scope": "Actual HTTPS four-file pinned install/reopen/import/lease and native CPU recognition; macOS only."
+    "scope": "Actual HTTPS four-file pinned install/reopen/import/lease and CPU recognition, hosted macOS only."
   },
   "source5Preparation": {
     "newActiveTests": 0,
@@ -685,6 +690,118 @@
     "changes": "ImplementedonlyactualREDgrounded6,FTS6,nativeAppstartup2. Requirement-basedcurrentSQLite schema2->3 assertions documented; historicallegacyfixtures unchanged.",
     "inactiveNextDraft": "docs/drafts/T12Signals/README.md",
     "draftTestCount": 3,
-    "draftCompiled": false
-  }
+    "draftCompiled": false,
+    "verification": "docs/evidence/CONTINUATION_08_CHECKPOINT.md",
+    "greenSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04"
+  },
+  "sourceReviewCheckpoint": {
+    "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+    "evidence": "docs/evidence/CONTINUATION_08_CHECKPOINT.md",
+    "reviewer": "root and three bounded subagents",
+    "reviewed": "Recovery/filesystem scope, playback ownership, caller schema/token budget, extractive grounding, FTS bindings and native startup; later source is workflow ordering only.",
+    "limitations": "No complete baseline audit, device gate, full library UI flow or full generated-summary/QA pipeline pass."
+  },
+  "latestRegression": {
+    "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+    "runId": 40079629180,
+    "executed": 269,
+    "passed": 269,
+    "failed": 0,
+    "skipped": 0,
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
+    "scripts": {
+      "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+      "runId": 40079629180,
+      "executed": 59,
+      "passed": 59,
+      "failed": 0,
+      "skipped": 0
+    },
+    "threadSanitizer": {
+      "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+      "runId": 40079629180,
+      "executed": 85,
+      "passed": 85,
+      "failed": 0,
+      "skipped": 0,
+      "reportedRaces": 0
+    },
+    "actualModel": {
+      "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+      "runId": 40079629180,
+      "executed": 5,
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0
+    },
+    "native": {
+      "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+      "runId": 40079629180,
+      "executed": 59,
+      "passed": 59,
+      "failed": 0,
+      "skipped": 0,
+      "xcresultAgrees": true
+    },
+    "ui": {
+      "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+      "runId": 40079629180,
+      "executed": 3,
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "xcresultAgrees": true
+    },
+    "nativeProduct": {
+      "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+      "runId": 40079629180,
+      "executed": 2,
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    "nativeArchive": {
+      "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+      "runId": 40079629180,
+      "executed": 13,
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0
+    },
+    "evidence": "docs/evidence/CONTINUATION_08_CHECKPOINT.md"
+  },
+  "inactiveTestFirstDrafts": [
+    {
+      "task": "T12.2",
+      "path": "docs/drafts/T12Signals/README.md",
+      "testCount": 3,
+      "compiled": false,
+      "executed": false,
+      "productionImplemented": false
+    },
+    {
+      "task": "T13.1",
+      "path": "docs/drafts/T13Metrics/README.md",
+      "testCount": 5,
+      "compiled": false,
+      "executed": false,
+      "productionImplemented": false
+    },
+    {
+      "task": "T18.3",
+      "path": "docs/drafts/T18Pipeline/README.md",
+      "testCount": 5,
+      "compiled": false,
+      "executed": false,
+      "productionImplemented": false
+    },
+    {
+      "task": "T19.2",
+      "path": "docs/drafts/T19QA/README.md",
+      "testCount": 4,
+      "compiled": false,
+      "executed": false,
+      "productionImplemented": false
+    }
+  ]
 }
