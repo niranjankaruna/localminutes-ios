@@ -365,3 +365,5 @@ App screens/shared real-model wiring, durable edits/answers/citations/cancel/exp
 
 
 | T24/MVP1 model-choice delivery | HF/cards/resources/install/remove/independent Equip + real selected models | Preserved multi-stage RED in MODEL_CATALOG_AND_SUMMARY evidence | [run40117673355](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40117673355):137 focusedPASS/0fail/skip + actualdevicepackage | 4aec851bb1c83ec1a9acb8f48074db79dcdd8a23 | Hosted macOS/iOS26.2Simulator; Windows checksum | CODE_COMPLETE_PENDING_DEVICE | UnsignedIPA delivered; fullbaseline/MVP2/MVP3/phone evidence pending; details evidence/MVP1_MODEL_DELIVERY_2026_10_24.md |
+
+| MVP2 reliability primitives |37 actual cases, SQLite/CAF/real speech | run40119556084:3PASS34FAIL169assertions0skip before implementation | run40121343041 at6adcc04: compile failure,0executed | Native macOS SDK | IN_PROGRESS | First SDK lock-binding repair and new34 integration contracts prepared; no GREEN or device claims |

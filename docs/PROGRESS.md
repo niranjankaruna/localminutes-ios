@@ -834,3 +834,7 @@ MVP2 test-first source31513b124855a0f9d4f137f76d4ab5801c95511f is pushed and HTT
 ## MVP2 first actual RED
 
 Source34ab9e9/run40119556084:37executed3PASS34FAIL169assertions0skip. RealSQLite/CAF/nativeWhisper andZipformer setup succeeds; publicruntime/modelpins remain. HTTP11cases56assert, archive10/31, snapshot5/9, summaryresume4/60, selectedrecovery5/12 andcursor2/1 provideactualRED beforecurrentrepairs. Details evidence/MVP2_RELIABILITY_2026_10_24.md. InitialimplementationsreadyforfocusedGREEN; newempty-directorybudgetregression is test-first beforeadditionalrepair. Appwiring/backupUI/Files/diagnostics stillunfinished; noMVP2orphonecompletionclaim.
+
+## MVP2 app integration test-first checkpoint
+
+Run40121343041 at6adcc04 failed compilation before any test due to SDK flock symbol collision. First lock-binding repair prepared; no GREEN claimed. Owner adds complete meeting deletion including audio/transcript/notes/summary/Q&A and unfinished cache.34 new integration/regression cases prepared before production behavior (details MVP2_RELIABILITY evidence). Next: push test-first batch, run3/6 mvp2-integration, inspect real RED/GREEN evidence, implement app wiring with bounded parallel work, then deliver new IPA after exact-SHA verification. MVP1 IPA4aec851 remains delivered; physical gates still NOT_RUN. Live PUBLIC/standard-free-runner cost guard verified.

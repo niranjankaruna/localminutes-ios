@@ -114,6 +114,10 @@ public final class TranscriptionMetricsRecorder: Sendable {
 
     public func nowNanoseconds() -> UInt64 { clock.nowNanoseconds() }
 
+    /// TEST-FIRST endurance seam: origin must be the accepted first PCM event,
+    /// not recorder construction, scene activation or engine-start time.
+    public var firstAudioQueuedAtNanoseconds: UInt64? { nil }
+
     /// Begin one new audio epoch on the control path, after the preceding
     /// producer/consumer have quiesced. Pins and current app visibility belong
     /// to the recorder; audio counters, timings and errors belong to a meeting.

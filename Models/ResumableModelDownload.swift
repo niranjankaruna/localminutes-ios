@@ -128,7 +128,7 @@ final class ResumableModelDownload: NSObject, URLSessionDataDelegate, @unchecked
             }
             let lockURL = directory.appendingPathComponent(".transfer.lock")
             transferLock = try Self.openRegular(lockURL, flags: O_RDWR | O_CREAT)
-            guard Darwin.flock(transferLock, LOCK_EX | LOCK_NB) == 0 else { throw ModelTransportError.invalidResumeState }
+            guard Self.lockExclusively(transferLock) else { throw ModelTransportError.invalidResumeState }
             try PersistentFilePolicy.protectItem(lockURL, within: resumeRoot)
         } catch let error as ModelTransportError { throw error }
         catch { throw ModelTransportError.invalidDestination }
@@ -401,6 +401,17 @@ final class ResumableModelDownload: NSObject, URLSessionDataDelegate, @unchecked
 
     private static func readHandle(_ url: URL) throws -> FileHandle {
         FileHandle(fileDescriptor: try openRegular(url, flags: O_RDONLY), closeOnDealloc: true)
+    }
+    private static func lockExclusively(_ descriptor: Int32) -> Bool {
+        // Darwin's imported struct flock shadows the C function in this SDK.
+        // Resolve only this constant public libSystem symbol with its C ABI;
+        // never load a path/model library or send the pointer across executors.
+        guard let process = Darwin.dlopen(nil, RTLD_NOW) else { return false }
+        defer { Darwin.dlclose(process) }
+        guard let symbol = Darwin.dlsym(process, "flock") else { return false }
+        typealias LockFunction = @convention(c) (Int32, Int32) -> Int32
+        let lock = unsafeBitCast(symbol, to: LockFunction.self)
+        return lock(descriptor, LOCK_EX | LOCK_NB) == 0
     }
     private static func openRegular(_ url: URL, flags: Int32) throws -> Int32 {
         let descriptor = url.path.withCString { Darwin.open($0, flags | O_NOFOLLOW | O_NONBLOCK, mode_t(0o600)) }

@@ -19,6 +19,8 @@ final class LocalMinutesServices: PlaybackHardware {
     let modelSelections: ModelSelectionStore
     @ObservationIgnored lazy var modelBrowser = ModelBrowserController(services: self)
     let metrics: TranscriptionMetricsRecorder?
+    // TEST-FIRST app-owned endurance seam; no unused recorder is a pass.
+    let endurance: EnduranceMetricsRecorder? = nil
     private let diagnosticsDirectory: URL
 
     func persistMetricsCheckpoint() throws -> URL {
@@ -66,7 +68,7 @@ final class LocalMinutesServices: PlaybackHardware {
 
     /// Explicit roots are an internal storage boundary for owned native test
     /// fixtures. Production nil keeps the same persistent ApplicationSupport path.
-    init(rootURL: URL? = nil) throws {
+    init(rootURL: URL? = nil, modelConfiguration: URLSessionConfiguration = .ephemeral) throws {
         let root: URL
         if let rootURL {
             guard rootURL.isFileURL else { throw PersistentFilePolicyError.invalidRoot }
@@ -87,7 +89,7 @@ final class LocalMinutesServices: PlaybackHardware {
         }
         let transport = HTTPSModelTransport(stagingRootURL: modelRoot.appendingPathComponent(".staging"),
             allowedHosts: ["huggingface.co", "us.aws.cdn.hf.co", "cdn-lfs.huggingface.co",
-                           "cdn-lfs-us-1.hf.co", "cas-bridge.xethub.hf.co"])
+                           "cdn-lfs-us-1.hf.co", "cas-bridge.xethub.hf.co"], configuration: modelConfiguration)
         let manager = ModelInstallationManager(rootURL: modelRoot,
             availableBytes: { try ModelStoragePolicy.availableBytes(at: $0) },
             downloader: { artifact, destination in try await transport.download(artifact, to: destination) })
@@ -158,6 +160,10 @@ final class LocalMinutesServices: PlaybackHardware {
     }
 
     var isChangingModels: Bool { operation != nil }
+
+    /// TEST-FIRST: the native acceptance must use the actual app-owned deletion
+    /// path, including recordings and durable processing caches.
+    func deleteMeeting(id: UUID) async -> Bool { false }
 
     func refreshModels() async {
         do {

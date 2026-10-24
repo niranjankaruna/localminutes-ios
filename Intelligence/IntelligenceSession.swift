@@ -103,15 +103,19 @@ public final class IntelligenceSession {
     var heavyAdmissionIdentity: HeavyModelAdmission { admission }
     private let manifest: ModelManifest
     private let runtimeLoader: IntelligenceRuntimeLoader
+    // TEST-FIRST ignored app-owned dependency. Service resume/save cleanup
+    // waits for hosted behavioral RED; default generation stays unchanged.
+    private let summaryCheckpoints: SummaryCheckpointStore?
     private var current: Use?
     private var state = IntelligenceSnapshot(phase: .idle, requestID: nil, meetingID: nil, document: nil)
     public init(store: SQLiteMeetingStore, models: ModelInstallationManager, admission: HeavyModelAdmission,
                 manifest: ModelManifest,
                 runtimeLoader: @escaping IntelligenceRuntimeLoader = { model in
                     try await IntelligenceSession.loadPinnedRuntime(model)
-                }) {
+                }, summaryCheckpoints: SummaryCheckpointStore? = nil) {
         self.store = store; self.models = models; self.admission = admission
         self.manifest = manifest; self.runtimeLoader = runtimeLoader
+        self.summaryCheckpoints = summaryCheckpoints
     }
 
     /// Validate the reviewed local artifact, then construct the CPU runtime

@@ -42,7 +42,7 @@ let package = Package(
         .testTarget(name: "ModelTests", dependencies: ["LocalMinutesModels", "LocalMinutesCore"], path: "Tests/ModelTests"),
         .testTarget(name: "PersistenceTests", dependencies: ["LocalMinutesPersistence"], path: "Tests/PersistenceTests", linkerSettings: [.linkedLibrary("sqlite3")]),
         .testTarget(name: "ASRTests", dependencies: ["LocalMinutesTranscription", "LocalMinutesCore", "LocalMinutesModels", "LocalMinutesPersistence", "LocalMinutesRecording", "LocalMinutesMeetingLibrary"], path: "Tests/ASRTests"),
-        .testTarget(name: "MeetingLibraryTests", dependencies: ["LocalMinutesMeetingLibrary", "LocalMinutesPersistence", "LocalMinutesRecording", "LocalMinutesCore"], path: "Tests/MeetingLibraryTests"),
+        .testTarget(name: "MeetingLibraryTests", dependencies: ["LocalMinutesMeetingLibrary", "LocalMinutesPersistence", "LocalMinutesRecording", "LocalMinutesModels", "LocalMinutesCore"], path: "Tests/MeetingLibraryTests"),
         .testTarget(name: "SummaryTests", dependencies: ["LocalMinutesSummary", "LocalMinutesPersistence", "llama"], path: "Tests/SummaryTests"),
         .testTarget(name: "QuestionAnsweringTests", dependencies: ["LocalMinutesQuestionAnswering", "LocalMinutesPersistence", "LocalMinutesSummary"], path: "Tests/QuestionAnsweringTests"),
         .testTarget(name: "IntelligenceTests", dependencies: ["LocalMinutesIntelligence", "LocalMinutesCore", "LocalMinutesModels", "LocalMinutesPersistence", "LocalMinutesSummary", "LocalMinutesQuestionAnswering"], path: "Tests/IntelligenceTests")

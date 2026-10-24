@@ -75,3 +75,9 @@ is delivered. Separate service-integration tests are being prepared; initial
 primitive GREEN alone cannot establish usable app behavior or code completion.
 All physical-device gates remain NOT_RUN; no human signing/device action is
 needed for current safe coding/hosted checks.
+
+## SDK compile failure and next integration RED
+
+Source6adcc04/run40121343041 is terminal FAILURE with **zero executed tests**: Darwin.flock resolves to the SDK struct, so the C lock call did not compile. This is neither behavioral RED nor GREEN. The first repair resolves the constant public libSystem flock symbol with the exact C signature, retaining exclusive/nonblocking fail-closed locking and fd-owned release. No tests/oracles were weakened.
+
+The next test-first batch adds app/session summary resume4, actual Phi cancelled-commit/reopened resume1, backup/admission7, transfer/Files5, endurance5, deletion-artifact3, native app-service7, plus archive-directory1 and quarantined-recovery1 contracts:34 new cases prepared, not claimed executed. Stubs only for these new behaviors. The actual-model case uses pinned Phi inference, real SQLite and protected checkpoints; boundary doubles in orchestration cases are not inference validation. Delete Meeting must remove audio, transcript, notes, summary/edits, Q&A, search/pin rows and owned unfinished summary cache, refuse in-use/unsafe paths, and preserve other meetings/models. C3 runs focused related regressions, native service tests and one actual summary-resume flow in separate bounded jobs, not the full LLM/speech suite per edit.

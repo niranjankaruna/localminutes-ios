@@ -3,15 +3,15 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T18:34:03.035Z",
+  "lastUpdated": "2026-10-24T19:10:20.661Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "MVP2 RED37 verified; initial reliability implementations ready for focused GREEN, plus new archive traversal-budget regression RED",
+  "currentTask": "MVP2 app integration, durable recovery, backup, endurance diagnostics and complete meeting deletion — test-first batch pending hosted assertions",
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "Commit/push archive-directory regression then initial37 repairs, run mvp2 focused verification. Inspect new directory-budget actualRED before repairing; keep future service/app integration stubs separate from this candidate. Continue app wiring after genuine integrationRED.",
+  "nextAction": "Push integration test-first batch including SDK flock name-collision repair. Dispatch mvp2-integration as run3/6. Inspect initial37 implementation results plus newly compiled behavioral RED before implementing service/UI/diagnostics/deletion/archive regressions. Deliver next checksummed IPA only after exact-SHA GREEN.",
   "pendingPushCommit": null,
   "remoteBranchHead": "4aec851bb1c83ec1a9acb8f48074db79dcdd8a23",
   "localScriptGreen": {
@@ -35,22 +35,21 @@
     "maxNewRuns": 6,
     "plannedNewRuns": 1,
     "newRunIds": [
-      40119556084
+      40119556084,
+      40121343041
     ],
     "limitReached": false,
-    "costGuardObservedAt": "2026-10-24T18:11:23.102Z",
-    "costGuardBasis": "Live gh keyring identity niranjankaruna; intended repo PUBLIC/ADMIN, verified HTTPSorigin/remote34ab9e9, previousrun40117673355 terminalSUCCESS exact4aec851. All jobs standardmacos-15-intel; zeroActionsartifactstorage/paidrunners/billingchanges."
+    "costGuardObservedAt": "2026-10-24T19:10:20.661Z",
+    "costGuardBasis": "Live intended repository PUBLIC and ADMIN, prior two runs terminal; only standard macos-15-intel, no paid infrastructure or Actions artifact storage. Max6 runs retained."
   },
   "latestCIRun": {
-    "sourceCommit": "4aec851bb1c83ec1a9acb8f48074db79dcdd8a23",
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40117673355",
+    "runId": 40121343041,
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40121343041",
+    "sourceCommit": "6adcc04f2a4ebede0de0cb6068f5e6299dade6b0",
     "status": "completed",
-    "conclusion": "success",
-    "executed": 137,
-    "passed": 137,
-    "failed": 0,
-    "skipped": 0,
-    "scope": "80focusedSwift+46Node+6realASR+5native; actualiPhonepackage. Not full baseline regression."
+    "conclusion": "failure",
+    "executed": 0,
+    "scope": "Swift SDK name collision importing Darwin.flock as struct; not behavioral RED or GREEN"
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -221,13 +220,7 @@
     "latestSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
     "latestRunUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180"
   },
-  "activeCIRun": {
-    "sourceCommit": "18f162169a716f0bede99f9240f71cccd6568815",
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40089155104",
-    "status": "in_progress",
-    "conclusion": null,
-    "ordinal": 4
-  },
+  "activeCIRun": null,
   "pendingPushScope": null,
   "repositoryVisibility": "PUBLIC",
   "publication": {
@@ -1648,11 +1641,12 @@
     "ownerReportsMainAppInstalled": true
   },
   "mvp2Pending": {
-    "summaryResume": "4 tests-first prepared; ignored hook only, no actualRED or app wiring",
-    "replayIntegrity": "2 negatives prepared; cursor-only skip defect known; noRED/repair yet",
-    "selectedSpeechRecovery": "Per-meeting selectedmanifest/Whisper recovery not implemented",
-    "archive": "10 actualSQLite/CAF tests-first with notImplemented API; noactualRED/appbackupyet",
-    "downloads": "ResumableHTTP and Filesimport remain unfinished"
+    "summaryResume": "Pipeline implemented after actualRED; app/session integration4 and actual Phi cancelled-commit/reopen1 prepared before behavior",
+    "replayIntegrity": "Captured-pin/journal fixes implemented after actualRED; native GREEN and app wiring pending",
+    "archive": "Core export/restore + SQLite native snapshot implemented after actualRED; directory budget/quarantine and app generation/admission tests awaiting actualRED",
+    "downloads": "Native resumable transport implemented after actualRED; factory/Files/app integration awaiting actualRED",
+    "meetingDeletion": "Owner requests complete deletion; real SQLite/CAF/cache tests3 and actual app service test1 prepared before behavior",
+    "endurance": "Bounded recorder5 and actual OS/service test1 prepared before behavior; physical125min remains owner-run"
   },
   "lastVerifiedFeatureCommit": "4aec851bb1c83ec1a9acb8f48074db79dcdd8a23",
   "lastVerifiedFeatureScope": "MVP1 model-choice and its focused checks; whole baseline not complete",
@@ -1688,7 +1682,7 @@
     "archive": 10,
     "sqliteSnapshot": 5,
     "actualRED": true,
-    "productionBehavior": "NOT_IMPLEMENTED_STUBS_ONLY",
+    "productionBehavior": "INITIAL37_IMPLEMENTED_GREEN_PENDING",
     "evidence": "docs/evidence/MVP1_MODEL_DELIVERY_2026_10_24.md",
     "testFirstCommit": "31513b124855a0f9d4f137f76d4ab5801c95511f"
   },
@@ -1723,7 +1717,16 @@
     "failed": 34,
     "assertionFailures": 169,
     "skipped": 0,
-    "implementation": "IN_PROGRESS_GREEN_PENDING",
-    "evidence": "docs/evidence/MVP2_RELIABILITY_2026_10_24.md"
+    "implementation": "INITIAL37_IMPLEMENTED_NATIVE_GREEN_PENDING",
+    "evidence": "docs/evidence/MVP2_RELIABILITY_2026_10_24.md",
+    "compileRepair": {
+      "sourceCommit": "6adcc04f2a4ebede0de0cb6068f5e6299dade6b0",
+      "runId": 40121343041,
+      "executed": 0,
+      "rootCause": "Darwin.flock resolves to struct flock in this SDK",
+      "repair": "Resolve constant public libSystem flock C function; preserve exclusive nonblocking lock, fail closed",
+      "attempt": 1,
+      "verified": false
+    }
   }
 }

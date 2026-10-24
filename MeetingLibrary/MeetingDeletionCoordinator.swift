@@ -85,25 +85,31 @@ public actor MeetingDeletionCoordinator {
     }
     private let store: SQLiteMeetingStore
     private let recordingsRoot: URL
+    // TEST-FIRST ownership seam. Cache deletion is deliberately absent until
+    // hosted artifact assertions establish the new behavior's RED.
+    private let summaryCheckpointRoot: URL?
     private let usage: MeetingUsageRegistry
     private let beforeMetadataDeletion: (@Sendable () async -> Void)?
     private var inFlight: Set<UUID> = []
 
     public init(store: SQLiteMeetingStore, recordingsRoot: URL,
-                usage: MeetingUsageRegistry) {
+                usage: MeetingUsageRegistry, summaryCheckpointRoot: URL? = nil) {
         self.store = store
         self.recordingsRoot = recordingsRoot
         self.usage = usage
+        self.summaryCheckpointRoot = summaryCheckpointRoot
         beforeMetadataDeletion = nil
     }
 
     // A bounded test scheduling boundary only, never a fake database. Production
     // construction above supplies no hook. Tests close the real SQLite adapter.
     init(store: SQLiteMeetingStore, recordingsRoot: URL, usage: MeetingUsageRegistry,
+         summaryCheckpointRoot: URL? = nil,
          beforeMetadataDeletion: @escaping @Sendable () async -> Void) {
         self.store = store
         self.recordingsRoot = recordingsRoot
         self.usage = usage
+        self.summaryCheckpointRoot = summaryCheckpointRoot
         self.beforeMetadataDeletion = beforeMetadataDeletion
     }
 

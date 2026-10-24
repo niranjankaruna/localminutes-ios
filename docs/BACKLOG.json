@@ -1444,8 +1444,8 @@
     }
   ],
   "executionPausedByOwner": false,
-  "resumeAction": "Next bounded invocation: read current required checkpoint, verify Git/PUBLIC zero-spend guard and terminal GREEN run40117673355 at4aec851; run targeted MVP2 portable RED (summaryresume4, HTTPresume11, archive10, SQLite snapshot5) plus actual-model recovery RED (integrity2, selectedmodel5). Implement only after actual assertions; keep modelchoice IPA4aec851 separate from test-first branch HEAD. No full-suite-per-edit run.",
-  "lastUpdated": "2026-10-24T18:09:40.583Z",
+  "resumeAction": "Push integration test-first batch including SDK flock name-collision repair. Dispatch mvp2-integration as run3/6. Inspect initial37 implementation results plus newly compiled behavioral RED before implementing service/UI/diagnostics/deletion/archive regressions. Deliver next checksummed IPA only after exact-SHA GREEN.",
+  "lastUpdated": "2026-10-24T19:10:20.661Z",
   "latestVerification": {
     "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
     "runId": 40079629180,
@@ -1589,15 +1589,27 @@
     "evidence": "docs/evidence/MVP1_MODEL_DELIVERY_2026_10_24.md"
   },
   "nextMVP2TestFirst": {
-    "summaryResume": 4,
-    "replayIntegrity": 2,
-    "selectedModelRecovery": 5,
-    "resumableHTTP": 11,
-    "archive": 10,
-    "sqliteSnapshot": 5,
-    "actualRED": false,
-    "productionBehavior": "NOT_IMPLEMENTED_STUBS_ONLY",
-    "evidence": "docs/evidence/MVP1_MODEL_DELIVERY_2026_10_24.md",
-    "testFirstCommit": "31513b124855a0f9d4f137f76d4ab5801c95511f"
+    "state": "IN_PROGRESS",
+    "initialRED": {
+      "source": "34ab9e9dd36a73ffa6fcf6e5e717d2b72f4353f1",
+      "runId": 40119556084,
+      "executed": 37,
+      "passed": 3,
+      "failed": 34,
+      "assertionFailures": 169,
+      "skipped": 0
+    },
+    "latestCompileFailure": {
+      "runId": 40121343041,
+      "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40121343041",
+      "sourceCommit": "6adcc04f2a4ebede0de0cb6068f5e6299dade6b0",
+      "status": "completed",
+      "conclusion": "failure",
+      "executed": 0,
+      "scope": "Swift SDK name collision importing Darwin.flock as struct; not behavioral RED or GREEN"
+    },
+    "integrationCasesPrepared": 34,
+    "ownerMeetingDeletionRequested": true,
+    "nextAction": "Push integration test-first batch including SDK flock name-collision repair. Dispatch mvp2-integration as run3/6. Inspect initial37 implementation results plus newly compiled behavioral RED before implementing service/UI/diagnostics/deletion/archive regressions. Deliver next checksummed IPA only after exact-SHA GREEN."
   }
 }

@@ -280,6 +280,33 @@ final class MeetingArchiveDirectoryLimitTests: XCTestCase {
 
 private enum ArchiveFixtureError: Error { case sqlite(Int32), invalidAudio, unsafeCleanup }
 
+final class MeetingArchiveRecoveryPayloadTests: XCTestCase {
+    func testQuarantinedAudioAndRecoveryMetadataRemainExactBackupPayloadWithoutBeingTreatedAsHealthyAudio() throws {
+        let fixture = try ArchiveFixture()
+        defer { try? fixture.remove() }
+        let prefix = "Meetings/\(fixture.meetingID.uuidString)/"
+        let relative = prefix + "RecoveryQuarantine/segment-000002.caf"
+        let brokenAudio = Data("Synthetic corrupt tail retained as recovery evidence".utf8)
+        let target = fixture.snapshot.appendingPathComponent(relative)
+        try FileManager.default.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try brokenAudio.write(to: target)
+        let report = Data(#"{"schemaVersion":1,"quarantinedFiles":["segment-000002.caf"],"reason":"corruptAudio"}"#.utf8)
+        try report.write(to: fixture.snapshot.appendingPathComponent(prefix + "recovery-report.json"))
+        let manifest = try MeetingArchive.export(snapshotRoot: fixture.snapshot, to: fixture.archive)
+        let entry = try XCTUnwrap(manifest.files.first { $0.relativePath == relative })
+        XCTAssertEqual(entry.byteCount, Int64(brokenAudio.count))
+        XCTAssertEqual(entry.sha256, archiveDigest(brokenAudio))
+        XCTAssertEqual(try MeetingArchive.inspect(fixture.archive), manifest)
+        _ = try MeetingArchive.restore(from: fixture.archive, to: fixture.restored)
+        XCTAssertEqual(try Data(contentsOf: fixture.restored.appendingPathComponent(relative)), brokenAudio)
+        XCTAssertEqual(try Data(contentsOf: fixture.restored.appendingPathComponent(prefix + "recovery-report.json")), report)
+        XCTAssertEqual(try Data(contentsOf: target), brokenAudio)
+        try fixture.assertNativeCAF(at: fixture.restored)
+        XCTAssertEqual(try fixture.readRows(at: fixture.restored),
+            [ArchiveFixture.originalNote, ArchiveFixture.transcript, ArchiveFixture.generatedNote])
+    }
+}
+
 private func archiveDatabase(_ file: URL, readOnly: Bool = false,
                              _ body: (OpaquePointer) throws -> Void) throws {
     var db: OpaquePointer?

@@ -46,10 +46,12 @@ public final class LibraryStartupCoordinator {
     @ObservationIgnored private let recovery: MeetingRecoveryCoordinator
     @ObservationIgnored private var operation: Task<LibraryStartupReport, Error>?
 
-    public init(store: SQLiteMeetingStore, recordingsRoot: URL, usage: MeetingUsageRegistry) {
+    public init(store: SQLiteMeetingStore, recordingsRoot: URL, usage: MeetingUsageRegistry,
+                summaryCheckpointRoot: URL? = nil) {
         self.store = store
         self.usage = usage
-        deletions = MeetingDeletionCoordinator(store: store, recordingsRoot: recordingsRoot, usage: usage)
+        deletions = MeetingDeletionCoordinator(store: store, recordingsRoot: recordingsRoot, usage: usage,
+            summaryCheckpointRoot: summaryCheckpointRoot)
         recovery = MeetingRecoveryCoordinator(store: store, recordingsRoot: recordingsRoot)
     }
 
