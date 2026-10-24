@@ -11,6 +11,7 @@ from pathlib import Path, PurePosixPath
 import shutil
 import stat
 import struct
+import subprocess
 import sys
 import urllib.parse
 import urllib.request
@@ -144,6 +145,10 @@ def main():
                         help="Prepare native binaries without downloading an inference model")
     arguments = parser.parse_args()
     workspace = Path.cwd().resolve()
+    # The app links both dynamic engines. Prepare the exact Whisper framework
+    # for every real build; its model is fetched only by focused ASR checks.
+    subprocess.run([sys.executable, str(workspace / "docs/drafts/T10/prepare_whisper_fixture.py"),
+                    "--framework-only"], check=True)
     root = workspace / ".agent-local" / "native-llm"
     root.mkdir(parents=True, exist_ok=True)
     if not inside(root, workspace) or root.is_symlink():

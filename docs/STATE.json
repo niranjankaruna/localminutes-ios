@@ -3,15 +3,15 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T15:33:29.213Z",
+  "lastUpdated": "2026-10-24T15:54:49.444Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "T18.3 split actual summary diagnosis, T13.2 existing default-app diagnostics RED, pending cancellation assertion",
+  "currentTask": "T24 model catalogue/Equip/Whisper tests-first; T18.3 source-bound summary and T13.2 diagnostics repairs after actualRED",
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "Observe only targeted cases in one run; record actual RED or scoped GREEN, diagnose actual model output, implement only evidenced failures, then one integration/regression checkpoint and updatedIPA. Continue safe work without time cap; do not run fullsuite for each change.",
+  "nextAction": "Dispatch one focused model-catalog run: existing summary/native diagnostics GREEN checks plus new HF/selection/Whisper RED contracts. Implement new model behavior only after those actual assertion failures; then integrate the native model browser and selected speech/summary runtimes.",
   "pendingPushCommit": null,
   "remoteBranchHead": "6d914fe0117964c7019a71d5b9332c9dba3758b4",
   "localScriptGreen": {
@@ -35,20 +35,24 @@
     "startedAt": "2026-10-24T15:33:29.213Z",
     "maxNewRuns": 6,
     "plannedNewRuns": 1,
-    "newRunIds": [],
+    "newRunIds": [
+      40107527439
+    ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-24T15:29:10Z",
     "costGuardBasis": "Live authenticatedADMIN/PUBLIC intended repository and exactHTTPSremote86686de reverified. Standard publicmacos-15-intel only; no paid/larger runners, billing mutation, artifact upload or private content. Existing T01 official free-compute evidence remains applicable."
   },
   "latestCIRun": {
-    "sourceCommit": "6d914fe0117964c7019a71d5b9332c9dba3758b4",
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40105186439",
+    "sourceCommit": "84ff22a6b54731ec179b78910d48da8476ba746b",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40107527439",
     "status": "completed",
-    "conclusion": "cancelled",
-    "ordinal": 5,
-    "mode": "candidate-summary",
-    "scope": "8minute job limit; actual native compilation PASS130.24s; no completed XCTest/stage report before cancellation. Summary semantic quality NOT_RUN/unverified; no inferred failure or success.",
-    "completedTestCases": 0
+    "conclusion": "failure",
+    "executed": 6,
+    "passed": 1,
+    "failed": 5,
+    "skipped": 0,
+    "assertionFailures": 12,
+    "scope": "Only2 actual summary observations,3 native metrics contracts and1 SQLite cancellation case; no full regression suite."
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -1362,7 +1366,20 @@
     "testsExecuted": 0,
     "newCIRuns": 0,
     "newArtifacts": [],
-    "nextAction": "Record installed IPA/source, phone/iOS and iLoader version, then verify Live Activity status and Stop during a short recording. Use iLoader for manual in-place renewal with the same account/installed bundle IDs. Independent model-development checkpoint preserved."
+    "nextAction": "Record installed IPA/source, phone/iOS and iLoader version, then verify Live Activity status and Stop during a short recording. Use iLoader for manual in-place renewal with the same account/installed bundle IDs. Independent model-development checkpoint preserved.",
+    "validation": {
+      "referenceSweep": "passed",
+      "jsonFilesParsed": 3,
+      "wordZipAndXML": "passed",
+      "wordParagraphs": 348,
+      "wordChangedParagraphs": 5,
+      "wordStylesUnchanged": true,
+      "deliveredIPAChecksumsUnchanged": 2,
+      "wordVisualReview": "BLOCKED_EXTERNAL",
+      "wordVisualReviewReason": "Packaged renderer requires LibreOffice; neither LibreOffice nor Word is installed.",
+      "nativeBuildPerformed": false
+    },
+    "newCommits": []
   },
   "ownerContinuation": {
     "receivedAt": "2026-10-24T15:33:29.213Z",
@@ -1370,5 +1387,38 @@
     "instruction": "No need for cap, continue to work until get finished. But do not run full testsuite for every change.",
     "regressionPolicy": "Focused behavior checks during work; one broader integration checkpoint after batch",
     "projectCompletionGateUnchanged": true
+  },
+  "modelCatalogue": {
+    "status": "IN_PROGRESS",
+    "ownerRequested": true,
+    "arbitraryHuggingFaceRepository": true,
+    "readOnlyModelCards": true,
+    "individualVariants": true,
+    "resourceComparison": true,
+    "download": true,
+    "remove": true,
+    "equip": {
+      "speech": 1,
+      "summary": 1,
+      "persisted": true
+    },
+    "multipleInstalled": true,
+    "formats": {
+      "speech": [
+        "streaming Zipformer ONNX",
+        "Whisper GGML .bin"
+      ],
+      "summary": [
+        "compatible GGUF .gguf"
+      ]
+    },
+    "engines": [
+      "sherpa-onnx",
+      "whisper.cpp",
+      "llama.cpp"
+    ],
+    "whisperRuntime": "TEST_FIRST_STUB_NOT_IMPLEMENTED",
+    "newBehaviorRedVerified": false,
+    "evidence": "docs/evidence/MODEL_CATALOG_AND_SUMMARY_2026_10_24.md"
   }
 }

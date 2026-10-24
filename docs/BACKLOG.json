@@ -2,19 +2,6 @@
   "schemaVersion": 1,
   "specVersion": "1.0",
   "policy": "Split broad tasks into small tests-first child slices. Keep stable IDs. Device-pending tasks do not block unrelated dependencies. Capture development depends on validated T04 build/package children, not separate artifact retention; T04's full delivery acceptance remains mandatory. Infrastructure scripts require their own validation tests; feature production behavior always requires recorded RED.",
-  "signingTroubleshooting": {
-    "observedAt": "2026-10-24T14:52:02Z",
-    "taskId": "T07",
-    "status": "BLOCKED_EXTERNAL",
-    "blocker": "SIDELOADLY_APPLE_AUTH_80046",
-    "evidence": "docs/evidence/T07_SIDELOADLY_AUTH_2026_10_24.md",
-    "completedTaskIds": [],
-    "testsExecuted": 0,
-    "newCIRuns": 0,
-    "newCommits": [],
-    "newArtifacts": [],
-    "nextAction": "Owner verifies Apple web sign-in locally, then current official Sideloadly and one retry. Persistent -80046 stays blocked pending upstream remedy. Preserve existing installation and account/bundle-ID settings."
-  },
   "tasks": [
     {
       "id": "T00",
@@ -402,7 +389,7 @@
       "milestone": "M2",
       "title": "Run early free-signing and device-control feasibility gate",
       "kind": "device",
-      "status": "BLOCKED_EXTERNAL",
+      "status": "IN_PROGRESS",
       "dependsOn": [
         "T06"
       ],
@@ -417,15 +404,23 @@
         "Record app start, locked continuation, Action Button warm/cold start and Live Activity stop.",
         "Leave unobserved results pending; independent code tasks may proceed."
       ],
-      "childTasks": [],
+      "childTasks": [
+        {
+          "id": "T07.1",
+          "title": "Adopt owner-tested iLoader installation and renewal guidance",
+          "status": "VERIFIED_COMPLETE",
+          "scope": "Installer reference migration and owner-reported main-app installation only; remaining T07 phone gates pending.",
+          "evidence": "docs/evidence/T07_ILOADER_INSTALL_2026_10_24.md"
+        }
+      ],
       "redEvidence": [],
       "greenEvidence": [],
-      "deviceEvidence": [],
-      "blockers": [
-        "SIDELOADLY_APPLE_AUTH_80046"
+      "deviceEvidence": [
+        "docs/evidence/T07_ILOADER_INSTALL_2026_10_24.md"
       ],
+      "blockers": [],
       "observationEvidence": [
-        "docs/evidence/T07_SIDELOADLY_AUTH_2026_10_24.md"
+        "docs/evidence/T07_ILOADER_INSTALL_2026_10_24.md"
       ],
       "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
     },
@@ -1381,11 +1376,70 @@
       "deviceEvidence": [],
       "blockers": [],
       "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
+    },
+    {
+      "id": "T24",
+      "priority": 17,
+      "milestone": "M6",
+      "title": "Owner-requested Hugging Face catalogue, resources and independent model Equip",
+      "kind": "feature",
+      "status": "IN_PROGRESS",
+      "dependsOn": [
+        "T09",
+        "T10",
+        "T17"
+      ],
+      "requirements": [
+        "R09",
+        "R10",
+        "R12"
+      ],
+      "tddRequired": true,
+      "acceptance": [
+        "Paste arbitrary HFowner/repo or supportedHFURL; show pinned details/card and honest format/engine/resource compatibility.",
+        "Choose individual smaller or quantized variants; compare exact disk and labelled memory/context estimates with current phone facts.",
+        "Download/cancel/remove multiple installed alternatives; persist exactlyone Speech andone Summary Equip choice independently.",
+        "Run actual WhisperGGML through CPUwhisper.cpp while preserving streamingASR lifecycle; no fabricated recognition or direct rawPyTorch support."
+      ],
+      "childTasks": [
+        {
+          "id": "T24.1",
+          "title": "Safe immutable repository/card lookup, formats and resource comparisons",
+          "status": "IN_PROGRESS",
+          "productionImplemented": false
+        },
+        {
+          "id": "T24.2",
+          "title": "Verified persistent independent Equip, alternatives and explicit removal",
+          "status": "IN_PROGRESS",
+          "productionImplemented": false
+        },
+        {
+          "id": "T24.3",
+          "title": "Pinned actual Whisper CPU rolling inference and runtime integration",
+          "status": "IN_PROGRESS",
+          "productionImplemented": false
+        },
+        {
+          "id": "T24.4",
+          "title": "Native cards and selected-model Download/Remove/Equip controls",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "T24.5",
+          "title": "Selected local summary runtime/model-template integration",
+          "status": "NOT_STARTED"
+        }
+      ],
+      "redEvidence": [],
+      "greenEvidence": [],
+      "deviceEvidence": [],
+      "blockers": []
     }
   ],
   "executionPausedByOwner": false,
   "resumeAction": "Await owner choice: one compatible local-model comparison capped30min, or save build/stop model work. No candidate download/inference or further testing without that choice. Current Qwen1.5B unknown owner/date and evidence cases fail; keep raw oracles/pins and rejection guards. First MVP remains unchanged. Updated preview is in build/delivery/Summary-QA-40101392948, with a schema4 downgrade warning.",
-  "lastUpdated": "2026-10-24T14:20:34.046Z",
+  "lastUpdated": "2026-10-24T15:31:15.814076Z",
   "latestVerification": {
     "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
     "runId": 40079629180,
@@ -1442,5 +1496,38 @@
     "deviceValidation": "NOT_RUN",
     "schemaVersion": 4,
     "downgradeToOriginalSchema3MVP": "Not supported after migration; original rows preserved, older binary refuses future schema."
+  },
+  "installationCheckpoint": {
+    "observedAt": "2026-10-24T15:31:15.814076Z",
+    "taskId": "T07",
+    "status": "IN_PROGRESS",
+    "selectedTool": "iLoader",
+    "officialURL": "https://iloader.app/",
+    "evidence": "docs/evidence/T07_ILOADER_INSTALL_2026_10_24.md",
+    "ownerReportedMainAppInstallation": true,
+    "installedArtifactSource": null,
+    "actualPhoneModel": null,
+    "actualIOSVersion": null,
+    "installedToolVersion": null,
+    "completedTaskIds": [
+      "T07.1"
+    ],
+    "testsExecuted": 0,
+    "newCIRuns": 0,
+    "newArtifacts": [],
+    "nextAction": "Record installed IPA/source, phone/iOS and iLoader version, then verify Live Activity status and Stop during a short recording. Use iLoader for manual in-place renewal with the same account/installed bundle IDs. Independent model-development checkpoint preserved.",
+    "validation": {
+      "referenceSweep": "passed",
+      "jsonFilesParsed": 3,
+      "wordZipAndXML": "passed",
+      "wordParagraphs": 348,
+      "wordChangedParagraphs": 5,
+      "wordStylesUnchanged": true,
+      "deliveredIPAChecksumsUnchanged": 2,
+      "wordVisualReview": "BLOCKED_EXTERNAL",
+      "wordVisualReviewReason": "Packaged renderer requires LibreOffice; neither LibreOffice nor Word is installed.",
+      "nativeBuildPerformed": false
+    },
+    "newCommits": []
   }
 }

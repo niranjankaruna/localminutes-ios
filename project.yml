@@ -54,6 +54,9 @@ targets:
       - framework: .agent-local/native-llm/llama.xcframework
         embed: true
         codeSign: false
+      - framework: .agent-local/whisper-fixtures/whisper.xcframework
+        embed: true
+        codeSign: false
       - package: sherpa-onnx
         product: sherpa-onnx
       - sdk: libsqlite3.tbd
@@ -126,6 +129,16 @@ targets:
         GENERATE_INFOPLIST_FILE: 'YES'
         CODE_SIGNING_ALLOWED: 'NO'
 schemes:
+  LocalMinutesFocusedValidation:
+    build:
+      targets:
+        LocalMinutes: all
+        LocalMinutesAppTests: [test]
+    test:
+      config: Debug
+      targets:
+        - name: LocalMinutesAppTests
+          parallelizable: false
   LocalMinutesPhysicalDeviceValidation:
     build:
       targets:

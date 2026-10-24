@@ -8,7 +8,7 @@ on:
         required: true
         type: choice
         default: mvp
-        options: [mvp, features, package, validation, candidate, candidate-summary, candidate-summary-parts]
+        options: [mvp, features, package, validation, candidate, candidate-summary, candidate-summary-parts, model-catalog]
       sourceCommit:
         description: Reviewed app source for the MVP package
         required: true
@@ -23,7 +23,7 @@ concurrency:
 
 jobs:
   focused-portable:
-    if: ${{ inputs.mode == 'candidate-summary-parts' }}
+    if: ${{ inputs.mode == 'candidate-summary-parts' || inputs.mode == 'model-catalog' }}
     runs-on: macos-15-intel
     timeout-minutes: 8
     env:
@@ -33,20 +33,37 @@ jobs:
         with:
           persist-credentials: false
       - name: Prepare pinned native linkage
-        run: python3 docs/drafts/T17/prepare_native_summary.py --framework-only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 docs/drafts/T17/prepare_native_summary.py --framework-only
+          if [ "${{ inputs.mode }}" = model-catalog ]; then
+            python3 docs/drafts/T10/prepare_whisper_fixture.py
+          fi
       - name: Exercise only pending generated-save cancellation
         shell: bash
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           mkdir -p .build
-          swift test --filter 'IntelligenceSessionTests/testCancellationBeforeBlockedSQLiteCommitSavesNothingAndPreservesOriginalsAndModel' 2>&1 | tee .build/focused-portable.log
+          if [ "${{ inputs.mode }}" = model-catalog ]; then
+            swift test --filter '(HuggingFaceRepositoryTests|ModelSelectionTests|WhisperSpeechRecognizerTests|SummaryPipelineTests|GroundedSummaryTests|NestedStructuredSchemaTests|StructuredJSONSchemaTests)' 2>&1 | tee .build/focused-portable.log
+          else
+            swift test --filter 'IntelligenceSessionTests/testCancellationBeforeBlockedSQLiteCommitSavesNothingAndPreservesOriginalsAndModel' 2>&1 | tee .build/focused-portable.log
+          fi
       - name: Require actual focused assertions
         if: always()
-        run: node scripts/verify-test-log.mjs .build/focused-portable.log testCancellationBeforeBlockedSQLiteCommitSavesNothingAndPreservesOriginalsAndModel
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.mode }}" = model-catalog ]; then
+            node scripts/verify-test-log.mjs .build/focused-portable.log testWhisperLoadsActualPinnedModelOnCPUOutsideMainThread
+          else
+            node scripts/verify-test-log.mjs .build/focused-portable.log testCancellationBeforeBlockedSQLiteCommitSavesNothingAndPreservesOriginalsAndModel
+          fi
 
   focused-app-metrics:
-    if: ${{ inputs.mode == 'candidate-summary-parts' }}
+    if: ${{ inputs.mode == 'candidate-summary-parts' || inputs.mode == 'model-catalog' }}
     runs-on: macos-15-intel
     timeout-minutes: 15
     env:
@@ -90,11 +107,16 @@ jobs:
               environment.write(f"LOCALMINUTES_TEST_SIMULATOR={device['udid']}\n")
           print(json.dumps({'runtime': runtime, 'device': device['name']}))
           PY
+      - name: Boot the simulator while the focused app builds
+        shell: bash
+        run: |
+          xcrun simctl boot "$LOCALMINUTES_TEST_SIMULATOR" || true
+          xcrun simctl bootstatus "$LOCALMINUTES_TEST_SIMULATOR" -b > .agent-local/focused-simulator-boot.log 2>&1 &
       - name: Execute only the three default-app diagnostics contracts
         shell: bash
         run: |
           set -euo pipefail
-          xcodebuild test -project LocalMinutes.xcodeproj -scheme LocalMinutes -configuration Debug \
+          xcodebuild -quiet test -project LocalMinutes.xcodeproj -scheme LocalMinutesFocusedValidation -configuration Debug \
             -destination "platform=iOS Simulator,id=$LOCALMINUTES_TEST_SIMULATOR" -destination-timeout 120 \
             -parallel-testing-enabled NO -collect-test-diagnostics never -only-testing:LocalMinutesAppTests/NativeAppMetricsTests \
             -derivedDataPath build/focused-app -clonedSourcePackagesDirPath .agent-local/source-packages \
@@ -111,14 +133,14 @@ jobs:
             testAppPersistsProtectedAtomicMetricsJSONAndExportsOnlyValidatedFacts
 
   phi3-candidate:
-    if: ${{ inputs.mode == 'candidate' || inputs.mode == 'candidate-summary' || inputs.mode == 'candidate-summary-parts' }}
+    if: ${{ inputs.mode == 'candidate' || inputs.mode == 'candidate-summary' || inputs.mode == 'candidate-summary-parts' || inputs.mode == 'model-catalog' }}
     name: Phi-3 (${{ matrix.testcase }})
     runs-on: macos-15-intel
-    timeout-minutes: ${{ inputs.mode == 'candidate-summary-parts' && 12 || inputs.mode == 'candidate-summary' && 8 || 18 }}
+    timeout-minutes: ${{ (inputs.mode == 'candidate-summary-parts' || inputs.mode == 'model-catalog') && 12 || inputs.mode == 'candidate-summary' && 8 || 18 }}
     strategy:
       fail-fast: false
       matrix:
-        testcase: ${{ fromJSON(inputs.mode == 'candidate-summary-parts' && '["testActualPinnedPhi3PositiveSummaryWithReviewedRevision","testActualPinnedPhi3UnknownSummaryWithReviewedRevision"]' || inputs.mode == 'candidate-summary' && '["testActualPinnedPhi3ComparesTwoSummariesWithReviewedRevision"]' || '["testActualPinnedPhi3ComparesTwoSummariesAndTwoSelectedMeetingQuestions"]') }}
+        testcase: ${{ fromJSON((inputs.mode == 'candidate-summary-parts' || inputs.mode == 'model-catalog') && '["testActualPinnedPhi3PositiveSummaryWithReviewedRevision","testActualPinnedPhi3UnknownSummaryWithReviewedRevision"]' || inputs.mode == 'candidate-summary' && '["testActualPinnedPhi3ComparesTwoSummariesWithReviewedRevision"]' || '["testActualPinnedPhi3ComparesTwoSummariesAndTwoSelectedMeetingQuestions"]') }}
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
       CANDIDATE_CASE: ${{ matrix.testcase }}

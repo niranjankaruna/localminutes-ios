@@ -57,3 +57,6 @@ Thumbs.db
 .vs/
 *.tmp
 ~$*.docx
+# Python fixture preparation caches are local build output.
+__pycache__/
+*.pyc

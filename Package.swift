@@ -21,11 +21,13 @@ let package = Package(
     ],
     targets: [
         .binaryTarget(name: "llama", path: ".agent-local/native-llm/llama.xcframework"),
+        .binaryTarget(name: "WhisperFramework", path: ".agent-local/whisper-fixtures/whisper.xcframework"),
         .target(name: "LocalMinutesCore", path: "Core"),
         .target(name: "LocalMinutesRecording", dependencies: ["LocalMinutesCore"], path: "Recording"),
         .target(name: "LocalMinutesModels", dependencies: ["LocalMinutesCore"], path: "Models"),
         .target(name: "LocalMinutesPersistence", dependencies: ["LocalMinutesCore"], path: "Persistence", linkerSettings: [.linkedLibrary("sqlite3")]),
         .target(name: "LocalMinutesTranscription", dependencies: [
+            "WhisperFramework",
             .product(name: "sherpa-onnx", package: "sherpa-onnx"),
             "LocalMinutesCore", "LocalMinutesRecording", "LocalMinutesModels", "LocalMinutesPersistence"
         ], path: "Transcription"),
@@ -37,7 +39,7 @@ let package = Package(
         .testTarget(name: "HarnessTests", path: "Tests/HarnessTests"),
         .testTarget(name: "CoreTests", dependencies: ["LocalMinutesCore"], path: "Tests/CoreTests"),
         .testTarget(name: "RecordingTests", dependencies: ["LocalMinutesRecording", "LocalMinutesCore", "LocalMinutesMeetingLibrary"], path: "Tests/RecordingTests"),
-        .testTarget(name: "ModelTests", dependencies: ["LocalMinutesModels"], path: "Tests/ModelTests"),
+        .testTarget(name: "ModelTests", dependencies: ["LocalMinutesModels", "LocalMinutesCore"], path: "Tests/ModelTests"),
         .testTarget(name: "PersistenceTests", dependencies: ["LocalMinutesPersistence"], path: "Tests/PersistenceTests", linkerSettings: [.linkedLibrary("sqlite3")]),
         .testTarget(name: "ASRTests", dependencies: ["LocalMinutesTranscription", "LocalMinutesCore", "LocalMinutesModels", "LocalMinutesPersistence", "LocalMinutesRecording", "LocalMinutesMeetingLibrary"], path: "Tests/ASRTests"),
         .testTarget(name: "MeetingLibraryTests", dependencies: ["LocalMinutesMeetingLibrary", "LocalMinutesPersistence", "LocalMinutesRecording", "LocalMinutesCore"], path: "Tests/MeetingLibraryTests"),
