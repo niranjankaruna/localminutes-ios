@@ -17,12 +17,24 @@ final class Phi3CandidateComparisonTests: XCTestCase {
         try await runComparison(includeQuestions: false)
     }
 
-    private func runComparison(includeQuestions: Bool) async throws {
+    func testActualPinnedPhi3PositiveSummaryWithReviewedRevision() async throws {
+        try await runComparison(includeQuestions: false, summaries: .positive)
+    }
+
+    func testActualPinnedPhi3UnknownSummaryWithReviewedRevision() async throws {
+        try await runComparison(includeQuestions: false, summaries: .unknown)
+    }
+
+    private enum SummarySelection { case both, positive, unknown }
+
+    private func runComparison(includeQuestions: Bool, summaries: SummarySelection = .both) async throws {
+        phi3Progress("setup", "begin")
         let path = try XCTUnwrap(ProcessInfo.processInfo.environment["LOCALMINUTES_CANDIDATE_MODEL_PATH"])
         let url = URL(fileURLWithPath: path)
         let size = (try FileManager.default.attributesOfItem(atPath: path)[.size] as? NSNumber)?.int64Value
         XCTAssertEqual(size, 2_393_231_072)
         guard size == 2_393_231_072 else { throw LocalSummaryRuntimeError.invalidModel }
+        phi3Progress("setup", "hash_begin")
         let file = try FileHandle(forReadingFrom: url)
         var hash = SHA256()
         do {
@@ -33,8 +45,12 @@ final class Phi3CandidateComparisonTests: XCTestCase {
         let expected = "8a83c7fb9049a9b2e92266fa7ad04933bb53aa1e85136b7b30f1b8000ff2edef"
         XCTAssertEqual(digest, expected)
         guard digest == expected else { throw LocalSummaryRuntimeError.invalidModel }
+        phi3Progress("setup", "hash_verified")
+        phi3Progress("setup", "native_load_begin")
         let runtime = try LocalSummaryRuntime(modelURL: url, contextSize: 4_096, threads: 4, chatFormat: .phi3)
-        let observations = Phi3ComparisonObservations()
+        phi3Progress("setup", "native_loaded")
+        let expectedCalls = (summaries == .both ? 2 : 1) + (includeQuestions ? 2 : 0)
+        let observations = Phi3ComparisonObservations(maximumCalls: expectedCalls)
         let revision = "a64113399c2f6b8ad3e11c394733a2ddadaa7f33"
         do {
             let positiveID = UUID(uuidString: "40000000-0000-0000-0000-000000000018")!
@@ -45,6 +61,7 @@ final class Phi3CandidateComparisonTests: XCTestCase {
                       text: "Leo: I will write the guide by Thursday.")
             ], originalManualNotes: "Original manual note — Café 📝. Keep this separate from generated text.")
             let originalPositive = positive
+            if summaries != .unknown {
             await observe("summary_positive", observations: observations) {
                 let output = try await self.pipeline(runtime, observations, revision, stage: "summary_positive")
                     .summarize(selectedMeetingID: positiveID, source: positive)
@@ -58,11 +75,13 @@ final class Phi3CandidateComparisonTests: XCTestCase {
                 try self.validate(output, source: positive, revision: revision)
                 XCTAssertEqual(positive, originalPositive)
             }
+            }
             let unknownID = UUID(uuidString: "50000000-0000-0000-0000-000000000018")!
             let unknownSource = GroundedSummarySource(meetingID: unknownID, segments: [
                 .init(id: "unassigned-source", startSample: 0, endSample: 16_000,
                       text: "The checklist needs review. No owner or deadline was agreed.")
             ], originalManualNotes: "Original unknown-owner fixture note")
+            if summaries != .positive {
             await observe("summary_unknown", observations: observations) {
                 let output = try await self.pipeline(runtime, observations, revision, stage: "summary_unknown")
                     .summarize(selectedMeetingID: unknownID, source: unknownSource)
@@ -75,6 +94,7 @@ final class Phi3CandidateComparisonTests: XCTestCase {
                 try self.validate(output, source: unknownSource, revision: revision)
                 XCTAssertTrue((output.summaryPoints.flatMap(\.evidence) + output.actions.flatMap(\.evidence))
                     .allSatisfy { $0.sourceID == "unassigned-source" })
+            }
             }
             if includeQuestions {
             try await withQuestionFixture { fixture in
@@ -97,7 +117,8 @@ final class Phi3CandidateComparisonTests: XCTestCase {
                                 let count = try await runtime.promptTokenCount(prompt: request.prompt)
                                 XCTAssertEqual(request.promptTokenCount, count)
                                 XCTAssertLessThan(count + request.maximumOutputTokens, 4_096)
-                                try await observations.admit(stage)
+                                try await observations.admit(stage, promptBytes: request.prompt.utf8.count,
+                                    maximumOutputTokens: request.maximumOutputTokens)
                                 let raw = try await runtime.generateJSON(prompt: request.prompt,
                                     schema: request.schema, maximumTokens: request.maximumOutputTokens)
                                 await observations.record(stage, raw: raw)
@@ -145,17 +166,29 @@ final class Phi3CandidateComparisonTests: XCTestCase {
             }
             }
             let count = await observations.count
-            XCTAssertEqual(count, includeQuestions ? 4 : 2,
-                "Exactly the selected two-summary or four-observation comparison must execute")
+            XCTAssertEqual(count, expectedCalls,
+                "Every selected observation must execute actual native inference exactly once")
+            phi3Progress("setup", "unload_begin")
             await runtime.unload()
-        } catch { await runtime.unload(); throw error }
+            phi3Progress("setup", "unloaded")
+        } catch {
+            phi3Progress("setup", "failed", error: phi3SafeError(error))
+            await runtime.unload()
+            phi3Progress("setup", "unloaded")
+            throw error
+        }
     }
 
     private func pipeline(_ runtime: LocalSummaryRuntime, _ observations: Phi3ComparisonObservations,
                           _ revision: String, stage: String) -> SummaryPipeline {
         SummaryPipeline(modelRevision: revision,
-            tokenizer: { try await runtime.promptTokenCount(prompt: $0) }, generator: { prompt, schema, maximum in
-                try await observations.admit(stage)
+            tokenizer: { prompt in
+                await observations.tokenizing(stage, bytes: prompt.utf8.count)
+                let count = try await runtime.promptTokenCount(prompt: prompt)
+                await observations.tokenized(stage, count: count)
+                return count
+            }, generator: { prompt, schema, maximum in
+                try await observations.admit(stage, promptBytes: prompt.utf8.count, maximumOutputTokens: maximum)
                 let raw = try await runtime.generateJSON(prompt: prompt, schema: schema, maximumTokens: maximum)
                 await observations.record(stage, raw: raw)
                 return raw
@@ -167,13 +200,27 @@ final class Phi3CandidateComparisonTests: XCTestCase {
         let before = testRun?.failureCount ?? 0
         let started = Date()
         var threw = false
+        phi3Progress(stage, "begin")
+        let heartbeat = Task { @MainActor in
+            for _ in 0..<60 {
+                do { try await Task.sleep(for: .seconds(30)) }
+                catch { return }
+                await observations.heartbeat(stage, seconds: Int(Date().timeIntervalSince(started)))
+            }
+        }
+        defer { heartbeat.cancel() }
         do { try await body() }
-        catch { threw = true; XCTFail("Candidate stage \(stage) threw: \(String(reflecting: type(of: error)))") }
+        catch {
+            threw = true
+            let safe = phi3SafeError(error)
+            phi3Progress(stage, "failed", error: safe)
+            XCTFail("Candidate stage \(stage) threw: \(safe)")
+        }
         let failures = (testRun?.failureCount ?? 0) - before
-        print("CANDIDATE_STAGE {\"stage\":\"\(stage)\",\"passed\":\(!threw && failures == 0),\"assertion_failures\":\(failures),\"seconds\":\(Int(Date().timeIntervalSince(started)))}")
+        phi3Emit("CANDIDATE_STAGE {\"stage\":\"\(stage)\",\"passed\":\(!threw && failures == 0),\"assertion_failures\":\(failures),\"seconds\":\(Int(Date().timeIntervalSince(started)))}")
         if threw || failures > 0 {
             for raw in await observations.outputs(stage) {
-                print("FIXED_SYNTHETIC_CANDIDATE_RAW[\(stage)] \(raw)")
+                phi3Emit("FIXED_SYNTHETIC_CANDIDATE_RAW[\(stage)] \(raw)")
             }
         }
     }
@@ -201,10 +248,63 @@ final class Phi3CandidateComparisonTests: XCTestCase {
 private actor Phi3ComparisonObservations {
     private(set) var count = 0
     private var raw: [String: [String]] = [:]
-    func admit(_ stage: String) throws {
-        guard count < 4 else { throw LocalSummaryRuntimeError.generationFailed }
-        count += 1
+    private let maximumCalls: Int
+    private var phases: [String: String] = [:]
+    private var tokenizations: [String: Int] = [:]
+    init(maximumCalls: Int) { self.maximumCalls = maximumCalls }
+    func tokenizing(_ stage: String, bytes: Int) {
+        phases[stage] = "tokenization"
+        phi3Progress(stage, "tokenization_begin", counts: ["prompt_bytes": bytes])
     }
-    func record(_ stage: String, raw: String) { self.raw[stage, default: []].append(String(raw.prefix(4_096))) }
+    func tokenized(_ stage: String, count: Int) {
+        tokenizations[stage, default: 0] += 1
+        phi3Progress(stage, "tokenization_complete", counts: ["tokens": count,
+            "tokenizations": tokenizations[stage, default: 0]])
+    }
+    func admit(_ stage: String, promptBytes: Int, maximumOutputTokens: Int) throws {
+        guard count < maximumCalls else { throw LocalSummaryRuntimeError.generationFailed }
+        count += 1
+        phases[stage] = "native_generation"
+        phi3Progress(stage, "generation_begin", counts: ["generation_calls": count,
+            "prompt_bytes": promptBytes, "maximum_output_tokens": maximumOutputTokens])
+    }
+    func record(_ stage: String, raw: String) {
+        self.raw[stage, default: []].append(String(raw.prefix(4_096)))
+        phases[stage] = "semantic_validation"
+        phi3Progress(stage, "generation_complete", counts: ["generation_calls": count, "output_bytes": raw.utf8.count])
+    }
+    func heartbeat(_ stage: String, seconds: Int) {
+        phi3Progress(stage, phases[stage] ?? "awaiting_pipeline", counts: ["elapsed_seconds": seconds,
+            "generation_calls": count, "tokenizations": tokenizations[stage, default: 0]])
+    }
     func outputs(_ stage: String) -> [String] { raw[stage] ?? [] }
+}
+
+/// Direct writes avoid stdio/tee buffering hiding the last native boundary on
+/// timeout. No source/prompt/path or model bytes appear in progress diagnostics.
+private func phi3Emit(_ line: String) {
+    try? FileHandle.standardOutput.write(contentsOf: Data((line + "\n").utf8))
+}
+
+private func phi3Progress(_ stage: String, _ event: String, counts: [String: Int] = [:], error: String? = nil) {
+    var payload: [String: Any] = ["stage": stage, "event": event]
+    counts.forEach { payload[$0.key] = $0.value }
+    if let error { payload["error"] = error }
+    if let data = try? JSONSerialization.data(withJSONObject: payload, options: [.sortedKeys]),
+       let json = String(data: data, encoding: .utf8) { phi3Emit("CANDIDATE_PROGRESS " + json) }
+}
+
+private func phi3SafeError(_ error: any Error) -> String {
+    if let value = error as? LocalSummaryRuntimeError { return "LocalSummaryRuntimeError.\(value)" }
+    if let value = error as? GroundedSummaryError { return "GroundedSummaryError.\(value)" }
+    if let value = error as? SummaryPipelineError { return "SummaryPipelineError.\(value)" }
+    if let value = error as? MeetingQuestionError { return "MeetingQuestionError.\(value)" }
+    if let value = error as? SummaryChunkPlannerError {
+        switch value {
+        case .oversizedSegment: return "SummaryChunkPlannerError.oversizedSegment"
+        default: return "SummaryChunkPlannerError.\(value)"
+        }
+    }
+    if error is CancellationError { return "CancellationError" }
+    return String(reflecting: type(of: error))
 }

@@ -2,29 +2,16 @@
   "schemaVersion": 1,
   "project": "LocalMinutes",
   "specVersion": "1.0",
-  "signingTroubleshooting": {
-    "observedAt": "2026-10-24T14:52:02Z",
-    "taskId": "T07",
-    "status": "BLOCKED_EXTERNAL",
-    "blocker": "SIDELOADLY_APPLE_AUTH_80046",
-    "evidence": "docs/evidence/T07_SIDELOADLY_AUTH_2026_10_24.md",
-    "completedTaskIds": [],
-    "testsExecuted": 0,
-    "newCIRuns": 0,
-    "newCommits": [],
-    "newArtifacts": [],
-    "nextAction": "Owner checks Apple web sign-in locally, then current official Sideloadly and one retry. Persistent -80046 stays blocked pending upstream remedy. Preserve existing app/account/bundle-ID settings. Independent development checkpoint is unchanged."
-  },
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T15:12:05.226Z",
+  "lastUpdated": "2026-10-24T15:33:29.213Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "Single Phi-3 comparison stopped within owner30minute cap: Q&A2/2 PASS; summaries unverified after timeout",
+  "currentTask": "T18.3 split actual summary diagnosis, T13.2 existing default-app diagnostics RED, pending cancellation assertion",
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "T18.3: inspect the bounded Phi summary runtime/generation path before further inference; the8min summary-only run40105186439 had no completed case/stage report. Preserve the2/2 actual Q&A observations, all original oracles and failed/timeout evidence. No automatic retry, new candidate, default-model switch or package. Resume a separately bounded implementation batch only when the owner resumes work.",
+  "nextAction": "Observe only targeted cases in one run; record actual RED or scoped GREEN, diagnose actual model output, implement only evidenced failures, then one integration/regression checkpoint and updatedIPA. Continue safe work without time cap; do not run fullsuite for each change.",
   "pendingPushCommit": null,
   "remoteBranchHead": "6d914fe0117964c7019a71d5b9332c9dba3758b4",
   "localScriptGreen": {
@@ -41,23 +28,17 @@
   "lastVerifiedNativeBuildCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "blockedItems": [
     "ARTIFACT_STORAGE_HEADROOM_UNVERIFIED",
-    "LOCAL_SUMMARY_QA_MODEL_QUALITY",
-    "SIDELOADLY_APPLE_AUTH_80046"
+    "LOCAL_SUMMARY_QA_MODEL_QUALITY"
   ],
   "ciInvocation": {
-    "id": "2026-10-24-summary-qa-batch",
+    "id": "2026-10-24-owner-unbounded-resume",
+    "startedAt": "2026-10-24T15:33:29.213Z",
     "maxNewRuns": 6,
-    "plannedNewRuns": 0,
-    "newRunIds": [
-      40098679075,
-      40099854249,
-      40101392948,
-      40104505380,
-      40105186439
-    ],
+    "plannedNewRuns": 1,
+    "newRunIds": [],
     "limitReached": false,
-    "costGuardObservedAt": "2026-10-24T14:53:15Z",
-    "costGuardBasis": "Existing genuine auth and live PUBLIC repository verified before the single candidate dispatch; standard public macos-15-intel only, zero extra spend, no artifacts uploaded and no larger runner/billing changes."
+    "costGuardObservedAt": "2026-10-24T15:29:10Z",
+    "costGuardBasis": "Live authenticatedADMIN/PUBLIC intended repository and exactHTTPSremote86686de reverified. Standard publicmacos-15-intel only; no paid/larger runners, billing mutation, artifact upload or private content. Existing T01 official free-compute evidence remains applicable."
   },
   "latestCIRun": {
     "sourceCommit": "6d914fe0117964c7019a71d5b9332c9dba3758b4",
@@ -129,9 +110,7 @@
     "fullNativeGreenCommit": "b6f4bdf0231d72d279ae690c5ce20936b8225459"
   },
   "completedThisInvocation": [
-    "T17.5 app wiring implementation",
-    "T18.6 summary UI implementation",
-    "T19.3 selected Q&A UI implementation"
+    "T07.1"
   ],
   "codeCompletePendingDevice": [
     "T05",
@@ -636,6 +615,21 @@
       },
       "classification": "progress",
       "result": "Exact db1b8d5 full regression GREEN and reviewed docs checkpoint8dbe8c9, all six runs terminal."
+    },
+    {
+      "id": "2026-10-24-summary-qa-batch",
+      "maxNewRuns": 6,
+      "plannedNewRuns": 0,
+      "newRunIds": [
+        40098679075,
+        40099854249,
+        40101392948,
+        40104505380,
+        40105186439
+      ],
+      "limitReached": false,
+      "costGuardObservedAt": "2026-10-24T14:53:15Z",
+      "costGuardBasis": "Existing genuine auth and live PUBLIC repository verified before the single candidate dispatch; standard public macos-15-intel only, zero extra spend, no artifacts uploaded and no larger runner/billing changes."
     }
   ],
   "executionPause": {
@@ -1344,9 +1338,37 @@
     "stoppedAt": "2026-10-24T15:12:05.226Z",
     "stopReason": "Owner30minute hard cap; no more inference or build dispatch",
     "result": "INCONCLUSIVE: Q&A2/2 PASS, summaries0verified; no default switch",
-    "furtherRunsAuthorized": false,
+    "furtherRunsAuthorized": true,
     "newCIRuns": 2,
     "completedFeatureTaskIds": [],
-    "nextAction": "T18.3: inspect the bounded Phi summary runtime/generation path before further inference; the8min summary-only run40105186439 had no completed case/stage report. Preserve the2/2 actual Q&A observations, all original oracles and failed/timeout evidence. No automatic retry, new candidate, default-model switch or package. Resume a separately bounded implementation batch only when the owner resumes work."
+    "nextAction": "T18.3: inspect the bounded Phi summary runtime/generation path before further inference; the8min summary-only run40105186439 had no completed case/stage report. Preserve the2/2 actual Q&A observations, all original oracles and failed/timeout evidence. No automatic retry, new candidate, default-model switch or package. Resume a separately bounded implementation batch only when the owner resumes work.",
+    "authorization": "Owner explicitly removed time cap and resumed full baseline completion; original30minute outcome remains historical."
+  },
+  "installationCheckpoint": {
+    "observedAt": "2026-10-24T15:31:15.814076Z",
+    "taskId": "T07",
+    "status": "IN_PROGRESS",
+    "selectedTool": "iLoader",
+    "officialURL": "https://iloader.app/",
+    "evidence": "docs/evidence/T07_ILOADER_INSTALL_2026_10_24.md",
+    "ownerReportedMainAppInstallation": true,
+    "installedArtifactSource": null,
+    "actualPhoneModel": null,
+    "actualIOSVersion": null,
+    "installedToolVersion": null,
+    "completedTaskIds": [
+      "T07.1"
+    ],
+    "testsExecuted": 0,
+    "newCIRuns": 0,
+    "newArtifacts": [],
+    "nextAction": "Record installed IPA/source, phone/iOS and iLoader version, then verify Live Activity status and Stop during a short recording. Use iLoader for manual in-place renewal with the same account/installed bundle IDs. Independent model-development checkpoint preserved."
+  },
+  "ownerContinuation": {
+    "receivedAt": "2026-10-24T15:33:29.213Z",
+    "timeCapRemoved": true,
+    "instruction": "No need for cap, continue to work until get finished. But do not run full testsuite for every change.",
+    "regressionPolicy": "Focused behavior checks during work; one broader integration checkpoint after batch",
+    "projectCompletionGateUnchanged": true
   }
 }
