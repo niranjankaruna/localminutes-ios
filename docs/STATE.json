@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T08:17:41.252Z",
+  "lastUpdated": "2026-10-24T08:49:03.882Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -11,9 +11,9 @@
   "lastVerifiedCommit": "40100fdb9a8349acdbf2d22c63eb25ce959e9388",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017962923",
   "candidateArtifact": null,
-  "nextAction": "Pushreviewedsource5grounding/FTS/nativeAppstartup implementations afteractual1f03e52RED. Requirefull exactSHA269core+59native+5actualmodel+3UI+59scripts/TSAN/nativepackageGREEN. Use sixthCIrunfirstforanyneededrepair; onlyafterfullGREENactivateboundedT12Signals3test-firstdrafts. Allphone/retainedartifactgatespending.",
+  "nextAction": "Moveall13strictnativearchivecasesbeforeXCTestinstrumentation, preservingassertions; use6th/finalCIrunforfull exactSHAGREEN. KeepT12Signalstest-firstdraftsinactive; no run7. PersistfinalevidenceandnextT12.2test-firstactivation afterrun6.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "1f03e5259ead091c616eb4ce3c49f80d1af79018",
+  "remoteBranchHead": "8b653cb8c33b7abd2d83e747b7bc404d1900f5f5",
   "localScriptGreen": {
     "sourceCommit": "39d9eaa65f7b030a8bdf87e1447b254508dce2db",
     "sourceScope": "Current reviewed source3 working tree before commit",
@@ -36,7 +36,8 @@
       40069154630,
       40071855360,
       40073883889,
-      40075611744
+      40075611744,
+      40077503748
     ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-24T07:20:14.943Z",
@@ -48,33 +49,40 @@
     }
   },
   "latestCIRun": {
-    "sourceCommit": "1f03e5259ead091c616eb4ce3c49f80d1af79018",
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40075611744",
+    "sourceCommit": "8b653cb8c33b7abd2d83e747b7bc404d1900f5f5",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40077503748",
     "status": "completed",
-    "ordinal": 4,
+    "ordinal": 5,
     "conclusion": "failure",
     "core": {
       "executed": 269,
-      "passed": 257,
-      "failed": 12,
-      "assertionFailures": 55,
-      "unexpected": 1,
+      "passed": 269,
+      "failed": 0,
       "skipped": 0
+    },
+    "scripts": {
+      "executed": 59,
+      "passed": 59,
+      "failed": 0,
+      "skipped": 0
+    },
+    "threadSanitizer": {
+      "executed": 85,
+      "passed": 85,
+      "failed": 0,
+      "skipped": 0,
+      "reportedRaces": 0
     },
     "summary": {
       "executed": 5,
       "passed": 5,
       "failed": 0,
-      "skipped": 0,
-      "originalSemanticCases": 4,
-      "scope": "ActualpinnedQwen/nativecanonicaltokenizationandcapacity. Fullgrounding/QAunfinished."
+      "skipped": 0
     },
     "native": {
       "executed": 59,
-      "passed": 57,
-      "failed": 2,
-      "assertionFailures": 15,
-      "unexpected": 0,
+      "passed": 59,
+      "failed": 0,
       "skipped": 0,
       "resultBundleVerified": true
     },
@@ -85,16 +93,23 @@
       "skipped": 0,
       "resultBundleVerified": true
     },
-    "physical": {
-      "compiled": 7,
-      "executed": 0,
-      "status": "NOT_RUN"
-    },
     "nativeBundleInspection": {
       "executed": 2,
       "passed": 2,
       "failed": 0,
       "skipped": 0
+    },
+    "nativePackage": {
+      "executed": 13,
+      "passed": 12,
+      "failed": 1,
+      "skipped": 0,
+      "scope": "Actual device positivepackagepasses. NegativeSimulatorfixturewasmodified/signedbyXCTestbeforetest, soaudiInputTreecorrectlyrejectedsigningmaterialinsteadofplatform."
+    },
+    "physical": {
+      "compiled": 7,
+      "executed": 0,
+      "status": "NOT_RUN"
     }
   },
   "localReporterRed": {
@@ -165,7 +180,7 @@
     "T06.2.1",
     "T06.2.2.1"
   ],
-  "remoteBranchHeadScope": "Reviewed source4 pushed/remote verified: prior actualRED repairs +grounded/FTS/nativeApp test-first stubs.",
+  "remoteBranchHeadScope": "Reviewedsource5implementationspushedandremoteverified; no newactivetests. Allworkingchangesfollowactual1f03e52RED.",
   "nativeCompileRepair": {
     "status": "CODE_COMPLETE_PENDING_DEVICE",
     "candidatePath": "docs/drafts/T06.1/ActivityKitOperations.swift.pending",

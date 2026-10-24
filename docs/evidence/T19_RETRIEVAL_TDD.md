@@ -65,3 +65,10 @@ Every metadata/note/source equality, file/table, future999 rejection and literal
 search assertion is retained. This expresses the new migration requirement;
 it does not accept multiple versions, remove failures or weaken source integrity.
 The six original FTS oracles remain unchanged after their actual RED.
+
+Implementation source8b653cb8c33b7abd2d83e747b7bc404d1900f5f5 pushed/remoteverified; exact-source GREENpending [run40077503748](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40077503748). Existingstrongassertionsremainmandatory.
+
+
+## Exact-source component GREEN at8b653cb
+
+Source8b653cb8c33b7abd2d83e747b7bc404d1900f5f5/run40077503748 completedcorejob120823956509 SUCCESS:269XCTest+59Node+85ThreadSanitizer casespassed,0failures/skips/reportedraces; strictnamedreportersagree. All6groundeddecoder/merge and6actualSQLiteFTS3cases nowGREEN, includinglegacyv1/v2data preservation, selectedmeeting/operator isolation/rank/deletion postings, sourcequotes/ranges/nullableattribute/conflict/provenance validation. This is component evidence; actualfullLLMmapreduce/groundedQAandUIstillunfinished. Independentactualmodeljob120823956336SUCCESS5/5,0fail/skip,includingall4oldsemanticoraclesandrealcanonicaltokenizer/capacity/cancel/unload. NativeiOS/59cases/UI/package remainlive, so nofullworkflowGREEN/retainedartifact/deviceclaim.

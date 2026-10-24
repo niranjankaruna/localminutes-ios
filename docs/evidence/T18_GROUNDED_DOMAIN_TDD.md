@@ -105,3 +105,10 @@ Test-first source1f03e5259ead091c616eb4ce3c49f80d1af79018 pushed/remote verified
 
 Test-first source1f03e5259ead091c616eb4ce3c49f80d1af79018/run[40075611744](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40075611744), completedcorejob120818174062:269cases executed257passed12failed55assertions(1unexpected)0skip. All257earlierregressionspassed, includingall11CAF/SQLiterecovery,4startup,2pagination,4sharedowner,6chunkplanner and3filesystemscope cases. No compile/tool failure or zero-test RED.
 Allsixnewgroundedcasesfailed31assertions0unexpected/skip: emptydecoder/merger publishednodata, acceptedinvalidJSON/othermeeting/unknownIDs/unsupportedquotesandclaims insteadofthrowing. These actual missing-behavior failures authorizeboundedextractivedecoder/mergeimplementation, not a model-pipeline completion claim.
+
+Implementation source8b653cb8c33b7abd2d83e747b7bc404d1900f5f5 pushed/remoteverified; exact-source GREENpending [run40077503748](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40077503748). Existingstrongassertionsremainmandatory.
+
+
+## Exact-source component GREEN at8b653cb
+
+Source8b653cb8c33b7abd2d83e747b7bc404d1900f5f5/run40077503748 completedcorejob120823956509 SUCCESS:269XCTest+59Node+85ThreadSanitizer casespassed,0failures/skips/reportedraces; strictnamedreportersagree. All6groundeddecoder/merge and6actualSQLiteFTS3cases nowGREEN, includinglegacyv1/v2data preservation, selectedmeeting/operator isolation/rank/deletion postings, sourcequotes/ranges/nullableattribute/conflict/provenance validation. This is component evidence; actualfullLLMmapreduce/groundedQAandUIstillunfinished. Independentactualmodeljob120823956336SUCCESS5/5,0fail/skip,includingall4oldsemanticoraclesandrealcanonicaltokenizer/capacity/cancel/unload. NativeiOS/59cases/UI/package remainlive, so nofullworkflowGREEN/retainedartifact/deviceclaim.

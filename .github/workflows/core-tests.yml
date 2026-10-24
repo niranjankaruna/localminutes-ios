@@ -189,6 +189,13 @@ jobs:
         run: |
           set -euo pipefail
           node --test scripts/native-tests/device-build.test.mjs
+      # The simulator-negative fixture must retain its pristine unsigned state.
+      # Test installation later embeds/ad-hoc-signs XCTest in this Debug product.
+      - name: Test real unsigned archive packaging
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test scripts/native-tests/package.test.mjs
       - name: Compile the unchanged physical protection oracle without claiming device execution
         shell: bash
         run: |
@@ -306,11 +313,6 @@ jobs:
             testStartExplainsMissingSpeechModelWithoutClaimingRecording \
             testSharedActivityStopControlDispatchesItsExactSessionToTheApplicationOwner \
             testSharedActivityTerminalTimerIsFixedAndStopIsDisabled
-      - name: Test real unsigned archive packaging
-        shell: bash
-        run: |
-          set -euo pipefail
-          node --test scripts/native-tests/package.test.mjs
       - name: Create and verify ephemeral unsigned package without uploading
         shell: bash
         run: |
