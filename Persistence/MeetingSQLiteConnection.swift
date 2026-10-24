@@ -17,10 +17,10 @@ final class MeetingSQLiteConnection {
         }
         let directory = databaseURL.deletingLastPathComponent()
         do {
-            // A database URL confers ownership of this parent and its exact
-            // SQLite files, not every unrelated source beside the database.
+            // A database URL confers ownership of its exact SQLite files,
+            // not the parent or every unrelated source beside the database.
             // Default App Services performs its own whole-app migration.
-            try PersistentFilePolicy.protectItem(directory, within: directory)
+            try PersistentFilePolicy.validateItem(directory, within: directory)
             try Self.protectDatabaseFiles(at: databaseURL, within: directory)
         }
         catch { throw MeetingStoreError.databaseFailure }

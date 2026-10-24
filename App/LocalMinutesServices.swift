@@ -12,6 +12,8 @@ final class LocalMinutesServices: PlaybackHardware {
     let live: LiveTranscriptionSession
     let library: MeetingLibraryController
     let meetingsDirectory: URL
+    let usage: MeetingUsageRegistry
+    let startup: LibraryStartupCoordinator
     private(set) var speechInstalled = false
     private(set) var summaryInstalled = false
     private(set) var operationMessage: String?
@@ -33,10 +35,18 @@ final class LocalMinutesServices: PlaybackHardware {
             downloadURL: URL(string: "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/91cad51170dc346986eccefdc2dd33a9da36ead9/qwen2.5-1.5b-instruct-q4_k_m.gguf")!,
             digestProvenance: .independentlyDownloaded)])
 
-    init() throws {
-        let root = try FileManager.default.url(for: .applicationSupportDirectory,
-            in: .userDomainMask, appropriateFor: nil, create: true)
-            .appendingPathComponent("LocalMinutes", isDirectory: true)
+    /// Explicit roots are an internal storage boundary for owned native test
+    /// fixtures. Production nil keeps the same persistent ApplicationSupport path.
+    init(rootURL: URL? = nil) throws {
+        let root: URL
+        if let rootURL {
+            guard rootURL.isFileURL else { throw PersistentFilePolicyError.invalidRoot }
+            root = rootURL.standardizedFileURL
+        } else {
+            root = try FileManager.default.url(for: .applicationSupportDirectory,
+                in: .userDomainMask, appropriateFor: nil, create: true)
+                .appendingPathComponent("LocalMinutes", isDirectory: true)
+        }
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         try PersistentFilePolicy.protectDirectory(root)
         let modelRoot = root.appendingPathComponent("Models", isDirectory: true)
@@ -55,7 +65,14 @@ final class LocalMinutesServices: PlaybackHardware {
         models = manager; store = database; meetingsDirectory = meetings
         live = LiveTranscriptionSession(models: manager, store: database, meetingsDirectory: meetings)
         library = MeetingLibraryController(store: database)
+        let usage = MeetingUsageRegistry(requiresStartup: true)
+        self.usage = usage
+        startup = LibraryStartupCoordinator(store: database, recordingsRoot: meetings, usage: usage)
     }
+
+    /// Test-first application startup surface. Do not execute startup or grant
+    /// admission until the native app integration has recorded behavioral RED.
+    func initialize() async {}
 
     var isChangingModels: Bool { operation != nil }
 

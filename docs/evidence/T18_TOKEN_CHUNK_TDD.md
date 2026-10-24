@@ -103,3 +103,16 @@ Remaining physical-device gates: all applicable gates, including both owner-run
 125minute meetings, remain pending; no waiver or phone inference claim.
 Next task: root pushes and proves meaningful planner/native-counter RED, then
 authorizes bounded implementation and release composition with the real tokenizer.
+
+Test-first source 39d9eaa65f7b030a8bdf87e1447b254508dce2db pushed/remote verified; actual hosted RED pending [run40073883889](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40073883889). No new working behavior before actual results.
+
+
+## Actual hosted RED at source 39d9eaa65f7b030a8bdf87e1447b254508dce2db
+
+Run [40073883889](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40073883889), completed core job120812994468, real macOS Swift compilation and assertions:257executed,239passed,18failed,93assertions,0unexpected/skip. All16new corecases failed meaningfully against explicit stubs. Existing regressions pass except two documented unresolved fixture/scope cases; fullGREEN is not claimed.
+Planner6/6 failed22assertions: no chunks/serialized source, no validation/errors/tokenizer invocation/cancel propagation. Planner implementation is now authorized. Actual tokenizer case is in the still-live independent Qwen job; do not implement promptTokenCount until its compatible assertion result is read.
+
+
+## Actual native tokenizer RED and original semantic GREEN
+
+Source39d9eaa65f7b030a8bdf87e1447b254508dce2db/run40073883889, completedactualmodeljob120812994451:5cases executed4passed1failed6assertions(1unexpected)0skip,419.35seconds. Every original4 Qwen semantic/model-size/cancellation assertion now passes with caller schema. No prior oracle was weakened. New actual tokenizer case returnsstub0 instead of independently measured136/139/156/156/3700 native tokens (five meaningful assertions), authorizing real promptTokenCount implementation. Its below-budget positive actual generation also throws generationFailed (unexpected error); absenceofprivateoutput prevents assumingthecause. The near-context fixture used an unconstrained string output and repetitive source; do not silently label it passed or change semantic oracles. Output-bound/test isolation needs a requirement-based auditable decision. Cancellation/unload tail assertions were not reached and remain pending.

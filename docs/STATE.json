@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T07:20:14.943Z",
+  "lastUpdated": "2026-10-24T07:47:49.214Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -11,11 +11,11 @@
   "lastVerifiedCommit": "40100fdb9a8349acdbf2d22c63eb25ce959e9388",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017962923",
   "candidateArtifact": null,
-  "nextAction": "Push reviewed source3 after actual 917844b RED. Verify all existing241core/57native/4semantic regressions and new16core+1actual-tokenizer test-first cases at exact SHA; only then implement startup/pagination/shared owner admission and token planning. Max6 runs continuation08;2used.",
+  "nextAction": "Push reviewed source4 with actual-RED repairs/newgrounding6/FTS6/nativeApp2 stubs; preservestrictbundleinspectionbeforeXCTestinstrumentation andbounded35mNativejob(<45). Then readexactSHA newREDbeforeimplementation. 3/6newrunsused.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "917844b016664251c545fb70106c50cfceb62694",
+  "remoteBranchHead": "39d9eaa65f7b030a8bdf87e1447b254508dce2db",
   "localScriptGreen": {
-    "sourceCommit": null,
+    "sourceCommit": "39d9eaa65f7b030a8bdf87e1447b254508dce2db",
     "sourceScope": "Current reviewed source3 working tree before commit",
     "platform": "Windows11/Node24.21.0",
     "executed": 59,
@@ -34,7 +34,8 @@
     "maxNewRuns": 6,
     "newRunIds": [
       40069154630,
-      40071855360
+      40071855360,
+      40073883889
     ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-24T07:20:14.943Z",
@@ -42,38 +43,42 @@
     "jobLimits": {
       "coreMinutes": 15,
       "summaryQualityMinutes": 15,
-      "nativeMinutes": 25
+      "nativeMinutes": 35
     }
   },
   "latestCIRun": {
-    "sourceCommit": "917844b016664251c545fb70106c50cfceb62694",
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40071855360",
+    "sourceCommit": "39d9eaa65f7b030a8bdf87e1447b254508dce2db",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40073883889",
     "status": "completed",
-    "ordinal": 2,
+    "ordinal": 3,
     "conclusion": "failure",
     "core": {
-      "executed": 241,
-      "passed": 228,
-      "failed": 13,
-      "assertionFailures": 77,
-      "unexpected": 1,
+      "executed": 257,
+      "passed": 239,
+      "failed": 18,
+      "assertionFailures": 93,
+      "unexpected": 0,
       "skipped": 0
     },
     "summary": {
-      "executed": 4,
-      "passed": 1,
-      "failed": 3,
-      "assertionFailures": 3,
-      "unexpected": 3,
+      "executed": 5,
+      "passed": 4,
+      "failed": 1,
+      "assertionFailures": 6,
+      "unexpected": 1,
       "skipped": 0,
-      "scope": "New explicit-schema stub RED; original semantic assertions unchanged."
+      "originalQuality": {
+        "executed": 4,
+        "passed": 4,
+        "failed": 0,
+        "skipped": 0
+      },
+      "scope": "Actual canonical tokenizer stub RED + positive near-limit generation failure; original semantic cases GREEN."
     },
     "native": {
       "executed": 57,
-      "passed": 54,
-      "failed": 3,
-      "assertionFailures": 24,
-      "unexpected": 0,
+      "passed": 57,
+      "failed": 0,
       "skipped": 0,
       "resultBundleVerified": true
     },
@@ -88,6 +93,12 @@
       "compiled": 7,
       "executed": 0,
       "status": "NOT_RUN"
+    },
+    "nativeBundleInspection": {
+      "executed": 2,
+      "passed": 1,
+      "failed": 1,
+      "scope": "DeviceReleasecorrect; reusedSimulatorDebugnowcontainsXCTestbundle afterunitrun, strictinspectionmustprecedeinstrumentation."
     },
     "retainedArtifact": false
   },
@@ -159,7 +170,7 @@
     "T06.2.1",
     "T06.2.2.1"
   ],
-  "remoteBranchHeadScope": "ExactsourceHEADpushverified; newboundary/playback/schema test-first stubs, existingpath/reservationrepairsfollowpriorRED.",
+  "remoteBranchHeadScope": "Exact test-first source3 push/remote verified; current fixes follow actual917844bRED; new startup/shared/token interfaces remain no-op until actual RED.",
   "nativeCompileRepair": {
     "status": "CODE_COMPLETE_PENDING_DEVICE",
     "candidatePath": "docs/drafts/T06.1/ActivityKitOperations.swift.pending",
@@ -633,15 +644,14 @@
     "greenVerified": false
   },
   "nextTestFirstBatch": {
-    "expectedCore": 257,
-    "expectedNativeSimulator": 57,
+    "expectedCore": 269,
+    "expectedNativeSimulator": 59,
     "physicalCasesCompiledOnly": 7,
-    "newCoreCases": 16,
-    "newActualModelCases": 1,
     "expectedActualModelCases": 5,
-    "scope": "T08 startup4 + unfinished pagination2 + shared owner admission4; T18 chunk planner6 + actual tokenizer1. Explicit minimal stubs only until hosted RED.",
-    "actualRedVerified": false,
-    "productionRepairsPendingActualRed": true
+    "newCoreCases": 12,
+    "newNativeCases": 2,
+    "scope": "Groundedsummaryvalidator/merge6 +actualFTS6 +nativeAppstartup2. AllnewbehaviorsremainminimalstubsuntilRED.",
+    "redVerified": false
   },
   "latestActualDownloadIntegration": {
     "sourceCommit": "917844b016664251c545fb70106c50cfceb62694",

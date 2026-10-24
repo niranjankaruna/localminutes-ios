@@ -28,13 +28,13 @@ public final class MeetingUsageRegistry {
     }
     private var recordings: [UUID: UUID] = [:]
     private var deletions: [UUID: DeletionUse] = [:]
+    private var startupReady: Bool
 
-    // Test-first startup contract; ignored until compatible behavioral RED.
-    public init(requiresStartup: Bool = false) {}
+    public init(requiresStartup: Bool = false) { startupReady = !requiresStartup }
 
-    public func completeStartup(success: Bool) {}
+    public func completeStartup(success: Bool) { startupReady = success }
     public func beginRecording(meetingID: UUID) throws -> MeetingRecordingLease {
-        guard recordings[meetingID] == nil, deletions[meetingID] == nil else {
+        guard startupReady, recordings[meetingID] == nil, deletions[meetingID] == nil else {
             throw MeetingDeletionError.meetingInUse
         }
         let token = UUID()
@@ -68,8 +68,12 @@ public final class MeetingUsageRegistry {
 }
 
 extension MeetingUsageRegistry: RecordingUsageAdmission {
-    public func acquireRecordingUsage(meetingID: UUID) -> UUID? { nil }
-    public func releaseRecordingUsage(meetingID: UUID, token: UUID) {}
+    public func acquireRecordingUsage(meetingID: UUID) -> UUID? {
+        try? beginRecording(meetingID: meetingID).token
+    }
+    public func releaseRecordingUsage(meetingID: UUID, token: UUID) {
+        endRecording(MeetingRecordingLease(meetingID: meetingID, token: token))
+    }
 }
 
 /// A confirmed UUID-only request remains recoverable until real SQLite commit

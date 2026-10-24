@@ -100,6 +100,13 @@ public enum PersistentFilePolicy {
         try applyAttributes(to: item.standardizedFileURL, isDirectory: isDirectory)
     }
 
+    /// Checks an existing owned path without changing its metadata. A generic
+    /// database opener must not exclude a mixed-use parent and all its siblings.
+    public static func validateItem(_ item: URL, within trustedRoot: URL) throws {
+        let boundary = try Boundary(trustedRoot)
+        _ = try boundary.validate(item)
+    }
+
     /// The replacement is fully protected before rename. No throwing operation
     /// follows publication, so callers can preserve an existing current pointer
     /// whenever this method throws.

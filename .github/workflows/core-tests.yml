@@ -77,7 +77,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p .build
-          swift test --enable-code-coverage --filter '(HarnessTests|CoreTests|RecordingTests|ModelTests|PersistenceTests|ASRTests|MeetingLibraryTests|SummaryPromptFormatterTests|StructuredJSONSchemaTests|SummaryChunkPlannerTests)' 2>&1 | tee .build/test-output.log
+          swift test --enable-code-coverage --filter '(HarnessTests|CoreTests|RecordingTests|ModelTests|PersistenceTests|ASRTests|MeetingLibraryTests|SummaryPromptFormatterTests|StructuredJSONSchemaTests|SummaryChunkPlannerTests|GroundedSummaryTests)' 2>&1 | tee .build/test-output.log
           node --test scripts/tests/*.test.mjs
       - name: Require discovered tests and report evidence
         if: always()
@@ -95,6 +95,8 @@ jobs:
           node scripts/verify-test-log.mjs .build/test-output.log testOwnerReservationBlocksRealDeletionBeforeHeldPreparation testCancelledOwnerRetainsUsageThroughHeldTranscriptCleanupBeforeDeletion testStartupPendingAndFailureDenyOwnerBeforeAllPreparationAndOSUseUntilSuccess testExactUsageTokenRejectsStaleReleaseAfterReplacement
           node scripts/verify-test-log.mjs .build/test-output.log testStartupReplaysDurableDeletionBeforeEnumeratingUnfinishedAudioAndThenAllowsCapture testStartupProcessesUnfinishedMeetingsBeyondOnePageAndIsIdempotentAcrossReopen testStartupRecordsAnIsolatedCorruptMeetingButProcessesHealthyOthersBeforeReady testDatabaseAndDeletionReplayFailuresKeepStartupFailedAndCaptureAdmissionClosed testUnfinishedMeetingsUseExclusiveUUIDKeysetsAndExcludeCompletedFromEveryPage testUnfinishedPaginationDefaultsToOneHundredValidatesBoundsAndReportsAClosedActualDatabase
           node scripts/verify-test-log.mjs .build/test-output.log testPlannerCountsWholePromptsAndReservesOutputStrictlyBelowContextLimit testPlannerPreservesWholeSentencesSegmentIDsAndGlobalRangesWithoutLossOrReordering testOversizedAtomicSegmentThrowsInsteadOfReturningAPartialOrTruncatedPlan testUnicodeAndEmbeddedRoleTokensRemainSerializedSourceDataForTheTokenizer testPlannerRejectsInvalidBoundsSourceIdentityRangesAndTokenizerCounts testPlannerPropagatesTokenizerFailureAndCancellationWithoutPublishingChunks
+          node scripts/verify-test-log.mjs .build/test-output.log testExtractiveSummaryDecisionsAndNullableActionsRetainSourceAndManualTextExactly testDecoderRejectsOtherMeetingAndUnknownSourceIDsBeforePublishingContent testEvidenceRangesAndVerbatimUTF8QuotesCannotCrossOrNormalizeSources testPresentNamesAndDatesDoNotSupportAnotherActionsOwnerDueOrParaphrase testInvalidJSONDuplicateItemsOverflowAndExplicitLimitsCannotPublishPartialData testMergeIsOrderIndependentAndRetainsEveryEvidenceAndProvenanceWithoutFillingUnknowns
+          node scripts/verify-test-log.mjs .build/test-output.log testVersionTwoMigrationBuildsActualFTS5WithoutChangingOriginalMetadataNotesOrSource testEvidenceQueriesKeepSelectedMeetingIsolationAndTreatOperatorsAndQuotesAsTerms testMultiwordEvidenceUsesUsefulRankAndSequenceTieBreakInsteadOfArrivalOrder testEvidenceLimitsAreBoundedAndEmptyOrPunctuationInputNeverReturnsAllRows testFinalizedAppendIdempotenceAndReopenRetainExactUTF8EvidenceAndProvenance testMeetingDeletionRemovesItsActualFTSIndexEntriesAndKeepsOtherEvidenceAfterReopen
       - name: Exercise queue under Thread Sanitizer
         shell: bash
         run: |
@@ -144,7 +146,7 @@ jobs:
   # All three jobs remain mandatory for the overall workflow result.
   native-build:
     runs-on: macos-15-intel
-    timeout-minutes: 25
+    timeout-minutes: 35
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     steps:
@@ -180,6 +182,13 @@ jobs:
             -destination 'generic/platform=iOS' -derivedDataPath build/device -clonedSourcePackagesDirPath .agent-local/source-packages CODE_SIGNING_ALLOWED=NO LOCALMINUTES_SOURCE_COMMIT="$GITHUB_SHA" build
           xcodebuild -quiet -project LocalMinutes.xcodeproj -scheme LocalMinutes -configuration Debug \
             -destination 'generic/platform=iOS Simulator' -derivedDataPath build/simulator -clonedSourcePackagesDirPath .agent-local/source-packages CODE_SIGNING_ALLOWED=NO LOCALMINUTES_SOURCE_COMMIT="$GITHUB_SHA" build
+      # XCTest later embeds its runner in the reused Debug simulator app. Inspect
+      # the pristine compiled product first; retain the strict plug-in allowlist.
+      - name: Inspect compiled plists and Mach-O products
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test scripts/native-tests/device-build.test.mjs
       - name: Compile the unchanged physical protection oracle without claiming device execution
         shell: bash
         run: |
@@ -272,6 +281,7 @@ jobs:
           node scripts/verify-test-log.mjs .agent-local/native-app-tests.log testSimulatorProtectionCapabilityIsReportedWithoutPhysicalVerification testDefaultServicesUseExcludedPrivatePersistentRoots testVerifiedModelCopyAndAtomicPointerPreserveSourceBytesAndPermissions testSQLiteSidecarRecreationAndCAFCheckpointRemainExcludedPrivateAndReadable testSymlinkPreflightAndAtomicReplacementPreserveOutsideFilesAndCleanTemporaryFiles
           node scripts/verify-test-log.mjs .agent-local/native-app-tests.log testOwnerWaitsForTranscriptFinalizationBeforeAcknowledgingSavedAudio testTranscriptFinalizationFailureCannotPublishRecordingSaved testDelayedPlaybackCannotActivateAfterStartReservationBeforeDomainPhaseChanges testDelayedPlaybackCannotActivateAfterToggleReservationBeforeDomainPhaseChanges testDelayedPlaybackIsBlockedWhileRealOwnerPreparationIsHeld testDelayedPlaybackCannotReconfigureOrDeactivateAnActiveRealCapture testRecordingClosesAdmittedPlaybackBeforeAnyCaptureActivation testFailedPlaybackDeactivationPreventsCaptureAndRemainsExplicitlyRetryable testStoppingBlocksPlaybackUntilActualCAFFlushAndActivityEndSettle testFailedCaptureDeactivationBlocksPlaybackUntilExplicitCaptureCleanupRetry
           node scripts/verify-test-log.mjs .agent-local/native-app-tests.log testGlobalStopRevokesAPlayAwaitingItsSnapshotAndALaterPlayCanStart testCancelledPendingPlayCannotActivateAndALaterPlayCanStart testScopedOldRequestCleanupCannotStopAReplacementPlayer
+          node scripts/verify-test-log.mjs .agent-local/native-app-tests.log testAppStartReconcilesInterruptedCAFBeforeRealMissingModelRejection testClosedDatabaseStartupFailureLeavesOwnerIdleAndRefusesModelPreflight
       - name: Execute actual recording-control UI test
         id: native-ui
         if: ${{ !cancelled() && (steps.native-app.outcome == 'success' || steps.native-app.outcome == 'failure') }}
@@ -296,11 +306,6 @@ jobs:
             testStartExplainsMissingSpeechModelWithoutClaimingRecording \
             testSharedActivityStopControlDispatchesItsExactSessionToTheApplicationOwner \
             testSharedActivityTerminalTimerIsFixedAndStopIsDisabled
-      - name: Inspect compiled plists and Mach-O products
-        shell: bash
-        run: |
-          set -euo pipefail
-          node --test scripts/native-tests/device-build.test.mjs
       - name: Test real unsigned archive packaging
         shell: bash
         run: |

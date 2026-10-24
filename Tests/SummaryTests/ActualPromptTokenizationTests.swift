@@ -61,7 +61,11 @@ final class ActualPromptTokenizationTests: XCTestCase {
             XCTAssertEqual(reported, actualTokens)
             let exactRemaining = 4_096 - actualTokens
             XCTAssertTrue((1...1_024).contains(exactRemaining))
-            let schema = StructuredJSONSchema(fields: [.init(name: "text", type: .string)])
+            // Capacity-only shape/domain: either short arbitrary label is
+            // acceptable. This does not assert a semantic answer or alter input.
+            let schema = StructuredJSONSchema(fields: [
+                .init(name: "text", type: .stringEnumeration(["label-a", "label-b"]))
+            ])
             do {
                 _ = try await runtime.generateJSON(prompt: nearBudget, schema: schema,
                                                     maximumTokens: exactRemaining)

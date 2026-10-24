@@ -305,6 +305,10 @@ final class NativeStoragePolicyTests: XCTestCase {
 
     func testSQLiteSidecarRecreationAndCAFCheckpointRemainExcludedPrivateAndReadable() async throws {
         let h = try StoragePolicyFixture(); defer { h.cleanup() }
+        // This fixture owns its entire root, like default App Services. Opening
+        // an arbitrary DB URL must preserve unrelated parent/sibling metadata.
+        // Keep every strict root/DB/sidecar policy assertion below unchanged.
+        try PersistentFilePolicy.protectDirectory(h.root)
         let database = h.root.appendingPathComponent("meetings.sqlite")
         let external = try StoragePolicyWALConnection(database: database)
         defer { try? external.close() }

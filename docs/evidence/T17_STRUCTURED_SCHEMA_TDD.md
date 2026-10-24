@@ -92,3 +92,10 @@ and three failed at the explicit new `notImplemented` overload (three errors,
 zero skips). This is the expected behavioral stub RED, not semantic GREEN.
 The existing original semantic assertions remain unchanged. Compiler/runtime
 implementation may now follow; model correctness must still be proved.
+
+
+## Actual native tokenizer RED and original semantic GREEN
+
+Source39d9eaa65f7b030a8bdf87e1447b254508dce2db/run40073883889, completedactualmodeljob120812994451:5cases executed4passed1failed6assertions(1unexpected)0skip,419.35seconds. Every original4 Qwen semantic/model-size/cancellation assertion now passes with caller schema. No prior oracle was weakened. New actual tokenizer case returnsstub0 instead of independently measured136/139/156/156/3700 native tokens (five meaningful assertions), authorizing real promptTokenCount implementation. Its below-budget positive actual generation also throws generationFailed (unexpected error); absenceofprivateoutput prevents assumingthecause. The near-context fixture used an unconstrained string output and repetitive source; do not silently label it passed or change semantic oracles. Output-bound/test isolation needs a requirement-based auditable decision. Cancellation/unload tail assertions were not reached and remain pending.
+
+Compiler6/6andoriginalnativequality4/4arecomponentGREEN atthisexactsource; fullmodeljob/workflow remainsFAILED fromnewcapacitycase. Fullgrounding/unknownowner/mapreduce/QA/phonevalidationremainmandatory.

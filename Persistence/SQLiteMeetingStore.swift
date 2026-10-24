@@ -98,9 +98,21 @@ public actor SQLiteMeetingStore {
         return records
     }
 
-    /// Test-first interface only: exclusive canonical-UUID keyset, all states
-    /// except completed, positive page limit at most1,000. No query behavior yet.
-    public func unfinishedMeetings(afterID: UUID?, limit: Int = 100) throws -> [MeetingRecord] { [] }
+    /// Exclusive canonical-UUID keyset, independent of changing recording state
+    /// and creation-date order. Startup can enumerate every bounded page while
+    /// earlier rows are marked recovered without skipping or repeating them.
+    public func unfinishedMeetings(afterID: UUID?, limit: Int = 100) throws -> [MeetingRecord] {
+        let database = try connection.database()
+        guard limit > 0, limit <= 1_000 else { throw MeetingStoreError.invalidInput }
+        let statement = try MeetingSQLiteStatement(database: database, sql:
+            "SELECT id,title,created_at,recording_state,captured_sample_count FROM meetings WHERE recording_state<>? AND id>? ORDER BY id ASC LIMIT ?")
+        try statement.bind(MeetingRecordingState.completed.rawValue, at: 1)
+        try statement.bind(afterID?.uuidString ?? "", at: 2)
+        try statement.bind(Int64(limit), at: 3)
+        var records: [MeetingRecord] = []
+        while try statement.next() { records.append(try decodeMeeting(statement)) }
+        return records
+    }
 
     public func renameMeeting(id: UUID, title: String) throws {
         let database = try connection.database()
@@ -190,6 +202,11 @@ public actor SQLiteMeetingStore {
         try statement.bind(Int64(limit), at: 3)
         return try decodeSegments(statement)
     }
+
+    /// Test-first selected-meeting FTS evidence contract only. Original source
+    /// rows/ranges/provenance must be returned; no schema or query behavior yet.
+    public func retrieveEvidence(meetingID: UUID, query: String,
+                                 limit: Int = 8) throws -> [StoredTranscriptSegment] { [] }
 
     public func deleteMeeting(id: UUID) throws {
         let database = try connection.database()

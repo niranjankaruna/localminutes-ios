@@ -24,3 +24,6 @@ captured segment frames; segment starts use one global timeline, whose extent
 can include gaps. Recovery and playback must consume that same manifest.
 Implementation is authorized only after this observed RED. Startup wiring and
 shared admission remain separate unimplemented requirements.
+
+
+39d9eaa/run40073883889: journal/gap regressions pass; every truncated-body recovery/report/quarantine/metadata assertion now passes. Three remaining assertions fail because the independent healthy-file observation helper requests beyond its four-frame EOF and labels the resulting native EOF error as corruption. Actual truncated observation is opened=true/header4/decoded1/readFailed=true. Correct the observer to request only bounded remaining declared frames and mark a short read as failure; preserve all assertions and actual decode/sample-count checks. Production full readback behavior is already correct for the exercised corpus.

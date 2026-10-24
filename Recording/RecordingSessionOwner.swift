@@ -27,6 +27,7 @@ public extension RecordingPreparationSource {
 private final class RecordingOwnerEpoch {
     let id: UUID
     let reservation: Task<RecordingCommand?, Never>
+    var usageToken: UUID?
     var preparation: Task<RecordingPreparationResult, Never>?
     var cleanup: Task<Void, Never>?
     var cleanupRequested = false
@@ -43,9 +44,10 @@ private final class RecordingOwnerEpoch {
     var failure: RecordingFailure?
     var manifest: AudioCaptureManifest?
 
-    init(id: UUID, reservation: Task<RecordingCommand?, Never>) {
+    init(id: UUID, reservation: Task<RecordingCommand?, Never>, usageToken: UUID?) {
         self.id = id
         self.reservation = reservation
+        self.usageToken = usageToken
     }
 }
 
@@ -97,7 +99,6 @@ public final class RecordingSessionOwner {
         let bridge = RecordingOwnerEventBridge()
         self.preparation = preparation
         self.beforeReservation = beforeReservation
-        // Test-first interface only: use begins after compatible behavioral RED.
         self.usageAdmission = usageAdmission
         capture = MicrophoneCaptureRuntime(permission: permission, hardware: hardware,
                                             normalizedSink: preparation.normalizedSink) {
@@ -111,19 +112,31 @@ public final class RecordingSessionOwner {
 
     public func start(sessionID: UUID) async {
         guard current == nil else { return }
+        let usageToken: UUID?
+        if let usageAdmission {
+            // Acquire on this actor before the coordinator hop or any model/OS
+            // preparation. Deletion sees this exact reservation immediately.
+            guard let token = usageAdmission.acquireRecordingUsage(meetingID: sessionID) else { return }
+            usageToken = token
+        } else {
+            usageToken = nil
+        }
         let coordinator = self.coordinator
         let beforeReservation = self.beforeReservation
         let reservation = Task {
             await beforeReservation?()
             return await coordinator.start(sessionID: sessionID)
         }
-        let epoch = RecordingOwnerEpoch(id: sessionID, reservation: reservation)
+        let epoch = RecordingOwnerEpoch(id: sessionID, reservation: reservation, usageToken: usageToken)
         // Reserve before any suspension, so competing starts cannot create a
         // second preflight/resource set while the actor command is in flight.
         current = epoch
         completedManifest = nil
         guard let command = await reservation.value, case .prepare = command else {
-            if current === epoch, !epoch.cleanupRequested { current = nil }
+            if current === epoch, !epoch.cleanupRequested {
+                current = nil
+                releaseUsage(epoch)
+            }
             return
         }
         guard current === epoch, !epoch.cancelled else { return }
@@ -351,6 +364,15 @@ public final class RecordingSessionOwner {
         completedManifest = final.phase == .completed && epoch.failure == nil ? epoch.manifest : nil
         current = nil
         epoch.cleanup = nil
+        // Failed cleanup attempts above retain the epoch/token for retry. Only
+        // the settled combined barrier may release its shared recording claim.
+        releaseUsage(epoch)
+    }
+
+    private func releaseUsage(_ epoch: RecordingOwnerEpoch) {
+        guard let token = epoch.usageToken else { return }
+        epoch.usageToken = nil
+        usageAdmission?.releaseRecordingUsage(meetingID: epoch.id, token: token)
     }
 
     private static func map(_ failure: CaptureRuntimeFailure) -> RecordingFailure {

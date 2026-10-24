@@ -27,3 +27,8 @@ The real HTTPS four-file model download/install/reopen/import/lease/CPU-ASR
 integration passed (one case, no skips), as did all ten native CPU recognizer
 and all four live transcription composition cases. The directory URL hint
 regression repair is verified for these scopes; the full workflow remains RED.
+
+
+39d9eaa/run40073883889: both hardlink and CAF-parent regressions now pass. SQLite preserves sibling bytes/modes but still fails16 backup-flag assertions because excluding the parent changes effective child getters. This requires preserving all parent attributes in a generic database constructor, with explicit whole-root policy owned by App Services. The native WAL fixture must apply its explicit owned-root policy as setup, retaining every actual root/DB/sidecar assertion; no acceptance weakening or fabricated flags. Exact-file policy remains mandatory. This is repair attempt2 for SQLite scope, after actual repeat RED.
+
+SecondSQLite scope repair preservesparentmetadata; defaultServicesownswholepersistentrootandnativeWALfixtureexplicitlyappliesrootpolicybeforeDBopen. Everyexistingroot/DB/sidecarassertionandall7physicaloraclebytesremainunchanged. No mixed-parent exclusion or newsidecarclass success isclaimeduntilnextCI/phoneevidence.

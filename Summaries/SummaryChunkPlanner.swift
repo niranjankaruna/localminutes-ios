@@ -49,6 +49,85 @@ public struct SummaryChunkPlanner: Sendable {
 
     public func plan(_ segments: [SummaryEvidenceSegment]) async throws -> [SummaryInputChunk] {
         try Task.checkCancellation()
-        return []
+        guard (64...4_096).contains(contextTokenLimit), (1...1_024).contains(reservedOutputTokens),
+              reservedOutputTokens < contextTokenLimit,
+              promptPrefix.utf8.count <= 65_536 - Self.evidenceMarker.utf8.count - 2 else {
+            throw SummaryChunkPlannerError.invalidConfiguration
+        }
+        var identities: Set<Data> = []
+        var previousEnd: Int64?
+        // Validate the complete selected source before building any output.
+        for segment in segments {
+            try Task.checkCancellation()
+            guard !segment.id.isEmpty, segment.id.utf8.count <= 256,
+                  !segment.text.isEmpty, segment.startSample >= 0,
+                  segment.endSample >= segment.startSample else {
+                throw SummaryChunkPlannerError.invalidSource
+            }
+            guard identities.insert(Data(segment.id.utf8)).inserted else {
+                throw SummaryChunkPlannerError.duplicateSegmentID
+            }
+            if let previousEnd, segment.startSample < previousEnd {
+                throw SummaryChunkPlannerError.invalidSource
+            }
+            previousEnd = segment.endSample
+            guard segment.text.utf8.count <= 65_536 else {
+                throw SummaryChunkPlannerError.oversizedSegment(segment.id)
+            }
+        }
+        var chunks: [SummaryInputChunk] = []
+        var pending: [SummaryEvidenceSegment] = []
+        var pendingPrompt = ""
+        var pendingTokens = 0
+        for segment in segments {
+            try Task.checkCancellation()
+            let candidate = pending + [segment]
+            let candidatePrompt = try makePrompt(candidate)
+            if let count = try await acceptedTokenCount(candidatePrompt) {
+                pending = candidate
+                pendingPrompt = candidatePrompt
+                pendingTokens = count
+                continue
+            }
+            guard !pending.isEmpty else { throw SummaryChunkPlannerError.oversizedSegment(segment.id) }
+            chunks.append(SummaryInputChunk(segments: pending, prompt: pendingPrompt,
+                promptTokenCount: pendingTokens, reservedOutputTokens: reservedOutputTokens))
+            let singlePrompt = try makePrompt([segment])
+            guard let count = try await acceptedTokenCount(singlePrompt) else {
+                throw SummaryChunkPlannerError.oversizedSegment(segment.id)
+            }
+            pending = [segment]
+            pendingPrompt = singlePrompt
+            pendingTokens = count
+        }
+        if !pending.isEmpty {
+            chunks.append(SummaryInputChunk(segments: pending, prompt: pendingPrompt,
+                promptTokenCount: pendingTokens, reservedOutputTokens: reservedOutputTokens))
+        }
+        try Task.checkCancellation()
+        return chunks
+    }
+
+    private static let evidenceMarker = "\n\nEVIDENCE_JSON:\n"
+
+    private func makePrompt(_ segments: [SummaryEvidenceSegment]) throws -> String {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
+        guard let payload = String(data: try encoder.encode(segments), encoding: .utf8) else {
+            throw SummaryChunkPlannerError.invalidSource
+        }
+        return promptPrefix + Self.evidenceMarker + payload
+    }
+
+    private func acceptedTokenCount(_ prompt: String) async throws -> Int? {
+        try Task.checkCancellation()
+        // This is the runtime's input-byte admission limit, not a token estimate.
+        // Even a small byte payload still requires actual canonical tokenization.
+        guard prompt.utf8.count <= 65_536 else { return nil }
+        let count = try await tokenizer(prompt)
+        try Task.checkCancellation()
+        guard count > 0 else { throw SummaryChunkPlannerError.invalidTokenCount }
+        // Subtraction avoids overflow for a malformed tokenizer boundary value.
+        return count < contextTokenLimit - reservedOutputTokens ? count : nil
     }
 }

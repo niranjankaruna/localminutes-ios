@@ -36,8 +36,13 @@ final class RecordingApplication {
     @ObservationIgnored
     private var preparationStop: (id: UUID, task: Task<RecordingIntentOutcome, Never>)?
 
-    private init() {
-        let services = try? LocalMinutesServices()
+    private convenience init() {
+        self.init(services: try? LocalMinutesServices())
+    }
+
+    /// Storage injection only. This is the actual default Live/OS composition;
+    /// startup execution and shared admission remain unwired before native RED.
+    init(services: LocalMinutesServices?) {
         let preparation: any RecordingPreparationSource
         if let services { preparation = services.live }
         else { preparation = RequiredSpeechModelPreparation() }

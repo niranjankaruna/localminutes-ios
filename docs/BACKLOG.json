@@ -482,6 +482,18 @@
           "deviceEvidence": [],
           "testCount": 4,
           "scope": "Test-first stubs only; actual hosted RED pending."
+        },
+        {
+          "id": "T08.5",
+          "title": "Native default app startup reconciliation before real model preflight",
+          "status": "IN_PROGRESS",
+          "redEvidence": [
+            "docs/evidence/T08_NATIVE_STARTUP_TDD.md"
+          ],
+          "greenEvidence": [],
+          "deviceEvidence": [],
+          "testCount": 2,
+          "scope": "Test-first only; initialize remains no-op and app guard/admission wiring waits nativeRED."
         }
       ],
       "redEvidence": [
@@ -891,6 +903,18 @@
           "deviceEvidence": [],
           "testCount": 7,
           "scope": "Test-first stubs only. Full nullable/grounded map-reduce summaries/Q&A still mandatory."
+        },
+        {
+          "id": "T18.2",
+          "title": "Selected-meeting extractive structured summary validation and provenance merge",
+          "status": "IN_PROGRESS",
+          "redEvidence": [
+            "docs/evidence/T18_GROUNDED_DOMAIN_TDD.md"
+          ],
+          "greenEvidence": [],
+          "deviceEvidence": [],
+          "testCount": 6,
+          "scope": "Pure validator/merge test-first stubs; no generated-summary model pipeline or UI yet."
         }
       ],
       "redEvidence": [],
@@ -906,7 +930,7 @@
       "milestone": "M6",
       "title": "Implement locally grounded questions",
       "kind": "feature",
-      "status": "NOT_STARTED",
+      "status": "IN_PROGRESS",
       "dependsOn": [
         "T18",
         "T15"
@@ -919,7 +943,20 @@
         "Test selected-meeting retrieval isolation and unsupported-answer refusal.",
         "Run real model with bounded excerpts and source navigation; no network/tools."
       ],
-      "childTasks": [],
+      "childTasks": [
+        {
+          "id": "T19.1",
+          "title": "Actual SQLite FTS evidence restricted to selected meeting",
+          "status": "IN_PROGRESS",
+          "redEvidence": [
+            "docs/evidence/T19_RETRIEVAL_TDD.md"
+          ],
+          "greenEvidence": [],
+          "deviceEvidence": [],
+          "testCount": 6,
+          "scope": "Empty query stub; schema3 proposed but no working migration/retrieval before actualRED."
+        }
+      ],
       "redEvidence": [],
       "greenEvidence": [],
       "deviceEvidence": [],

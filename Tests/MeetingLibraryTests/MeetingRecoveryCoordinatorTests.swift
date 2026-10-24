@@ -340,10 +340,17 @@ private func observeNativeCAF(_ file: URL) -> NativeCAFObservation {
             result.readFailed = true
             return result
         }
-        // Fixture segments contain four frames. The bound protects this helper
-        // from a malformed native header without treating a header as evidence.
-        while result.samples.count < 64 {
-            try audio.read(into: buffer, frameCount: 16)
+        // Fixture segments contain four frames. Decode exactly the claimed
+        // frames, within the existing bound: a read past a healthy file's EOF
+        // can itself throw on AVFoundation and is not evidence of corruption.
+        guard audio.length >= 0, audio.length <= 64 else {
+            result.readFailed = true
+            return result
+        }
+        while Int64(result.samples.count) < audio.length {
+            let requested = AVAudioFrameCount(min(Int64(buffer.frameCapacity),
+                                                   audio.length - Int64(result.samples.count)))
+            try audio.read(into: buffer, frameCount: requested)
             guard buffer.frameLength > 0 else { break }
             guard let plane = buffer.floatChannelData?[0] else {
                 result.readFailed = true
@@ -351,6 +358,7 @@ private func observeNativeCAF(_ file: URL) -> NativeCAFObservation {
             }
             result.samples.append(contentsOf: UnsafeBufferPointer(start: plane, count: Int(buffer.frameLength)))
         }
+        if Int64(result.samples.count) != audio.length { result.readFailed = true }
     } catch { result.readFailed = true }
     return result
 }

@@ -44,3 +44,11 @@ Remaining physical-device gates: protection, locked capture, Action Button, both
 Next task: root reviews/pushes test-first source, proves compatible assertion RED, then authorizes behavior. No owner admission/startup adapter implementation exists yet.
 
 Empty/pending fields are unverified, never a pass. No speech/model weights, real meeting data or credentials are included.
+
+Test-first source 39d9eaa65f7b030a8bdf87e1447b254508dce2db pushed/remote verified; actual hosted RED pending [run40073883889](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40073883889). No new working behavior before actual results.
+
+
+## Actual hosted RED at source 39d9eaa65f7b030a8bdf87e1447b254508dce2db
+
+Run [40073883889](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40073883889), completed core job120812994468, real macOS Swift compilation and assertions:257executed,239passed,18failed,93assertions,0unexpected/skip. All16new corecases failed meaningfully against explicit stubs. Existing regressions pass except two documented unresolved fixture/scope cases; fullGREEN is not claimed.
+Shared owner4/4 failed29assertions: held real owner permitted actual deletion, startup readiness ignored before OS use, adapter returnednil. These actual failures authorize matching recording usage acquisition before suspension and exact release only after full cleanup.
