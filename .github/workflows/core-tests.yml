@@ -18,6 +18,11 @@ on:
         type: boolean
         required: true
         default: true
+      packageMVP2:
+        description: Also compile and retain the MVP2 IPA at this exact source
+        type: boolean
+        required: true
+        default: false
 
 permissions:
   contents: read
@@ -767,8 +772,8 @@ jobs:
   # Owner-requested MVP delivery: compile/package only, no test runner or model weights.
   # The workflow definition and the reviewed app source are recorded separately.
   mvp-package:
-    if: ${{ inputs.mode == 'mvp' || inputs.mode == 'features' || inputs.mode == 'package' || inputs.mode == 'model-delivery' }}
-    runs-on: macos-15-intel
+    if: ${{ inputs.mode == 'mvp' || inputs.mode == 'features' || inputs.mode == 'package' || inputs.mode == 'model-delivery' || (inputs.mode == 'mvp2-parakeet' && inputs.packageMVP2) }}
+    runs-on: ${{ inputs.mode == 'mvp2-parakeet' && 'macos-15' || 'macos-15-intel' }}
     timeout-minutes: 25
     permissions:
       contents: write

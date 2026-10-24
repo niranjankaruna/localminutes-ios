@@ -1,5 +1,6 @@
 import CoreML
 import CryptoKit
+import Darwin
 import Dispatch
 import FluidAudio
 import Foundation
@@ -293,6 +294,7 @@ public actor CoreMLParakeetRecognizer {
             let rootValues = try root.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
             guard rootValues.isDirectory == true, rootValues.isSymbolicLink != true else { throw StreamingASRError.invalidModel }
             let expected = Set(manifest.artifacts.map(\.fileName))
+            let allowedFiles = expected.union(["manifest.json"])
             var directories: Set<String> = []
             for artifact in manifest.artifacts {
                 let parts = artifact.fileName.split(separator: "/")
@@ -306,7 +308,7 @@ public actor CoreMLParakeetRecognizer {
             var visited = 0
             for case let url as URL in iterator {
                 visited += 1
-                guard visited <= expected.count + directories.count,
+                guard visited <= allowedFiles.count + directories.count,
                       url.path.hasPrefix(root.path + "/"),
                       url.resolvingSymlinksInPath().path.hasPrefix(canonical.path + "/") else { throw StreamingASRError.invalidModel }
                 let name = String(url.path.dropFirst(root.path.count + 1))
@@ -314,6 +316,9 @@ public actor CoreMLParakeetRecognizer {
                 guard values.isSymbolicLink != true else { throw StreamingASRError.invalidModel }
                 if values.isDirectory == true {
                     guard directories.contains(name) else { throw StreamingASRError.invalidModel }
+                } else if name == "manifest.json" {
+                    guard values.isRegularFile == true else { throw StreamingASRError.invalidModel }
+                    try validateInstallationManifest(url, expected: manifest, flag: flag)
                 } else {
                     guard values.isRegularFile == true, expected.contains(name) else { throw StreamingASRError.invalidModel }
                     observed.insert(name)
@@ -339,6 +344,34 @@ public actor CoreMLParakeetRecognizer {
             }
         } catch is CancellationError { throw CancellationError() }
         catch { throw StreamingASRError.invalidModel }
+    }
+
+    /// Only the real installer's own bounded metadata is permitted beside the
+    /// 21 immutable Core ML assets. The opened descriptor, rather than a prior
+    /// path inspection alone, establishes regular-file/no-link ownership.
+    private func validateInstallationManifest(_ url: URL, expected: ModelManifest,
+                                              flag: CoreMLParakeetCancellation) throws {
+        let descriptor = url.path.withCString { Darwin.open($0, O_RDONLY | O_NOFOLLOW) }
+        guard descriptor >= 0 else { throw StreamingASRError.invalidModel }
+        let handle = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
+        defer { try? handle.close() }
+        var info = stat()
+        guard Darwin.fstat(descriptor, &info) == 0,
+              UInt32(info.st_mode) & UInt32(S_IFMT) == UInt32(S_IFREG),
+              info.st_nlink == 1, info.st_size > 0, info.st_size <= 65_536 else {
+            throw StreamingASRError.invalidModel
+        }
+        var bytes = Data()
+        while let next = try handle.read(upToCount: 4_096), !next.isEmpty {
+            try checkCancellation(flag)
+            guard bytes.count <= 65_536 - next.count else { throw StreamingASRError.invalidModel }
+            bytes.append(next)
+        }
+        guard bytes.count == Int(info.st_size),
+              try JSONDecoder().decode(ModelManifest.self, from: bytes) == expected,
+              let actualObject = try JSONSerialization.jsonObject(with: bytes) as? NSDictionary,
+              let expectedObject = try JSONSerialization.jsonObject(with: JSONEncoder().encode(expected)) as? NSDictionary,
+              actualObject.isEqual(expectedObject) else { throw StreamingASRError.invalidModel }
     }
 }
 

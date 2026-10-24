@@ -122,7 +122,7 @@ final class LibraryArchiveCoordinatorTests: XCTestCase {
                 let shared = try f.sharedBytes()
                 let before = try Set(FileManager.default.contentsOfDirectory(atPath: f.root.appendingPathComponent("LibraryGenerations").path))
                 if fault == "corrupt" {
-                    let payload = f.archive.appendingPathComponent("payload/Meetings/\(f.id.uuidString)/segment-000001.caf")
+                    let payload = f.archive.appendingPathComponent("payload/Meetings/\(f.id.uuidString)/\(f.audioRelativePath)")
                     var bytes = try Data(contentsOf: payload); bytes[bytes.startIndex] ^= 0xff
                     try bytes.write(to: payload)
                     do { _ = try await f.coordinator().restore(from: f.archive); XCTFail("Corrupt payload must not activate any generation") }
@@ -239,7 +239,7 @@ final class LibraryArchiveCoordinatorTests: XCTestCase {
             let note = try await restored.manualNote(meetingID: f.id)
             let generated = try await restored.generatedDocument(id: f.generated.id, meetingID: f.id)
             XCTAssertEqual(rows, [f.segment]); XCTAssertEqual(note, f.note); XCTAssertEqual(generated, f.generated)
-            XCTAssertEqual(try Data(contentsOf: url.appendingPathComponent("Meetings/\(f.id.uuidString)/segment-000001.caf")), try Data(contentsOf: f.audio))
+            XCTAssertEqual(try Data(contentsOf: url.appendingPathComponent("Meetings/\(f.id.uuidString)/\(f.audioRelativePath)")), try Data(contentsOf: f.audio))
             try await restored.close()
         } catch { try? await restored.close(); throw error }
     }
@@ -273,7 +273,8 @@ private final class LibraryArchiveFixture {
     let id = UUID()
     let usage = MeetingUsageRegistry(), admission = HeavyModelAdmission()
     let store: SQLiteMeetingStore
-    var audio: URL { library.appendingPathComponent("Meetings/\(id.uuidString)/segment-000001.caf") }
+    private(set) var audioRelativePath = ""
+    var audio: URL { library.appendingPathComponent("Meetings/\(id.uuidString)/\(audioRelativePath)") }
     var segment: StoredTranscriptSegment { .init(id: UUID(uuidString: "81818181-0000-0000-0000-000000000001")!, meetingID: id,
         sequence: 0, startSample: 0, endSample: 320, text: "Original archive transcript.", modelRevision: "synthetic-asr") }
     var note: StoredManualNote { .init(meetingID: id, text: "Original archive note — Café.", editRevision: 2, modifiedAt: Date(timeIntervalSince1970: 2_000)) }
@@ -319,7 +320,27 @@ private final class LibraryArchiveFixture {
             let buffer = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 320)); buffer.frameLength = 320
             let samples = try XCTUnwrap(buffer.floatChannelData?.pointee)
             for index in 0..<320 { samples[index] = index.isMultiple(of: 2) ? 0.25 : -0.125 }
-            try writer.append(buffer); _ = try writer.finish()
+            try writer.append(buffer)
+            let manifest = try writer.finish()
+            let committed = try XCTUnwrap(manifest.segments.first, "Fixture requires an actual committed audio segment")
+            XCTAssertEqual(manifest.sessionID, f.id)
+            XCTAssertEqual(manifest.totalFrames, 320)
+            XCTAssertEqual(manifest.segments.count, 1)
+            XCTAssertEqual(committed.startFrame, 0)
+            XCTAssertEqual(committed.frameCount, 320)
+            XCTAssertNotNil(committed.relativePath.range(of: #"^segment-[0-9]{6}\.caf$"#, options: .regularExpression))
+            // SegmentCAFWriter numbers from zero. Obtain its actual published
+            // name instead of assuming a second segment exists in this fixture.
+            f.audioRelativePath = committed.relativePath
+            XCTAssertTrue(FileManager.default.fileExists(atPath: f.audio.path))
+            let readable = try AVAudioFile(forReading: f.audio)
+            defer { readable.close() }
+            let decoded = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: readable.processingFormat, frameCapacity: 320))
+            try readable.read(into: decoded)
+            XCTAssertEqual(decoded.frameLength, 320, "Archive setup must contain fully readable, real CAF bytes")
+            let decodedSamples = try XCTUnwrap(decoded.floatChannelData?.pointee)
+            XCTAssertEqual(decodedSamples[0], 0.25, accuracy: 0.001)
+            XCTAssertEqual(decodedSamples[1], -0.125, accuracy: 0.001)
             return f
         } catch { try? await opened?.close(); try? FileManager.default.removeItem(at: root); throw error }
     }

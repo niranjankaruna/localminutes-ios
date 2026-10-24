@@ -1452,17 +1452,20 @@
         "Discover/download/Files/remove/resources/Equip integrated with original NVIDIA repo conversion explanation",
         "Actual-model native inference and live capture/recovery evidence before delivery; phone memory/speed/locked gates remain separate"
       ],
-      "nextAction": "Finish primary-source API/artifact review, prepare new tests/stubs, prove meaningful hosted RED before behavior"
+      "nextAction": "At NEXT legitimate goal continuation preserve/archive this6-run invocation record, recheck costguard, create fresh bounded invocation. Commit/push final repairs (exactreviewed nativeEquip, captured replay afterRED, strictinstalledmanifest.json acceptance, corrected realCAF fixture) and candidateGuide/workflowpackageMVP2 option. Create owner-only unpublished draft mvp-preview-<exactsource12> targeting finalfullSHA BEFORE dispatch. Run mvp2-parakeet summaryResume=false packageMVP2=true at exactsource; require all focused portable/nativeapp/nativeCoreML/recovery GREEN + package. Inspect actual8nativecases and7library cases; boundedfix only genuinefailures. DownloadIPA/checksum/buildmanifest; independentlymatchSHA/ZIPsource/build/schema, deliverMVP2WITHParakeet viaiLoaderguide, thencontinueMVP3. PhysicalgatesremainNOT_RUN; neverclaimVERIFIED_COMPLETE.",
+      "mustShipIn": "MVP2",
+      "nativeDecoderActualCasesPassed": 5
     }
   ],
   "executionPausedByOwner": false,
-  "resumeAction": "Push integration test-first batch including SDK flock name-collision repair. Dispatch mvp2-integration as run3/6. Inspect initial37 implementation results plus newly compiled behavioral RED before implementing service/UI/diagnostics/deletion/archive regressions. Deliver next checksummed IPA only after exact-SHA GREEN.",
-  "lastUpdated": "2026-10-24T19:21:41.863Z",
+  "resumeAction": "At NEXT legitimate goal continuation preserve/archive this6-run invocation record, recheck costguard, create fresh bounded invocation. Commit/push final repairs (exactreviewed nativeEquip, captured replay afterRED, strictinstalledmanifest.json acceptance, corrected realCAF fixture) and candidateGuide/workflowpackageMVP2 option. Create owner-only unpublished draft mvp-preview-<exactsource12> targeting finalfullSHA BEFORE dispatch. Run mvp2-parakeet summaryResume=false packageMVP2=true at exactsource; require all focused portable/nativeapp/nativeCoreML/recovery GREEN + package. Inspect actual8nativecases and7library cases; boundedfix only genuinefailures. DownloadIPA/checksum/buildmanifest; independentlymatchSHA/ZIPsource/build/schema, deliverMVP2WITHParakeet viaiLoaderguide, thencontinueMVP3. PhysicalgatesremainNOT_RUN; neverclaimVERIFIED_COMPLETE.",
+  "lastUpdated": "2026-10-24T20:47:50.404Z",
   "latestVerification": {
-    "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
-    "runId": 40079629180,
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
-    "evidence": "docs/evidence/CONTINUATION_08_CHECKPOINT.md"
+    "sourceCommit": "048481c8c51bd097ffac6b535cd4101470acf3fd",
+    "runId": 40130455240,
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40130455240",
+    "status": "completed",
+    "conclusion": "failure"
   },
   "ownerMVPDeliveryOverride": {
     "requestedByOwner": "2026-10-24",
@@ -1622,6 +1625,13 @@
     },
     "integrationCasesPrepared": 34,
     "ownerMeetingDeletionRequested": true,
-    "nextAction": "Push integration test-first batch including SDK flock name-collision repair. Dispatch mvp2-integration as run3/6. Inspect initial37 implementation results plus newly compiled behavioral RED before implementing service/UI/diagnostics/deletion/archive regressions. Deliver next checksummed IPA only after exact-SHA GREEN."
+    "nextAction": "At NEXT legitimate goal continuation preserve/archive this6-run invocation record, recheck costguard, create fresh bounded invocation. Commit/push final repairs (exactreviewed nativeEquip, captured replay afterRED, strictinstalledmanifest.json acceptance, corrected realCAF fixture) and candidateGuide/workflowpackageMVP2 option. Create owner-only unpublished draft mvp-preview-<exactsource12> targeting finalfullSHA BEFORE dispatch. Run mvp2-parakeet summaryResume=false packageMVP2=true at exactsource; require all focused portable/nativeapp/nativeCoreML/recovery GREEN + package. Inspect actual8nativecases and7library cases; boundedfix only genuinefailures. DownloadIPA/checksum/buildmanifest; independentlymatchSHA/ZIPsource/build/schema, deliverMVP2WITHParakeet viaiLoaderguide, thencontinueMVP3. PhysicalgatesremainNOT_RUN; neverclaimVERIFIED_COMPLETE.",
+    "latestVerificationRun": {
+      "sourceCommit": "048481c8c51bd097ffac6b535cd4101470acf3fd",
+      "runId": 40130455240,
+      "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40130455240",
+      "status": "completed",
+      "conclusion": "failure"
+    }
   }
 }

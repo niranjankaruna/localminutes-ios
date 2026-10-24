@@ -846,3 +846,7 @@ C3 exact0348c1c/run40124109356:269portable(241PASS28FAIL92assert),10actualspeech
 ## C4 result; MVP2 delivery forecast
 
 Original7nativeapp checksPASS; actualPhi resumepass445.283s; speechrecovery10PASS. Newnativeadmission3cases provide11assertionRED; nativeParakeet6cases genuineRED afterverifiedmodelsetup. Portable281:253PASS28FAIL includesnewCoreMLstorage/catalog/metrics plusarchive/snapshot/transferissues nowrepairedpendingGREEN. Ownerinformed45–60minuteestimateforMVP2IPA; Parakeetadditionalrepairsmustnotdelayreliabilitydelivery. NextC5focusedverify+newactualselection/replayRED, preservingrun6forpackage. DetailsMVP2_RELIABILITY. No additionalIPA/devicepassclaimed.
+
+## C6 checkpoint — native Parakeet transcribes real audio
+
+048481c/run40130455240: directnativeCoreML5PASS20.762s; nativeapp10PASS2.206s; speechrecovery10PASS51.471s; portable277/281PASS,4fixturepathfailures corrected withoutrelaxingdataoracles. NativeEquip/replay provide genuine independentRED; finalguards nowenabled andinstalledmanifest metadata accepted strictly, allawaitnextsourceGREEN. NoMVP2artifactdelivered.6/6invocationrunsused, goalIN_PROGRESSactive, noexternalcodeblocker. Exactnexttask STATE.nextAction: fresh legitimateboundedcontinuation verifies/packages finalsourceWITHParakeet, deliverschecksummedIPA, continuesMVP3; phonegatesNOT_RUN.

@@ -248,9 +248,6 @@ public final class MeetingTranscriptionReplayCoordinator {
               source.installationID == nil || source.installationID == lease.model.installationID else {
             throw TranscriptionReplayError.modelUnavailable
         }
-        // TEST-FIRST native replay admission. The independent real-CAF/native
-        // recovery contract must produce an observed RED before enabling it.
-        if source.profile == .parakeetTDTCoreML { throw TranscriptionReplayError.modelUnavailable }
         if source.profile == .whisperGGML || source.profile == .parakeetTDTCoreML {
             let windowed: WindowedSpeechRecognizer
             if source.profile == .parakeetTDTCoreML {

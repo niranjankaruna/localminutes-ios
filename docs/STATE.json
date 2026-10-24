@@ -3,17 +3,17 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T20:35:11.695Z",
+  "lastUpdated": "2026-10-24T20:47:50.404Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "MVP2 app integration, durable recovery, backup, endurance diagnostics and complete meeting deletion — test-first batch pending hosted assertions",
+  "currentTask": "MVP2 including native Parakeet: C6 actual decoder GREEN; final live/equip/replay and corrected backup fixture pending exact-SHA verification/package",
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "Push exact3SDKcompatibility fixes, run6/6 mvp2-parakeet summaryResume=false; observe actual native backend and2independentEquip/replayRED without claiming delivery. Then inspect allresults, fixonlyprovenfailures, andpersistexactnextaction/source at6-run boundary; ownerrequiresnativeParakeetinMVP2.",
+  "nextAction": "At NEXT legitimate goal continuation preserve/archive this6-run invocation record, recheck costguard, create fresh bounded invocation. Commit/push final repairs (exactreviewed nativeEquip, captured replay afterRED, strictinstalledmanifest.json acceptance, corrected realCAF fixture) and candidateGuide/workflowpackageMVP2 option. Create owner-only unpublished draft mvp-preview-<exactsource12> targeting finalfullSHA BEFORE dispatch. Run mvp2-parakeet summaryResume=false packageMVP2=true at exactsource; require all focused portable/nativeapp/nativeCoreML/recovery GREEN + package. Inspect actual8nativecases and7library cases; boundedfix only genuinefailures. DownloadIPA/checksum/buildmanifest; independentlymatchSHA/ZIPsource/build/schema, deliverMVP2WITHParakeet viaiLoaderguide, thencontinueMVP3. PhysicalgatesremainNOT_RUN; neverclaimVERIFIED_COMPLETE.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "4640aecb467d29a9c4b2bd5c90b1d4f1b0a956f5",
+  "remoteBranchHead": "048481c8c51bd097ffac6b535cd4101470acf3fd",
   "localScriptGreen": {
     "sourceCommit": "0181b311abedb3c32745b015be64d6e7c777032b",
     "platform": "Windows11/Node24.21.0",
@@ -33,25 +33,26 @@
     "id": "2026-10-24-mvp2-01",
     "startedAt": "2026-10-24T18:11:23.102Z",
     "maxNewRuns": 6,
-    "plannedNewRuns": 1,
+    "plannedNewRuns": 0,
     "newRunIds": [
       40119556084,
       40121343041,
       40124109356,
       40126813965,
-      40129821538
+      40129821538,
+      40130455240
     ],
-    "limitReached": false,
+    "limitReached": true,
     "costGuardObservedAt": "2026-10-24T19:45:21.646Z",
-    "costGuardBasis": "PUBLIC intended repository; standard free macos-15-intel plus official standard macos-15 Apple Silicon for native Core ML/app checks; no paid/larger runners, Actions artifact/cache storage or billing changes."
+    "costGuardBasis": "PUBLIC intended repository; standard free macos-15-intel plus official standard macos-15 Apple Silicon for native Core ML/app checks; no paid/larger runners, Actions artifact/cache storage or billing changes.",
+    "finishedAt": "2026-10-24T20:47:50.404Z"
   },
   "latestCIRun": {
-    "sourceCommit": "057fb5bfe8571aaba74509a9be9234274993d4ca",
-    "runId": 40129821538,
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40129821538",
+    "sourceCommit": "048481c8c51bd097ffac6b535cd4101470acf3fd",
+    "runId": 40130455240,
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40130455240",
     "status": "completed",
-    "conclusion": "cancelled",
-    "scope": "Native/portable compilation failed before tests; remaining jobs cancelled to stop duplicate known-failing compilation"
+    "conclusion": "failure"
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -135,7 +136,12 @@
     "validatedRepairAttempts": 1,
     "missingLookupPolicyNeedsRegressionRed": false
   },
-  "codeCompletedThisInvocation": [],
+  "codeCompletedThisInvocation": [
+    "T13 boundeddiagnostics implementation (native/coreGREEN; phonepending)",
+    "T15 confirmedfullcurrentmeetingdeletion (nativeartifactGREEN)",
+    "T18 durableactualPhi summaryresume (realmodelGREEN)",
+    "T25 nativeCoreML decoder (5actualmodelGREEN; appselection/replaypending)"
+  ],
   "codeCompletionScope": "Only the bounded MVP unsigned build delivery is complete. Full baseline remains IN_PROGRESS; no signing/phone/model-quality gate is waived or passed.",
   "ownerCompositionTestFirst": {
     "testCount": 12,
@@ -1681,7 +1687,9 @@
     "evidence": "docs/evidence/MVP1_MODEL_DELIVERY_2026_10_24.md"
   },
   "noExternalCodeBlocker": true,
-  "deliveryBlockers": [],
+  "deliveryBlockers": [
+    "Final exact-SHA verification and IPA package not yet produced; safe coding/next legitimate bounded continuation remain available."
+  ],
   "mvp2PreparedTests": {
     "summaryResume": 4,
     "replayIntegrity": 2,
@@ -1713,7 +1721,7 @@
   },
   "previousGoalTurnClassification": {
     "classification": "progress",
-    "evidence": "MVP1 delivered at4aec851/run40117673355,137focusedPASS and exactchecksummedIPA;37MVP2tests-firstcases prepared/pushed31513b1; checkpoint34ab9e9."
+    "evidence": "ActualMVP2RED37 beforebehavior; C6nativeapp10PASS, speechrecovery10PASS, portable277PASS, actualnativeCoreML5PASS, actualPhiresumeC4PASS; finalnativeadmissions actualRED andrepairs prepared. NoMVP2IPA yet."
   },
   "mvp2Reliability": {
     "state": "IN_PROGRESS",
@@ -1825,6 +1833,43 @@
       "repairAttempt": 1,
       "repairPrepared": true,
       "notBehavioralRED": true
+    },
+    "c6": {
+      "sourceCommit": "048481c8c51bd097ffac6b535cd4101470acf3fd",
+      "runId": 40130455240,
+      "portable": {
+        "executed": 281,
+        "passed": 277,
+        "failed": 4,
+        "assertionFailures": 5,
+        "skipped": 0,
+        "scope": "All4 failures are LibraryArchiveCoordinator fixture references to nonexistent segment000001; actual writer publishes000000. Corrected fixture derives path from committed manifest and validates realPCM."
+      },
+      "nativeApplication": {
+        "executed": 10,
+        "passed": 10,
+        "failed": 0,
+        "assertionFailures": 0,
+        "skipped": 0,
+        "durationSeconds": 2.206
+      },
+      "actualSpeechRecovery": {
+        "executed": 10,
+        "passed": 10,
+        "failed": 0,
+        "assertionFailures": 0,
+        "skipped": 0,
+        "durationSeconds": 51.471
+      },
+      "nativeCoreML": {
+        "executed": 8,
+        "passed": 5,
+        "failed": 3,
+        "assertionFailures": 17,
+        "skipped": 0,
+        "durationSeconds": 33.545,
+        "scope": "Direct5 actual-model cases PASS20.762s; independent nativeEquip FAIL7assert + replay FAIL9assert provide genuineRED; selectedLive preparefails because installed manifest.json rejected by strict rawassets-only loader."
+      }
     }
   },
   "parakeetNative": {
@@ -1843,7 +1888,16 @@
       "skipped": 0,
       "durationSeconds": 2.007
     },
-    "actualInference": false,
+    "actualInference": {
+      "verified": true,
+      "sourceCommit": "048481c8c51bd097ffac6b535cd4101470acf3fd",
+      "runId": 40130455240,
+      "jobId": 120980865423,
+      "platform": "standardAppleSilicon macos-15 CPUOnly",
+      "directCasesPassed": 5,
+      "durationSeconds": 20.762,
+      "physicalDevice": false
+    },
     "formerONNXDraft": "docs/drafts/PARAKEET_ONNX_SUPERSEDED_2026_10_24/README.md",
     "sourceModel": "nvidia/parakeet-tdt-0.6b-v2",
     "candidateConversion": "FluidInference/parakeet-tdt-0.6b-v2-coreml",
@@ -1860,11 +1914,19 @@
       "minimumSwiftTools": "6.2"
     },
     "testFirstCommit": "393227d59e558be628d13381b8372a0832fe3e20",
-    "pendingIndependentTestFirst": [
-      "actualModelSelectionAndReopen",
-      "actualCapturedNativeReplay"
-    ],
-    "mustIncludeInMVP2": true
+    "pendingIndependentTestFirst": [],
+    "mustIncludeInMVP2": true,
+    "newAdmissionRED": {
+      "sourceCommit": "048481c8c51bd097ffac6b535cd4101470acf3fd",
+      "runId": 40130455240,
+      "selectionAssertions": 7,
+      "replayAssertions": 9
+    },
+    "pendingGREEN": [
+      "installedLiveModelMetadata",
+      "realModelSelectionAndReopen",
+      "capturedNativeCAFReplay"
+    ]
   },
   "localPackageAudit": {
     "passed": 10,

@@ -152,9 +152,7 @@ public final class ModelSelectionStore {
         let valid: Bool
         switch profile {
         case .parakeetTDTCoreML:
-            // Tests-first admission: real native selection/reopen must show
-            // behavioral RED independently of an injected Live model provider.
-            valid = false
+            valid = manifest == ParakeetCoreMLModel.manifest
         case .llamaGGUF:
             valid = manifest.purpose == .summary && manifest.artifacts.count == 1 && roles == [.summary]
                 && manifest.artifacts[0].fileName.lowercased().hasSuffix(".gguf")
