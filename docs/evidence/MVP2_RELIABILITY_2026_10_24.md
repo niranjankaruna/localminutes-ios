@@ -101,3 +101,9 @@ Current repairs cover nativeCoreMLdecoder/worker/lifecycle/privacy, nestedmodeli
 Both interruption fixtures formerly emitted response/body/error back-to-back. C4zero-prefix doesnot establish thatFoundationdeliveredbytes toourdelegate. Strengthen onlyfaultscheduling: actualdownload must publish exact1024-byteprefix+checkpointSHA beforetestsignalsdisconnect; missingdurability remainsboundedfailure withcancellation/drain. Keepall11DownloadResumeoracles andFactoryresume/Range/IfRange/errors unchanged. No bytes fabricated, no arbitrarydelay tohidearace, no testskip/deletion.
 
 Two additional INDEPENDENT actual-model tests now cover realselection/reopen (not just an injectedLiveprovider) andcapturednativeCAFReplay. These admissions remainfail-closedstubs forC5actualRED; no hiddenpassingclaim or deliverednativeEquipyet. ActualPhi gate is not repeated forunrelatednativechanges; its exactsource evidence remains4640aec.
+
+## C5 native compile result
+
+Exact057fb5b/run40129821538 nativejob120978957517 failedcompilationwithzeroexecutedtests: FluidAudio module/type namecollisionforAppLogger, noasyncThread.isMainThread access, andUnownedJob SDKargumentlabel isolatedTo. First repair onlychangesloggingqualification, wrapsactualThreadmeasurementinsynchronoushelper, andcorrectsSDKlabel. No observerfacts/oracles/compute/hash/privacychecks areweakened. Two independentselection/replayadmissionsremainstubs: C5doesnotprove theirRED because compilationstopped. Already-passing actualPhi445.283s isexcludedfromthisunrelatedrerun asownerrequested.
+
+C5 remainingjobs were cancelled after the shared native compilation failure was conclusive, avoiding redundant build time. Terminalworkflowconclusioncancelled preserves native/portablefailedjobs; this isnotGREEN, notbehavioralRED, andno skippedtestacceptance. Exact3SDKfixesarethenextcandidate.

@@ -93,8 +93,8 @@ public actor CoreMLParakeetRecognizer {
             configuration.allowLowPrecisionAccumulationOnGPU = false
             // The upstream default mirrors Debug text to stderr, including
             // decoder text. Keep that route disabled for real meeting input.
-            FluidAudio.AppLogger.minimumLevel = .fault
-            FluidAudio.AppLogger.mirrorsToConsole = false
+            AppLogger.minimumLevel = .fault
+            AppLogger.mirrorsToConsole = false
             observe(.load)
             let models = try AsrModels.loadLocal(from: files.directory, version: .v2,
                                                 configuration: configuration)
@@ -250,7 +250,7 @@ public actor CoreMLParakeetRecognizer {
             executor.assertCurrent()
             try Task.checkCancellation()
             var state = try TdtDecoderState(decoderLayers: 2)
-            observer?(.decode, Thread.isMainThread, true, policy)
+            observer?(.decode, Self.isMainThread(), true, policy)
             return try await manager.transcribe(samples, decoderState: &state)
         }
         decodeID = operationID; decodeTask = task
@@ -279,6 +279,8 @@ public actor CoreMLParakeetRecognizer {
         worker.assertCurrent()
         executionObserver?(operation, Thread.isMainThread, true, computePolicy)
     }
+
+    private nonisolated static func isMainThread() -> Bool { Thread.isMainThread }
 
     private func validateModel(_ flag: CoreMLParakeetCancellation) throws {
         try checkCancellation(flag)
@@ -368,7 +370,7 @@ private final class CoreMLParakeetWorker: SerialExecutor, TaskExecutor {
     func enqueue(_ job: consuming ExecutorJob) {
         let unowned = UnownedJob(job)
         queue.async {
-            unowned.runSynchronously(isolatedOn: self.asUnownedSerialExecutor(),
+            unowned.runSynchronously(isolatedTo: self.asUnownedSerialExecutor(),
                                      taskExecutor: self.asUnownedTaskExecutor())
         }
     }
