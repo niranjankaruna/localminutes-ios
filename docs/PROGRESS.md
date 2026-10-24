@@ -860,3 +860,9 @@ Final repaircode5ac056f2e365233db655eae9e534e184b484d97c is pushed andlocal/HTTP
 ## MVP2 delivered at21:12UTC
 
 Source35c7cefb/run40132528745 terminalSUCCESS:309focusedPASS/0fail/skip, including8actualnativeParakeet/10actualspeechrecovery/10nativeapp/281portable. Real installed live/replay and full backup roundtrip nowPASS. arm64app+LiveActivityIPA15,779,005B locallyverifiedSHA25621b6feaf59824a2eb6ab92de68fdb07fc9eb36449ba58337b41771ad986ac7f6, source/plist/devicebinary/CRC verified. Deliveredbuild/delivery/MVP2-Parakeet-40132528745 withdocs/MVP2_GUIDE.md; owner-onlydraft retained. T25CODE_COMPLETE_PENDING_DEVICE; overallIN_PROGRESS, physicalgatesNOT_RUN. ContinuingMVP3test-first privacy/latestshortcut/measuredprogress andlicenseinventory;2/6CIrunsused.
+
+## Owner pause for model-setting change —21:30UTC
+
+Owner explicitly requested pause so GPT6.1Sol Medium selection can apply. Coding agents bootstrap_review/verified_models interrupted; meeting_storage already completed. No new CI dispatch. C10 run40134199884 at exact8edff56a96f051587d727812239937ccba51b9a5 was confirmed live immediately before pause; hosted jobs continue independently. Preserve same4/6run budget and inspect this handle on resume rather than restart it.
+
+MVP3 progress4 cases have actual C9RED15assert, implementation/UI nowpendingGREEN. NativeC9 was compilefailure0tests (optional reply value); XCTUnwrap correction is in C10, so native privacy/latestshortcut remain no-op stubs until actualRED. Licenseinventory/notices committed8edff56; actual unused-TTS artifact regression d6efa43:3cases2PASS1FAIL0skip0.316s; same-source ASR-only build plan is not implemented/wired. No final baseline or physical acceptance. Resume exact action is persisted in STATE/BACKLOG; MVP2 verified delivery remains available.

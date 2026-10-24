@@ -125,8 +125,12 @@ framework. A macOS universal2 **library tarball**, not an XCFramework, exists:
 independently verified SHA256
 `7bbaa4bf1c73a68cc9ea126967278873c86eeeb99774b544f3644e0a6200e993`.
 Its twelve libraries contain no `espeak_Initialize` or `phonemize_eSpeak` bytes;
-the C API archive contains the online-recognizer API. This is an investigation
-result, not native load/recognition/link proof. The tarball also contains unused
+the C API archive contains the online-recognizer API. Independent universal-ar
+and Mach-O symbol-table inspection finds 847 defined records in the C API and
+60,481 in the core library across arm64/x86_64, with zero forbidden eSpeak/Piper
+definitions; the online-recognizer constructor is defined for both architectures.
+This is an investigation result, not native load/recognition/link proof.
+The tarball also contains unused
 PortAudio and ORT libraries; blindly merging every archive is inappropriate.
 
 ## Remaining release evidence

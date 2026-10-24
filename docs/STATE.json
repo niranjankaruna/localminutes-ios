@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T21:24:51.001Z",
+  "lastUpdated": "2026-10-24T21:30:42.724Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -11,9 +11,9 @@
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "Push compile-only native test correction and actual-artifact unusedTTS regression; keep testfirstproof before ASRrepair. Progress candidate follows genuine4caseRED. Next bounded C10 runs corrected native privacy/shortcut RED + progress focusedGREEN, no model/fullsuite/package. Preserve deliveredMVP2.",
+  "nextAction": "On owner resume with selected model/effort: read checkpoint and inspect SAME C10 run40134199884 at8edff56a96f051587d727812239937ccba51b9a5. It was confirmedlive beforepause; do not restart solely due observationtimeout. Record actual portableGREEN/nativeRED or compilefailure. Native privacy/latestshortcut remainstubs untilactualRED; progressimplementation pendingGREEN. Continue same4/6invocationbudget, review ASR-only sourcebuild plan after d6actualIPA TTSRED; no strip/relicense. DeliveredMVP2 source35c7 staysavailable. PhysicalgatesNOT_RUN.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "677b477f346292e6922f5995997cf28b84143f4b",
+  "remoteBranchHead": "8edff56a96f051587d727812239937ccba51b9a5",
   "localScriptGreen": {
     "sourceCommit": "0181b311abedb3c32745b015be64d6e7c777032b",
     "platform": "Windows11/Node24.21.0",
@@ -37,17 +37,18 @@
     "newRunIds": [
       40131735329,
       40132528745,
-      40133352703
+      40133352703,
+      40134199884
     ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-24T20:52:13.101Z",
     "costGuardBasis": "Authenticated owner niranjankaruna/admin, intended PUBLIC repository and matching HTTPS remote HEAD36f9c7f; prior invocation terminal6/6, previous turn classified progress. Official standard free macos-15 AppleSilicon/macos-15-intel only; no cache/artifactstorage/billing/larger-runner spend."
   },
   "latestCIRun": {
-    "runId": 40133352703,
-    "sourceCommit": "677b477f346292e6922f5995997cf28b84143f4b",
-    "status": "completed",
-    "conclusion": "failure"
+    "runId": 40134199884,
+    "sourceCommit": "8edff56a96f051587d727812239937ccba51b9a5",
+    "status": "in_progress",
+    "conclusion": null
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -223,7 +224,12 @@
     "latestSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
     "latestRunUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180"
   },
-  "activeCIRun": null,
+  "activeCIRun": {
+    "runId": 40134199884,
+    "sourceCommit": "8edff56a96f051587d727812239937ccba51b9a5",
+    "status": "in_progress",
+    "conclusion": null
+  },
   "pendingPushScope": null,
   "repositoryVisibility": "PUBLIC",
   "publication": {
@@ -656,17 +662,18 @@
     }
   ],
   "executionPause": {
-    "requestedByOwner": true,
-    "paused": false,
-    "requestedAtUTC": "2026-10-23T23:14:31.300Z",
-    "reason": "Owner explicitly requested Resume LocalMinutes.",
-    "agentsStopped": true,
-    "candidateResearchSubprocessesActive": false,
-    "localCIWatchStopped": true,
-    "existingHostedWorkflowMayFinish": false,
-    "hostedRunId": 40079629180,
-    "resumeAction": "Next bounded invocation: read current required checkpoint, verify Git/PUBLIC zero-spend guard and terminal GREEN run40117673355 at4aec851; run targeted MVP2 portable RED (summaryresume4, HTTPresume11, archive10, SQLite snapshot5) plus actual-model recovery RED (integrity2, selectedmodel5). Implement only after actual assertions; keep modelchoice IPA4aec851 separate from test-first branch HEAD. No full-suite-per-edit run.",
-    "resumedAtUTC": "2026-10-24T05:49:57.365Z"
+    "status": "PAUSED_BY_OWNER",
+    "requestedAt": "2026-10-24T21:30:42.724Z",
+    "reason": "Owner asked to pause so GPT6.1Sol Medium selection can apply; effective current-turn setting is unverified.",
+    "sourceCommit": "8edff56a96f051587d727812239937ccba51b9a5",
+    "liveRunId": 40134199884,
+    "ciRunsUsed": 4,
+    "ciRunLimit": 6,
+    "agentsInterrupted": [
+      "bootstrap_review",
+      "verified_models"
+    ],
+    "noNewCIDispatch": true
   },
   "newTestFirstSlice": {
     "task": "T16.2 inputreservation",
@@ -1117,9 +1124,9 @@
     "productionRepairImplemented": false,
     "nextAction": "Deferred until owner resumes baseline work; add actual regressions before repair if strict TDD resumes."
   },
-  "executionPausedByOwner": false,
-  "goalPauseAuthorized": false,
-  "goalPauseReason": null,
+  "executionPausedByOwner": true,
+  "goalPauseAuthorized": true,
+  "goalPauseReason": "Owner asked to pause so GPT6.1Sol Medium selection can apply; effective current-turn setting is unverified.",
   "mvpArtifact": {
     "status": "READY_FOR_DEVICE_VALIDATION",
     "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
@@ -2054,6 +2061,25 @@
       "jobId": 120989603247,
       "executed": 0,
       "reason": "IntentResultContainer.value is String?; contains requires XCTUnwrap. No nativeRED inferred."
-    }
+    },
+    "progressImplementedPendingGREEN": true,
+    "nativeREDVerified": false,
+    "correctedRunId": 40134199884
+  },
+  "nativeDependencyHygiene": {
+    "state": "IN_PROGRESS",
+    "testFirstCommit": "d6efa438161bfe23079e6409707fe127201e74c0",
+    "actualRED": {
+      "platform": "Windows11 bundledPython",
+      "artifactSource": "35c7cefb946af188f5cc09858dca4ab180d72eab",
+      "executed": 3,
+      "passed": 2,
+      "failed": 1,
+      "skipped": 0,
+      "durationSeconds": 0.316,
+      "definedTTSsymbolCount": 21
+    },
+    "productionDependencyChanged": false,
+    "sourceBuildCandidate": "same sherpa11afbd0 ASR-only; no iOS no-TTS prebuilt verified"
   }
 }
