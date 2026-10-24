@@ -4,6 +4,7 @@ import Foundation
 import XCTest
 #if SWIFT_PACKAGE
 import LocalMinutesCore
+import LocalMinutesMeetingLibrary
 @testable import LocalMinutesRecording
 #else
 @testable import LocalMinutes
@@ -261,7 +262,8 @@ private final class OwnerTestHarness {
     private let parent: URL
 
     init(rate: Double = 16_000, channels: AVAudioChannelCount = 1,
-         beforeReservation: (@MainActor @Sendable () async -> Void)? = nil) throws {
+         beforeReservation: (@MainActor @Sendable () async -> Void)? = nil,
+         usageAdmission: (any RecordingUsageAdmission)? = nil) throws {
         let fixtureParent = FileManager.default.temporaryDirectory
             .resolvingSymlinksInPath().standardizedFileURL
         let fixtureRoot = fixtureParent.appendingPathComponent("localminutes-owner-test-\(UUID().uuidString)")
@@ -284,12 +286,12 @@ private final class OwnerTestHarness {
             owner = RecordingSessionOwner(
                 permission: permissionBoundary, hardware: hardwareBoundary,
                 activityBackend: activityBoundary, preparation: modelBoundary,
-                beforeReservation: beforeReservation
+                beforeReservation: beforeReservation, usageAdmission: usageAdmission
             )
         } else {
             owner = RecordingSessionOwner(
                 permission: permissionBoundary, hardware: hardwareBoundary,
-                activityBackend: activityBoundary, preparation: modelBoundary
+                activityBackend: activityBoundary, preparation: modelBoundary, usageAdmission: usageAdmission
             )
         }
     }
@@ -373,10 +375,11 @@ final class RecordingSessionOwnerTests: XCTestCase {
     private func withHarness(
         rate: Double = 16_000, channels: AVAudioChannelCount = 1,
         beforeReservation: (@MainActor @Sendable () async -> Void)? = nil,
+        usageAdmission: (any RecordingUsageAdmission)? = nil,
         _ body: @MainActor (OwnerTestHarness) async throws -> Void
     ) async throws {
         let harness = try OwnerTestHarness(rate: rate, channels: channels,
-                                          beforeReservation: beforeReservation)
+                                          beforeReservation: beforeReservation, usageAdmission: usageAdmission)
         do { try await body(harness) }
         catch {
             await harness.cleanup()
@@ -1966,5 +1969,178 @@ extension RecordingSessionOwnerTests {
             XCTAssertEqual(h.activity.requests, [replacementID])
             try await complete { await h.owner.stop(sessionID: replacementID) }
         }
+    }
+}
+
+
+// APPEND to Tests/RecordingTests/RecordingSessionOwnerTests.swift outside iOS-only
+// blocks. Add import LocalMinutesMeetingLibrary in the SWIFT_PACKAGE import branch.
+// See README for the narrow test-harness usageAdmission forwarding signatures.
+// Boundary resources below claim no actual inference; owner/queue/conversion/CAF/
+// usage registry and heavy gate are the actual implementations.
+@MainActor
+extension RecordingSessionOwnerTests {
+    func testHeldSummaryOrQAHeavyClaimBlocksActualOwnerBeforePreparationAndOSUse() async throws {
+        for purpose in [HeavyModelPurpose.summary, .questionAnswering] {
+            let gate = HeavyModelAdmission()
+            let usage = MeetingUsageRegistry()
+            let bridge = RecordingHeavyModelAdmission(usageRegistry: usage, heavyAdmission: gate)
+            let resource = OwnerHeavyBoundaryResource()
+            let held = try gate.acquire(purpose: purpose, requestID: UUID(), resource: resource)
+            do {
+                try await withHarness(usageAdmission: bridge) { h in
+                    bridge.bind(owner: h.owner)
+                    try await complete { await h.owner.start(sessionID: h.id) }
+                    let blocked = await h.owner.snapshot()
+                    XCTAssertEqual(blocked.phase, .idle)
+                    XCTAssertNil(blocked.sessionID)
+                    XCTAssertNil(blocked.failure)
+                    XCTAssertFalse(blocked.cleanupPending)
+                    XCTAssertTrue(h.preparation.requests.isEmpty)
+                    XCTAssertEqual(h.permission.requests, 0)
+                    XCTAssertEqual(h.hardware.startCalls, 0)
+                    XCTAssertTrue(h.activity.requests.isEmpty)
+                    XCTAssertFalse(FileManager.default.fileExists(atPath: h.directory.path))
+                    XCTAssertNil(h.owner.completedManifest)
+                    XCTAssertEqual(gate.snapshot().lease, held)
+                    // A denied heavy claim must not leak the registry's real
+                    // per-meeting token. Release only a token this check acquires.
+                    do { let check = try usage.beginRecording(meetingID: h.id); usage.endRecording(check) }
+                    catch { XCTFail("Blocked start leaked the real meeting claim: \(error)") }
+                    if !h.preparation.requests.isEmpty {
+                        // RED cleanup only, after all wrong-resource assertions.
+                        try await complete { await h.owner.stop() }
+                    }
+                    try await gate.cancelAndDrain(held)
+                    XCTAssertEqual(resource.cancellations, 1)
+                    XCTAssertEqual(resource.drains, 1); XCTAssertEqual(resource.unloads, 1)
+                    let allowedDirectory = h.root.appendingPathComponent("allowed-after-heavy-release", isDirectory: true)
+                    h.preparation.result = .ready(directory: allowedDirectory)
+                    try await complete { await h.owner.start(sessionID: h.id) }
+                    if h.hardware.tap != nil { try h.hardware.emit(signal(h), sampleTime: 40_000) }
+                    let recording = await ownerEventually { await h.owner.snapshot().phase == .recording }
+                    XCTAssertTrue(recording)
+                    try await complete { await h.owner.stop() }
+                    let manifest = try XCTUnwrap(h.owner.completedManifest)
+                    XCTAssertEqual(manifest.sessionID, h.id); XCTAssertEqual(manifest.totalFrames, 64)
+                    XCTAssertEqual(try decode(manifest, directory: allowedDirectory).count, 64)
+                    XCTAssertEqual(gate.snapshot().phase, .idle)
+                }
+            } catch {
+                if gate.snapshot().lease == held { try? await gate.cancelAndDrain(held) }
+                throw error
+            }
+        }
+    }
+
+    func testActualASRReservationHoldsHeavyGateThroughPreparationTranscriptActivityAndAsyncFinish() async throws {
+        let gate = HeavyModelAdmission()
+        let usage = MeetingUsageRegistry()
+        let bridge = RecordingHeavyModelAdmission(usageRegistry: usage, heavyAdmission: gate)
+        try await withHarness(usageAdmission: bridge) { h in
+            bridge.bind(owner: h.owner)
+            h.preparation.hold = true
+            let startDone = OwnerTestProbe(), stopDone = OwnerTestProbe()
+            let starting = Task { await h.owner.start(sessionID: h.id); startDone.finished = true }
+            defer { starting.cancel(); h.preparation.resolve(.rejected(.modelUnavailable)); h.preparation.resolveFinish() }
+            let prepared = await ownerEventually { h.preparation.isWaiting }
+            XCTAssertTrue(prepared)
+            guard prepared else { return }
+            let asr = gate.snapshot().lease
+            XCTAssertEqual(asr?.purpose, .streamingASR)
+            XCTAssertEqual(asr?.requestID, h.id)
+            await assertOwnerHeavyBusy(gate)
+            h.preparation.resolve(.ready(directory: h.directory))
+            let started = await ownerEventually { startDone.finished }
+            XCTAssertTrue(started)
+            guard started else { return }
+            await starting.value
+            if h.hardware.tap != nil { try h.hardware.emit(signal(h), sampleTime: 40_000) }
+            let recording = await ownerEventually { await h.owner.snapshot().phase == .recording }
+            XCTAssertTrue(recording)
+            await assertOwnerHeavyBusy(gate)
+            h.preparation.holdFinish = true
+            h.activity.handles[0].holdEnd = true
+            defer { h.activity.handles[0].releaseEnd() }
+            let stopping = Task { await h.owner.stop(); stopDone.finished = true }
+            defer { stopping.cancel() }
+            let drainingTranscript = await ownerEventually { h.preparation.finishIsWaiting || stopDone.finished }
+            XCTAssertTrue(drainingTranscript); XCTAssertTrue(h.preparation.finishIsWaiting)
+            XCTAssertFalse(stopDone.finished); XCTAssertNil(h.owner.completedManifest)
+            XCTAssertEqual(gate.snapshot().lease, asr)
+            await assertOwnerHeavyBusy(gate)
+            do { _ = try usage.beginRecording(meetingID: h.id); XCTFail("Transcript drain still owns the actual meeting lease") }
+            catch { XCTAssertEqual(error as? MeetingDeletionError, .meetingInUse) }
+            let durable = try durableManifest(h.directory)
+            XCTAssertEqual(durable.totalFrames, 64)
+            XCTAssertEqual(try decode(durable, directory: h.directory).count, 64)
+            h.preparation.resolveFinish()
+            let endingActivity = await ownerEventually { h.activity.handles[0].endIsWaiting || stopDone.finished }
+            XCTAssertTrue(endingActivity); XCTAssertTrue(h.activity.handles[0].endIsWaiting)
+            XCTAssertFalse(stopDone.finished); XCTAssertNil(h.owner.completedManifest)
+            XCTAssertEqual(gate.snapshot().lease, asr)
+            await assertOwnerHeavyBusy(gate)
+
+            // Exercise external gate cancellation while actual owner Stop is
+            // already waiting for Activity. Resource.drain must await an
+            // independent settled barrier, never await owner.stop (self-join).
+            let gateDone = OwnerHeavyResult()
+            let closing: Task<Void, Never>?
+            if let asr {
+                closing = Task {
+                    do { try await gate.cancelAndDrain(asr); gateDone.result = .success(()) }
+                    catch { gateDone.result = .failure(error) }
+                }
+                let gateDraining = await ownerEventually { gate.snapshot().phase == .draining }
+                XCTAssertTrue(gateDraining)
+                XCTAssertFalse(stopDone.finished); XCTAssertNil(gateDone.result)
+            } else { closing = nil }
+            defer { closing?.cancel() }
+            h.activity.handles[0].releaseEnd()
+            let settled = await ownerEventually { stopDone.finished && (closing == nil || gateDone.result != nil) }
+            XCTAssertTrue(settled, "Async admission finalization must not self-join owner cleanup")
+            guard settled else { return }
+            await stopping.value
+            if let closing { await closing.value; try gateDone.result?.get() }
+            XCTAssertEqual(gate.snapshot().phase, .idle)
+            let final = await h.owner.snapshot()
+            XCTAssertEqual(final.phase, .completed); XCTAssertFalse(final.cleanupPending)
+            XCTAssertEqual(h.owner.completedManifest?.totalFrames, 64)
+            let check = try usage.beginRecording(meetingID: h.id); usage.endRecording(check)
+            let replacement = OwnerHeavyBoundaryResource()
+            let next = try gate.acquire(purpose: .questionAnswering, requestID: h.id, resource: replacement)
+            if let asr {
+                XCTAssertNotEqual(next.generation, asr.generation)
+                do { try gate.validate(asr); XCTFail("Old recording lease cannot validate a same-ID replacement") }
+                catch { XCTAssertEqual(error as? HeavyModelAdmissionError, .staleLease) }
+            }
+            XCTAssertEqual(gate.snapshot().lease, next)
+            try await gate.cancelAndDrain(next)
+        }
+    }
+}
+
+@MainActor
+private final class OwnerHeavyBoundaryResource: HeavyModelResourceLifecycle {
+    private(set) var cancellations = 0, drains = 0, unloads = 0
+    func requestCancellation() { cancellations += 1 }
+    func drain() async throws { drains += 1 }
+    func unloadAndReleaseModel() async throws { unloads += 1 }
+}
+
+@MainActor
+private final class OwnerHeavyResult { var result: Result<Void, Error>? }
+
+@MainActor
+private func assertOwnerHeavyBusy(_ gate: HeavyModelAdmission,
+                                  file: StaticString = #filePath, line: UInt = #line) async {
+    for purpose in [HeavyModelPurpose.summary, .questionAnswering] {
+        let boundary = OwnerHeavyBoundaryResource()
+        do {
+            let unexpected = try gate.acquire(purpose: purpose, requestID: UUID(), resource: boundary)
+            XCTFail("Actual owner did not reserve the shared heavy gate", file: file, line: line)
+            // Dispose only the unexpected claim acquired by this failed check.
+            try await gate.cancelAndDrain(unexpected)
+        } catch { XCTAssertEqual(error as? HeavyModelAdmissionError, .busy, file: file, line: line) }
     }
 }

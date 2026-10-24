@@ -99,6 +99,8 @@ public final class IntelligenceSession {
     private let store: SQLiteMeetingStore
     private let models: ModelInstallationManager
     private let admission: HeavyModelAdmission
+    // Read-only composition observation; this is the actual stored dependency.
+    var heavyAdmissionIdentity: HeavyModelAdmission { admission }
     private let manifest: ModelManifest
     private let runtimeLoader: IntelligenceRuntimeLoader
     private var current: Use?

@@ -691,14 +691,20 @@
           "status": "IN_PROGRESS",
           "testCount": 3,
           "draftPath": "docs/drafts/T12Signals/README.md",
-          "inActiveBuildPaths": false,
+          "inActiveBuildPaths": true,
           "redEvidence": [
             "docs/evidence/T12_T13_T18_T19_TDD.md"
           ],
-          "greenEvidence": [],
+          "greenEvidence": [
+            "docs/evidence/T12_T13_T18_T19_TDD.md"
+          ],
           "deviceEvidence": [],
-          "scope": "Test-first interfaces and reviewed tests activated; compiled assertion RED pending. No new working behavior.",
-          "draft": "docs/drafts/T12Signals/README.md"
+          "scope": "Actual real-speech interruption and two native SDK signal cases pass after cc5049f assertion RED; early held-model interruption regression also passes source3/source4 core. No physical reset/route/locked/endurance result; pressure controls and other recovery work remain pending.",
+          "draft": "docs/drafts/T12Signals/README.md",
+          "redVerified": true,
+          "productionImplemented": true,
+          "greenSourceCommit": "8ae153b615bda64c77568ddf1f49f0af504f64f1",
+          "greenRunId": 40084170930
         },
         {
           "id": "T12.3",
@@ -710,7 +716,9 @@
           ],
           "greenEvidence": [],
           "deviceEvidence": [],
-          "scope": "Active test-first interfaces only; compatible assertion RED pending. No working behavior before RED."
+          "scope": "Three native application-retention/early-permission cases have actual source2 RED; retained exact-epoch app wiring is implemented. Source3 canary gate and source4 stale-root compile failure prevented native re-execution, so app-level GREEN remains pending.",
+          "redVerified": true,
+          "productionImplemented": true
         }
       ],
       "redEvidence": [],
@@ -749,9 +757,15 @@
           "redEvidence": [
             "docs/evidence/T12_T13_T18_T19_TDD.md"
           ],
-          "greenEvidence": [],
+          "greenEvidence": [
+            "docs/evidence/T12_T13_T18_T19_TDD.md"
+          ],
           "deviceEvidence": [],
-          "scope": "Test-first interfaces and reviewed tests activated; compiled assertion RED pending. No new working behavior."
+          "scope": "All five portable measured/codec/actual-ASR instrumentation cases pass, plus actual two-meeting reset regression. Source4 all296core/86TSAN pass; app diagnostics/persist/visibility binding and physical evidence remain separate pending work.",
+          "redVerified": true,
+          "productionImplemented": true,
+          "greenSourceCommit": "18f162169a716f0bede99f9240f71cccd6568815",
+          "greenRunId": 40089155104
         },
         {
           "id": "T13.2",
@@ -763,7 +777,9 @@
           ],
           "greenEvidence": [],
           "deviceEvidence": [],
-          "scope": "Test-first minimal interfaces only; no implementation before compatible assertions. UI fixture RED is separate from product UI RED."
+          "scope": "Three active native metrics cases remain nil/no-op/throwing seams. Source3 canary and source4 compile harness failures prevented execution: no RED yet, no default metric wiring/scene checkpoint/file behavior implemented.",
+          "redVerified": false,
+          "productionImplemented": false
         }
       ],
       "redEvidence": [],
@@ -983,9 +999,30 @@
           "redEvidence": [
             "docs/evidence/T12_T13_T18_T19_TDD.md"
           ],
+          "greenEvidence": [
+            "docs/evidence/T12_T13_T18_T19_TDD.md"
+          ],
+          "deviceEvidence": [],
+          "scope": "Four heavy admission lifecycle/concurrency boundary cases pass after actual source2 RED, including failed cleanup retained exclusion. Default App ASR/LLM wiring and actual combined-model exclusion remain separate mandatory work.",
+          "redVerified": true,
+          "productionImplemented": true,
+          "greenSourceCommit": "18f162169a716f0bede99f9240f71cccd6568815",
+          "greenRunId": 40089155104
+        },
+        {
+          "id": "T17.5",
+          "title": "App-owned shared ASR and summary/QA resource admission",
+          "status": "IN_PROGRESS",
+          "testCount": 3,
+          "redEvidence": [
+            "docs/evidence/T12_T13_T18_T19_TDD.md"
+          ],
           "greenEvidence": [],
           "deviceEvidence": [],
-          "scope": "Active test-first interfaces only; compatible assertion RED pending. No working behavior before RED."
+          "redVerified": false,
+          "productionImplemented": false,
+          "draft": "docs/drafts/T17AppAdmission/README.md",
+          "scope": "Two active portable real-owner/CAF/admission composition cases and one native default Services identity case. Nil/pass-through seams only; require actual hosted assertion RED before production wiring."
         }
       ],
       "redEvidence": [
@@ -1060,7 +1097,9 @@
           ],
           "greenEvidence": [],
           "deviceEvidence": [],
-          "scope": "Test-first interfaces and reviewed tests activated; compiled assertion RED pending. No new working behavior."
+          "scope": "Four pure map/cancel/nested-schema cases pass. Actual nested Qwen source3 positive map is rejected unsupportedClaim; first evidence-order repair source4 did not yield a completed pipeline case before20min job cancellation. Do not infer semantic GREEN; full natural-source/notes/representative quality still pending.",
+          "redVerified": true,
+          "productionImplemented": true
         },
         {
           "id": "T18.4",
@@ -1070,21 +1109,29 @@
           "redEvidence": [
             "docs/evidence/T12_T13_T18_T19_TDD.md"
           ],
-          "greenEvidence": [],
+          "greenEvidence": [
+            "docs/evidence/T12_T13_T18_T19_TDD.md"
+          ],
           "deviceEvidence": [],
-          "scope": "Active test-first interfaces only; compatible assertion RED pending. No working behavior before RED."
+          "scope": "Four actual SQLite schema4/migration/immutable JSON/provenance/CAS/cascade cases pass after source2 RED; all296core regressions pass source4. Generated editing/display/export app flows are not established by storage tests.",
+          "redVerified": true,
+          "productionImplemented": true,
+          "greenSourceCommit": "18f162169a716f0bede99f9240f71cccd6568815",
+          "greenRunId": 40089155104
         },
         {
           "id": "T18.5",
           "title": "App-owned actual-backed intelligence with durable generated results",
           "status": "IN_PROGRESS",
-          "testCount": 5,
+          "testCount": 6,
           "redEvidence": [
             "docs/evidence/T12_T13_T18_T19_TDD.md"
           ],
           "greenEvidence": [],
           "deviceEvidence": [],
-          "scope": "Test-first minimal interfaces only; no implementation before compatible assertions. UI fixture RED is separate from product UI RED."
+          "scope": "Four original orchestration cases pass source4 core after source3 RED; actual default pinned loader/service fails generationFailed344.789s and is not GREEN. New sixth case (blocked real SQLite commit cancellation) is test-first only/unfixed pending hosted RED; actual service plus full app integration remain pending.",
+          "redVerified": true,
+          "productionImplemented": true
         }
       ],
       "redEvidence": [],
@@ -1141,7 +1188,9 @@
           ],
           "greenEvidence": [],
           "deviceEvidence": [],
-          "scope": "Test-first interfaces and reviewed tests activated; compiled assertion RED pending. No new working behavior."
+          "scope": "Three portable QA cases pass, actual semantic contract failed source4 over-refusal. Final balanced generic attempt3 applied, actual verification pending; both status domains, full IDs, free quote and all raw native assertions retained. No fourth blind retry.",
+          "redVerified": true,
+          "productionImplemented": true
         }
       ],
       "redEvidence": [],
@@ -1279,8 +1328,8 @@
     }
   ],
   "executionPausedByOwner": false,
-  "resumeAction": "Push third source after terminal run2. Require292oldcore/65oldnative GREEN, observe bounded QA repair and synthetic summary diagnostics. New app-service4core+1actual/model, appmetrics3native and library3UI remain interfaces only: obtain actual RED before their behavior. Library fixture failure alone does not authorize Summary/Ask UI until fixture data exists and product assertions are reached.",
-  "lastUpdated": "2026-10-24T10:39:26.277Z",
+  "resumeAction": "Push reviewed source5 now: lazy App accessor compile repair; cancellation plus shared-app-admission four new tests/stubs; final QA attempt3 and metadata-only generation diagnostics; actual-model30min. Require299core/71native reached assertions and full8real-model cases. Native metrics/fixture still no-op pending actual RED. Current4/6terminal, source6 reserved for evidence-backed implementation.",
+  "lastUpdated": "2026-10-24T11:44:20.250Z",
   "latestVerification": {
     "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
     "runId": 40079629180,

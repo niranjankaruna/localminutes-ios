@@ -1,0 +1,19 @@
+import Foundation
+
+/// Replace the existing Core protocol declaration at activation, preserving its
+/// two existing methods. Adding only an extension method would not dynamically
+/// dispatch the bridge's async cleanup through the existential owner field.
+@MainActor
+public protocol RecordingUsageAdmission: AnyObject {
+    func acquireRecordingUsage(meetingID: UUID) -> UUID?
+    func releaseRecordingUsage(meetingID: UUID, token: UUID)
+    /// Owner calls only after capture, transcript/model and Activity barriers,
+    /// before captureStopped/completedManifest or releasing its current epoch.
+    func finishRecordingUsage(meetingID: UUID, token: UUID) async throws
+}
+
+public extension RecordingUsageAdmission {
+    func finishRecordingUsage(meetingID: UUID, token: UUID) async throws {
+        releaseRecordingUsage(meetingID: meetingID, token: token)
+    }
+}

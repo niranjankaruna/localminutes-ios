@@ -217,3 +217,32 @@ Actual service orchestration/default CPU loader implemented only after source3 f
 Compiled Debug canary reader now handles the exact documented NAME.debug.dylib code image when present (otherwise main executable), requires actual Mach-O headers and positive canary/launch mode, and prints bounded image metadata. Release app+extension exclusion remains unchanged and strict. SDK app metrics/fixture seeding remain no-op until their native/UI assertions execute.
 
 Source3 actual model execution617.9seconds plus preparation/compilation nearly filled15minute job while the default service was still a stub. Real service adds two actual generations; bound that job at20minutes (<45spec), same free standard public runner, no uploads/payment changes. Other15/35minute bounds, six-run cap and one active run/branch unchanged. Current3/6runs terminal; source4 expected296core/68native/8actualmodel/6UI.
+
+
+## Source4 portable GREEN; native harness still prevents assertion execution
+
+Exact `18f162169a716f0bede99f9240f71cccd6568815` / [run40089155104](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40089155104), terminal corejob120858086927:296executed296passed0fail/skip,59Nodepassed,86ThreadSanitizerpassed0reportedraces. All four app-owned intelligence orchestration cases are GREEN. Actual default-loader/model semantic quality is still running and is not inferred from these boundary cases.
+
+Nativejob120858087063: Release product/build, original product2, compiled fixture-boundary2 (strict Release exclusion and actual Debug positive) and archive13 stages pass. Both app-unit and UI xcodebuild test steps fail compilation at the unchanged original owner identity assertion, RecordingSessionOwnerTests.swift:1242, because LocalMinutesApp deferred shared composition removed application. Zero native/UI cases execute: no metrics or fixture RED, no repair to their no-op APIs. Minimal harness compatibility repair restores application as a lazy computed shared accessor and uses it only in existing non-fixture branches. No default Services is evaluated from the isolated fixture branch. Physical7 compile-only/0executed remain NOT_RUN.
+
+Review adds one test-first actual SQLite blocked-commit cancellation regression; production save cancellation is unchanged pending its actual RED. Three app shared-heavy-admission composition cases are being activated with nil/pass-through seams only. Four of six CI runs used; source4 actual-model job must terminate before next push.
+
+
+## Source4 incomplete actual-model suite and terminal run
+
+Exact18f162169a716f0bede99f9240f71cccd6568815/run40089155104 completed FAILED at11:35:50UTC. ActualQwenjob120858087150 conclusion cancelled at configured20minute boundary; no agent cancellation or superseding push. Only three cases complete: tokenizerPASS413.220s; default real serviceFAILgenerationFailed344.789s (catch54 does not prove which generation/cause); QAFAIL114.161s with5positive-budget assertions plus its two actual outputs. QA attempt2 over-refuses the known42000budget: raw insufficient_evidence/none/empty. The unknown-owner raw refusal assertions pass this run, but the overall semantic contract fails. Do not normalize/force answers or mark QA complete.
+
+Actual nested pipeline starts11:33:07 but no completed map/case is available before cancellation11:35:07. Four old runtime cases never start. There is NO complete XCTest aggregate or8-case result; do not count interrupted/unstarted cases as passes, failures or skips. Partial observations:3completed/1pass/2fail/6assertions(1unexpected),1interrupted/4notstarted. No new pipeline semantic repair is justified by this incomplete case.
+
+Retain every mandatory model/quality oracle; actual job bound increases20→30minutes (<45spec) based measured344.8+413.2+114.2seconds before the remaining5cases. Same standard public macos-15-intel, no uploads/cache/cost. QA final third bounded semantic repair is under review; original status domains, all source IDs, unconstrained quote and raw actual-model assertions remain fixed. Current4of6runs terminal; two remain.
+
+
+## Fifth-source test-first preparation
+
+Added test-first T17.5: two portable actual owner/CAF/usage/HeavyModelAdmission composition cases and one native default-services identity case. Production bridge is pass-through, Services heavy/intelligence fields nil, and owner does not invoke the new async finish seam. Existing owner assertions unchanged; static independent review corrected only the new harness later-start directory so actual CAF does not collide with its own RED cleanup. Core/native/TSAN strict reporters require the exact new names.
+
+Added one actual blocked-SQLite-writer cancellation regression to T18.5; production commit cancellation remains unfixed. A real second BEGIN IMMEDIATE holds the save, explicit cancellation/draining is observed before rollback releases the writer within1000ms timeout, then unchanged acceptance requires no saved row/visible result, cancelled status, original notes/transcripts/model preserved and resources released. No mocked persistence or delete-after-save workaround. Original four cases unchanged.
+
+Source5 expected299core/71native/88TSAN/8actualmodel/6UI, plus59Node/2product/2compiled-fixture-boundary/13archive. New source5 RED is pending; tests in source4 native/UI never ran and remain no-op. Lazy LocalMinutesApp.application accessor compatibility preserves the original ownership assertion and avoids default storage access from the isolated fixture branch.
+
+After source4 actual QA over-refusal, final bounded attempt3 replaces long examples with balanced generic requested-fact policy. Both statuses/full source IDs/unconstrained quotes and raw actual inference assertions unchanged. No fourth blind QA repair is authorized. Summary pipeline itself is unchanged; DEBUG runtime failure-only diagnostics record literal stage and numeric counts, never text/path/token IDs or retained partial output. Actual default-service fixed-synthetic test labels only summary/question-answer/persistence stage in catch, retaining the real default loader and every oracle. All static diff/JSON checks pass; hosted compile/results are pending.

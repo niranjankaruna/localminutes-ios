@@ -18,6 +18,7 @@ final class ActualIntelligenceCompositionTests: XCTestCase {
         // Fixture verifies all 1,117,320,736 bytes and the reviewed SHA before
         // the real manager imports/copies and verifies the artifact independently.
         let h = try await IntelligenceFixture.create(actualModel: URL(fileURLWithPath: path))
+        var stage = "summary"
         do {
             let session = IntelligenceSession(store: h.store, models: h.models, admission: h.admission,
                                               manifest: h.manifest) // mandatory DEFAULT actual loader
@@ -31,6 +32,7 @@ final class ActualIntelligenceCompositionTests: XCTestCase {
             XCTAssertEqual(action["owner"] as? String, "Leo"); XCTAssertEqual(action["due"] as? String, "Thursday")
             XCTAssertEqual(summary.modelRevision, "91cad51170dc346986eccefdc2dd33a9da36ead9")
             XCTAssertEqual(summary.promptVersion, "grounded-map-v1")
+            stage = "question-answer"
             let answer = try await session.run(h.request(.question("Who will write the guide?")))
             let answerJSON = try XCTUnwrap(try JSONSerialization.jsonObject(with: answer.originalJSON) as? [String: Any])
             XCTAssertEqual(answerJSON["status"] as? String, "supported_quote")
@@ -39,6 +41,7 @@ final class ActualIntelligenceCompositionTests: XCTestCase {
                 && ($0["quote"] as? String)?.contains("guide") == true })
             XCTAssertFalse(String(decoding: answer.originalJSON, as: UTF8.self).contains("telescope"))
             XCTAssertFalse(String(decoding: summary.originalJSON, as: UTF8.self).contains("telescope"))
+            stage = "persistence-verification"
             XCTAssertEqual(h.admission.snapshot().phase, .idle)
             try await h.models.remove(modelID: h.manifest.modelID)
             try await h.store.close()
@@ -51,6 +54,11 @@ final class ActualIntelligenceCompositionTests: XCTestCase {
             XCTAssertEqual(savedSummary, summary); XCTAssertEqual(savedAnswer, answer)
             XCTAssertEqual(transcript, h.segments); XCTAssertEqual(note, h.note); XCTAssertTrue(other.isEmpty)
             try await reopened.close(); try await h.closeAndRemove()
-        } catch { try? await h.closeAndRemove(); throw error }
+        } catch {
+            // Fixed synthetic corpus only; never include model output, prompt,
+            // private paths, user source text or arbitrary error descriptions.
+            print("SYNTHETIC_INTELLIGENCE_FAILURE stage=\(stage)")
+            try? await h.closeAndRemove(); throw error
+        }
     }
 }

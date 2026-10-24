@@ -1,4 +1,5 @@
 import Foundation
+import SQLite3
 import XCTest
 import LocalMinutesCore
 import LocalMinutesModels
@@ -194,6 +195,89 @@ final class IntelligenceSessionTests: XCTestCase {
         }
     }
 
+    func testCancellationBeforeBlockedSQLiteCommitSavesNothingAndPreservesOriginalsAndModel() async throws {
+        let h = try await IntelligenceFixture.create()
+        let runtime = IntelligenceBoundaryRuntime(replies: [try h.rawSummary()], holdGeneration: true)
+        let loader = IntelligenceBoundaryLoader([runtime])
+        let session = IntelligenceSession(store: h.store, models: h.models, admission: h.admission,
+            manifest: h.manifest, runtimeLoader: { try await loader.load($0) })
+        let request = h.request(.summary)
+        let installedModel = try await h.models.current(modelID: h.manifest.modelID)
+        let originalModel = try XCTUnwrap(installedModel)
+        let modelFile = try XCTUnwrap(originalModel.files[.summary])
+        let originalModelBytes = try Data(contentsOf: modelFile)
+        let running = Task { try await session.run(request) }
+        var writer: IntelligenceSQLiteWriteLock?
+        var closing: Task<Void, Error>?
+        do {
+            let started = await intelligenceEventually { await runtime.generating }
+            XCTAssertTrue(started)
+            guard started else { throw IntelligenceDraftError.neverStarted }
+            writer = try IntelligenceSQLiteWriteLock(databaseURL: h.database)
+            let clock = ContinuousClock()
+            let heldAt = clock.now
+            let releaseBy = heldAt.advanced(by: .milliseconds(500))
+            // BEGIN IMMEDIATE on the second real connection prevents any service
+            // writer from committing while the generated result reaches saving.
+            await runtime.releaseGeneration()
+            let saving = await waitForPhase(.saving, session: session, until: releaseBy)
+            XCTAssertTrue(saving, "The real SQLite save must be pending behind the held writer")
+            guard saving else { throw IntelligenceSQLiteLockError.deadlineExceeded }
+            XCTAssertEqual(try writer?.generatedRowCount(), 0)
+            closing = Task { try await session.cancelAndDrain(requestID: request.id) }
+            let draining = await waitForPhase(.draining, session: session, until: releaseBy)
+            XCTAssertTrue(draining, "Cancellation must be accepted before releasing the pre-commit writer")
+            guard draining else { throw IntelligenceSQLiteLockError.deadlineExceeded }
+            XCTAssertEqual(try writer?.generatedRowCount(), 0)
+            XCTAssertLessThan(heldAt.duration(to: clock.now), .milliseconds(750),
+                              "Release well within the production 1000ms SQLite busy timeout")
+            try writer?.release()
+            writer = nil
+            try await closing?.value
+            do { _ = try await running.value; XCTFail("A request cancelled before SQLite commit saved a generated document") }
+            catch is CancellationError {}
+            catch { XCTFail("Expected cancellation, not a lock timeout or storage failure: \(error)") }
+            XCTAssertEqual(session.snapshot().phase, .cancelled)
+            XCTAssertNil(session.snapshot().document)
+            XCTAssertEqual(h.admission.snapshot().phase, .idle)
+            let unloaded = await runtime.unloaded
+            XCTAssertTrue(unloaded)
+            let preservedModel = try await h.models.current(modelID: h.manifest.modelID)
+            XCTAssertEqual(preservedModel, originalModel)
+            XCTAssertEqual(try Data(contentsOf: modelFile), originalModelBytes)
+            // Preservation is checked above; this deliberate delete/reimport
+            // additionally proves the actual service file lease was released.
+            try await h.models.remove(modelID: h.manifest.modelID)
+            let restoredModel = try await h.models.importDirectory(h.sourceDirectory, manifest: h.manifest)
+            XCTAssertEqual(restoredModel.manifest, originalModel.manifest)
+            try await h.store.close()
+            let reopened = try SQLiteMeetingStore(databaseURL: h.database)
+            let documents = try await reopened.generatedDocuments(meetingID: h.selected)
+            let transcript = try await reopened.transcript(meetingID: h.selected)
+            let otherTranscript = try await reopened.transcript(meetingID: h.other)
+            let note = try await reopened.manualNote(meetingID: h.selected)
+            XCTAssertTrue(documents.isEmpty, "No cancelled generated row may appear after reopening the real database")
+            XCTAssertEqual(transcript, h.segments); XCTAssertEqual(otherTranscript, h.otherSegments)
+            XCTAssertEqual(note, h.note)
+            try await reopened.close(); try await h.closeAndRemove()
+        } catch {
+            try? writer?.release()
+            running.cancel(); await runtime.releaseGeneration()
+            _ = try? await running.value; _ = try? await closing?.value
+            try? await h.closeAndRemove(); throw error
+        }
+    }
+
+    private func waitForPhase(_ phase: IntelligencePhase, session: IntelligenceSession,
+                              until deadline: ContinuousClock.Instant) async -> Bool {
+        let clock = ContinuousClock()
+        while session.snapshot().phase != phase {
+            if clock.now >= deadline { return false }
+            try? await Task.sleep(for: .milliseconds(1))
+        }
+        return true
+    }
+
     private func dictionary(_ data: Data) throws -> [String: Any] {
         try XCTUnwrap(try JSONSerialization.jsonObject(with: data) as? [String: Any])
     }
@@ -204,6 +288,58 @@ final class IntelligenceSessionTests: XCTestCase {
 }
 
 private enum IntelligenceDraftError: Error { case neverStarted }
+
+private enum IntelligenceSQLiteLockError: Error { case openFailed, transactionFailed, releaseFailed, deadlineExceeded }
+
+/// A real independent connection, owned only by the MainActor test. No pointer
+/// crosses into service tasks. Every exit rolls back/closes this owned writer.
+private final class IntelligenceSQLiteWriteLock {
+    private var database: OpaquePointer?
+
+    init(databaseURL: URL) throws {
+        guard databaseURL.isFileURL else { throw IntelligenceSQLiteLockError.openFailed }
+        var opened: OpaquePointer?
+        let result = sqlite3_open_v2(databaseURL.path, &opened, SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX, nil)
+        guard result == SQLITE_OK, let opened else {
+            if let opened { sqlite3_close_v2(opened) }
+            throw IntelligenceSQLiteLockError.openFailed
+        }
+        database = opened
+        guard sqlite3_busy_timeout(opened, 100) == SQLITE_OK,
+              sqlite3_exec(opened, "BEGIN IMMEDIATE", nil, nil, nil) == SQLITE_OK else {
+            sqlite3_close_v2(opened); database = nil
+            throw IntelligenceSQLiteLockError.transactionFailed
+        }
+    }
+
+    func generatedRowCount() throws -> Int64 {
+        guard let database else { throw IntelligenceSQLiteLockError.transactionFailed }
+        var statement: OpaquePointer?
+        guard sqlite3_prepare_v2(database, "SELECT count(*) FROM generated_documents", -1, &statement, nil) == SQLITE_OK,
+              let statement else {
+            if let statement { sqlite3_finalize(statement) }
+            throw IntelligenceSQLiteLockError.transactionFailed
+        }
+        defer { sqlite3_finalize(statement) }
+        guard sqlite3_step(statement) == SQLITE_ROW else { throw IntelligenceSQLiteLockError.transactionFailed }
+        return sqlite3_column_int64(statement, 0)
+    }
+
+    func release() throws {
+        guard let database else { return }
+        let rollback = sqlite3_exec(database, "ROLLBACK", nil, nil, nil)
+        let closed = sqlite3_close_v2(database)
+        if closed == SQLITE_OK { self.database = nil }
+        guard rollback == SQLITE_OK, closed == SQLITE_OK else { throw IntelligenceSQLiteLockError.releaseFailed }
+    }
+
+    deinit {
+        if let database {
+            sqlite3_exec(database, "ROLLBACK", nil, nil, nil)
+            sqlite3_close_v2(database)
+        }
+    }
+}
 
 @MainActor
 private final class IntelligenceASRBoundary: HeavyModelResourceLifecycle {

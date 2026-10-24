@@ -4,8 +4,8 @@ import SwiftUI
 import XCTest
 @testable import LocalMinutes
 
-// INACTIVE TEST-FIRST DRAFT. No SDK compile, RED, app instrumentation, physical
-// protection-class, Lock Screen or two-hour evidence exists for these cases.
+// Active test-first cases. Native assertion RED is still pending after harness
+// failures; no app instrumentation, locked-device or two-hour pass is claimed.
 // The fixture opens real app services and SQLite in its generated owned root.
 @MainActor
 private final class NativeAppMetricsFixture {

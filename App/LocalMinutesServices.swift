@@ -7,6 +7,10 @@ import Observation
 /// in-place signing refresh; preservation still requires physical verification.
 @MainActor @Observable
 final class LocalMinutesServices: PlaybackHardware {
+    // Test-first composition seams. No working heavy bridge before hosted RED.
+    let heavyAdmission: HeavyModelAdmission? = nil
+    let recordingAdmission: RecordingHeavyModelAdmission? = nil
+    let intelligence: IntelligenceSession? = nil
     let metrics: TranscriptionMetricsRecorder? = nil
 
     func persistMetricsCheckpoint() throws -> URL { throw MetricsValidationError.notImplemented }

@@ -1,0 +1,55 @@
+// APPEND to Tests/NativeAppTests/NativeStartupIntegrationTests.swift to reuse its
+// private safe owned-root fixture, actual default Services/Application, and helpers.
+#if os(iOS)
+@MainActor
+extension NativeStartupIntegrationTests {
+    func testDefaultServicesShareOneHeavyGateAcrossIntelligenceAndActualRecordingOwner() async throws {
+        try await withFixture { h in
+            XCTAssertNotNil(h.services.heavyAdmission)
+            XCTAssertNotNil(h.services.recordingAdmission)
+            XCTAssertNotNil(h.services.intelligence)
+            guard let gate = h.services.heavyAdmission,
+                  let recording = h.services.recordingAdmission,
+                  let intelligence = h.services.intelligence,
+                  let owner = h.application.owner else { return }
+            XCTAssertTrue(recording.heavyAdmission === gate)
+            XCTAssertTrue(recording.usageRegistry === h.services.usage)
+            XCTAssertTrue(intelligence.heavyAdmissionIdentity === gate)
+            XCTAssertTrue(owner.usageAdmissionIdentity === recording)
+            await h.services.initialize()
+            XCTAssertEqual(h.services.startup.state, .ready)
+            let boundary = NativeSharedHeavyBoundary()
+            let held = try gate.acquire(purpose: .summary, requestID: UUID(), resource: boundary)
+            do {
+                await owner.start(sessionID: UUID())
+                let blocked = await owner.snapshot()
+                XCTAssertEqual(blocked.phase, .idle)
+                XCTAssertNil(blocked.failure)
+                XCTAssertFalse(blocked.cleanupPending)
+                XCTAssertFalse(blocked.readiness.audioSessionActive)
+                XCTAssertNil(owner.completedManifest)
+                XCTAssertEqual(gate.snapshot().lease, held)
+                try await gate.cancelAndDrain(held)
+                let nextID = UUID()
+                await owner.start(sessionID: nextID)
+                let afterRelease = await owner.snapshot()
+                XCTAssertEqual(afterRelease.failure, .modelUnavailable,
+                    "After gate release, genuinely absent speech weights must reach the real model preflight")
+                XCTAssertEqual(gate.snapshot().phase, .idle)
+                let rows = try await h.services.store.history()
+                XCTAssertTrue(rows.isEmpty)
+            } catch {
+                if gate.snapshot().lease == held { try? await gate.cancelAndDrain(held) }
+                throw error
+            }
+        }
+    }
+}
+
+@MainActor
+private final class NativeSharedHeavyBoundary: HeavyModelResourceLifecycle {
+    func requestCancellation() { }
+    func drain() async throws { }
+    func unloadAndReleaseModel() async throws { }
+}
+#endif

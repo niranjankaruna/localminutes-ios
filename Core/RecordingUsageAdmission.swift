@@ -7,4 +7,12 @@ import Foundation
 public protocol RecordingUsageAdmission: AnyObject {
     func acquireRecordingUsage(meetingID: UUID) -> UUID?
     func releaseRecordingUsage(meetingID: UUID, token: UUID)
+    /// Invoked after resource barriers, before acknowledging owner completion.
+    func finishRecordingUsage(meetingID: UUID, token: UUID) async throws
+}
+
+public extension RecordingUsageAdmission {
+    func finishRecordingUsage(meetingID: UUID, token: UUID) async throws {
+        releaseRecordingUsage(meetingID: meetingID, token: token)
+    }
 }

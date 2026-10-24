@@ -82,6 +82,8 @@ public final class RecordingSessionOwner {
     private let activities: LiveActivityController
     private let beforeReservation: (@MainActor @Sendable () async -> Void)?
     private let usageAdmission: (any RecordingUsageAdmission)?
+    // Read-only composition observation; this is the actual stored dependency.
+    var usageAdmissionIdentity: (any RecordingUsageAdmission)? { usageAdmission }
     private var current: RecordingOwnerEpoch?
     private var epochObserver: (@MainActor (UUID?) -> Void)?
 

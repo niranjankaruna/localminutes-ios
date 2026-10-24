@@ -7,6 +7,12 @@ public enum LocalSummaryRuntimeError: Error, Equatable, Sendable {
     case notImplemented, modelUnavailable, invalidModel, contextUnavailable, generationFailed
 }
 
+private enum SummaryGenerationFailureStage: String {
+    case requestBounds, contextCapacity, prefillDecode, samplerChain, grammarSampler, greedySampler
+    case tokenPieceCapacity, tokenPieceDecode, stepDecode, earlyEndOfGeneration, outputTokenLimit
+    case inputByteBounds, promptEnvelope, nativeTokenization
+}
+
 private enum SummaryNativeBackend {
     static let initialized: Void = { llama_backend_init() }()
 }
@@ -114,8 +120,16 @@ public actor LocalSummaryRuntime {
     private func generate(prompt: String, maximumTokens: Int, cancellation: SummaryCancellation,
                           grammar: String) throws -> String {
         guard let resources else { throw LocalSummaryRuntimeError.modelUnavailable }
+        var diagnosticInputTokens = 0
+        var diagnosticGeneratedTokens = 0
+        var endedWithEOG = false
+        var output = Data()
+        func failure(_ stage: SummaryGenerationFailureStage, status: Int32 = 0) -> LocalSummaryRuntimeError {
+            Self.generationFailure(stage, inputTokens: diagnosticInputTokens, maximumOutput: maximumTokens,
+                generatedTokens: diagnosticGeneratedTokens, outputBytes: output.count, nativeStatus: status)
+        }
         guard maximumTokens > 0, maximumTokens <= 1_024, prompt.utf8.count <= 65_536 else {
-            throw LocalSummaryRuntimeError.generationFailed
+            throw failure(.requestBounds)
         }
         try checkCancellation(cancellation)
         let context = resources.context
@@ -131,8 +145,9 @@ public actor LocalSummaryRuntime {
 
         var tokens = try tokenizedPrompt(prompt, vocabulary: resources.vocabulary)
         let inputCount = tokens.count
+        diagnosticInputTokens = inputCount
         guard inputCount + maximumTokens < Int(contextSize) else {
-            throw LocalSummaryRuntimeError.generationFailed
+            throw failure(.contextCapacity)
         }
         var offset = 0
         while offset < inputCount {
@@ -143,40 +158,40 @@ public actor LocalSummaryRuntime {
             }
             guard status == 0 else {
                 try checkCancellation(cancellation)
-                throw LocalSummaryRuntimeError.generationFailed
+                throw failure(.prefillDecode, status: status)
             }
             offset += count
         }
 
         guard let sampler = llama_sampler_chain_init(llama_sampler_chain_default_params()) else {
-            throw LocalSummaryRuntimeError.generationFailed
+            throw failure(.samplerChain)
         }
         defer { llama_sampler_free(sampler) }
         let grammarSampler = grammar.withCString { grammar in
             "root".withCString { root in llama_sampler_init_grammar(resources.vocabulary, grammar, root) }
         }
-        guard let grammarSampler else { throw LocalSummaryRuntimeError.generationFailed }
+        guard let grammarSampler else { throw failure(.grammarSampler) }
         llama_sampler_chain_add(sampler, grammarSampler)
-        guard let greedy = llama_sampler_init_greedy() else { throw LocalSummaryRuntimeError.generationFailed }
+        guard let greedy = llama_sampler_init_greedy() else { throw failure(.greedySampler) }
         llama_sampler_chain_add(sampler, greedy)
 
-        var output = Data()
         for _ in 0..<maximumTokens {
             try checkCancellation(cancellation)
             let token = llama_sampler_sample(sampler, context, -1)
-            if llama_vocab_is_eog(resources.vocabulary, token) { break }
+            if llama_vocab_is_eog(resources.vocabulary, token) { endedWithEOG = true; break }
+            diagnosticGeneratedTokens += 1
             var piece = [CChar](repeating: 0, count: 512)
             var count = piece.withUnsafeMutableBufferPointer {
                 llama_token_to_piece(resources.vocabulary, token, $0.baseAddress, Int32($0.count), 0, false)
             }
             if count < 0 {
-                guard count > -65_536 else { throw LocalSummaryRuntimeError.generationFailed }
+                guard count > -65_536 else { throw failure(.tokenPieceCapacity, status: count) }
                 piece = [CChar](repeating: 0, count: Int(-count))
                 count = piece.withUnsafeMutableBufferPointer {
                     llama_token_to_piece(resources.vocabulary, token, $0.baseAddress, Int32($0.count), 0, false)
                 }
             }
-            guard count >= 0 else { throw LocalSummaryRuntimeError.generationFailed }
+            guard count >= 0 else { throw failure(.tokenPieceDecode, status: count) }
             output.append(contentsOf: piece.prefix(Int(count)).map { UInt8(bitPattern: $0) })
             if let object = try? JSONSerialization.jsonObject(with: output), object is [String: Any],
                let result = String(data: output, encoding: .utf8) {
@@ -189,10 +204,21 @@ public actor LocalSummaryRuntime {
             }
             guard status == 0 else {
                 try checkCancellation(cancellation)
-                throw LocalSummaryRuntimeError.generationFailed
+                throw failure(.stepDecode, status: status)
             }
         }
-        throw LocalSummaryRuntimeError.generationFailed
+        throw failure(endedWithEOG ? .earlyEndOfGeneration : .outputTokenLimit)
+    }
+
+    private static func generationFailure(_ stage: SummaryGenerationFailureStage, inputTokens: Int,
+                                          maximumOutput: Int, generatedTokens: Int, outputBytes: Int,
+                                          nativeStatus: Int32 = 0) -> LocalSummaryRuntimeError {
+        #if DEBUG
+        // One bounded metadata row per failure. Never emit prompt/output bytes,
+        // source identifiers, paths or token IDs. Zero status means no C status.
+        print("LOCALMINUTES_SUMMARY_FAILURE stage=\(stage.rawValue) inputTokens=\(inputTokens) maxOutput=\(maximumOutput) generatedTokens=\(generatedTokens) outputBytes=\(outputBytes) nativeStatus=\(nativeStatus)")
+        #endif
+        return .generationFailed
     }
 
     private func checkCancellation(_ cancellation: SummaryCancellation) throws {
@@ -201,12 +227,16 @@ public actor LocalSummaryRuntime {
 
     private func tokenizedPrompt(_ prompt: String, vocabulary: OpaquePointer) throws -> [llama_token] {
         try Task.checkCancellation()
-        guard prompt.utf8.count <= 65_536 else { throw LocalSummaryRuntimeError.generationFailed }
+        guard prompt.utf8.count <= 65_536 else {
+            throw Self.generationFailure(.inputByteBounds, inputTokens: 0, maximumOutput: 0, generatedTokens: 0, outputBytes: 0)
+        }
         // Counting and generation share the exact policy, canonical envelope,
         // escaping and native tokenizer flags. Source byte length is no estimate.
         let formatted: String
         do { formatted = try SummaryPromptFormatter.format(systemPrompt: Self.systemPolicy, userPrompt: prompt) }
-        catch { throw LocalSummaryRuntimeError.generationFailed }
+        catch {
+            throw Self.generationFailure(.promptEnvelope, inputTokens: 0, maximumOutput: 0, generatedTokens: 0, outputBytes: 0)
+        }
         var tokens = [llama_token](repeating: 0, count: formatted.utf8.count + 2)
         let count = formatted.withCString { text in
             tokens.withUnsafeMutableBufferPointer { buffer in
@@ -214,7 +244,10 @@ public actor LocalSummaryRuntime {
                                Int32(buffer.count), true, true)
             }
         }
-        guard count > 0, Int(count) <= tokens.count else { throw LocalSummaryRuntimeError.generationFailed }
+        guard count > 0, Int(count) <= tokens.count else {
+            throw Self.generationFailure(.nativeTokenization, inputTokens: 0, maximumOutput: 0,
+                                        generatedTokens: 0, outputBytes: 0, nativeStatus: count)
+        }
         tokens.removeSubrange(Int(count)..<tokens.count)
         try Task.checkCancellation()
         return tokens

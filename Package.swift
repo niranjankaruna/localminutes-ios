@@ -36,7 +36,7 @@ let package = Package(
         .target(name: "LocalMinutesIntelligence", dependencies: ["LocalMinutesCore", "LocalMinutesModels", "LocalMinutesPersistence", "LocalMinutesSummary", "LocalMinutesQuestionAnswering"], path: "Intelligence"),
         .testTarget(name: "HarnessTests", path: "Tests/HarnessTests"),
         .testTarget(name: "CoreTests", dependencies: ["LocalMinutesCore"], path: "Tests/CoreTests"),
-        .testTarget(name: "RecordingTests", dependencies: ["LocalMinutesRecording", "LocalMinutesCore"], path: "Tests/RecordingTests"),
+        .testTarget(name: "RecordingTests", dependencies: ["LocalMinutesRecording", "LocalMinutesCore", "LocalMinutesMeetingLibrary"], path: "Tests/RecordingTests"),
         .testTarget(name: "ModelTests", dependencies: ["LocalMinutesModels"], path: "Tests/ModelTests"),
         .testTarget(name: "PersistenceTests", dependencies: ["LocalMinutesPersistence"], path: "Tests/PersistenceTests", linkerSettings: [.linkedLibrary("sqlite3")]),
         .testTarget(name: "ASRTests", dependencies: ["LocalMinutesTranscription", "LocalMinutesCore", "LocalMinutesModels", "LocalMinutesPersistence", "LocalMinutesRecording", "LocalMinutesMeetingLibrary"], path: "Tests/ASRTests"),

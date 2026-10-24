@@ -5,20 +5,24 @@ import SwiftUI
 @main
 @MainActor
 struct LocalMinutesApp: App {
+    // Keep composition deferred: the owned UI-fixture branch must not create
+    // default persistent Services. Root and intent identity still share one app.
+    var application: RecordingApplication { RecordingApplication.shared }
+
     var body: some Scene {
         WindowGroup {
             #if DEBUG
             if LibraryUITestFixture.requested {
                 LibraryUITestFixtureRoot()
             } else if ProcessInfo.processInfo.arguments.contains("--ui-test-activity-controls") {
-                RecordingActivityTestScreen(application: RecordingApplication.shared, finished: false)
+                RecordingActivityTestScreen(application: application, finished: false)
             } else if ProcessInfo.processInfo.arguments.contains("--ui-test-activity-finished") {
-                RecordingActivityTestScreen(application: RecordingApplication.shared, finished: true)
+                RecordingActivityTestScreen(application: application, finished: true)
             } else {
-                LocalMinutesHomeView(application: RecordingApplication.shared)
+                LocalMinutesHomeView(application: application)
             }
             #else
-            LocalMinutesHomeView(application: RecordingApplication.shared)
+            LocalMinutesHomeView(application: application)
             #endif
         }
     }

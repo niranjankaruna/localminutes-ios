@@ -3,17 +3,17 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T11:15:08.995Z",
+  "lastUpdated": "2026-10-24T11:44:20.250Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "T18 actual service integration and bounded model-quality repairs; native canary layout repair",
+  "currentTask": "T17 shared app admission test-first; native ownership harness repair; actual T18/T19 quality under verification",
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "Push fourth source and inspect actual296core/8model/68native/6UI. App metrics and DEBUG fixture seeding still must wait for compatible native/UI RED. Preserve canary Release exclusion; next Debug image metadata validates documented dylib hypothesis. No full model quality pass until all original and new semantic cases pass.",
+  "nextAction": "Push reviewed source5 now: lazy App accessor compile repair; cancellation plus shared-app-admission four new tests/stubs; final QA attempt3 and metadata-only generation diagnostics; actual-model30min. Require299core/71native reached assertions and full8real-model cases. Native metrics/fixture still no-op pending actual RED. Current4/6terminal, source6 reserved for evidence-backed implementation.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "c972600b07e778fba28f37e52dc365ee37b6a643",
+  "remoteBranchHead": "18f162169a716f0bede99f9240f71cccd6568815",
   "localScriptGreen": {
     "sourceCommit": "cc5049f4bad993bb0bd7cdee9603a12a34f56304",
     "platform": "Windows11/Node24.21.0",
@@ -35,23 +35,25 @@
     "newRunIds": [
       40082088572,
       40084170930,
-      40086780531
+      40086780531,
+      40089155104
     ],
     "limitReached": false,
-    "costGuardObservedAt": "2026-10-24T09:27:50.539Z",
-    "costGuardBasis": "Live PUBLIC/ADMIN/HTTPS origin and terminal prior run40079629180 reverified; official https://docs.github.com/en/billing/concepts/product-billing/github-actions rechecked. Standard public macos-15-intel compute free; no larger/paid runner, uploads/caches or billing mutation.",
+    "costGuardObservedAt": "2026-10-24T11:35:40.281Z",
+    "costGuardBasis": "Live GitHub PUBLIC/ADMIN, configured publication approval, exact HTTPS origin/task branch/main reverified 24October11:35UTC. Previously rechecked official GitHub Actions standard public runner free-compute terms; unchanged macos-15-intel only, no upload/cache, larger runner, paid resource or billing mutation.",
     "jobLimits": {
       "coreMinutes": 15,
-      "summaryQualityMinutes": 20,
+      "summaryQualityMinutes": 30,
       "nativeMinutes": 35
     }
   },
   "latestCIRun": {
-    "sourceCommit": "c972600b07e778fba28f37e52dc365ee37b6a643",
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40086780531",
+    "sourceCommit": "18f162169a716f0bede99f9240f71cccd6568815",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40089155104",
     "status": "completed",
     "conclusion": "failure",
-    "ordinal": 3
+    "ordinal": 4,
+    "completedAt": "2026-10-24T11:35:50Z"
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -123,7 +125,7 @@
     "T08.4",
     "T08.5"
   ],
-  "remoteBranchHeadScope": "Third source pushed and remote HEAD verified",
+  "remoteBranchHeadScope": "Fourth source pushed and exact HTTPS remote verified",
   "nativeCompileRepair": {
     "status": "CODE_COMPLETE_PENDING_DEVICE",
     "candidatePath": "docs/drafts/T06.1/ActivityKitOperations.swift.pending",
@@ -219,7 +221,13 @@
     "latestSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
     "latestRunUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180"
   },
-  "activeCIRun": null,
+  "activeCIRun": {
+    "sourceCommit": "18f162169a716f0bede99f9240f71cccd6568815",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40089155104",
+    "status": "in_progress",
+    "conclusion": null,
+    "ordinal": 4
+  },
   "pendingPushScope": null,
   "repositoryVisibility": "PUBLIC",
   "publication": {
@@ -885,23 +893,32 @@
   },
   "actualModelPipelineQuality": {
     "status": "IN_PROGRESS",
-    "sourceCommit": "c972600b07e778fba28f37e52dc365ee37b6a643",
-    "runId": 40086780531,
-    "jobId": 120851237575,
-    "executed": 8,
-    "passed": 5,
-    "failed": 3,
-    "assertionFailures": 7,
-    "unexpected": 1,
-    "skipped": 0,
-    "positiveObservations": "Original5runtime/capacity/flat semantic tests pass. Selected budget QA positive passes. Full nested positive-summary PASS was incorrectly inferred from catch-line location and is UNPROVEN.",
-    "failedObservations": "Captured actual first POSITIVE nested map: decision text omits speaker vs quote, task changes case/wording, due invents2023-01-15 although source only saysThursday; decoder correctly rejects unsupportedClaim. Unknown summary fixture was not reached. QA unknown still raw supported_quote with undecided source despite prompt attempt1.",
-    "qaUnknownRepairAttempts": 2,
+    "sourceCommit": "18f162169a716f0bede99f9240f71cccd6568815",
+    "runId": 40089155104,
+    "jobId": 120858087150,
+    "executed": null,
+    "passed": null,
+    "failed": null,
+    "assertionFailures": null,
+    "unexpected": null,
+    "skipped": null,
+    "positiveObservations": "Actual canonical tokenizer case passes413.220s. QA both native calls reach raw output assertions; unknown owner refusal assertions pass, but positive budget refusal now fails5assertions. No full suite/native-service/pipeline semantic GREEN.",
+    "failedObservations": "Actual default service generationFailed after344.789s; catch clause gives no proven generation stage/cause. QA attempt2 raw positive is insufficient_evidence/none/empty,5assertions. Actual nested pipeline starts but has no terminal result before jobcancel at configured20minute boundary; four old runtime cases never start.",
+    "qaUnknownRepairAttempts": 3,
     "pipelineUnknownRepairAttempts": 0,
     "pipelineDiagnosticsAdded": true,
     "pipelinePositiveRepairAttempts": 1,
     "correction": "Prior positive-pipeline/unknown-fixture inference was wrong; raw capture is authoritative. No semantic check is weakened.",
-    "latestRepair": "General quote-first nested field ordering/exact copying/weekday literal guidance; QA contrastive answerability examples. All actual semantic assertions remain strict, no output correction."
+    "latestRepair": "Final attempt3 balanced concise question-specific answerability policy applied after source4 over-refusal. No fixture examples/answers, status constraints, quote rewriting, validator/test/model changes. Runtime DEBUG diagnostics print literal failure stage and numeric counts only; actual synthetic service prints summary vs QA stage only onfailure. Pipeline unchanged until actual diagnostic evidence.",
+    "aggregateComplete": false,
+    "completedCases": 3,
+    "completedPassed": 1,
+    "completedFailed": 2,
+    "completedAssertionFailures": 6,
+    "completedUnexpected": 1,
+    "interruptedCases": 1,
+    "notStartedCases": 4,
+    "jobConclusion": "cancelled"
   },
   "continuation09AppBatch": {
     "newCore": 4,
@@ -941,16 +958,31 @@
       "failed": 3,
       "assertionFailures": 7,
       "skipped": 0
-    }
+    },
+    "coreGreen": {
+      "sourceCommit": "18f162169a716f0bede99f9240f71cccd6568815",
+      "runId": 40089155104,
+      "jobId": 120858086927,
+      "executed": 296,
+      "passed": 296,
+      "failed": 0,
+      "skipped": 0,
+      "tsanExecuted": 86,
+      "reportedRaces": 0,
+      "nodeExecuted": 59,
+      "scope": "All portable cases pass, including four IntelligenceSession orchestration cases; actual native/default-loader/model quality remains separately gated."
+    },
+    "nativeRedVerified": false,
+    "uiRedVerified": false
   },
   "nativeFixtureBoundary": {
-    "sourceCommit": "c972600b07e778fba28f37e52dc365ee37b6a643",
-    "runId": 40086780531,
-    "jobId": 120851237798,
+    "sourceCommit": "18f162169a716f0bede99f9240f71cccd6568815",
+    "runId": 40089155104,
+    "jobId": 120858087063,
     "releaseExclusionPassed": true,
-    "debugPositiveFailed": true,
+    "debugPositivePassed": true,
     "nativeAppAndUITestsExecuted": 0,
-    "hypothesis": "Xcode unoptimized app code may be in LocalMinutes.debug.dylib; Apple documents exact layout. Preserve Release negative and inspect only exact linked Debug image, with image inventory diagnosis."
+    "remainingHarnessFailure": "Both xcodebuild test compilations fail at original native owner assertion: LocalMinutesApp has no member application. No metrics/UI behavioral RED. Restore a lazy computed shared accessor, preserve actual identity assertion and isolated fixture branch."
   },
   "mainVerifiedSource": {
     "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
@@ -960,5 +992,27 @@
     "remoteVerified": true,
     "additionalCIRuns": 0,
     "scope": "Last whole-workflow passing foundation, not baseline completion. Active changes remain on task/t06-activity."
+  },
+  "intelligenceCommitCancellation": {
+    "status": "IN_PROGRESS",
+    "test": "testCancellationBeforeBlockedSQLiteCommitSavesNothingAndPreservesOriginalsAndModel",
+    "testFirstSource": null,
+    "redVerified": false,
+    "productionRepairImplemented": false,
+    "acceptance": "Real independent SQLite BEGIN IMMEDIATE holds save before commit; explicit cancellation before release must publish no saved row, preserve originals/model, unload/release and settle cancelled. Do not delete after a committed row."
+  },
+  "continuation09AdmissionTests": {
+    "status": "IN_PROGRESS",
+    "coreCases": 2,
+    "nativeCases": 3,
+    "expectedCore": 299,
+    "expectedNative": 71,
+    "expectedTSAN": 88,
+    "expectedUI": 6,
+    "expectedActualModel": 8,
+    "redVerified": false,
+    "productionWiringImplemented": false,
+    "testFirstSource": null,
+    "scope": "App-owned shared heavy gate through real owner preparation/CAF/transcript/Activity cleanup, same default-services identity and distinct resources-settled drain barrier. Nil/pass-through only until actual RED. Counts include the separately named new SQLite cancellation case."
   }
 }
