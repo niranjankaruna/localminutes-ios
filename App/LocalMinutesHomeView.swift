@@ -1,6 +1,7 @@
 import AVFoundation
 import Foundation
 import SwiftUI
+import UniformTypeIdentifiers
 
 @MainActor
 struct LocalMinutesHomeView: View {
@@ -17,8 +18,10 @@ struct LocalMinutesHomeView: View {
                     .tabItem { Label("Models", systemImage: "internaldrive") }
             }
         }
+        .id(application.services.map { ObjectIdentifier($0) })
+        .disabled(application.isRestoringLibrary || application.services?.maintainingLibrary == true)
         .tint(.teal)
-        .task { await application.services?.initialize() }
+        .task(id: application.services.map { ObjectIdentifier($0) }) { await application.services?.initialize() }
         .onChange(of: scenePhase) { _, phase in
             do {
                 try application.recordScenePhase(phase)
@@ -37,11 +40,39 @@ private struct MeetingHistoryView: View {
     let services: LocalMinutesServices
     let application: RecordingApplication
     @State private var query = ""
+    @State private var pendingDeletion: UUID?
+    @State private var confirmingDeletion = false
+    @State private var choosingBackup = false
+    @State private var confirmingRestore = false
+    @State private var pendingRestore: URL?
+    @State private var backupURL: URL?
+    @State private var reportText: String?
+    @State private var working = false
+    @State private var actionMessage: String?
+
+    private var unavailable: Bool { working || services.maintainingLibrary || application.isRestoringLibrary }
 
     var body: some View {
         NavigationStack {
             List {
                 if let error = services.library.errorMessage { Text(error).foregroundStyle(.red) }
+                if let actionMessage { Text(actionMessage).foregroundStyle(.secondary) }
+                if let message = services.libraryMessage { Text(message).font(.caption).foregroundStyle(.secondary) }
+                if working { ProgressView("Preparing saved meetings…") }
+                if let backupURL {
+                    Section("Backup ready") {
+                        ShareLink("Save or share library backup", item: backupURL)
+                        Text("This backup includes meeting audio, transcripts, notes and generated content.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                if let reportText {
+                    Section("Recording report") {
+                        ShareLink("Share sampled recording report", item: reportText)
+                        Text("Samples describe observed performance. Your locked-screen and long-meeting checks are still required.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
                 if services.library.meetings.isEmpty {
                     ContentUnavailableView("No meetings yet", systemImage: "text.book.closed",
                         description: Text("Install the speech model, then start your first meeting."))
@@ -59,16 +90,101 @@ private struct MeetingHistoryView: View {
                         }
                         .padding(.vertical, 5)
                     }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        Button("Delete", role: .destructive) { askToDelete(meeting.id) }
+                            .disabled(unavailable)
+                    }
+                    .contextMenu {
+                        Button("Delete meeting", role: .destructive) { askToDelete(meeting.id) }
+                            .disabled(unavailable)
+                    }
                 }
             }
             .navigationTitle("Meetings")
             .searchable(text: $query, prompt: "Search meeting titles")
             .refreshable { await services.library.refresh() }
             .task { await services.library.refresh() }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Button("Create library backup", systemImage: "square.and.arrow.up") { createBackup() }
+                        Button("Restore library backup…", systemImage: "square.and.arrow.down") { choosingBackup = true }
+                        Button("Prepare recording report", systemImage: "chart.bar") { prepareReport() }
+                    } label: { Label("Library actions", systemImage: "ellipsis.circle") }
+                    .disabled(unavailable)
+                }
+            }
             .navigationDestination(for: UUID.self) { id in
                 MeetingDetailView(services: services, application: application, id: id)
             }
+            .confirmationDialog("Delete this meeting?", isPresented: $confirmingDeletion, titleVisibility: .visible) {
+                Button("Delete meeting and all its data", role: .destructive) {
+                    guard let id = pendingDeletion else { return }
+                    pendingDeletion = nil; working = true
+                    Task {
+                        let removed = await services.deleteMeeting(id: id)
+                        actionMessage = removed ? "Meeting deleted." : services.libraryMessage
+                        working = false
+                    }
+                }
+                Button("Cancel", role: .cancel) { pendingDeletion = nil }
+            } message: {
+                Text("Delete its audio, transcript, notes, summaries, answers and unfinished processing? This cannot be undone.")
+            }
+            .fileImporter(isPresented: $choosingBackup, allowedContentTypes: [.folder], allowsMultipleSelection: false) { result in
+                Task { @MainActor in
+                    switch result {
+                    case .success(let urls):
+                        pendingRestore = urls.first
+                        confirmingRestore = pendingRestore != nil
+                    case .failure:
+                        actionMessage = "The backup folder could not be opened."
+                    }
+                }
+            }
+            .confirmationDialog("Replace the current library?", isPresented: $confirmingRestore, titleVisibility: .visible) {
+                Button("Use this backup", role: .destructive) { restoreBackup() }
+                Button("Cancel", role: .cancel) { pendingRestore = nil }
+            } message: {
+                Text("Save edits and stop recording or playback first. This backup becomes the active library; the previous library is retained and installed models stay available.")
+            }
+            .disabled(services.maintainingLibrary || application.isRestoringLibrary)
         }
+    }
+
+    private func askToDelete(_ id: UUID) {
+        guard !unavailable else { return }
+        pendingDeletion = id; confirmingDeletion = true
+    }
+
+    private func createBackup() {
+        guard !unavailable else { return }
+        working = true; actionMessage = nil
+        Task {
+            defer { working = false }
+            do { backupURL = try await application.exportLibraryBackup() }
+            catch { actionMessage = "Stop recording, playback and local processing, then try creating the backup again." }
+        }
+    }
+
+    private func restoreBackup() {
+        guard !unavailable, let url = pendingRestore else { return }
+        pendingRestore = nil; working = true; actionMessage = nil
+        Task {
+            let access = url.startAccessingSecurityScopedResource()
+            defer { if access { url.stopAccessingSecurityScopedResource() }; working = false }
+            do { try await application.restoreLibrary(from: url) }
+            catch { actionMessage = "The backup could not be restored. The previous library remains available. Stop other work and check the selected backup folder." }
+        }
+    }
+
+    private func prepareReport() {
+        guard !unavailable else { return }
+        do {
+            let bytes = try services.exportEnduranceMetrics()
+            guard let text = String(data: bytes, encoding: .utf8) else { return }
+            reportText = text; actionMessage = nil
+        } catch { actionMessage = "The recording report could not be prepared yet." }
     }
 }
 
@@ -78,12 +194,19 @@ private struct MeetingDetailView: View {
     let application: RecordingApplication
     let id: UUID
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.dismiss) private var dismiss
     @State private var title = ""
     @State private var search = ""
     @State private var controller: MeetingLibraryController
     @State private var intelligenceController: MeetingIntelligenceController
     @State private var playbackMessage: String?
     @State private var playbackRequestID: UUID?
+    @State private var confirmingDeletion = false
+    @State private var deleting = false
+    @State private var deletionMessage: String?
+    @State private var recoveredTranscript: [StoredTranscriptSegment]?
+
+    private var unavailable: Bool { deleting || services.maintainingLibrary || application.isRestoringLibrary }
 
     init(services: LocalMinutesServices, application: RecordingApplication, id: UUID) {
         self.services = services; self.application = application; self.id = id
@@ -94,6 +217,7 @@ private struct MeetingDetailView: View {
     var body: some View {
         List {
             if let error = controller.errorMessage { Text(error).foregroundStyle(.red) }
+            if let deletionMessage { Text(deletionMessage).foregroundStyle(.red) }
             Section("Meeting name") {
                 TextField("Meeting name", text: $title)
                     .onSubmit { Task { await controller.rename(title) } }
@@ -106,12 +230,23 @@ private struct MeetingDetailView: View {
                 await playSegment(at: sample)
             })
             Section("Transcript") {
+                if services.recoveringMeetingID == id {
+                    ProgressView("Resuming transcript from saved audio…")
+                    Button("Cancel transcript recovery", role: .cancel) { services.cancelTranscriptRecovery() }
+                } else {
+                    Button("Resume transcript from saved audio") {
+                        stopOwnedPlayback()
+                        services.resumeTranscript(meetingID: id)
+                    }
+                    .disabled(unavailable || intelligenceController.busy || services.recoveringMeetingID != nil)
+                }
+                if let message = services.libraryMessage { Text(message).font(.caption).foregroundStyle(.secondary) }
                 TextField("Find in this transcript", text: $search)
                     .onChange(of: search) { _, query in Task { await controller.search(query) } }
-                if controller.transcript.isEmpty {
+                if (recoveredTranscript ?? controller.transcript).isEmpty {
                     Text("No finalized transcript is available.").foregroundStyle(.secondary)
                 }
-                ForEach(search.isEmpty ? controller.transcript : controller.matches) { segment in
+                ForEach(search.isEmpty ? (recoveredTranscript ?? controller.transcript) : controller.matches) { segment in
                     VStack(alignment: .leading, spacing: 8) {
                         Text(segment.text).textSelection(.enabled)
                         Button {
@@ -138,6 +273,10 @@ private struct MeetingDetailView: View {
                 Text("Sharing sends the selected meeting to the app you choose.")
                     .font(.caption).foregroundStyle(.secondary)
             }
+            Section {
+                Button("Delete meeting", role: .destructive) { confirmingDeletion = true }
+                    .disabled(unavailable || intelligenceController.busy || services.recoveringMeetingID != nil)
+            }
         }
         .navigationTitle(controller.selected?.title ?? "Meeting")
         .navigationBarTitleDisplayMode(.inline)
@@ -146,6 +285,31 @@ private struct MeetingDetailView: View {
             title = controller.selected?.title ?? ""
             await intelligenceController.load()
         }
+        .onChange(of: services.recoveringMeetingID) { previous, current in
+            if previous == id, current == nil {
+                Task {
+                    // Refresh only transcript rows; keep the note editor and
+                    // any unsaved original note bound to its existing controller.
+                    recoveredTranscript = try? await services.store.transcript(meetingID: id)
+                    if !search.isEmpty { await controller.search(search) }
+                    await intelligenceController.load()
+                }
+            }
+        }
+        .confirmationDialog("Delete this meeting?", isPresented: $confirmingDeletion, titleVisibility: .visible) {
+            Button("Delete meeting and all its data", role: .destructive) {
+                deleting = true; stopOwnedPlayback()
+                Task {
+                    if await services.deleteMeeting(id: id) { dismiss() }
+                    else { deletionMessage = services.libraryMessage ?? "The meeting could not be deleted yet." }
+                    deleting = false
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Delete its audio, transcript, notes, summaries, answers and unfinished processing? This cannot be undone.")
+        }
+        .disabled(unavailable)
         .onDisappear {
             stopOwnedPlayback()
             intelligenceController.leaveMeeting()

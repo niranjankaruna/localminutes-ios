@@ -28,13 +28,14 @@ public final class MeetingUsageRegistry {
     }
     private var recordings: [UUID: UUID] = [:]
     private var deletions: [UUID: DeletionUse] = [:]
+    private var maintenance: LibraryMaintenanceLease?
     private var startupReady: Bool
 
     public init(requiresStartup: Bool = false) { startupReady = !requiresStartup }
 
     public func completeStartup(success: Bool) { startupReady = success }
     public func beginRecording(meetingID: UUID) throws -> MeetingRecordingLease {
-        guard startupReady, recordings[meetingID] == nil, deletions[meetingID] == nil else {
+        guard startupReady, maintenance == nil, recordings[meetingID] == nil, deletions[meetingID] == nil else {
             throw MeetingDeletionError.meetingInUse
         }
         let token = UUID()
@@ -46,8 +47,22 @@ public final class MeetingUsageRegistry {
         recordings.removeValue(forKey: lease.meetingID)
     }
 
+    public func beginMaintenance() throws -> LibraryMaintenanceLease {
+        guard maintenance == nil, recordings.isEmpty, deletions.isEmpty else {
+            throw MeetingDeletionError.meetingInUse
+        }
+        let lease = LibraryMaintenanceLease(token: UUID())
+        maintenance = lease
+        return lease
+    }
+
+    public func endMaintenance(_ lease: LibraryMaintenanceLease) {
+        guard maintenance == lease else { return }
+        maintenance = nil
+    }
+
     fileprivate func beginDeletion(meetingID: UUID) throws -> UUID {
-        guard recordings[meetingID] == nil else { throw MeetingDeletionError.meetingInUse }
+        guard maintenance == nil, recordings[meetingID] == nil else { throw MeetingDeletionError.meetingInUse }
         if let previous = deletions[meetingID], !previous.pending {
             throw MeetingDeletionError.meetingInUse
         }
@@ -82,11 +97,10 @@ public actor MeetingDeletionCoordinator {
     private struct Request: Codable {
         let schemaVersion: Int
         let meetingID: UUID
+        let includesSummaryCheckpoint: Bool?
     }
     private let store: SQLiteMeetingStore
     private let recordingsRoot: URL
-    // TEST-FIRST ownership seam. Cache deletion is deliberately absent until
-    // hosted artifact assertions establish the new behavior's RED.
     private let summaryCheckpointRoot: URL?
     private let usage: MeetingUsageRegistry
     private let beforeMetadataDeletion: (@Sendable () async -> Void)?
@@ -163,11 +177,18 @@ public actor MeetingDeletionCoordinator {
             let marker = requestDirectory.appendingPathComponent("request.json")
             let audio = requestDirectory.appendingPathComponent("audio", isDirectory: true)
             if try attributes(marker) != nil {
-                try validateRequest(marker, meetingID: meetingID, root: root)
+                let request = try validateRequest(marker, meetingID: meetingID, root: root)
                 intentPublished = true
+                guard request.includesSummaryCheckpoint != true || summaryCheckpointRoot != nil else {
+                    throw MeetingDeletionError.invalidOwnership
+                }
             } else if recoveryOnly {
                 throw MeetingDeletionError.invalidOwnership
             }
+            // A UUID cache alias must fail before publishing a new intent,
+            // moving CAF or deleting metadata. Existing durable intent remains
+            // admitted for retry even if this reopen finds an unsafe cache.
+            let summaryCache = try checkedSummaryCheckpoint(meetingID: meetingID)
             let hasOriginal = try attributes(original) != nil
             let hasQuarantine = try attributes(audio) != nil
             guard !(hasOriginal && hasQuarantine) else { throw MeetingDeletionError.invalidOwnership }
@@ -190,7 +211,8 @@ public actor MeetingDeletionCoordinator {
             try createPrivateDirectory(pending, root: root)
             try createPrivateDirectory(requestDirectory, root: root)
             if !intentPublished {
-                let request = Request(schemaVersion: 1, meetingID: meetingID)
+                let request = Request(schemaVersion: 1, meetingID: meetingID,
+                    includesSummaryCheckpoint: summaryCheckpointRoot == nil ? nil : true)
                 try PersistentFilePolicy.writeAtomically(JSONEncoder().encode(request), to: marker, within: root)
                 intentPublished = true
             }
@@ -208,6 +230,14 @@ public actor MeetingDeletionCoordinator {
             if try attributes(audio) != nil {
                 try checkedTree(audio, within: root)
                 try FileManager.default.removeItem(at: audio)
+            }
+            if let summaryCache, try attributes(summaryCache) != nil {
+                // Revalidate after SQLite's actor hop. Broken JSON is still the
+                // same owned UUID file and must not prevent private-byte erasure.
+                guard try checkedSummaryCheckpoint(meetingID: meetingID) == summaryCache else {
+                    throw MeetingDeletionError.unsafePath
+                }
+                try FileManager.default.removeItem(at: summaryCache)
             }
             try checkedTree(requestDirectory, within: root)
             let leftovers = try directoryContents(requestDirectory)
@@ -278,7 +308,7 @@ public actor MeetingDeletionCoordinator {
         try PersistentFilePolicy.protectDirectory(url)
     }
 
-    private func validateRequest(_ marker: URL, meetingID: UUID, root: URL) throws {
+    private func validateRequest(_ marker: URL, meetingID: UUID, root: URL) throws -> Request {
         try checkedTree(marker.deletingLastPathComponent(), within: root)
         guard let info = try attributes(marker), info[.type] as? FileAttributeType == .typeRegular,
               let size = info[.size] as? NSNumber, size.int64Value <= 4_096 else {
@@ -290,6 +320,27 @@ public actor MeetingDeletionCoordinator {
         guard request.schemaVersion == 1, request.meetingID == meetingID else {
             throw MeetingDeletionError.invalidOwnership
         }
+        return request
+    }
+
+    private func checkedSummaryCheckpoint(meetingID: UUID) throws -> URL? {
+        guard let given = summaryCheckpointRoot else { return nil }
+        let library = recordingsRoot.standardizedFileURL.deletingLastPathComponent()
+        let expected = library.appendingPathComponent("SummaryCheckpoints", isDirectory: true).standardizedFileURL
+        guard given.isFileURL, given.standardizedFileURL.path == expected.path else {
+            throw MeetingDeletionError.unsafePath
+        }
+        guard let info = try attributes(expected) else { return nil }
+        guard info[.type] as? FileAttributeType == .typeDirectory else { throw MeetingDeletionError.unsafePath }
+        do { try PersistentFilePolicy.validateItem(expected, within: library) }
+        catch { throw MeetingDeletionError.unsafePath }
+        let file = expected.appendingPathComponent(meetingID.uuidString + ".json", isDirectory: false)
+        if let info = try attributes(file) {
+            guard info[.type] as? FileAttributeType == .typeRegular else { throw MeetingDeletionError.unsafePath }
+            do { try PersistentFilePolicy.validateItem(file, within: library) }
+            catch { throw MeetingDeletionError.unsafePath }
+        }
+        return file
     }
 
     private func validateAudio(_ directory: URL, meetingID: UUID, root: URL,

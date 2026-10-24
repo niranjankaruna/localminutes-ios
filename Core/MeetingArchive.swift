@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 import CryptoKit
 import Darwin
 
@@ -175,26 +176,32 @@ public enum MeetingArchive {
 
     private static func allowedDirectory(_ path: String) -> Bool {
         let parts = path.split(separator: "/", omittingEmptySubsequences: false)
-        return path == "Meetings" || (parts.count == 2 && parts[0] == "Meetings" && UUID(uuidString: String(parts[1])) != nil)
+        return path == "Meetings" || ((parts.count == 2 || (parts.count == 3 && parts[2] == "RecoveryQuarantine"))
+            && parts[0] == "Meetings" && UUID(uuidString: String(parts[1])) != nil)
     }
 
     private static func allowedFile(_ path: String) -> Bool {
         if path == "meetings.sqlite" { return true }
         let parts = path.split(separator: "/", omittingEmptySubsequences: false)
-        guard parts.count == 3, parts[0] == "Meetings", UUID(uuidString: String(parts[1])) != nil else { return false }
-        let name = String(parts[2])
-        return ["capture-manifest.json", "recovery-report.json", "transcription-replay.json"].contains(name)
+        guard (parts.count == 3 || (parts.count == 4 && parts[2] == "RecoveryQuarantine")),
+              parts[0] == "Meetings", UUID(uuidString: String(parts[1])) != nil else { return false }
+        let name = String(parts.last!)
+        return (parts.count == 3 && ["capture-manifest.json", "recovery-report.json", "transcription-replay.json"].contains(name))
             || name.range(of: #"^segment-[0-9]{6}\.caf$"#, options: .regularExpression) != nil
     }
 
     private static func scanPayload(_ root: URL, limits: MeetingArchiveLimits) throws -> Scan {
         var result = Scan()
-        var pending: [(URL, String)] = [(root, "")]
-        while let (parent, relative) = pending.popLast() {
+        var directoryCount = 0
+        let enumerationFailed = Mutex(false)
+        guard let entries = FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil,
+            options: [], errorHandler: { _, _ in enumerationFailed.withLock { $0 = true }; return false }) else {
+            throw MeetingArchiveError.ioFailure
+        }
+        while let file = entries.nextObject() as? URL {
             try Task.checkCancellation()
-            try PersistentFilePolicy.validateItem(parent, within: root)
-            for file in try FileManager.default.contentsOfDirectory(at: parent, includingPropertiesForKeys: nil) {
-                let path = relative.isEmpty ? file.lastPathComponent : relative + "/" + file.lastPathComponent
+                guard !enumerationFailed.withLock({ $0 }) else { throw MeetingArchiveError.ioFailure }
+                let path = file.pathComponents.dropFirst(root.pathComponents.count).joined(separator: "/")
                 if ["meetings.sqlite-wal", "meetings.sqlite-shm", "meetings.sqlite-journal"].contains(path) {
                     throw MeetingArchiveError.snapshotNotClosed
                 }
@@ -202,7 +209,8 @@ public enum MeetingArchive {
                 let metadata = try FileManager.default.attributesOfItem(atPath: file.path)
                 if metadata[.type] as? FileAttributeType == .typeDirectory {
                     guard allowedDirectory(path) else { throw MeetingArchiveError.unexpectedFile }
-                    pending.append((file, path))
+                    directoryCount += 1
+                    guard directoryCount <= limits.maximumFiles else { throw MeetingArchiveError.limitExceeded }
                 } else {
                     guard metadata[.type] as? FileAttributeType == .typeRegular else { throw MeetingArchiveError.unsafeItem }
                     guard allowedFile(path) else { throw MeetingArchiveError.unexpectedFile }
@@ -213,15 +221,25 @@ public enum MeetingArchive {
                     guard !overflow, sum <= limits.maximumTotalBytes else { throw MeetingArchiveError.limitExceeded }
                     result.files[path] = file; result.sizes[path] = size; result.total = sum
                 }
-            }
         }
+        guard !enumerationFailed.withLock({ $0 }) else { throw MeetingArchiveError.ioFailure }
         return result
     }
 
     private static func inspectValidated(_ url: URL, limits: MeetingArchiveLimits) throws -> MeetingArchiveManifest {
         try validate(limits)
         let root = try directory(url)
-        let names = try FileManager.default.contentsOfDirectory(atPath: root.path)
+        var names: Set<String> = []
+        let enumerationFailed = Mutex(false)
+        guard let entries = FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil,
+            options: [.skipsSubdirectoryDescendants], errorHandler: { _, _ in enumerationFailed.withLock { $0 = true }; return false }) else {
+            throw MeetingArchiveError.ioFailure
+        }
+        while let file = entries.nextObject() as? URL {
+            guard !enumerationFailed.withLock({ $0 }), names.count < 2 else { throw MeetingArchiveError.unexpectedFile }
+            names.insert(file.lastPathComponent)
+        }
+        guard !enumerationFailed.withLock({ $0 }) else { throw MeetingArchiveError.ioFailure }
         guard Set(names) == ["manifest.json", "payload"] else { throw MeetingArchiveError.unexpectedFile }
         let manifestURL = root.appendingPathComponent("manifest.json")
         let data = try bounded(manifestURL, within: root, maximum: limits.maximumManifestBytes)

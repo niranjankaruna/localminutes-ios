@@ -838,3 +838,7 @@ Source34ab9e9/run40119556084:37executed3PASS34FAIL169assertions0skip. RealSQLite
 ## MVP2 app integration test-first checkpoint
 
 Run40121343041 at6adcc04 failed compilation before any test due to SDK flock symbol collision. First lock-binding repair prepared; no GREEN claimed. Owner adds complete meeting deletion including audio/transcript/notes/summary/Q&A and unfinished cache.34 new integration/regression cases prepared before production behavior (details MVP2_RELIABILITY evidence). Next: push test-first batch, run3/6 mvp2-integration, inspect real RED/GREEN evidence, implement app wiring with bounded parallel work, then deliver new IPA after exact-SHA verification. MVP1 IPA4aec851 remains delivered; physical gates still NOT_RUN. Live PUBLIC/standard-free-runner cost guard verified.
+
+## MVP2 integration RED observed; native Parakeet added by owner
+
+C3 exact0348c1c/run40124109356:269portable(241PASS28FAIL92assert),10actualspeechPASS,1actualPhiresumeFAIL,7nativeappFAIL20assert;0skip. Full counts/evidence MVP2_RELIABILITY. Current repairs await GREEN; exact original meeting data preserved. Native Parakeet now targets exactv2 Core ML21assets464413247B + Swiftdecoder with optionalengines disabled, tests/stub only. NextC4 proves newParakeetRED while checking MVP2repairs, keeping4/6run budget afterdispatch. No newIPA orphysicalacceptance yet.

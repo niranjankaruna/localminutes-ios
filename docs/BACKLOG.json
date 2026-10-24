@@ -1441,11 +1441,23 @@
       "deviceEvidence": [],
       "blockers": [],
       "nextAction": "Owner may install MVP1 with iLoader; independent MVP2 continues. Device model-choice behavior remains pending."
+    },
+    {
+      "id": "T25",
+      "title": "Owner-requested native FastConformer-TDT v2 speech engine",
+      "status": "IN_PROGRESS",
+      "acceptance": [
+        "Exact NVIDIA Parakeet TDT0.6Bv2 Core ML conversion with immutable artifacts/checksums/license",
+        "Direct native Core ML and Swift TDT path; no existing engine wrapper; only equipped speech runtime loaded",
+        "Discover/download/Files/remove/resources/Equip integrated with original NVIDIA repo conversion explanation",
+        "Actual-model native inference and live capture/recovery evidence before delivery; phone memory/speed/locked gates remain separate"
+      ],
+      "nextAction": "Finish primary-source API/artifact review, prepare new tests/stubs, prove meaningful hosted RED before behavior"
     }
   ],
   "executionPausedByOwner": false,
   "resumeAction": "Push integration test-first batch including SDK flock name-collision repair. Dispatch mvp2-integration as run3/6. Inspect initial37 implementation results plus newly compiled behavioral RED before implementing service/UI/diagnostics/deletion/archive regressions. Deliver next checksummed IPA only after exact-SHA GREEN.",
-  "lastUpdated": "2026-10-24T19:10:20.661Z",
+  "lastUpdated": "2026-10-24T19:21:41.863Z",
   "latestVerification": {
     "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
     "runId": 40079629180,

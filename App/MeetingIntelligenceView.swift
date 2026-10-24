@@ -33,6 +33,7 @@ final class MeetingIntelligenceController {
     private(set) var isRunning = false
     private(set) var isSaving = false
     private(set) var cleanupPending = false
+    private(set) var isResetting = false
     private(set) var editConflict = false
     private(set) var citations: [UUID: [MeetingIntelligenceCitation]] = [:]
     @ObservationIgnored private var sources: [UUID: StoredTranscriptSegment] = [:]
@@ -41,6 +42,7 @@ final class MeetingIntelligenceController {
     @ObservationIgnored private var operation: Task<Void, Never>?
     @ObservationIgnored private var cancellation: Task<Void, Never>?
     @ObservationIgnored private var debounce: Task<Void, Never>?
+    @ObservationIgnored private var resetSummaryTask: Task<Void, Never>?
     @ObservationIgnored private var saveOperation: (id: UUID, task: Task<Bool, Never>)?
 
     init(services: LocalMinutesServices, meetingID: UUID) {
@@ -48,7 +50,7 @@ final class MeetingIntelligenceController {
         self.meetingID = meetingID
     }
 
-    var busy: Bool { isRunning || cleanupPending }
+    var busy: Bool { isRunning || cleanupPending || isResetting }
     var hasSummaryEdits: Bool { summary.map { summaryText != $0.editedText } ?? false }
 
     func load() async {
@@ -139,6 +141,25 @@ final class MeetingIntelligenceController {
 
     func generateSummary() { begin(.summary) }
 
+    func startFreshSummary() {
+        guard !busy, !isSaving, !services.maintainingLibrary else { return }
+        guard services.intelligence != nil else { modelRequired = true; return }
+        isResetting = true
+        resetSummaryTask = Task { @MainActor in
+            defer { self.isResetting = false; self.resetSummaryTask = nil }
+            guard await self.flushSummaryEdits() else { return }
+            do {
+                try Task.checkCancellation()
+                try await self.services.summaryCheckpoints.remove(jobID: self.meetingID, meetingID: self.meetingID)
+                try Task.checkCancellation()
+                self.isResetting = false
+                self.begin(.summary)
+            } catch is CancellationError {} catch {
+                self.errorMessage = "Saved progress could not be cleared. The existing summary and original notes are still available."
+            }
+        }
+    }
+
     func ask() {
         guard !question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         guard question.utf8.count <= 2_048 else {
@@ -149,7 +170,7 @@ final class MeetingIntelligenceController {
     }
 
     private func begin(_ kind: IntelligenceOperation) {
-        guard request == nil, !isRunning, !cleanupPending else { return }
+        guard request == nil, !isRunning, !cleanupPending, !isResetting, !services.maintainingLibrary else { return }
         guard let intelligence = services.intelligence else {
             errorMessage = "Local generation is unavailable. Reopen LocalMinutes and try again."
             return
@@ -193,6 +214,8 @@ final class MeetingIntelligenceController {
                 self.errorMessage = "Stop recording or wait for the current local model task to finish."
             } catch IntelligenceSessionError.busy {
                 self.errorMessage = "Stop recording or wait for the current local model task to finish."
+            } catch SummaryCheckpointError.identityMismatch {
+                self.errorMessage = "Saved summary progress uses different notes, model or settings. Choose Start a fresh summary to discard that progress and use this meeting's current content."
             } catch {
                 // Model output and database paths never appear in diagnostics.
                 self.errorMessage = "A supported result could not be generated. Check that the model is installed and this meeting has a finalized transcript, then try again."
@@ -214,6 +237,7 @@ final class MeetingIntelligenceController {
     }
 
     func cancel() {
+        resetSummaryTask?.cancel()
         guard let owned = request, cancellation == nil else { return }
         operation?.cancel()
         message = "Cancelling and releasing the local model…"
@@ -304,6 +328,7 @@ final class MeetingIntelligenceController {
 struct MeetingIntelligenceView: View {
     @Bindable var controller: MeetingIntelligenceController
     let playCitation: @MainActor (Int64) async -> Void
+    @State private var confirmingFreshSummary = false
 
     var body: some View {
         Group {
@@ -329,11 +354,13 @@ struct MeetingIntelligenceView: View {
                     Text("Generate a local summary from this meeting's finalized transcript and original notes.")
                         .foregroundStyle(.secondary)
                 }
-                Button(controller.summary == nil ? "Generate summary" : "Generate new summary") {
+                Button(controller.summary == nil ? "Generate or resume summary" : "Generate or resume another summary") {
                     controller.generateSummary()
                 }
                 .disabled(controller.busy || controller.editConflict)
                 .accessibilityIdentifier("meeting.generatedSummary.generate")
+                Button("Start a fresh summary…", role: .destructive) { confirmingFreshSummary = true }
+                    .disabled(controller.busy || controller.editConflict || controller.isSaving)
             }
             Section("Ask this meeting") {
                 TextField("Ask a question about this meeting", text: $controller.question, axis: .vertical)
@@ -373,6 +400,12 @@ struct MeetingIntelligenceView: View {
                 Text("Generated content is separate from original notes and transcripts. Review it before sharing.")
                     .font(.caption).foregroundStyle(.secondary)
             }
+        }
+        .confirmationDialog("Start summary from the beginning?", isPresented: $confirmingFreshSummary, titleVisibility: .visible) {
+            Button("Discard progress and generate", role: .destructive) { controller.startFreshSummary() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Discard unfinished summary progress for this meeting and generate again. Saved summaries, original notes and the transcript stay available.")
         }
     }
 

@@ -19,21 +19,77 @@ final class LocalMinutesServices: PlaybackHardware {
     let modelSelections: ModelSelectionStore
     @ObservationIgnored lazy var modelBrowser = ModelBrowserController(services: self)
     let metrics: TranscriptionMetricsRecorder?
-    // TEST-FIRST app-owned endurance seam; no unused recorder is a pass.
-    let endurance: EnduranceMetricsRecorder? = nil
+    let endurance: EnduranceMetricsRecorder?
+    let applicationRoot: URL
+    let libraryRoot: URL
+    let transferFactory: ModelTransferFactory
+    let filesImporter: ModelFilesImporter
+    let summaryCheckpoints: SummaryCheckpointStore
+    let replay: MeetingTranscriptionReplayCoordinator
+    let deletion: MeetingDeletionCoordinator
+    @ObservationIgnored lazy var archives = LibraryArchiveCoordinator(applicationRoot: applicationRoot,
+        currentLibraryRoot: libraryRoot, store: store, usage: usage, admission: heavyAdmission!,
+        canMaintain: { [weak self] in
+            guard let self else { return false }
+            return startup.state == .ready && !isChangingModels && !modelBrowser.isWorking
+                && playback == nil && !ownsPlaybackSession && recoveringMeetingID == nil
+        })
+    private(set) var maintainingLibrary = false
+    private(set) var recoveringMeetingID: UUID?
+    private(set) var libraryMessage: String?
     private let diagnosticsDirectory: URL
+    @ObservationIgnored private var metricsSampler: Task<Void, Never>?
+    @ObservationIgnored private var metricsVisibility: MetricsVisibility = .unknown
+    @ObservationIgnored private var recoveryWork: Task<Void, Never>?
+    @ObservationIgnored private var deletionWork: [UUID: Task<Bool, Never>] = [:]
+
+    func sampleEndurance(visibility: MetricsVisibility) throws {
+        metricsVisibility = visibility
+        try endurance?.sample(NativeEnduranceFacts.current(visibility: visibility))
+    }
+    func beginEnduranceEpoch() {
+        metricsSampler?.cancel(); endurance?.beginEpoch()
+        metricsSampler = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                guard let self else { return }
+                do {
+                    try sampleEndurance(visibility: metricsVisibility)
+                    _ = try persistMetricsCheckpoint()
+                    try await Task.sleep(for: .seconds(10))
+                } catch is CancellationError { return }
+                catch { metrics?.recordError(.writeFailed) }
+                // Storage/sensor errors must not create a tight retry loop.
+                if !Task.isCancelled { try? await Task.sleep(for: .seconds(1)) }
+            }
+        }
+    }
+    func endEnduranceEpoch() {
+        metricsSampler?.cancel(); metricsSampler = nil
+        do { try sampleEndurance(visibility: metricsVisibility); _ = try persistMetricsCheckpoint() }
+        catch { metrics?.recordError(.writeFailed) }
+    }
 
     func persistMetricsCheckpoint() throws -> URL {
         guard let metrics else { throw MetricsValidationError.invalidIdentity }
         let bytes = try MetricsExportCodec.encode(metrics.snapshot())
         let destination = diagnosticsDirectory.appendingPathComponent("transcription-metrics.json")
         try PersistentFilePolicy.writeAtomically(bytes, to: destination, within: diagnosticsDirectory)
+        if let endurance {
+            try PersistentFilePolicy.writeAtomically(EnduranceMetricsExportCodec.encode(endurance.snapshot()),
+                to: diagnosticsDirectory.appendingPathComponent("endurance-metrics.json"), within: diagnosticsDirectory)
+        }
         return destination
     }
     func exportMetrics() throws -> Data {
         let file = try persistMetricsCheckpoint()
         let bytes = try Data(contentsOf: file)
         _ = try MetricsExportCodec.decodeValidated(bytes)
+        return bytes
+    }
+    func exportEnduranceMetrics() throws -> Data {
+        guard let endurance else { throw MetricsValidationError.invalidIdentity }
+        let bytes = try EnduranceMetricsExportCodec.encode(endurance.snapshot())
+        _ = try EnduranceMetricsExportCodec.decodeValidated(bytes)
         return bytes
     }
     let models: ModelInstallationManager
@@ -80,20 +136,22 @@ final class LocalMinutesServices: PlaybackHardware {
         }
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         try PersistentFilePolicy.protectDirectory(root)
+        let activeLibrary = try LibraryArchiveCoordinator.activeLibraryRoot(at: root)
+        applicationRoot = root; libraryRoot = activeLibrary
         let modelRoot = root.appendingPathComponent("Models", isDirectory: true)
-        let meetings = root.appendingPathComponent("Meetings", isDirectory: true)
+        let meetings = activeLibrary.appendingPathComponent("Meetings", isDirectory: true)
         let diagnostics = root.appendingPathComponent("Diagnostics", isDirectory: true)
         for directory in [modelRoot, meetings, diagnostics] {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             try PersistentFilePolicy.protectDirectory(directory)
         }
-        let transport = HTTPSModelTransport(stagingRootURL: modelRoot.appendingPathComponent(".staging"),
-            allowedHosts: ["huggingface.co", "us.aws.cdn.hf.co", "cdn-lfs.huggingface.co",
-                           "cdn-lfs-us-1.hf.co", "cas-bridge.xethub.hf.co"], configuration: modelConfiguration)
-        let manager = ModelInstallationManager(rootURL: modelRoot,
-            availableBytes: { try ModelStoragePolicy.availableBytes(at: $0) },
-            downloader: { artifact, destination in try await transport.download(artifact, to: destination) })
-        let database = try SQLiteMeetingStore(databaseURL: root.appendingPathComponent("meetings.sqlite"))
+        let factory = ModelTransferFactory(appRootURL: root, configuration: modelConfiguration)
+        transferFactory = factory
+        let manager = factory.makeManager()
+        filesImporter = ModelFilesImporter(manager: manager, stagingRootURL: root.appendingPathComponent("ModelImports", isDirectory: true))
+        let database = try SQLiteMeetingStore(databaseURL: activeLibrary.appendingPathComponent("meetings.sqlite"))
+        let checkpoints = try SummaryCheckpointStore(directoryURL: activeLibrary.appendingPathComponent("SummaryCheckpoints", isDirectory: true))
+        summaryCheckpoints = checkpoints
         guard let source = Bundle.main.object(forInfoDictionaryKey: "LocalMinutesSourceCommit") as? String,
               let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String,
               let number = Int(build) else { throw MetricsValidationError.invalidIdentity }
@@ -102,6 +160,7 @@ final class LocalMinutesServices: PlaybackHardware {
             runtimeVersion: StreamingEnglishModel.manifest.runtimeVersion, buildNumber: number),
             clock: AppMetricsClock())
         self.metrics = metrics; diagnosticsDirectory = diagnostics
+        endurance = try EnduranceMetricsRecorder(transcription: metrics, clock: AppMetricsClock())
         let admission = HeavyModelAdmission()
         let selections = ModelSelectionStore(rootURL: root.appendingPathComponent("ModelSelections", isDirectory: true),
             models: manager, availableProfiles: [.streamingZipformerONNX, .whisperGGML, .llamaGGUF],
@@ -118,11 +177,17 @@ final class LocalMinutesServices: PlaybackHardware {
         library = MeetingLibraryController(store: database)
         let usage = MeetingUsageRegistry(requiresStartup: true)
         self.usage = usage
-        startup = LibraryStartupCoordinator(store: database, recordingsRoot: meetings, usage: usage)
+        let checkpointRoot = activeLibrary.appendingPathComponent("SummaryCheckpoints", isDirectory: true)
+        startup = LibraryStartupCoordinator(store: database, recordingsRoot: meetings, usage: usage,
+            summaryCheckpointRoot: checkpointRoot)
+        deletion = MeetingDeletionCoordinator(store: database, recordingsRoot: meetings, usage: usage,
+            summaryCheckpointRoot: checkpointRoot)
+        replay = MeetingTranscriptionReplayCoordinator(store: database, models: manager, recordingsRoot: meetings,
+            usage: usage, admission: admission, modelPolicy: .capturedPinRequired)
         heavyAdmission = admission
         recordingAdmission = RecordingHeavyModelAdmission(usageRegistry: usage, heavyAdmission: admission)
         intelligence = IntelligenceSession(store: database, models: manager, admission: admission,
-            manifest: Self.summaryManifest)
+            manifest: Self.summaryManifest, summaryCheckpoints: checkpoints)
         intelligenceManifest = Self.summaryManifest
     }
 
@@ -161,9 +226,76 @@ final class LocalMinutesServices: PlaybackHardware {
 
     var isChangingModels: Bool { operation != nil }
 
-    /// TEST-FIRST: the native acceptance must use the actual app-owned deletion
-    /// path, including recordings and durable processing caches.
-    func deleteMeeting(id: UUID) async -> Bool { false }
+    func deleteMeeting(id: UUID) async -> Bool {
+        if let work = deletionWork[id] { return await work.value }
+        guard !maintainingLibrary, playback == nil, !ownsPlaybackSession,
+              recoveringMeetingID != id, heavyAdmission?.snapshot().phase == .idle else {
+            libraryMessage = "Stop recording, playback or local processing before deleting this meeting."
+            return false
+        }
+        let work = Task { @MainActor in
+            defer { self.deletionWork[id] = nil }
+            await self.initialize()
+            guard self.startup.state == .ready else { return false }
+            do {
+                try await self.deletion.delete(meetingID: id)
+                if self.library.selected?.id == id { await self.library.open(id: id); await self.library.search("") }
+                await self.library.refresh()
+                self.libraryMessage = "Meeting and its audio, transcript, notes, summaries and answers deleted."
+                return true
+            } catch {
+                self.libraryMessage = "The meeting could not be fully deleted. Stop any use of it and try again; unfinished deletion is retained for recovery."
+                return false
+            }
+        }
+        deletionWork[id] = work
+        return await work.value
+    }
+
+    func resumeTranscript(meetingID: UUID) {
+        guard recoveryWork == nil, !maintainingLibrary, playback == nil,
+              heavyAdmission?.snapshot().phase == .idle else {
+            libraryMessage = "Stop recording, playback or generation before resuming a transcript."; return
+        }
+        recoveringMeetingID = meetingID
+        recoveryWork = Task { @MainActor in
+            defer { self.recoveryWork = nil; self.recoveringMeetingID = nil }
+            await self.initialize()
+            guard self.startup.state == .ready else { return }
+            do {
+                let result = try await self.replay.replay(meetingID: meetingID)
+                self.libraryMessage = "Transcript recovery finished. \(result.insertedSegmentIDs.count) new segments saved."
+            } catch is CancellationError { self.libraryMessage = "Recovery paused. Saved progress can be resumed." }
+            catch TranscriptionReplayError.modelUnavailable {
+                self.libraryMessage = "Recovery needs this meeting's original speech model installation. An unrecorded legacy model cannot be guessed from today's selection."
+            } catch { self.libraryMessage = "The saved audio or recovery checkpoint needs review. Original audio and text were preserved." }
+            await self.library.refresh()
+        }
+    }
+    func cancelTranscriptRecovery() { recoveryWork?.cancel() }
+    func cancelTranscriptRecoveryAndDrain() async {
+        guard let work = recoveryWork else { return }
+        work.cancel(); await work.value
+    }
+
+    func beginLibraryMaintenance() throws {
+        guard !maintainingLibrary, deletionWork.isEmpty else { throw LibraryArchiveCoordinatorError.busy }
+        maintainingLibrary = true
+    }
+    func endLibraryMaintenance() { maintainingLibrary = false }
+
+    func exportBackup() async throws -> URL {
+        await initialize()
+        try beginLibraryMaintenance(); defer { endLibraryMaintenance() }
+        let parent = applicationRoot.appendingPathComponent("Exports", isDirectory: true)
+        if !FileManager.default.fileExists(atPath: parent.path) {
+            try FileManager.default.createDirectory(at: parent, withIntermediateDirectories: false)
+        }
+        try PersistentFilePolicy.protectDirectory(parent)
+        let output = parent.appendingPathComponent(UUID().uuidString + ".localminutesbackup", isDirectory: true)
+        _ = try await archives.export(to: output)
+        return output
+    }
 
     func refreshModels() async {
         do {
@@ -181,7 +313,8 @@ final class LocalMinutesServices: PlaybackHardware {
             summaryInstalled = chosen != nil
             if heavyAdmission?.snapshot().phase == .idle, intelligenceManifest != chosen {
                 if let chosen, let admission = heavyAdmission {
-                    intelligence = IntelligenceSession(store: store, models: models, admission: admission, manifest: chosen)
+                    intelligence = IntelligenceSession(store: store, models: models, admission: admission,
+                        manifest: chosen, summaryCheckpoints: summaryCheckpoints)
                 } else { intelligence = nil }
                 intelligenceManifest = chosen
             }

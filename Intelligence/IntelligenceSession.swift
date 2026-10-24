@@ -103,8 +103,8 @@ public final class IntelligenceSession {
     var heavyAdmissionIdentity: HeavyModelAdmission { admission }
     private let manifest: ModelManifest
     private let runtimeLoader: IntelligenceRuntimeLoader
-    // TEST-FIRST ignored app-owned dependency. Service resume/save cleanup
-    // waits for hosted behavioral RED; default generation stays unchanged.
+    // App-owned progress survives a request/view/session; the stable active
+    // summary job belongs to the selected meeting until commit or explicit reset.
     private let summaryCheckpoints: SummaryCheckpointStore?
     private var current: Use?
     private var state = IntelligenceSnapshot(phase: .idle, requestID: nil, meetingID: nil, document: nil)
@@ -295,11 +295,20 @@ public final class IntelligenceSession {
             let source = GroundedSummarySource(meetingID: request.meetingID,
                 segments: segments.map { .init(id: $0.id.uuidString, startSample: $0.startSample,
                     endSample: $0.endSample, text: $0.text) }, originalManualNotes: note?.text ?? "")
+            let resume: SummaryPipelineResumeConfiguration?
+            if let summaryCheckpoints {
+                guard let artifact = manifest.artifacts.first(where: { $0.role == .summary }) else {
+                    throw IntelligenceSessionError.invalidModel
+                }
+                resume = .init(jobID: request.meetingID, modelID: manifest.modelID,
+                    modelSHA256: artifact.sha256, runtimeVersion: manifest.runtimeVersion,
+                    checkpoints: summaryCheckpoints)
+            } else { resume = nil }
             let pipeline = SummaryPipeline(modelRevision: manifest.revision,
                 tokenizer: { try await runtime.promptTokenCount(prompt: $0) },
                 generator: { prompt, schema, maximum in
                     try await runtime.generateJSON(prompt: prompt, schema: schema, maximumTokens: maximum)
-                })
+                }, resume: resume)
             let summary = try await pipeline.summarize(selectedMeetingID: request.meetingID, source: source)
             try check(use)
             return try Self.document(summary: summary, request: request, revision: manifest.revision)
@@ -340,10 +349,19 @@ public final class IntelligenceSession {
             // Cancellation after accepted commit cannot erase an editable row.
             try await store.createGeneratedDocument(document, commitAdmission: use.cancellation)
             use.committed = true
+            if case .summary = use.request.operation, let summaryCheckpoints {
+                // This retained completion task owns cleanup after SQLite has
+                // accepted commit. Failed/cancelled saves keep every valid map.
+                try await summaryCheckpoints.remove(jobID: use.request.meetingID,
+                                                     meetingID: use.request.meetingID)
+            }
             finish(use, phase: .completed, document: document)
             return document
         } catch {
-            finish(use, phase: error is CancellationError ? .cancelled : .failed)
+            // A later cache-cleanup failure must never erase/relabel a row that
+            // already committed. The caller still receives the actual error.
+            if use.committed { finish(use, phase: .completed, document: document) }
+            else { finish(use, phase: error is CancellationError ? .cancelled : .failed) }
             throw error
         }
     }

@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T19:10:20.661Z",
+  "lastUpdated": "2026-10-24T19:45:21.646Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -11,9 +11,9 @@
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "Push integration test-first batch including SDK flock name-collision repair. Dispatch mvp2-integration as run3/6. Inspect initial37 implementation results plus newly compiled behavioral RED before implementing service/UI/diagnostics/deletion/archive regressions. Deliver next checksummed IPA only after exact-SHA GREEN.",
+  "nextAction": "Push native Core ML tests/stubs first, then C3 repair commit and new3native admission regressions; dispatch run4/6 mvp2-parakeet. Observe actual native/model/catalog/metrics/cache/admission RED, inspect DEBUG SQLite stage, then implement only proven missing behavior before run5/6 and package run6/6.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "4aec851bb1c83ec1a9acb8f48074db79dcdd8a23",
+  "remoteBranchHead": "0348c1c31806d3b88120cc9f61ac449fa290ef5a",
   "localScriptGreen": {
     "sourceCommit": "0181b311abedb3c32745b015be64d6e7c777032b",
     "platform": "Windows11/Node24.21.0",
@@ -36,20 +36,20 @@
     "plannedNewRuns": 1,
     "newRunIds": [
       40119556084,
-      40121343041
+      40121343041,
+      40124109356
     ],
     "limitReached": false,
-    "costGuardObservedAt": "2026-10-24T19:10:20.661Z",
-    "costGuardBasis": "Live intended repository PUBLIC and ADMIN, prior two runs terminal; only standard macos-15-intel, no paid infrastructure or Actions artifact storage. Max6 runs retained."
+    "costGuardObservedAt": "2026-10-24T19:45:21.646Z",
+    "costGuardBasis": "PUBLIC intended repository; standard free macos-15-intel plus official standard macos-15 Apple Silicon for native Core ML/app checks; no paid/larger runners, Actions artifact/cache storage or billing changes."
   },
   "latestCIRun": {
-    "runId": 40121343041,
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40121343041",
-    "sourceCommit": "6adcc04f2a4ebede0de0cb6068f5e6299dade6b0",
+    "sourceCommit": "0348c1c31806d3b88120cc9f61ac449fa290ef5a",
+    "runId": 40124109356,
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40124109356",
     "status": "completed",
     "conclusion": "failure",
-    "executed": 0,
-    "scope": "Swift SDK name collision importing Darwin.flock as struct; not behavioral RED or GREEN"
+    "scope": "Genuine integration RED, initial selected-speech recovery10PASS; portable269 with28failingcases, actualPhi1FAIL, native7FAIL20assert"
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -249,7 +249,13 @@
     "largerRunnersAllowed": false,
     "extraSpendAllowed": false,
     "artifactRetentionVerified": false,
-    "officialSource": "https://docs.github.com/en/billing/concepts/product-billing/github-actions"
+    "officialSource": "https://docs.github.com/en/billing/concepts/product-billing/github-actions",
+    "nativeAppleSilicon": {
+      "verifiedAt": "2026-10-24T19:45:21.646Z",
+      "runner": "macos-15",
+      "basis": "Official GitHub-hosted runner reference identifies standard3-core M1/7GB runner, free unlimited for public repositories. Intended repo PUBLIC liveverified; no larger runners, cache storage or billing mutation.",
+      "source": "https://docs.github.com/en/actions/reference/runners/github-hosted-runners"
+    }
   },
   "localSourceReview": {
     "commit": "7659a1980b53fc17d624973c6666d83084234ab6",
@@ -1727,6 +1733,71 @@
       "repair": "Resolve constant public libSystem flock C function; preserve exclusive nonblocking lock, fail closed",
       "attempt": 1,
       "verified": false
+    },
+    "integrationTestFirst": {
+      "sourceCommit": "0348c1c31806d3b88120cc9f61ac449fa290ef5a",
+      "runId": 40124109356,
+      "preparedCases": 34,
+      "actualRED": true,
+      "implementation": "IMPLEMENTED_GREEN_PENDING"
+    },
+    "integrationActual": {
+      "sourceCommit": "0348c1c31806d3b88120cc9f61ac449fa290ef5a",
+      "runId": 40124109356,
+      "portable": {
+        "executed": 269,
+        "passed": 241,
+        "failed": 28,
+        "assertionFailures": 92,
+        "skipped": 0
+      },
+      "speechRecovery": {
+        "executed": 10,
+        "passed": 10,
+        "failed": 0,
+        "skipped": 0
+      },
+      "actualPhiResume": {
+        "executed": 1,
+        "passed": 0,
+        "failed": 1,
+        "assertionFailures": 1,
+        "skipped": 0,
+        "durationSeconds": 292.229
+      },
+      "nativeServices": {
+        "executed": 7,
+        "passed": 0,
+        "failed": 7,
+        "assertionFailures": 20,
+        "skipped": 0,
+        "durationSeconds": 4.625,
+        "jobId": 120961739153
+      },
+      "nativeBuildTiming": "Package graph resolution19:12:59→19:20:28; actual7nativecases4.625s. No test hang. Do not attribute cold dependency time to repeated full-suite execution."
+    }
+  },
+  "parakeetNative": {
+    "state": "IN_PROGRESS",
+    "ownerRequest": "Dedicated iPhone-native FastConformer-TDT for nvidia/parakeet-tdt-0.6b-v2; no routing through existing engines",
+    "architecture": "Core ML + Swift TDT decoding; exact v2 conversion, only equipped speech runtime loaded",
+    "productionImplemented": false,
+    "actualRED": false,
+    "actualInference": false,
+    "formerONNXDraft": "docs/drafts/PARAKEET_ONNX_SUPERSEDED_2026_10_24/README.md",
+    "sourceModel": "nvidia/parakeet-tdt-0.6b-v2",
+    "candidateConversion": "FluidInference/parakeet-tdt-0.6b-v2-coreml",
+    "candidateRevision": "ee09c569f73759e6d44c9bd16766f477b2b36d39",
+    "physicalValidation": "NOT_RUN",
+    "preparedActualCases": 6,
+    "preparedCatalogCases": 3,
+    "preparedInstallationCases": 5,
+    "downloadBytes": 464413247,
+    "nativeDecoder": {
+      "source": "FluidInference/FluidAudio",
+      "revision": "c79c4106b954f81205113c3343e5a7e59a1089b5",
+      "optionalTraits": [],
+      "minimumSwiftTools": "6.2"
     }
   }
 }

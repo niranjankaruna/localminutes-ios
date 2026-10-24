@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 /// App-retained construction boundary. Caches live beside Models, never inside
@@ -14,21 +15,36 @@ public final class ModelTransferFactory: @unchecked Sendable {
         self.availableBytes = availableBytes
     }
 
-    /// TEST-FIRST extraction retains fresh-download behavior until integration
-    /// RED. This is a real manager/transport, not an installation/inference fake.
     public func makeManager() -> ModelInstallationManager {
         let models = appRootURL.appendingPathComponent("Models", isDirectory: true)
         let transport = HTTPSModelTransport(stagingRootURL: models.appendingPathComponent(".staging"),
             allowedHosts: ["huggingface.co", "us.aws.cdn.hf.co", "cdn-lfs.huggingface.co",
-                           "cdn-lfs-us-1.hf.co", "cas-bridge.xethub.hf.co"], configuration: configuration)
+                           "cdn-lfs-us-1.hf.co", "cas-bridge.xethub.hf.co"], configuration: configuration,
+            resumeRootURL: appRootURL.appendingPathComponent("DownloadResume", isDirectory: true))
         return ModelInstallationManager(rootURL: models, availableBytes: availableBytes,
-            downloader: { artifact, destination in try await transport.download(artifact, to: destination) })
+            downloader: { [self] artifact, destination in
+                try await transport.downloadResumable(artifact, to: destination,
+                    checkpointDirectory: checkpointDirectory(for: artifact))
+            })
     }
 
-    /// TEST-FIRST no-op identity seam. A fixed UUID deliberately cannot
-    /// distinguish different immutable files until the new contracts run RED.
+    /// Hash the complete immutable artifact pin, including repository URL and
+    /// revision. Calculating a location never creates files or installs a model.
     public func checkpointDirectory(for artifact: ModelArtifact) throws -> URL {
-        appRootURL.appendingPathComponent("DownloadResume", isDirectory: true)
-            .appendingPathComponent("00000000-0000-0000-0000-000000000000", isDirectory: true)
+        guard appRootURL.isFileURL, appRootURL.path != "/", artifact.byteCount > 0,
+              !artifact.fileName.isEmpty, !artifact.fileName.contains("/"), !artifact.fileName.contains("\\"),
+              artifact.sha256.utf8.count == 64 else { throw ModelInstallationError.invalidManifest }
+        let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
+        let hash = SHA256.hash(data: try encoder.encode(artifact)).map { String(format: "%02x", $0) }.joined()
+        let hex = Array(hash.prefix(32))
+        let id = [String(hex[0..<8]), String(hex[8..<12]), String(hex[12..<16]),
+                  String(hex[16..<20]), String(hex[20..<32])].joined(separator: "-")
+        guard let uuid = UUID(uuidString: id) else { throw ModelInstallationError.invalidManifest }
+        return appRootURL.appendingPathComponent("DownloadResume", isDirectory: true)
+            .appendingPathComponent(uuid.uuidString, isDirectory: true)
     }
+
+    /// TEST-FIRST: removal must also free retained download bytes. This hook
+    /// deliberately does nothing until the new real-cache assertion runs RED.
+    public func discardProgress(for manifest: ModelManifest) throws {}
 }

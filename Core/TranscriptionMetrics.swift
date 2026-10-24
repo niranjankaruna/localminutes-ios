@@ -81,6 +81,7 @@ public final class TranscriptionMetricsRecorder: Sendable {
         var peakQueue = 0
         var queueDepth = 0
         var lastTime: UInt64?
+        var firstAudioQueuedAt: UInt64?
         var visibility = MetricsVisibility.unknown
         var pending: [Input] = []
         var completed: [Input] = []
@@ -114,9 +115,8 @@ public final class TranscriptionMetricsRecorder: Sendable {
 
     public func nowNanoseconds() -> UInt64 { clock.nowNanoseconds() }
 
-    /// TEST-FIRST endurance seam: origin must be the accepted first PCM event,
-    /// not recorder construction, scene activation or engine-start time.
-    public var firstAudioQueuedAtNanoseconds: UInt64? { nil }
+    /// Accepted first PCM event, retained independently of bounded input rings.
+    public var firstAudioQueuedAtNanoseconds: UInt64? { state.withLock { $0.firstAudioQueuedAt } }
 
     /// Begin one new audio epoch on the control path, after the preceding
     /// producer/consumer have quiesced. Pins and current app visibility belong
@@ -157,6 +157,7 @@ public final class TranscriptionMetricsRecorder: Sendable {
             guard value.pending.count < 129 else { throw MetricsValidationError.pendingOverflow }
             let now = try checkedTime(value)
             value.pending.append(Input(start: startSample, end: end, queuedAt: now))
+            if value.firstAudioQueuedAt == nil { value.firstAudioQueuedAt = now }
             value.captured = end
             value.queueDepth = queueDepth
             value.peakQueue = max(value.peakQueue, queueDepth)

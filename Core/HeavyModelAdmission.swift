@@ -1,7 +1,7 @@
 import Foundation
 
 public enum HeavyModelPurpose: CaseIterable, Equatable, Sendable {
-    case streamingASR, summary, questionAnswering
+    case streamingASR, summary, questionAnswering, libraryMaintenance
 }
 
 public struct HeavyModelUseLease: Equatable, Sendable {

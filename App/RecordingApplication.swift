@@ -26,13 +26,14 @@ private final class RequiredSpeechModelPreparation: RecordingPreparationSource {
 final class RecordingApplication {
     static let shared = RecordingApplication()
 
-    let owner: RecordingSessionOwner?
+    private(set) var owner: RecordingSessionOwner?
     let foreground: (any RecordingForegroundContinuation)?
-    let services: LocalMinutesServices?
-    let playbackOwnership: PlaybackOwnershipController?
+    private(set) var services: LocalMinutesServices?
+    private(set) var playbackOwnership: PlaybackOwnershipController?
+    private(set) var isRestoringLibrary = false
     private(set) var lastOutcome: RecordingIntentOutcome?
-    private let router: RecordingIntentRouter
-    @ObservationIgnored private let signalMonitor: IOSRecordingSignalMonitor
+    private var router: RecordingIntentRouter
+    @ObservationIgnored private var signalMonitor: IOSRecordingSignalMonitor
     @ObservationIgnored
     private var toggleOperation: (id: UUID, task: Task<RecordingIntentOutcome, Never>)?
     @ObservationIgnored
@@ -65,7 +66,7 @@ final class RecordingApplication {
         foreground = nil
         let monitor = IOSRecordingSignalMonitor(owner: owner, storageDirectory: services?.meetingsDirectory)
         signalMonitor = monitor
-        Self.bindSignals(monitor, to: owner)
+        Self.bindSignals(monitor, to: owner, services: services)
     }
 
     init(owner: RecordingSessionOwner,
@@ -92,22 +93,29 @@ final class RecordingApplication {
         }
         try services?.metrics?.visibilityChanged(visibility)
         try services?.metrics?.checkpoint()
+        try services?.sampleEndurance(visibility: visibility)
     }
 
-    private static func bindSignals(_ monitor: IOSRecordingSignalMonitor, to owner: RecordingSessionOwner) {
+    private static func bindSignals(_ monitor: IOSRecordingSignalMonitor, to owner: RecordingSessionOwner,
+                                    services: LocalMinutesServices? = nil) {
         var observedID: UUID?
-        owner.setEpochObserver { [weak monitor] id in
+        owner.setEpochObserver { [weak monitor, weak services] id in
             guard let monitor else { return }
             if let id {
                 monitor.beginEpoch(sessionID: id)
+                services?.beginEnduranceEpoch()
             } else if let previous = observedID {
                 monitor.endEpoch(sessionID: previous)
+                services?.endEnduranceEpoch()
             }
             observedID = id
         }
     }
 
     func perform(_ action: RecordingIntentAction) async throws -> RecordingIntentOutcome {
+        guard !isRestoringLibrary, services?.maintainingLibrary != true else {
+            lastOutcome = .cleanupPending; return .cleanupPending
+        }
         switch action {
         case .start, .toggle:
             if let services {
@@ -115,6 +123,10 @@ final class RecordingApplication {
                 guard services.startup.state == .ready else {
                     lastOutcome = .cleanupPending
                     return .cleanupPending
+                }
+                await services.cancelTranscriptRecoveryAndDrain()
+                guard services.heavyAdmission?.snapshot().lease?.purpose != .libraryMaintenance else {
+                    lastOutcome = .cleanupPending; return .cleanupPending
                 }
                 // A new capture action takes priority over post-recording
                 // generation. The same shared gate remains held until its real
@@ -213,6 +225,7 @@ final class RecordingApplication {
     }
 
     func playAudio(at location: MeetingPlaybackLocation) async -> PlaybackOwnershipResult {
+        guard !isRestoringLibrary, services?.maintainingLibrary != true else { return .cleanupPending }
         guard let playbackOwnership else { return .unavailable }
         return await playbackOwnership.play(at: location)
     }
@@ -223,12 +236,27 @@ final class RecordingApplication {
 
     func playAudio(at location: MeetingPlaybackLocation,
                    requestID: UUID) async -> PlaybackOwnershipResult {
+        guard !isRestoringLibrary, services?.maintainingLibrary != true else { return .cleanupPending }
         guard let playbackOwnership else { return .unavailable }
         return await playbackOwnership.play(at: location, requestID: requestID)
     }
 
     func stopPlayback(expectedRequestID: UUID) -> PlaybackOwnershipResult {
         playbackOwnership?.stop(expectedRequestID: expectedRequestID) ?? .stopped
+    }
+
+    func setLibraryRestoreActive(_ active: Bool) { isRestoringLibrary = active }
+
+    /// Replace the composition behind the stable App Intents entry object only
+    /// after the new library opens. Old view tasks retain their closed old store.
+    func activateLibraryServices(_ services: LocalMinutesServices) {
+        let replacement = RecordingApplication(services: services)
+        self.services = replacement.services
+        owner = replacement.owner
+        playbackOwnership = replacement.playbackOwnership
+        router = replacement.router
+        signalMonitor = replacement.signalMonitor
+        toggleOperation = nil; preparationStop = nil; lastOutcome = nil
     }
 }
 #endif
