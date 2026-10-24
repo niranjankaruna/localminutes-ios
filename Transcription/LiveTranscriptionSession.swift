@@ -35,6 +35,9 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
     private let storageReserveBytes: Int64
     private let availableStorageBytes: @MainActor (URL) throws -> Int64
     @ObservationIgnored private let metrics: TranscriptionMetricsRecorder?
+    // Test-first selected-model seam only; preparation still uses its existing
+    // default until the real selected-engine integration reaches assertion RED.
+    @ObservationIgnored private let selectedSpeechModel: @MainActor () async throws -> ModelManifest?
     var metricsRecorder: TranscriptionMetricsRecorder? { metrics }
     @ObservationIgnored private var current: LiveTranscriptEpoch?
 
@@ -43,6 +46,9 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
                 storageReserveBytes: Int64 = 1_000_000_000,
                 availableStorageBytes: @escaping @MainActor (URL) throws -> Int64 = {
                     try ModelStoragePolicy.availableBytes(at: $0)
+                },
+                selectedSpeechModel: @escaping @MainActor () async throws -> ModelManifest? = {
+                    StreamingEnglishModel.manifest
                 }) {
         self.models = models
         self.store = store
@@ -50,6 +56,7 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
         self.metrics = metrics
         self.storageReserveBytes = max(1_000_000_000, storageReserveBytes)
         self.availableStorageBytes = availableStorageBytes
+        self.selectedSpeechModel = selectedSpeechModel
         let router = TranscriptSinkRouter()
         self.router = router
         normalizedSink = router

@@ -222,6 +222,36 @@ final class ModelSelectionTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: outside), original)
     }
 
+    func testInstalledInventoryListsBothAlternativesDeterministicallyWithoutChangingEquipment() async throws {
+        let h = try SelectionFixture(); defer { h.remove() }
+        let second = try await h.install(.summary, modelID: "summary-b")
+        let first = try await h.install(.summary, modelID: "summary-a")
+        let selections = h.selections()
+        let equipped = try await selections.select(manifest: second.manifest, profile: .llamaGGUF, for: .summary)
+        let inventory = try await h.manager.installedManifests()
+        XCTAssertEqual(inventory, [first.manifest, second.manifest])
+        let unchanged = try await selections.selected(for: .summary)
+        XCTAssertEqual(unchanged, equipped)
+        let reopened = ModelInstallationManager(rootURL: h.root.appendingPathComponent("Models"), availableBytes: { _ in 100_000_000 })
+        let persisted = try await reopened.installedManifests()
+        XCTAssertEqual(persisted, inventory)
+    }
+
+    func testInstalledInventoryRejectsLinkedModelContainerWithoutReadingExternalManifest() async throws {
+        let h = try SelectionFixture(); defer { h.remove() }
+        let installed = try await h.install(.summary)
+        let outside = h.root.appendingPathComponent("ExternalModel", isDirectory: true)
+        try FileManager.default.createDirectory(at: outside, withIntermediateDirectories: false)
+        let sentinel = Data("private outside sentinel".utf8)
+        let manifest = outside.appendingPathComponent("manifest.json")
+        try sentinel.write(to: manifest)
+        let link = installed.directoryURL.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("linked-model", isDirectory: true)
+        try FileManager.default.createSymbolicLink(at: link, withDestinationURL: outside)
+        await rejectsAny { _ = try await h.manager.installedManifests() }
+        XCTAssertEqual(try Data(contentsOf: manifest), sentinel)
+    }
+
     private func rejects(_ expected: ModelSelectionError, _ body: @MainActor () async throws -> Void) async {
         do { try await body(); XCTFail("Selection must reject \(expected)") }
         catch { XCTAssertEqual(error as? ModelSelectionError, expected) }

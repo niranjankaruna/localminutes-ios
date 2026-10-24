@@ -26,7 +26,7 @@ struct IntelligenceFixture {
     let otherSegments: [StoredTranscriptSegment]
     let note: StoredManualNote
 
-    static func create(actualModel: URL? = nil) async throws -> IntelligenceFixture {
+    static func create(actualModel: URL? = nil, manifestOverride: ModelManifest? = nil) async throws -> IntelligenceFixture {
         let root = FileManager.default.temporaryDirectory.standardizedFileURL
             .appendingPathComponent("localminutes-intelligence-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
@@ -34,7 +34,14 @@ struct IntelligenceFixture {
         do {
         let source = root.appendingPathComponent("import", isDirectory: true)
         try FileManager.default.createDirectory(at: source, withIntermediateDirectories: false)
-        let name = actualModel == nil ? "boundary-model.gguf" : "qwen2.5-1.5b-instruct-q4_k_m.gguf"
+        if let manifestOverride {
+            guard actualModel != nil, manifestOverride.purpose == .summary, manifestOverride.artifacts.count == 1,
+                  let artifact = manifestOverride.artifacts.first, artifact.role == .summary,
+                  !artifact.fileName.contains("/"), !artifact.fileName.contains("\\"),
+                  artifact.fileName != ".", artifact.fileName != ".." else { throw IntelligenceSessionError.invalidModel }
+        }
+        let name = manifestOverride?.artifacts.first?.fileName
+            ?? (actualModel == nil ? "boundary-model.gguf" : "qwen2.5-1.5b-instruct-q4_k_m.gguf")
         let file = source.appendingPathComponent(name)
         if let actualModel { try FileManager.default.copyItem(at: actualModel, to: file) }
         else { try Data("Original nonsense bytes: file-integrity fixture, never inference.".utf8).write(to: file) }
@@ -44,7 +51,7 @@ struct IntelligenceFixture {
         try handle.close()
         let digest = hash.finalize().map { String(format: "%02x", $0) }.joined()
         let size = (try FileManager.default.attributesOfItem(atPath: file.path)[.size] as? NSNumber)?.int64Value ?? -1
-        if actualModel != nil {
+        if actualModel != nil && manifestOverride == nil {
             XCTAssertEqual(size, 1_117_320_736)
             XCTAssertEqual(digest, "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e")
             guard size == 1_117_320_736,
@@ -52,10 +59,15 @@ struct IntelligenceFixture {
                 throw IntelligenceSessionError.invalidModel
             }
         }
+        if let artifact = manifestOverride?.artifacts.first {
+            XCTAssertEqual(size, artifact.byteCount)
+            XCTAssertEqual(digest, artifact.sha256)
+            guard size == artifact.byteCount, digest == artifact.sha256 else { throw IntelligenceSessionError.invalidModel }
+        }
         let revision = actualModel == nil ? String(repeating: "a", count: 40) : "91cad51170dc346986eccefdc2dd33a9da36ead9"
         let repository = actualModel == nil ? "https://huggingface.co/example/original-boundary-fixture"
             : "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF"
-        let manifest = ModelManifest(modelID: actualModel == nil ? "boundary-summary" : "qwen2.5-1.5b-instruct-q4_k_m",
+        let manifest = manifestOverride ?? ModelManifest(modelID: actualModel == nil ? "boundary-summary" : "qwen2.5-1.5b-instruct-q4_k_m",
             purpose: .summary, upstreamRepository: URL(string: repository)!, revision: revision,
             licenseIdentifier: actualModel == nil ? "CC0-1.0" : "Apache-2.0",
             licenseNotice: actualModel == nil ? "Original non-model bytes dedicated to CC0-1.0."

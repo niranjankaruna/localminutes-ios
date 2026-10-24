@@ -8,7 +8,7 @@ on:
         required: true
         type: choice
         default: mvp
-        options: [mvp, features, package, validation, candidate, candidate-summary, candidate-summary-parts, model-catalog]
+        options: [mvp, features, package, validation, candidate, candidate-summary, candidate-summary-parts, model-catalog, model-integration]
       sourceCommit:
         description: Reviewed app source for the MVP package
         required: true
@@ -23,7 +23,7 @@ concurrency:
 
 jobs:
   focused-portable:
-    if: ${{ inputs.mode == 'candidate-summary-parts' || inputs.mode == 'model-catalog' }}
+    if: ${{ inputs.mode == 'candidate-summary-parts' || inputs.mode == 'model-catalog' || inputs.mode == 'model-integration' }}
     runs-on: macos-15-intel
     timeout-minutes: 8
     env:
@@ -46,7 +46,9 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           mkdir -p .build
-          if [ "${{ inputs.mode }}" = model-catalog ]; then
+          if [ "${{ inputs.mode }}" = model-integration ]; then
+            swift test --filter '(HuggingFaceRepositoryTests|ModelSelectionTests|SummaryPipelineTests|GroundedSummaryTests|NestedStructuredSchemaTests|StructuredJSONSchemaTests)' 2>&1 | tee .build/focused-portable.log
+          elif [ "${{ inputs.mode }}" = model-catalog ]; then
             swift test --filter '(HuggingFaceRepositoryTests|ModelSelectionTests|WhisperSpeechRecognizerTests|SummaryPipelineTests|GroundedSummaryTests|NestedStructuredSchemaTests|StructuredJSONSchemaTests)' 2>&1 | tee .build/focused-portable.log
           else
             swift test --filter 'IntelligenceSessionTests/testCancellationBeforeBlockedSQLiteCommitSavesNothingAndPreservesOriginalsAndModel' 2>&1 | tee .build/focused-portable.log
@@ -56,18 +58,26 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ "${{ inputs.mode }}" = model-catalog ]; then
+          if [ "${{ inputs.mode }}" = model-integration ]; then
+            node scripts/verify-test-log.mjs .build/focused-portable.log testInstalledInventoryListsBothAlternativesDeterministicallyWithoutChangingEquipment
+          elif [ "${{ inputs.mode }}" = model-catalog ]; then
             node scripts/verify-test-log.mjs .build/focused-portable.log testWhisperLoadsActualPinnedModelOnCPUOutsideMainThread
           else
             node scripts/verify-test-log.mjs .build/focused-portable.log testCancellationBeforeBlockedSQLiteCommitSavesNothingAndPreservesOriginalsAndModel
           fi
 
   focused-app-metrics:
-    if: ${{ inputs.mode == 'candidate-summary-parts' || inputs.mode == 'model-catalog' }}
+    if: ${{ inputs.mode == 'candidate-summary-parts' || inputs.mode == 'model-catalog' || inputs.mode == 'model-integration' }}
+    name: Native focused (${{ matrix.testclass }})
     runs-on: macos-15-intel
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        testclass: ${{ fromJSON(inputs.mode == 'model-integration' && '["NativeAppMetricsTests","NativeModelResourceTests"]' || '["NativeAppMetricsTests"]') }}
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+      NATIVE_TEST_CLASS: ${{ matrix.testclass }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -118,7 +128,7 @@ jobs:
           set -euo pipefail
           xcodebuild -quiet test -project LocalMinutes.xcodeproj -scheme LocalMinutesFocusedValidation -configuration Debug \
             -destination "platform=iOS Simulator,id=$LOCALMINUTES_TEST_SIMULATOR" -destination-timeout 120 \
-            -parallel-testing-enabled NO -collect-test-diagnostics never -only-testing:LocalMinutesAppTests/NativeAppMetricsTests \
+            -parallel-testing-enabled NO -collect-test-diagnostics never -only-testing:"LocalMinutesAppTests/$NATIVE_TEST_CLASS" \
             -derivedDataPath build/focused-app -clonedSourcePackagesDirPath .agent-local/source-packages \
             -resultBundlePath .agent-local/focused-app-metrics.xcresult \
             CODE_SIGNING_ALLOWED=NO LOCALMINUTES_SOURCE_COMMIT="$GITHUB_SHA" 2>&1 | tee .agent-local/focused-app-metrics.log
@@ -127,10 +137,65 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node scripts/verify-test-log.mjs .agent-local/focused-app-metrics.log \
+          if [ "$NATIVE_TEST_CLASS" = NativeModelResourceTests ]; then
+            node scripts/verify-test-log.mjs .agent-local/focused-app-metrics.log testModelResourcesReadActualVolumeAndPhysicalRAMWithoutFabricatedCapacity testModelResourcesDoNotInventFreeStorageForAnUnusablePath
+          else
+            node scripts/verify-test-log.mjs .agent-local/focused-app-metrics.log \
             testDefaultServicesRetainOneLiveRecorderWithActualBuildAndModelPins \
             testAppScenePhaseControlRecordsTruthfulBoundedVisibilityCheckpoints \
             testAppPersistsProtectedAtomicMetricsJSONAndExportsOnlyValidatedFacts
+          fi
+
+  selected-model-integration:
+    if: ${{ inputs.mode == 'model-integration' }}
+    name: Selected model (${{ matrix.flow }})
+    runs-on: macos-15-intel
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - flow: whisper-native
+            filter: WhisperSpeechRecognizerTests
+            testcase: testWhisperRollingWindowsPublishActualSpeechGlobalRangesAndNoRepeatedFinals
+          - flow: whisper-live
+            filter: SelectedWhisperLiveSessionTests
+            testcase: testEquippedWhisperStreamsLicensedSpeechBeforeStopAndPersistsFinalGlobalRanges
+          - flow: selected-summary
+            filter: ActualSelectedModelIntelligenceTests
+            testcase: testActualSelectedPhiDefaultLoaderSavesSummaryAndGuideAnswerWithOriginalsPreserved
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+      MODEL_FLOW: ${{ matrix.flow }}
+      MODEL_FILTER: ${{ matrix.filter }}
+      MODEL_CASE: ${{ matrix.testcase }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Prepare only the selected actual pinned model
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 docs/drafts/T17/prepare_native_summary.py --framework-only
+          if [ "$MODEL_FLOW" = selected-summary ]; then
+            python3 docs/drafts/T17/prepare_phi3_candidate.py
+          else
+            python3 docs/drafts/T10/prepare_whisper_fixture.py
+          fi
+      - name: Exercise only this selected-model flow
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$MODEL_FLOW" = selected-summary ]; then
+            export LOCALMINUTES_PHI_MODEL_PATH="$LOCALMINUTES_CANDIDATE_MODEL_PATH"
+          fi
+          mkdir -p .build
+          swift test --filter "$MODEL_FILTER" 2>&1 | tee .build/selected-model.log
+      - name: Require real selected-flow assertions
+        if: always()
+        run: node scripts/verify-test-log.mjs .build/selected-model.log "$MODEL_CASE"
 
   phi3-candidate:
     if: ${{ inputs.mode == 'candidate' || inputs.mode == 'candidate-summary' || inputs.mode == 'candidate-summary-parts' || inputs.mode == 'model-catalog' }}
