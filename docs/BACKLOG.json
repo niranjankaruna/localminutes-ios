@@ -1108,9 +1108,12 @@
           "redEvidence": [
             "docs/evidence/T12_T13_T18_T19_TDD.md"
           ],
-          "greenEvidence": [],
+          "greenEvidence": [
+            "docs/evidence/MODEL_CATALOG_AND_SUMMARY_2026_10_24.md",
+            "docs/evidence/MVP1_MODEL_DELIVERY_2026_10_24.md"
+          ],
           "deviceEvidence": [],
-          "scope": "Four pure map/cancel/nested-schema cases pass. Actual nested Qwen source3 positive map is rejected unsupportedClaim; first evidence-order repair source4 did not yield a completed pipeline case before20min job cancellation. Do not infer semantic GREEN; full natural-source/notes/representative quality still pending.",
+          "scope": "Pure map/cancel/nested-schema behavior is implemented. Two actual pinned Phi summary fixtures pass at c26880d/run40109131483; the selected Phi service also passes at d0fe973/run40114656922. Historical Qwen unsupportedClaim and timeout results remain recorded. Small-fixture GREEN does not establish full natural-source/manual-note or representative long-meeting quality; those gates remain pending.",
           "redVerified": true,
           "productionImplemented": true
         },
@@ -1140,9 +1143,12 @@
           "redEvidence": [
             "docs/evidence/T12_T13_T18_T19_TDD.md"
           ],
-          "greenEvidence": [],
+          "greenEvidence": [
+            "docs/evidence/MVP1_MODEL_DELIVERY_2026_10_24.md",
+            "docs/evidence/MVP2_RELIABILITY_2026_10_24.md"
+          ],
           "deviceEvidence": [],
-          "scope": "Four original orchestration cases pass source4 core after source3 RED; actual default pinned loader/service fails generationFailed344.789s and is not GREEN. New sixth case (blocked real SQLite commit cancellation) is test-first only/unfixed pending hosted RED; actual service plus full app integration remain pending.",
+          "scope": "App-owned intelligence and commit-cancellation repair are implemented. Actual selected Phi default-loader summary/answer passes at d0fe973/run40114656922 (571.357s); real Phi cancelled-commit/reopened-summary resume passes at 4640aec/run40126813965 (445.283s), and four Session resume cases pass at 048481c/run40130455240. Earlier Qwen generationFailed and blocked-commit RED remain historical evidence. Complete candidate regressions, representative quality and physical-device integration remain pending.",
           "redVerified": true,
           "productionImplemented": true
         },
@@ -1154,7 +1160,7 @@
           "compileSource": "d6a329354ffc095d4dffb9ca4d939c67bf10adc8",
           "compileRunId": 40101392948,
           "modelQualityVerified": false,
-          "scope": "Real default model integration, selected durable summary, serial CAS autosave, sources/playback, cancellation/export compiled. Actual model failures keep parent feature unfinished."
+          "scope": "Selected durable summary, serial CAS autosave, sources/playback and cancellation/export are implemented and packaged in MVP1 source4aec851/run40117673355. Actual selected Phi small-fixture service evidence supersedes the older default-Qwen failure as the current runtime result. Representative quality, full accessibility/privacy release validation and physical UI behavior remain pending; modelQualityVerified is not a whole-feature quality pass."
         }
       ],
       "redEvidence": [],
@@ -1162,9 +1168,10 @@
       "deviceEvidence": [],
       "blockers": [],
       "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead.",
-      "latestCheckpoint": "One candidate comparison stopped within30min: Phi Q&A2/2PASS run40104505380; summaries preflight harness revision corrected, but summary-only run40105186439 timed out8min with no completed case/stage. Default app/Qwen unchanged; no feature completion.",
+      "latestCheckpoint": "Current starter summary model is pinned Phi-3 Q4, not the historical Qwen candidate. Phi summary fixtures pass c26880d/run40109131483; actual selected default-loader summary/QA passes d0fe973/run40114656922. Durable actual-Phi summary resume passes 4640aec/run40126813965. Historical Qwen failures and the initial Phi harness timeout are retained. Representative quality and all device gates remain pending; parent remains IN_PROGRESS.",
       "candidateEvidence": "docs/evidence/PHI3_SINGLE_COMPARISON_2026_10_24.md",
-      "candidateNextAction": "T18.3: inspect the bounded Phi summary runtime/generation path before further inference; the8min summary-only run40105186439 had no completed case/stage report. Preserve the2/2 actual Q&A observations, all original oracles and failed/timeout evidence. No automatic retry, new candidate, default-model switch or package. Resume a separately bounded implementation batch only when the owner resumes work."
+      "currentModelDecision": "docs/SUMMARY_MODEL_DECISION.md",
+      "candidateNextAction": "Retain the working Phi small-fixture and durable-resume evidence. Complete the current MVP2 repair/verification handoff, then evaluate unchanged evidence/nullable-owner/date semantics on licensed representative long-meeting sources in the bounded MVP3 release batch. Preserve all original Qwen/Phi oracles, historical failures, explicit processing limits and physical-device gates; no blind prompt retry or inferred full-quality pass."
     },
     {
       "id": "T19",
@@ -1211,9 +1218,12 @@
           "redEvidence": [
             "docs/evidence/T12_T13_T18_T19_TDD.md"
           ],
-          "greenEvidence": [],
+          "greenEvidence": [
+            "docs/evidence/PHI3_SINGLE_COMPARISON_2026_10_24.md",
+            "docs/evidence/MVP1_MODEL_DELIVERY_2026_10_24.md"
+          ],
           "deviceEvidence": [],
-          "scope": "Three portable QA cases pass, actual semantic contract failed source4 over-refusal. Final balanced generic attempt3 applied, actual verification pending; both status domains, full IDs, free quote and all raw native assertions retained. No fourth blind retry.",
+          "scope": "Portable selected-meeting QA is implemented. Actual Phi known-answer and unknown-owner refusal pass at 1a999b6/run40104505380; the actual installed Phi default-loader summary/answer passes at d0fe973/run40114656922. Historical Qwen over-refusal/unsupportedEvidence remains recorded and is not a current absent-implementation blocker. Both status domains, full IDs, free quote and original semantic assertions remain; representative quality/offline-phone validation is pending, with no fourth blind prompt retry.",
           "redVerified": true,
           "productionImplemented": true
         },
@@ -1225,7 +1235,7 @@
           "compileSource": "d6a329354ffc095d4dffb9ca4d939c67bf10adc8",
           "compileRunId": 40101392948,
           "modelQualityVerified": false,
-          "scope": "Actual selected-meeting Ask, saved answers/citations, missing-model/busy/error/cancel, generated export compiled; model evidence validation still fails."
+          "scope": "Selected-meeting Ask, saved answers/citations, missing-model/busy/error/cancel and generated export are implemented and packaged in MVP1 source4aec851/run40117673355. Actual Phi selected-service small-fixture evidence supersedes the older Qwen failure as the current runtime result. Representative quality, accessibility/privacy release validation and physical UI behavior remain pending; modelQualityVerified is not a whole-feature quality pass."
         }
       ],
       "redEvidence": [],
@@ -1233,9 +1243,10 @@
       "deviceEvidence": [],
       "blockers": [],
       "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead.",
-      "latestCheckpoint": "One candidate comparison stopped within30min: Phi Q&A2/2PASS run40104505380; summaries preflight harness revision corrected, but summary-only run40105186439 timed out8min with no completed case/stage. Default app/Qwen unchanged; no feature completion.",
+      "latestCheckpoint": "Current pinned Phi Q4 passes known-answer/unknown-owner-refusal fixtures at 1a999b6/run40104505380 and actual installed selected-service summary/QA at d0fe973/run40114656922. Historical Qwen quality failures and initial Phi harness/timeout evidence remain recorded. Representative question coverage and all device gates remain pending; parent remains IN_PROGRESS.",
       "candidateEvidence": "docs/evidence/PHI3_SINGLE_COMPARISON_2026_10_24.md",
-      "candidateNextAction": "T18.3: inspect the bounded Phi summary runtime/generation path before further inference; the8min summary-only run40105186439 had no completed case/stage report. Preserve the2/2 actual Q&A observations, all original oracles and failed/timeout evidence. No automatic retry, new candidate, default-model switch or package. Resume a separately bounded implementation batch only when the owner resumes work."
+      "currentModelDecision": "docs/SUMMARY_MODEL_DECISION.md",
+      "candidateNextAction": "Retain the working Phi selected-meeting answer/refusal evidence and historical Qwen failures. Include representative supported/unsupported questions, cross-meeting isolation and source navigation in the bounded MVP3 release evaluation without changing raw semantic oracles. Complete offline physical-device and accessibility/privacy gates separately; no blind prompt retry or global completion claim."
     },
     {
       "id": "T20",
@@ -1405,30 +1416,32 @@
         {
           "id": "T24.1",
           "title": "Safe immutable repository/card lookup, formats and resource comparisons",
-          "status": "IN_PROGRESS",
-          "productionImplemented": false
+          "status": "CODE_COMPLETE_PENDING_DEVICE",
+          "productionImplemented": true
         },
         {
           "id": "T24.2",
           "title": "Verified persistent independent Equip, alternatives and explicit removal",
-          "status": "IN_PROGRESS",
-          "productionImplemented": false
+          "status": "CODE_COMPLETE_PENDING_DEVICE",
+          "productionImplemented": true
         },
         {
           "id": "T24.3",
           "title": "Pinned actual Whisper CPU rolling inference and runtime integration",
-          "status": "IN_PROGRESS",
-          "productionImplemented": false
+          "status": "CODE_COMPLETE_PENDING_DEVICE",
+          "productionImplemented": true
         },
         {
           "id": "T24.4",
           "title": "Native cards and selected-model Download/Remove/Equip controls",
-          "status": "NOT_STARTED"
+          "status": "CODE_COMPLETE_PENDING_DEVICE",
+          "productionImplemented": true
         },
         {
           "id": "T24.5",
           "title": "Selected local summary runtime/model-template integration",
-          "status": "NOT_STARTED"
+          "status": "CODE_COMPLETE_PENDING_DEVICE",
+          "productionImplemented": true
         }
       ],
       "redEvidence": [
@@ -1440,7 +1453,18 @@
       ],
       "deviceEvidence": [],
       "blockers": [],
-      "nextAction": "Owner may install MVP1 with iLoader; independent MVP2 continues. Device model-choice behavior remains pending."
+      "latestCheckpoint": "MVP1 model-choice scope is implemented, packaged and delivered at exact4aec851bb1c83ec1a9acb8f48074db79dcdd8a23/run40117673355:137 focused PASS,0fail/skip. Selected Phi actual-model evidence is retained separately; expensive generations were not repeated for unrelated MVP1 metrics changes. All child statuses are CODE_COMPLETE_PENDING_DEVICE, not global VERIFIED_COMPLETE.",
+      "latestCandidateVerification": {
+        "sourceCommit": "36f9c7f23a5e3967cb3cae26d28caec5c8c74de5",
+        "runId": 40131735329,
+        "conclusion": "FAILED",
+        "portable": { "executed": 281, "passed": 280, "failed": 1 },
+        "nativeCoreML": { "executed": 8, "passed": 6, "failed": 2 },
+        "nativeApp": { "executed": 10, "passed": 10, "failed": 0 },
+        "deviceBuildAndPackage": "PASS",
+        "scope": "MVP2 candidate including native Parakeet; overall FAILED pending remaining repairs/exact-source verification. Packaging success is not delivery or a device-gate pass."
+      },
+      "nextAction": "Retain delivered MVP1 evidence while completing genuine remaining MVP2 candidate failures and exact-source packaging verification. Owner may install a verified delivery with iLoader. Phone model-choice/offline/resource behavior, signing/renewal and representative quality remain pending."
     },
     {
       "id": "T25",

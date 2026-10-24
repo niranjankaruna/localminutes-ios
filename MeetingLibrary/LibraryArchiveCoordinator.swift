@@ -132,12 +132,17 @@ public final class LibraryArchiveCoordinator {
         defer { try? FileManager.default.removeItem(at: stage) }
         do { try await store.createSnapshot(at: stage.appendingPathComponent("meetings.sqlite")) }
         catch is CancellationError { throw CancellationError() }
-        catch { throw LibraryArchiveCoordinatorError.metadataFailure }
+        catch {
+            Self.traceExportFailure(error, phase: "snapshot")
+            throw LibraryArchiveCoordinatorError.metadataFailure
+        }
         let recordings = currentLibraryRoot.appendingPathComponent("Meetings", isDirectory: true)
         do {
             return try await Self.worker {
-                try Self.copyRecordings(from: recordings, to: stage.appendingPathComponent("Meetings"), within: stage)
-                return try MeetingArchive.export(snapshotRoot: stage, to: archiveURL)
+                do { try Self.copyRecordings(from: recordings, to: stage.appendingPathComponent("Meetings", isDirectory: true), within: stage) }
+                catch { Self.traceExportFailure(error, phase: "copy"); throw error }
+                do { return try MeetingArchive.export(snapshotRoot: stage, to: archiveURL) }
+                catch { Self.traceExportFailure(error, phase: "archive"); throw error }
             }
         } catch is CancellationError { throw CancellationError() }
         catch { throw LibraryArchiveCoordinatorError.filesystemFailure }
@@ -247,44 +252,69 @@ public final class LibraryArchiveCoordinator {
     nonisolated private static func copyRecordings(from source: URL, to destination: URL, within stage: URL) throws {
         guard try exists(source) else { return }
         try requireDirectory(source, within: source)
-        var pending = [source]
-        var items: [(URL, Bool)] = []
+        var pending = [""]
+        var items: [(String, Bool)] = []
         var bytes: Int64 = 0
-        while let item = pending.popLast() {
+        while let relative = pending.popLast() {
             try Task.checkCancellation()
             guard items.count < 16_384 else { throw LibraryArchiveCoordinatorError.invalidBackup }
+            let item = relative.isEmpty ? source : source.appendingPathComponent(relative)
             try PersistentFilePolicy.validateItem(item, within: source)
             let metadata = try FileManager.default.attributesOfItem(atPath: item.path)
             let directory = metadata[.type] as? FileAttributeType == .typeDirectory
             if directory {
                 let children = try FileManager.default.contentsOfDirectory(at: item, includingPropertiesForKeys: nil)
-                if item.deletingLastPathComponent() == source, item.lastPathComponent == ".pending-deletions" {
+                if relative == ".pending-deletions" {
                     // An empty control directory is not meeting payload. Any
                     // durable request still present must be reconciled first.
                     guard children.isEmpty else { throw LibraryArchiveCoordinatorError.busy }
                     continue
                 }
                 guard children.count <= 16_384 - items.count - pending.count else { throw LibraryArchiveCoordinatorError.invalidBackup }
-                pending.append(contentsOf: children)
+                // Foundation may return child URLs with canonical/relative bases
+                // or different directory hints. Carry validated relative names;
+                // never derive output paths by subtracting raw URL strings.
+                pending.append(contentsOf: children.map { child in
+                    relative.isEmpty ? child.lastPathComponent : relative + "/" + child.lastPathComponent
+                })
             } else {
                 guard metadata[.type] as? FileAttributeType == .typeRegular,
                       let size = metadata[.size] as? NSNumber, (0...536_870_912).contains(size.int64Value),
                       bytes <= 8_589_934_592 - size.int64Value else { throw LibraryArchiveCoordinatorError.invalidBackup }
                 bytes += size.int64Value
             }
-            items.append((item, directory))
+            items.append((relative, directory))
         }
-        for (item, directory) in items {
+        for (relative, directory) in items {
             try Task.checkCancellation()
+            let item = relative.isEmpty ? source : source.appendingPathComponent(relative)
             try PersistentFilePolicy.validateItem(item, within: source)
-            let suffix = item.path.dropFirst(source.path.count)
-            let target = suffix.isEmpty ? destination : URL(fileURLWithPath: destination.path + String(suffix))
+            let target = relative.isEmpty ? destination : destination.appendingPathComponent(relative, isDirectory: directory)
             if directory { try createDirectory(target, within: stage) }
             else {
                 try FileManager.default.copyItem(at: item, to: target)
                 try PersistentFilePolicy.protectItem(target, within: stage)
             }
         }
+    }
+
+    nonisolated private static func traceExportFailure(_ error: Error, phase: String) {
+#if DEBUG
+        // Only fixed phases and typed error codes. Never paths, IDs, audio,
+        // database messages, user text or NSError userInfo.
+        if let error = error as? MeetingArchiveError {
+            print("LIBRARY_EXPORT_BOUNDARY phase=\(phase) archive=\(error)")
+        } else if let error = error as? LibraryArchiveCoordinatorError {
+            print("LIBRARY_EXPORT_BOUNDARY phase=\(phase) library=\(error)")
+        } else if let error = error as? MeetingStoreError {
+            print("LIBRARY_EXPORT_BOUNDARY phase=\(phase) metadata=\(error)")
+        } else if let error = error as? PersistentFilePolicyError {
+            print("LIBRARY_EXPORT_BOUNDARY phase=\(phase) policy=\(error)")
+        } else {
+            let code = (error as NSError).code
+            print("LIBRARY_EXPORT_BOUNDARY phase=\(phase) ioCode=\(code)")
+        }
+#endif
     }
 
     /// Structural validation uses the actual SQLite engine, never only a header.

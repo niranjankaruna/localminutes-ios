@@ -18,7 +18,7 @@ final class LibraryArchiveCoordinatorTests: XCTestCase {
             let coordinator = f.coordinator()
             let manifest: MeetingArchiveManifest
             do { manifest = try await coordinator.export(to: f.archive) }
-            catch { XCTFail("Library export must use a real consistent SQLite snapshot plus CAF: \(type(of: error))"); await f.remove(); return }
+            catch { XCTFail("Library export must use a real consistent SQLite snapshot plus CAF: \(error)"); await f.remove(); return }
             XCTAssertTrue(manifest.files.contains { $0.relativePath == "meetings.sqlite" })
             XCTAssertTrue(manifest.files.contains { $0.relativePath.hasSuffix(".caf") })
             XCTAssertFalse(manifest.files.contains { $0.relativePath.hasPrefix("Models/") || $0.relativePath.hasPrefix("Diagnostics/") })

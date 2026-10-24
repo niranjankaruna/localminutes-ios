@@ -290,11 +290,13 @@ public actor CoreMLParakeetRecognizer {
               files.directory.isFileURL else { throw StreamingASRError.invalidModel }
         let root = files.directory.standardizedFileURL
         let canonical = root.resolvingSymlinksInPath()
+        let rootComponents = canonical.pathComponents
         do {
             let rootValues = try root.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
             guard rootValues.isDirectory == true, rootValues.isSymbolicLink != true else { throw StreamingASRError.invalidModel }
             let expected = Set(manifest.artifacts.map(\.fileName))
             let allowedFiles = expected.union(["manifest.json"])
+            let maximumDepth = manifest.artifacts.map { $0.fileName.split(separator: "/").count }.max() ?? 1
             var directories: Set<String> = []
             for artifact in manifest.artifacts {
                 let parts = artifact.fileName.split(separator: "/")
@@ -308,10 +310,15 @@ public actor CoreMLParakeetRecognizer {
             var visited = 0
             for case let url as URL in iterator {
                 visited += 1
+                // Directory-hinted and enumerated URLs can differ in trailing
+                // slash or system alias spelling (/var versus /private/var).
+                // Canonical component ancestry defines containment and names.
+                let components = url.resolvingSymlinksInPath().pathComponents
                 guard visited <= allowedFiles.count + directories.count,
-                      url.path.hasPrefix(root.path + "/"),
-                      url.resolvingSymlinksInPath().path.hasPrefix(canonical.path + "/") else { throw StreamingASRError.invalidModel }
-                let name = String(url.path.dropFirst(root.path.count + 1))
+                      components.count > rootComponents.count,
+                      components.starts(with: rootComponents),
+                      components.count - rootComponents.count <= maximumDepth else { throw StreamingASRError.invalidModel }
+                let name = components.dropFirst(rootComponents.count).joined(separator: "/")
                 let values = try url.resourceValues(forKeys: [.isDirectoryKey, .isRegularFileKey, .isSymbolicLinkKey])
                 guard values.isSymbolicLink != true else { throw StreamingASRError.invalidModel }
                 if values.isDirectory == true {

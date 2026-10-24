@@ -3,15 +3,15 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T20:50:29.603Z",
+  "lastUpdated": "2026-10-24T21:02:58.767Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "MVP2 including native Parakeet: C6 actual decoder GREEN; final live/equip/replay and corrected backup fixture pending exact-SHA verification/package",
+  "currentTask": "Exact-source MVP2 verification and IPA packaging including native Parakeet",
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "Final code candidate5ac056f is committed/pushed, worktreeclean atverification. NEXT legitimategoalcontinuation: retaincompleted6-run invocationrecord; recheckauth/publicfree costguard; startfreshboundedinvocation. Readactualcurrentlocal/remoteHEAD (checkpoint-onlycommitmayfollow5ac). Create owner-only unpublished draft mvp-preview-<currentSHA12> with target=currentFULLSHA. Dispatch mvp2-parakeet summaryResume=false packageMVP2=true for EXACTcurrentSHA; require ALL281portable/10nativeapp/8nativeCoreML/10speechrecovery plusarm64app+extensionpackage GREEN. Focus remaining7previousfailures: corrected7libraryfixtures; installednativeLive; actualEquip; capturednativeReplay. Onlyboundedfixgenuinefailures. IndependentlyverifyIPA/checksum/buildmanifest/ZIPsource/version3/schema5, deliverMVP2WITHnativeParakeet+iLoaderguide, continueMVP3. PhysicalphonegatesNOT_RUN, overallnotVERIFIED_COMPLETE.",
+  "nextAction": "Commit/push C7 directory-path repairs, create exact-source unpublished owner draft and dispatch focused mvp2-parakeet package with summaryResume=false; verify real installed live/replay plus backup roundtrip without weakening oracles. Deliver only after required GREEN and local IPA checksum/source verification, then continue MVP3.",
   "pendingPushCommit": null,
   "remoteBranchHead": "5ac056f2e365233db655eae9e534e184b484d97c",
   "localScriptGreen": {
@@ -30,27 +30,20 @@
     "ARTIFACT_STORAGE_HEADROOM_UNVERIFIED"
   ],
   "ciInvocation": {
-    "id": "2026-10-24-mvp2-01",
-    "startedAt": "2026-10-24T18:11:23.102Z",
+    "id": "2026-10-24-mvp2-delivery-02",
+    "startedAt": "2026-10-24T20:52:13.101Z",
     "maxNewRuns": 6,
     "plannedNewRuns": 0,
     "newRunIds": [
-      40119556084,
-      40121343041,
-      40124109356,
-      40126813965,
-      40129821538,
-      40130455240
+      40131735329
     ],
-    "limitReached": true,
-    "costGuardObservedAt": "2026-10-24T19:45:21.646Z",
-    "costGuardBasis": "PUBLIC intended repository; standard free macos-15-intel plus official standard macos-15 Apple Silicon for native Core ML/app checks; no paid/larger runners, Actions artifact/cache storage or billing changes.",
-    "finishedAt": "2026-10-24T20:47:50.404Z"
+    "limitReached": false,
+    "costGuardObservedAt": "2026-10-24T20:52:13.101Z",
+    "costGuardBasis": "Authenticated owner niranjankaruna/admin, intended PUBLIC repository and matching HTTPS remote HEAD36f9c7f; prior invocation terminal6/6, previous turn classified progress. Official standard free macos-15 AppleSilicon/macos-15-intel only; no cache/artifactstorage/billing/larger-runner spend."
   },
   "latestCIRun": {
-    "sourceCommit": "048481c8c51bd097ffac6b535cd4101470acf3fd",
-    "runId": 40130455240,
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40130455240",
+    "runId": 40131735329,
+    "sourceCommit": "36f9c7f23a5e3967cb3cae26d28caec5c8c74de5",
     "status": "completed",
     "conclusion": "failure"
   },
@@ -640,6 +633,24 @@
       "limitReached": false,
       "costGuardObservedAt": "2026-10-24T14:53:15Z",
       "costGuardBasis": "Existing genuine auth and live PUBLIC repository verified before the single candidate dispatch; standard public macos-15-intel only, zero extra spend, no artifacts uploaded and no larger runner/billing changes."
+    },
+    {
+      "id": "2026-10-24-mvp2-01",
+      "startedAt": "2026-10-24T18:11:23.102Z",
+      "maxNewRuns": 6,
+      "plannedNewRuns": 0,
+      "newRunIds": [
+        40119556084,
+        40121343041,
+        40124109356,
+        40126813965,
+        40129821538,
+        40130455240
+      ],
+      "limitReached": true,
+      "costGuardObservedAt": "2026-10-24T19:45:21.646Z",
+      "costGuardBasis": "PUBLIC intended repository; standard free macos-15-intel plus official standard macos-15 Apple Silicon for native Core ML/app checks; no paid/larger runners, Actions artifact/cache storage or billing changes.",
+      "finishedAt": "2026-10-24T20:47:50.404Z"
     }
   ],
   "executionPause": {
@@ -1703,25 +1714,26 @@
     "testFirstCommit": "31513b124855a0f9d4f137f76d4ab5801c95511f"
   },
   "previousCIInvocation": {
-    "id": "2026-10-24-owner-unbounded-resume",
-    "startedAt": "2026-10-24T15:33:29.213Z",
+    "id": "2026-10-24-mvp2-01",
+    "startedAt": "2026-10-24T18:11:23.102Z",
     "maxNewRuns": 6,
     "plannedNewRuns": 0,
     "newRunIds": [
-      40107527439,
-      40109131483,
-      40111205922,
-      40114656922,
-      40116270957,
-      40117673355
+      40119556084,
+      40121343041,
+      40124109356,
+      40126813965,
+      40129821538,
+      40130455240
     ],
     "limitReached": true,
-    "costGuardObservedAt": "2026-10-24T17:47:00Z",
-    "costGuardBasis": "Authenticated intended repository PUBLIC/ADMIN and HTTPS origin verified. Only standard macos-15-intel; no billing/larger runner/Actions artifact storage mutation. Six-run invocation limit retained."
+    "costGuardObservedAt": "2026-10-24T19:45:21.646Z",
+    "costGuardBasis": "PUBLIC intended repository; standard free macos-15-intel plus official standard macos-15 Apple Silicon for native Core ML/app checks; no paid/larger runners, Actions artifact/cache storage or billing changes.",
+    "finishedAt": "2026-10-24T20:47:50.404Z"
   },
   "previousGoalTurnClassification": {
     "classification": "progress",
-    "evidence": "ActualMVP2RED37 beforebehavior; C6nativeapp10PASS, speechrecovery10PASS, portable277PASS, actualnativeCoreML5PASS, actualPhiresumeC4PASS; finalnativeadmissions actualRED andrepairs prepared. NoMVP2IPA yet."
+    "evidence": "C6 actualnative decoder5PASS/nativeapp10PASS/speechrecovery10PASS/portable277PASS; remainingfixture andnativeadmission repairs committed5ac andcheckpoint36f9c7f."
   },
   "mvp2Reliability": {
     "state": "IN_PROGRESS",
@@ -1946,5 +1958,48 @@
     "ownerInformed": true,
     "scope": "MVP2 MUST include native Parakeet plus download/remove/Equip/recovery; owner explicitly rejected a delivery without it",
     "manual125MinuteGateBlocksIPADelivery": false
+  },
+  "mvp2PackageCandidate": {
+    "sourceCommit": "36f9c7f23a5e3967cb3cae26d28caec5c8c74de5",
+    "runId": 40131735329,
+    "tag": "mvp-preview-36f9c7f23a5e",
+    "releaseNodeID": "RE_kwDOVU3Toc4ZNhi1",
+    "draft": true,
+    "published": false,
+    "status": "IN_PROGRESS",
+    "checksumVerified": false,
+    "delivered": false,
+    "deliveryBlockedBy": "Candidate source has portable1/native2 failing cases; packaging alone is not MVP2 acceptance"
+  },
+  "mvp2LatestObserved": {
+    "sourceCommit": "36f9c7f23a5e3967cb3cae26d28caec5c8c74de5",
+    "runId": 40131735329,
+    "portable": {
+      "executed": 281,
+      "passed": 280,
+      "failed": 1,
+      "skipped": 0
+    },
+    "nativeParakeet": {
+      "executed": 8,
+      "passed": 6,
+      "failed": 2,
+      "skipped": 0
+    },
+    "nativeApp": {
+      "executed": 10,
+      "passed": 10,
+      "failed": 0,
+      "skipped": 0
+    },
+    "package": "PASS",
+    "overall": "FAIL",
+    "speechRecovery": {
+      "executed": 10,
+      "passed": 10,
+      "failed": 0,
+      "skipped": 0,
+      "durationSeconds": 73.593
+    }
   }
 }
