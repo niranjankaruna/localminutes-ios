@@ -349,7 +349,7 @@ A full release-candidate gate must include unit, integration, simulator UI, real
 
 Generate the Xcode project from `project.yml`, build the app and embedded extension for `generic/platform=iOS` in Release with code signing disabled, verify bundle structure and native slices, place the app in `Payload/`, and zip it as an unsigned IPA. The exact scheme/paths are controlled by the repository, not assumed from a sample.
 
-Do not use `xcodebuild -exportArchive` as though an unsigned archive automatically provides a free signed export. Sideloadly performs signing later on Windows. Packaging a simulator `.app` is an error even if the zip extension is `.ipa`.
+Do not use `xcodebuild -exportArchive` as though an unsigned archive automatically provides a free signed export. iLoader performs signing later on Windows. Packaging a simulator `.app` is an error even if the zip extension is `.ipa`.
 
 The agent must create and test build/package scripts that check:
 
@@ -370,9 +370,9 @@ Stop CI dispatch when quota or billing state is uncertain. Count retries toward 
 
 ## 14. Windows signing, installation, and renewal
 
-Create `docs/WINDOWS_INSTALL.md` as an implementation deliverable, with exact steps verified against the current Sideloadly instructions. The current official site documents free-account signing and seven-day validity; its prerequisites can change, so do not hardcode outdated Apple component download URLs. [S22]
+Create `docs/WINDOWS_INSTALL.md` as an implementation deliverable using iLoader for Windows. The owner reported a successful iLoader installation on 24 October 2026 and selected it as the project installation tool. Recheck current iLoader prerequisites instead of hardcoding Apple component download URLs. Apple Personal Team signing still requires seven-day renewal; installation alone does not verify the embedded extension or renewal persistence. [S1, S22]
 
-The installation procedure must explain: install the official Windows prerequisites, connect and trust the iPhone, select the downloaded unsigned IPA, authenticate with the Apple Account locally in Sideloadly, preserve the embedded Live Activity extension, complete device profile trust/Developer Mode where required, then launch the app while unlocked for onboarding. Apple describes Developer Mode for running development applications. [S23]
+The installation procedure must explain: install the official Windows prerequisites, connect and trust the iPhone, select the downloaded unsigned IPA, authenticate with the Apple Account locally in iLoader, preserve the embedded Live Activity extension, complete device profile trust/Developer Mode where required, then launch the app while unlocked for onboarding. Apple describes Developer Mode for running development applications. [S23]
 
 Credentials and two-factor prompts are human-owned. The coding agent must not capture, store, or transmit the Apple password, extract tokens, or attempt to automate security prompts. If sideloading needs a user's click or device action, produce precise instructions and an evidence form, then proceed with independent coding work.
 
@@ -473,7 +473,7 @@ The owner launches or resumes the coding agent using `START_PROMPT.md` and `RESU
 
 ## 19. Source register and verification policy
 
-Sources below were consulted for this specification on 23 October 2026. Recheck relevant API availability, model artifacts, upstream build instructions, free-signing behavior, runner images, and billing before implementing a version-sensitive step. Preserve the chosen versions and actual observations in the project. Documentation establishes supported concepts, not successful end-to-end device behavior.
+Sources were consulted on 23 October 2026; the iLoader installation source was updated on 24 October 2026 after the owner reported success. Recheck relevant API availability, model artifacts, upstream build instructions, free-signing behavior, runner images, and billing before implementing a version-sensitive step. Preserve the chosen versions and actual observations in the project. Documentation establishes supported concepts, not successful end-to-end device behavior.
 
 [S1] Apple, Developer account overview: https://developer.apple.com/help/account/basics/about-your-developer-account/
 
@@ -517,7 +517,7 @@ Sources below were consulted for this specification on 23 October 2026. Recheck 
 
 [S21] Apple Support, Action Button: https://support.apple.com/en-ie/guide/iphone/iphe89d61d66/ios
 
-[S22] Sideloadly, official site and FAQ: https://sideloadly.io/ and https://sideloadly.io/faq.html
+[S22] iLoader, official site and repository: https://iloader.app/ and https://github.com/nab138/iloader
 
 [S23] Apple, Enabling Developer Mode: https://developer.apple.com/documentation/xcode/enabling-developer-mode-on-a-device
 

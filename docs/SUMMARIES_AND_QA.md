@@ -4,7 +4,7 @@
 
 This feature preview adds Summary and Ask sections to a saved meeting. It requires the separate local summary-model download.
 
-1. Install the new unsigned IPA over the existing app using the same Sideloadly Apple Account and bundle-ID settings. Avoid uninstalling to preserve the existing container; actual renewal/data preservation remains unverified.
+1. Install the new unsigned IPA over the existing app through iLoader using the same Apple Account and installed bundle-ID settings. Avoid uninstalling to preserve the existing container; actual renewal/data preservation remains unverified.
 2. Open **Models → Download summary model**. The pinned Qwen download is about1.12GB. Wait for **Summary model verified**. Model setup needs internet; generation uses the installed model locally.
 3. Stop recording, open **Meetings**, and select the meeting. Tap **Generate summary**. Keep the app in the foreground until generation finishes.
 4. Edit the generated summary separately from your original notes. Changes autosave; **Save summary** retries a failed save. A revision-conflict message protects a newer saved copy from being overwritten.

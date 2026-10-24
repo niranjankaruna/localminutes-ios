@@ -29,15 +29,10 @@ final class ModelBrowserController {
     init(services: LocalMinutesServices) { self.services = services }
 
     var compatibility: HuggingFaceCompatibilityAssessment? {
-        guard let result = repository?.assessment(for: purpose, fileName: selectedFileName,
-            maximumDownloadBytes: resources.freeDiskBytes ?? Int64.max) else { return nil }
-        if result.status == .plannedRuntime, result.profile == .whisperGGML {
-            return .init(status: .supported, profile: result.profile, selectedFiles: result.selectedFiles,
-                totalBytes: result.totalBytes,
-                reasons: ["Whisper GGML format is supported by this build. Accuracy and live speed on this phone still need measurement."],
-                suggestedRepositories: result.suggestedRepositories)
-        }
-        return result
+        guard let repository, let result = Optional(repository.assessment(for: purpose, fileName: selectedFileName,
+            maximumDownloadBytes: resources.freeDiskBytes ?? Int64.max)) else { return nil }
+        return ModelRuntimeCompatibility.assess(repository: repository, format: result,
+            availableProfiles: [.streamingZipformerONNX, .whisperGGML, .llamaGGUF])
     }
     var resourceAssessment: ModelResourceAssessment? {
         repository?.resourceAssessment(for: purpose, fileName: selectedFileName,
@@ -180,9 +175,9 @@ final class ModelBrowserController {
             return ModelArtifact(role: role, fileName: name, byteCount: bytes, sha256: digest,
                 downloadURL: file.downloadURL, digestProvenance: .upstreamReported)
         }
-        let key = repository.id.rawValue + "@" + repository.revision + ":" + purpose.rawValue
-            + ":" + artifacts.map(\.fileName).sorted().joined(separator: ",")
-        let identifier = "hf-" + String(SHA256.hash(data: Data(key.utf8)).map { String(format: "%02x", $0) }.joined().prefix(32))
+        let identifier = ModelInstallationIdentity.make(repositoryID: repository.id.rawValue,
+            revision: repository.revision, purpose: purpose,
+            repositoryRelativeFiles: assessment.selectedFiles.map(\.fileName))
         let upstream = URL(string: "https://huggingface.co/" + repository.id.rawValue)!
         let runtime: String
         switch profile {

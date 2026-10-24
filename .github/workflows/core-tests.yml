@@ -8,7 +8,7 @@ on:
         required: true
         type: choice
         default: mvp
-        options: [mvp, features, package, validation, candidate, candidate-summary, candidate-summary-parts, model-catalog, model-integration]
+        options: [mvp, features, package, validation, candidate, candidate-summary, candidate-summary-parts, model-catalog, model-integration, model-repair, model-delivery]
       sourceCommit:
         description: Reviewed app source for the MVP package
         required: true
@@ -23,7 +23,7 @@ concurrency:
 
 jobs:
   focused-portable:
-    if: ${{ inputs.mode == 'candidate-summary-parts' || inputs.mode == 'model-catalog' || inputs.mode == 'model-integration' }}
+    if: ${{ inputs.mode == 'candidate-summary-parts' || inputs.mode == 'model-catalog' || inputs.mode == 'model-integration' || inputs.mode == 'model-repair' || inputs.mode == 'model-delivery' }}
     runs-on: macos-15-intel
     timeout-minutes: 8
     env:
@@ -46,8 +46,8 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           mkdir -p .build
-          if [ "${{ inputs.mode }}" = model-integration ]; then
-            swift test --filter 'ModelTests[.](HuggingFaceRepositoryTests|ModelSelectionTests|ModelDeviceResourceReaderTests)|SummaryTests[.](SummaryPipelineTests|GroundedSummaryTests|NestedStructuredSchemaTests|StructuredJSONSchemaTests)' 2>&1 | tee .build/focused-portable.log
+          if [[ "${{ inputs.mode }}" == model-integration || "${{ inputs.mode }}" == model-repair || "${{ inputs.mode }}" == model-delivery ]]; then
+            swift test --filter 'ModelTests[.](HuggingFaceRepositoryTests|ModelSelectionTests|ModelDeviceResourceReaderTests|ModelInstallationIdentityTests|ModelRuntimeCompatibilityTests)|CoreTests[.]TranscriptionMetricsTests|PersistenceTests[.]SummaryCheckpointStoreTests|SummaryTests[.](SummaryPipelineTests|GroundedSummaryTests|NestedStructuredSchemaTests|StructuredJSONSchemaTests)' 2>&1 | tee .build/focused-portable.log
           elif [ "${{ inputs.mode }}" = model-catalog ]; then
             swift test --filter 'ModelTests[.](HuggingFaceRepositoryTests|ModelSelectionTests)|ASRTests[.]WhisperSpeechRecognizerTests|SummaryTests[.](SummaryPipelineTests|GroundedSummaryTests|NestedStructuredSchemaTests|StructuredJSONSchemaTests)' 2>&1 | tee .build/focused-portable.log
           else
@@ -58,23 +58,25 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ "${{ inputs.mode }}" = model-integration ]; then
+          if [[ "${{ inputs.mode }}" == model-integration || "${{ inputs.mode }}" == model-repair || "${{ inputs.mode }}" == model-delivery ]]; then
             node scripts/verify-test-log.mjs .build/focused-portable.log testInstalledInventoryListsBothAlternativesDeterministicallyWithoutChangingEquipment
           elif [ "${{ inputs.mode }}" = model-catalog ]; then
             node scripts/verify-test-log.mjs .build/focused-portable.log testWhisperLoadsActualPinnedModelOnCPUOutsideMainThread
           else
             node scripts/verify-test-log.mjs .build/focused-portable.log testCancellationBeforeBlockedSQLiteCommitSavesNothingAndPreservesOriginalsAndModel
           fi
+      - name: Verify focused package hygiene regressions
+        run: node --test scripts/tests/whisper-package-policy.test.mjs scripts/tests/package-audit.test.mjs scripts/tests/ios-artifacts.test.mjs
 
   focused-app-metrics:
-    if: ${{ inputs.mode == 'candidate-summary-parts' || inputs.mode == 'model-catalog' || inputs.mode == 'model-integration' }}
+    if: ${{ inputs.mode == 'candidate-summary-parts' || inputs.mode == 'model-catalog' || inputs.mode == 'model-integration' || inputs.mode == 'model-repair' || inputs.mode == 'model-delivery' }}
     name: Native focused (${{ matrix.testclass }})
     runs-on: macos-15-intel
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        testclass: ${{ fromJSON(inputs.mode == 'model-integration' && '["NativeAppMetricsTests","NativeModelResourceTests"]' || '["NativeAppMetricsTests"]') }}
+        testclass: ${{ fromJSON((inputs.mode == 'model-integration' || inputs.mode == 'model-repair' || inputs.mode == 'model-delivery') && '["NativeAppMetricsTests","NativeModelResourceTests"]' || '["NativeAppMetricsTests"]') }}
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
       NATIVE_TEST_CLASS: ${{ matrix.testclass }}
@@ -126,7 +128,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          xcodebuild -quiet test -project LocalMinutes.xcodeproj -scheme LocalMinutesFocusedValidation -configuration Debug \
+          xcodebuild test -project LocalMinutes.xcodeproj -scheme LocalMinutesFocusedValidation -configuration Debug \
             -destination "platform=iOS Simulator,id=$LOCALMINUTES_TEST_SIMULATOR" -destination-timeout 120 \
             -parallel-testing-enabled NO -collect-test-diagnostics never -only-testing:"LocalMinutesAppTests/$NATIVE_TEST_CLASS" \
             -derivedDataPath build/focused-app -clonedSourcePackagesDirPath .agent-local/source-packages \
@@ -155,23 +157,13 @@ jobs:
           fi
 
   selected-model-integration:
-    if: ${{ inputs.mode == 'model-integration' }}
+    if: ${{ inputs.mode == 'model-integration' || inputs.mode == 'model-repair' }}
     name: Selected model (${{ matrix.flow }})
     runs-on: macos-15-intel
     timeout-minutes: ${{ matrix.flow == 'selected-summary' && 18 || 12 }}
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - flow: whisper-native
-            filter: WhisperSpeechRecognizerTests
-            testcase: testWhisperRollingWindowsPublishActualSpeechGlobalRangesAndNoRepeatedFinals
-          - flow: whisper-live
-            filter: SelectedWhisperLiveSessionTests
-            testcase: testEquippedWhisperStreamsLicensedSpeechBeforeStopAndPersistsFinalGlobalRanges
-          - flow: selected-summary
-            filter: ActualSelectedModelIntelligenceTests
-            testcase: testActualSelectedPhiDefaultLoaderSavesSummaryAndGuideAnswerWithOriginalsPreserved
+      matrix: ${{ fromJSON(inputs.mode == 'model-repair' && '{"include":[{"flow":"recovery-replay","filter":"RecoveredTranscriptionReplayTests","testcase":"testActualASRReplaysOnlyUntranscribedDurableCAFPreservesGlobalRangesAndIsIdempotentAfterReopen"}]}' || '{"include":[{"flow":"whisper-native","filter":"WhisperSpeechRecognizerTests","testcase":"testWhisperRollingWindowsPublishActualSpeechGlobalRangesAndNoRepeatedFinals"},{"flow":"whisper-live","filter":"SelectedWhisperLiveSessionTests","testcase":"testEquippedWhisperStreamsLicensedSpeechBeforeStopAndPersistsFinalGlobalRanges"},{"flow":"selected-summary","filter":"ActualSelectedModelIntelligenceTests","testcase":"testActualSelectedPhiDefaultLoaderSavesSummaryAndGuideAnswerWithOriginalsPreserved"}]}') }}
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
       MODEL_FLOW: ${{ matrix.flow }}
@@ -189,6 +181,10 @@ jobs:
           python3 docs/drafts/T17/prepare_native_summary.py --framework-only
           if [ "$MODEL_FLOW" = selected-summary ]; then
             python3 docs/drafts/T17/prepare_phi3_candidate.py
+          elif [ "$MODEL_FLOW" = recovery-replay ]; then
+            python3 docs/drafts/T10/prepare_native_fixture.py
+            printf 'LOCALMINUTES_ASR_MODEL_DIRECTORY=%s/.agent-local/asr-evaluation/native-fixtures/model\n' "$PWD" >> "$GITHUB_ENV"
+            printf 'LOCALMINUTES_ASR_FIXTURE_PATH=%s/.agent-local/asr-evaluation/native-fixtures/6930-75918-0000.flac\n' "$PWD" >> "$GITHUB_ENV"
           else
             python3 docs/drafts/T10/prepare_whisper_fixture.py
           fi
@@ -575,7 +571,7 @@ jobs:
   # Owner-requested MVP delivery: compile/package only, no test runner or model weights.
   # The workflow definition and the reviewed app source are recorded separately.
   mvp-package:
-    if: ${{ inputs.mode == 'mvp' || inputs.mode == 'features' || inputs.mode == 'package' }}
+    if: ${{ inputs.mode == 'mvp' || inputs.mode == 'features' || inputs.mode == 'package' || inputs.mode == 'model-delivery' }}
     runs-on: macos-15-intel
     timeout-minutes: 25
     permissions:

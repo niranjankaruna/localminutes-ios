@@ -1,0 +1,57 @@
+LocalMinutes — Third-party notices
+
+Whisper native speech runtime
+----------------------------
+whisper.cpp v1.7.5, source revision:
+51c6961c7b64b406833f4b6a4a20e67142f69225
+Source: https://github.com/ggml-org/whisper.cpp/tree/51c6961c7b64b406833f4b6a4a20e67142f69225
+License: https://github.com/ggml-org/whisper.cpp/blob/51c6961c7b64b406833f4b6a4a20e67142f69225/LICENSE
+Official Apple framework: whisper-v1.7.5-xcframework.zip
+Framework archive SHA-256:
+c7faeb328620d6012e130f3d705c51a6ea6c995605f2df50f6e1ad68c59c6c4a
+
+The following license is copied from the verified pinned source LICENSE.
+Original license file SHA-256:
+e562a2ddfaf8280537795ac5ecd34e3012b6582a147ef69ba6a6a5c08c84757d
+
+MIT License
+
+Copyright (c) 2023-2024 The ggml authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Separately downloaded model provenance
+--------------------------------------
+Model weights are installed separately; they are not included in the app bundle.
+The installed model's publisher license and notice remain part of its manifest.
+
+Whisper tiny English GGML — publisher: ggerganov/whisper.cpp.
+Pinned model card and license provenance (MIT):
+https://huggingface.co/ggerganov/whisper.cpp/blob/5359861c739e955e79d9a303bcbc70fb988958b1/README.md
+
+Qwen2.5-1.5B-Instruct-GGUF — publisher: Qwen.
+Pinned publisher model card and license provenance (Apache-2.0):
+https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/blob/91cad51170dc346986eccefdc2dd33a9da36ead9/README.md
+
+Phi-3-mini-4k-instruct-gguf — publisher: Microsoft.
+Pinned publisher license provenance (MIT):
+https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf/blob/a64113399c2f6b8ad3e11c394733a2ddadaa7f33/LICENSE
+
+These notices identify the pinned Whisper runtime and reviewed model sources.
+They are not a complete dependency inventory or a completed SBOM audit.

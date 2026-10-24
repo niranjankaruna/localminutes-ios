@@ -160,7 +160,7 @@ Exacttest-first1f03e5259ead091c616eb4ce3c49f80d1af79018/run[40075611744](https:/
 
 ## Source5 implementation ready after exact RED
 
-Groundeddecoder/merge6, selected-meetingactualFTS6andnativeAppstartup2implementedonlyafter1f03e52actualassertions. Rootreviewedactualdiffs: preparedSQLbindings/UUIDscope/migrationstriggersbackfill, byte-exactquote/range/attributionvalidation+deterministicprovenanceunion/conflictlimits, sharedstart/togglegatewithStopbypass. Current-schema test expectationadvances2->3with documentedmigrationreason; oldv1/v2fixtures/data/equality/literalsearch remainstrict. No newactive tests source5: expected269core/59native/5actualmodel/3UI, plus59Node/TSAN/nativearchive onceGREEN. Windowsguide updatedfromcurrentofficialApple/Sideloadlydocs; no deliveredIPA/signing/phone/renewalpass. InactiveT12Signals3drafts uncompiled/NOT_RUN; onlyactivateafterfullsource5GREEN, sixthrunreservedfirstforneededrepairs. Fullmapreduce/QA/UI/ASRreplay/pressure/diagnostics/accessibility/artifact/physical gatesremainunfinished.
+Groundeddecoder/merge6, selected-meetingactualFTS6andnativeAppstartup2implementedonlyafter1f03e52actualassertions. Rootreviewedactualdiffs: preparedSQLbindings/UUIDscope/migrationstriggersbackfill, byte-exactquote/range/attributionvalidation+deterministicprovenanceunion/conflictlimits, sharedstart/togglegatewithStopbypass. Current-schema test expectationadvances2->3with documentedmigrationreason; oldv1/v2fixtures/data/equality/literalsearch remainstrict. No newactive tests source5: expected269core/59native/5actualmodel/3UI, plus59Node/TSAN/nativearchive onceGREEN. Windowsguide updatedfromcurrentofficial Apple/installer docs; no deliveredIPA/signing/phone/renewalpass. InactiveT12Signals3drafts uncompiled/NOT_RUN; onlyactivateafterfullsource5GREEN, sixthrunreservedfirstforneededrepairs. Fullmapreduce/QA/UI/ASRreplay/pressure/diagnostics/accessibility/artifact/physical gatesremainunfinished.
 
 
 ## Exact-source component GREEN at8b653cb
@@ -328,17 +328,29 @@ No furtherprompt/testloop. Ownerwasaskedonetimewhethercompareonecompatiblelocalm
 Inputpackingreviewremovedartificialtwo-sourceinputcap: actualcanonicaltokenizercountsnowpacklongerchunks;output≤2/category,1citationand128map/itemboundspreserved. Existingtwo-sourceactualfixtureshaveidenticalprompts/chunks/schema,nomodelsemanticrepairclaimfromthischange. Finalcompile/package-onlymodeexcludesallmodel/fulltestjobs. ThispreparesanupdatedUIpreviewwhilequalityblockerremains;nomoreinferenceexperimentswithoutownerchoice.
 
 
-## T07 signing attempt — 24 October 2026
+## T07 iLoader installation update — 24 October 2026
 
-[Sanitized authentication evidence](evidence/T07_SIDELOADLY_AUTH_2026_10_24.md):
-owner screenshot shows login -80046, not a successful installation.
-T07 BLOCKED_EXTERNAL; no task completed or new test/CI/commit/artifact from
-this troubleshooting invocation. Package run40101392948 rechecked
-completed/success at d6a3293: compile/package only, zero tests. App/extension
-signing, all locked/Action Button, offline, endurance, renewal and protection
-gates remain unverified. Next: owner checks Apple web sign-in locally, then
-current official Sideloadly and one retry; persistent -80046 stays blocked.
-Independent source/workflow work and model-development checkpoint preserved.
+The owner reports successful main-app installation with iLoader and explicitly
+selected it for all installation/renewal references. T07.1 documentation/copy
+migration is complete; T07 remains IN_PROGRESS. Previous installer error -80046
+and alternative research are superseded for the current setup; original records
+remain in Git history. No failure was relabelled as an iLoader failure.
+
+Project instructions/configuration, app renewal copy, Markdown/Word brief,
+source register, Windows guides and local delivery guides use iLoader. The
+installed IPA remains unchanged; new app copy requires a future build.
+No new tests/CI/builds or IPA from this invocation. JSON/reference/whitespace
+checks validate the edit, without claiming native or physical results.
+All extension, Action Button, locked/offline, endurance, renewal and protection
+device gates remain pending. Other model-quality/development state is preserved.
+Next T07 action: record installed build/phone/iOS/tool version, then check the
+Live Activity status and Stop control during a short recording.
+[Evidence](evidence/T07_ILOADER_INSTALL_2026_10_24.md).
+
+Reference sweep, three JSON parses, whitespace, Word XML/style preservation
+and unchanged two-IPA checksum checks pass. Word visual review is pending:
+the packaged renderer cannot find LibreOffice and Word is not installed.
+No new commit/push; concurrent workflow/model-test work is left untouched.
 
 ## Summary/Q&A batch handoff
 
@@ -347,3 +359,6 @@ App screens/shared real-model wiring, durable edits/answers/citations/cancel/exp
 | T18/T19 single Phi-3 candidate | Two nested summaries + two selected-meeting questions, actual CPU | Prior Qwen failed; separate comparison | [Pending candidate run](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40104505380) | 1a999b661ef68d4082b0a811d03ec40ef3180b7b | Hosted macOS, pinned b5046/Phi-3 | FAILED overall; Q&A2/2 PASSED | Summary preflight error; two actual generations only; no default/phone/whole-feature pass |
 
 | T18 candidate missing summaries only | testActualPinnedPhi3ComparesTwoSummariesWithReviewedRevision | First-run harness provenance error preserved | [Eight-minute bounded run](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40105186439) | 6d914fe0117964c7019a71d5b9332c9dba3758b4 | Hosted macOS, same pinned Phi/b5046 | NOT_RUN/unverified (job cancelled) | Compile130.24s PASS; no completed case/stage, no semantic outcome inferred |
+
+
+| MVP1 selected runtime integration | Real installed selected Whisper/Phi | Actual RED run40111205922 | GREEN run40114656922: Whisper live1PASS16.771s, Phi defaultservice1PASS571.357s | d0fe973b0045d5fb11c3dc0a33bd62ab5c39a991 | Hosted macOS CPU, no skips | Partial GREEN | Native metrics2/3 pass; resource reader RED; package/phone gates pending |

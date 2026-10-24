@@ -598,7 +598,7 @@ Exacttest-first1f03e5259ead091c616eb4ce3c49f80d1af79018/run[40075611744](https:/
 
 ## Source5 implementation ready after exact RED
 
-Groundeddecoder/merge6, selected-meetingactualFTS6andnativeAppstartup2implementedonlyafter1f03e52actualassertions. Rootreviewedactualdiffs: preparedSQLbindings/UUIDscope/migrationstriggersbackfill, byte-exactquote/range/attributionvalidation+deterministicprovenanceunion/conflictlimits, sharedstart/togglegatewithStopbypass. Current-schema test expectationadvances2->3with documentedmigrationreason; oldv1/v2fixtures/data/equality/literalsearch remainstrict. No newactive tests source5: expected269core/59native/5actualmodel/3UI, plus59Node/TSAN/nativearchive onceGREEN. Windowsguide updatedfromcurrentofficialApple/Sideloadlydocs; no deliveredIPA/signing/phone/renewalpass. InactiveT12Signals3drafts uncompiled/NOT_RUN; onlyactivateafterfullsource5GREEN, sixthrunreservedfirstforneededrepairs. Fullmapreduce/QA/UI/ASRreplay/pressure/diagnostics/accessibility/artifact/physical gatesremainunfinished.
+Groundeddecoder/merge6, selected-meetingactualFTS6andnativeAppstartup2implementedonlyafter1f03e52actualassertions. Rootreviewedactualdiffs: preparedSQLbindings/UUIDscope/migrationstriggersbackfill, byte-exactquote/range/attributionvalidation+deterministicprovenanceunion/conflictlimits, sharedstart/togglegatewithStopbypass. Current-schema test expectationadvances2->3with documentedmigrationreason; oldv1/v2fixtures/data/equality/literalsearch remainstrict. No newactive tests source5: expected269core/59native/5actualmodel/3UI, plus59Node/TSAN/nativearchive onceGREEN. Windowsguide updatedfromcurrentofficial Apple/installer docs; no deliveredIPA/signing/phone/renewalpass. InactiveT12Signals3drafts uncompiled/NOT_RUN; onlyactivateafterfullsource5GREEN, sixthrunreservedfirstforneededrepairs. Fullmapreduce/QA/UI/ASRreplay/pressure/diagnostics/accessibility/artifact/physical gatesremainunfinished.
 
 
 ## Exact-source component GREEN at8b653cb
@@ -769,21 +769,29 @@ No furtherprompt/testloop. Ownerwasaskedonetimewhethercompareonecompatiblelocalm
 Inputpackingreviewremovedartificialtwo-sourceinputcap: actualcanonicaltokenizercountsnowpacklongerchunks;output≤2/category,1citationand128map/itemboundspreserved. Existingtwo-sourceactualfixtureshaveidenticalprompts/chunks/schema,nomodelsemanticrepairclaimfromthischange. Finalcompile/package-onlymodeexcludesallmodel/fulltestjobs. ThispreparesanupdatedUIpreviewwhilequalityblockerremains;nomoreinferenceexperimentswithoutownerchoice.
 
 
-## T07 signing troubleshooting — 24 October 2026
+## T07 iLoader installation update — 24 October 2026
 
-Owner screenshot establishes Sideloadly Apple Account authentication failure
--80046; T07 is BLOCKED_EXTERNAL (SIDELOADLY_APPLE_AUTH_80046). Matching upstream
-reports are a lead, not a confirmed Apple outage or cause. Completed task IDs
-in this troubleshooting invocation: none; new tests/CI/commits/artifacts: none.
-Package run40101392948 was rechecked through GitHub: completed/success at
-d6a3293, compile/package only, zero tests. Existing source/workflow work and
-independent development checkpoints are preserved. All signing, extension,
-locked/Action Button, offline, endurance, renewal and protection device gates
-remain unverified. Exact next T07 action: owner checks Apple web sign-in and
-Sideloadly version/provider locally, then current official Sideloadly and one
-retry; persistent -80046 stays blocked pending upstream remedy. Preserve
-existing app/account/bundle settings.
-See [evidence](evidence/T07_SIDELOADLY_AUTH_2026_10_24.md).
+The owner reports successful main-app installation with iLoader and explicitly
+selected it for all installation/renewal references. T07.1 documentation/copy
+migration is complete; T07 remains IN_PROGRESS. Previous installer error -80046
+and alternative research are superseded for the current setup; original records
+remain in Git history. No failure was relabelled as an iLoader failure.
+
+Project instructions/configuration, app renewal copy, Markdown/Word brief,
+source register, Windows guides and local delivery guides use iLoader. The
+installed IPA remains unchanged; new app copy requires a future build.
+No new tests/CI/builds or IPA from this invocation. JSON/reference/whitespace
+checks validate the edit, without claiming native or physical results.
+All extension, Action Button, locked/offline, endurance, renewal and protection
+device gates remain pending. Other model-quality/development state is preserved.
+Next T07 action: record installed build/phone/iOS/tool version, then check the
+Live Activity status and Stop control during a short recording.
+[Evidence](evidence/T07_ILOADER_INSTALL_2026_10_24.md).
+
+Reference sweep, three JSON parses, whitespace, Word XML/style preservation
+and unchanged two-IPA checksum checks pass. Word visual review is pending:
+the packaged renderer cannot find LibreOffice and Word is not installed.
+No new commit/push; concurrent workflow/model-test work is left untouched.
 
 ## Summary/Q&A batch handoff
 
@@ -798,3 +806,10 @@ Owner explicitly selected one compatible local model capped30minutes. Phi-3 MIT/
 ## Single Phi-3 comparison final checkpoint24October2026
 
 Stopped within owner30min window14:43:11–15:13:11UTC. Source1a999b6/run40104505380: native compile/integrity PASS; actual Q&A known42000credits PASS56s and unknown-owner refusal PASS39s, selected-meeting isolation and SQLite originals/reopen assertions pass. XCTest overallFAIL140.207s/3assertions because both summaries used artifactSHA instead of40char modelrevision and generationcount2!=4. This is harness preflight failure, not Phi summary semantic failure. Correction source6d914fe0117964c7019a71d5b9332c9dba3758b4/run40105186439 runs only the2 missing summaries; unchanged semantic assertions/model/prompt/validators. Native compilePASS130.24s; eight-minute job limit cancelled15:11:06UTC with no completed case/stage reports. Summary quality is unverified/inconclusive; no output reconstruction or inferredPASS. No third run, new model, full suite, IPA, default switch or phone gate. Existing installable package unchanged. OverallIN_PROGRESS, completed feature taskIDs:none. Evidence: evidence/PHI3_SINGLE_COMPARISON_2026_10_24.md. Exact next: T18.3: inspect the bounded Phi summary runtime/generation path before further inference; the8min summary-only run40105186439 had no completed case/stage report. Preserve the2/2 actual Q&A observations, all original oracles and failed/timeout evidence. No automatic retry, new candidate, default-model switch or package. Resume a separately bounded implementation batch only when the owner resumes work.
+
+
+## 24 October 2026, model-choice integration checkpoint
+
+MVP1: real selected Whisper live transcription and selected Phi summary/Q&A now pass on hosted macOS at d0fe973/run40114656922. HF30 and installation/equip/inventory12 cases pass. Two actual resource-reader cases provide RED; OS-backed implementation awaits GREEN. Native metrics xcresult3 executed/2pass/1fail exposes engine-version codec mismatch; quiet-log discovery is corrected next. Windows package-policy3pass after genuine test-first RED; one wider symlink test is host-blocked and stays enabled on macOS. No new IPA delivered yet. T07 iLoader main-app installation is owner-reported; extension/locked/ActionButton/endurance/renewal remain NOT_RUN.
+
+Owner requests delivery after each MVP and immediate continuation, no pause/time cap, no full-suite run after every edit. Next: focused new RED contracts, repairs, checksummed MVP1 package, then recovery/download/backup MVP2. Evidence: evidence/MODEL_CATALOG_AND_SUMMARY_2026_10_24.md.

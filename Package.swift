@@ -29,7 +29,7 @@ let package = Package(
         .target(name: "LocalMinutesTranscription", dependencies: [
             "WhisperFramework",
             .product(name: "sherpa-onnx", package: "sherpa-onnx"),
-            "LocalMinutesCore", "LocalMinutesRecording", "LocalMinutesModels", "LocalMinutesPersistence"
+            "LocalMinutesCore", "LocalMinutesRecording", "LocalMinutesModels", "LocalMinutesPersistence", "LocalMinutesMeetingLibrary"
         ], path: "Transcription"),
         .target(name: "LocalMinutesMeetingLibrary", dependencies: ["LocalMinutesCore", "LocalMinutesPersistence", "LocalMinutesRecording"], path: "MeetingLibrary"),
         .target(name: "LocalMinutesSummary", dependencies: ["llama"], path: "Summaries",

@@ -1,7 +1,7 @@
 # Source register
 
 
-Sources below were consulted for this specification on 23 October 2026. Recheck relevant API availability, model artifacts, upstream build instructions, free-signing behavior, runner images, and billing before implementing a version-sensitive step. Preserve the chosen versions and actual observations in the project. Documentation establishes supported concepts, not successful end-to-end device behavior.
+Sources were consulted on 23 October 2026; the iLoader installation source was updated on 24 October 2026 after the owner reported success. Recheck relevant API availability, model artifacts, upstream build instructions, free-signing behavior, runner images, and billing before implementing a version-sensitive step. Preserve the chosen versions and actual observations in the project. Documentation establishes supported concepts, not successful end-to-end device behavior.
 
 [S1] Apple, Developer account overview: https://developer.apple.com/help/account/basics/about-your-developer-account/
 
@@ -45,7 +45,7 @@ Sources below were consulted for this specification on 23 October 2026. Recheck 
 
 [S21] Apple Support, Action Button: https://support.apple.com/en-ie/guide/iphone/iphe89d61d66/ios
 
-[S22] Sideloadly, official site and FAQ: https://sideloadly.io/ and https://sideloadly.io/faq.html
+[S22] iLoader, official site and repository: https://iloader.app/ and https://github.com/nab138/iloader
 
 [S23] Apple, Enabling Developer Mode: https://developer.apple.com/documentation/xcode/enabling-developer-mode-on-a-device
 

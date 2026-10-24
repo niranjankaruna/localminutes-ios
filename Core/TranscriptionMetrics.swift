@@ -127,6 +127,12 @@ public final class TranscriptionMetricsRecorder: Sendable {
         }
     }
 
+    /// TEST-FIRST selected-model seam. Pins intentionally remain unchanged
+    /// until the new identity regression has a compatible hosted assertion RED.
+    public func beginEpoch(modelRevision: String, runtimeVersion: String) {
+        beginEpoch()
+    }
+
     public func audioQueued(startSample: Int64, frameCount: Int, queueDepth: Int) throws {
         try state.withLock { value in
             let end = try checkedEnd(start: startSample, count: frameCount)

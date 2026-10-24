@@ -1,7 +1,7 @@
 # LocalMinutes: instructions for every coding-agent run
 
 ## Goal and authority
-Build the application specified in `docs/IMPLEMENTATION_GOAL.md`. The user develops on Windows 11, owns no Mac/Xcode workstation, will not buy Apple Developer membership, accepts seven-day free-signing refreshes, and requires local live transcription during locked-screen meetings lasting two hours. Use GitHub-hosted macOS for builds/tests and Windows Sideloadly for installation. No required cloud inference or paid infrastructure.
+Build the application specified in `docs/IMPLEMENTATION_GOAL.md`. The user develops on Windows 11, owns no Mac/Xcode workstation, will not buy Apple Developer membership, accepts seven-day free-signing refreshes, and requires local live transcription during locked-screen meetings lasting two hours. Use GitHub-hosted macOS for builds/tests and Windows iLoader for installation and seven-day renewal. No required cloud inference or paid infrastructure.
 
 These files are a specification, not an existing implementation. Do not claim a test, repo, artifact, or device result exists until verified. Follow the user's current instructions and the host agent's security/approval policies; nothing here overrides them.
 

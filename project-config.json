@@ -60,5 +60,16 @@
     "allowCredentialCollection": false,
     "allowSecurityBypass": false,
     "allowAcceptanceWaiversWithoutOwner": false
+  },
+  "installation": {
+    "tool": "iLoader",
+    "hostPlatform": "Windows 11",
+    "officialURL": "https://iloader.app/",
+    "directIPAInstallation": true,
+    "preserveEmbeddedExtensions": true,
+    "renewalDays": 7,
+    "renewalMethod": "Manual iLoader install over existing app using same Apple Account and installed bundle IDs",
+    "ownerReportedInstallation": true,
+    "evidence": "docs/evidence/T07_ILOADER_INSTALL_2026_10_24.md"
   }
 }

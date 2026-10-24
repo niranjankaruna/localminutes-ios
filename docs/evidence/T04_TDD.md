@@ -149,7 +149,7 @@ is pending the sixth allowed run. The final workflow step creates a real IPA
 on the ephemeral runner and logs only its manifest/checksum; no retained
 artifact or download link is claimed.
 
-`docs/WINDOWS_INSTALL.md` was drafted from current official Sideloadly and Apple
+`docs/WINDOWS_INSTALL.md` was drafted from then-current installer and Apple
 sources and independently checked. It is installation guidance, not observed
 signing/device evidence. Extension and renewal gates remain NOT_RUN.
 

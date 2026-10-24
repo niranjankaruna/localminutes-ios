@@ -1,6 +1,6 @@
 # LocalMinutes MVP delivery
 
-The unsigned iPhone IPA is ready for Windows Sideloadly/free Apple Account signing.
+The unsigned iPhone IPA is ready for Windows iLoader/free Apple Account signing. Installation guidance was updated after the owner reported iLoader success on 24 October 2026; original build and checksum evidence below is unchanged.
 
 - App source: db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04
 - Build-only run: https://github.com/niranjankaruna/localminutes-ios/actions/runs/40092475736

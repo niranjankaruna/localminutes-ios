@@ -153,16 +153,15 @@ Confirmedatcdf4a06/run40038154279: directSDKsetCompleteonoriginalfixturefollowed
 All six permitted runs are terminal. Final `db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04` / [run40079629180](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180) passed all application/model/native/UI/archive groups. No internal archive-ordering blocker remains. The next bounded invocation activates T12.2 tests before behavior; full baseline remains IN_PROGRESS. No owner confirmation is needed for independent development. ARTIFACT_STORAGE_HEADROOM_UNVERIFIED still affects retained delivery only. All physical/signing/renewal gates remain NOT_RUN. Details: [checkpoint](evidence/CONTINUATION_08_CHECKPOINT.md).
 
 
-## SIDELOADLY_APPLE_AUTH_80046 — T07 signing blocked, 24 October 2026
+## T07 installation path resolved with iLoader — 24 October 2026
 
-Owner screenshot shows Apple Account login failing with -80046. Matching
-reports exist this week; the exact cause and a working Sideloadly remedy are
-unconfirmed. No successful signing, installation or extension result exists.
-Next: owner checks Apple web sign-in, then current official Sideloadly and one
-retry. Preserve any existing app and account/bundle-ID settings. No new build
-or test was dispatched by this troubleshooting invocation.
-See [sanitized evidence](evidence/T07_SIDELOADLY_AUTH_2026_10_24.md).
-Overall state remains IN_PROGRESS; independent development is unaffected.
+The owner reports successful main-app installation with iLoader and selected
+it as the project installer. The previous -80046 installation-path blocker
+is resolved by that reported installation; its exact upstream cause was not
+established. T07 is IN_PROGRESS for extension/control/device evidence, and
+existing model-quality/artifact issues are unchanged. Next: record exact
+installed build/phone/tool versions, then check Live Activity status and Stop.
+[Owner-report evidence](evidence/T07_ILOADER_INSTALL_2026_10_24.md).
 
 ## MVP delivery workaround observed24October2026
 

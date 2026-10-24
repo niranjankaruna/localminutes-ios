@@ -58,3 +58,42 @@ Portablejob also accidentally matched legacyActualSummaryPipelineTests withoutQw
 NativeResourcejob120923126296 exited65beforeanyXCTestcase; nativeMetricsjob120923126506 wascancelled15min withnocompletedcases. This doesnotprove a resource/metricsbehaviorfailure. Precise xcresult startupdiagnostics areaddednext; no linkpinchangeorsimulatorpass guessed. ResourceadapterisnowsharedportableFoundationstub plus2actualhostRAM/volumecontracts toobtaincompatible-platform RED. iOSapp-memoryavailability remainsseparatephysicalscope.
 
 Nativebrowser/controllerbindings, genericmetadata-basedGGUFloader, selectedWhisperliveadapter andmetadata-only inventoryareimplemented aftertheirrecordedRED; integrationGREENpending. Metadata/cards remaininert, andweightsneverenterGit/artifacts. iLoaderdocs/ownerinstallationreportarepreserved. No physical/2h/ActionButton/renewalclaim.
+
+## Integration result, 24 October 17:25 UTC
+
+Exact source `d0fe973b0045d5fb11c3dc0a33bd62ab5c39a991`,
+[run 40114656922](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40114656922):
+
+- Actual selected Phi default loader: job120933345261, 1 PASS, zero failures/skips,
+  571.357s. Installed actual pinned GGUF, automatic native template detection,
+  generated/saved summary and selected-meeting guide answer; original SQLite
+  content and model ownership assertions pass. Not an iPhone speed measurement.
+- Actual selected Whisper live session: job120933345309, 1 PASS, zero failures/
+  skips,16.771s. Licensed speech is published before stop and durable global
+  ranges retained. Separate native Whisper 4-case job120933345190 is SUCCESS.
+- Portable job120933345263:60 tests,57 PASS,2 failed cases/3 assertions,0 skipped
+  (counts reported by XCTest); HF30, selection/inventory12, pure-summary16 pass.
+  Both actual resource-reader tests fail against the nil stub: physical RAM and
+  owned-volume free capacity absent. This is genuine RED before OS-backed reader.
+- Native metrics job120933345288: xcresult records3 actual tests,2 PASS,1 FAIL,
+  zero skips. Protected atomic JSON test fails MetricsValidationError because
+  codec accepts numeric versions but real manifest uses sherpa-onnx-1.13.8.
+  Quiet xcodebuild log hides case discovery; xcresult is authoritative. Next
+  focused run removes quiet output; no simulator startup failure is inferred.
+- Native resource job120933345132 has no observed completed result yet. Earlier
+  no-case/harness evidence is preserved, never relabelled as a pass or RED.
+
+Test-first commit `d95554f` precedes the packaging repair. Windows actual RED:
+3 package-policy tests,1 PASS/2 FAIL (GGML .bin and raw weights were accepted).
+After repair the same3 pass. Relevant portable package regressions:45/46 pass;
+the remaining Windows symlink test cannot create a link (EPERM), a host setup
+limitation rather than behavioral RED. It remains enabled for hosted macOS.
+Whisper MIT notice and disk-space required-reason declaration are added to app
+resources; full dependency privacy/SBOM review remains MVP3.
+
+Next batch includes test-first exact nested variant identities, actual adapter
+scope/availability, selected-epoch metric pins, narrow engine-version codec,
+durable summary checkpoints and actual CAF ASR recovery replay. No production
+behavior for these new cases precedes their hosted assertion RED. Expensive
+selected Phi/Whisper generations already passing are excluded from this batch.
+MVP1 is not delivered yet; no physical gate or VERIFIED_COMPLETE claim.

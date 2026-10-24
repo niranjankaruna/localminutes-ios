@@ -153,4 +153,121 @@ final class TranscriptionMetricsTests: XCTestCase {
             XCTAssertEqual(error as? MetricsValidationError, .oversizedExport)
         }
     }
+
+    func testSelectedSpeechEpochUpdatesModelRuntimePinsAndClearsPriorMeetingEvidence() throws {
+        let clock = MetricsTestClock()
+        let metrics = try TranscriptionMetricsRecorder(identity: identity, capacity: 4, clock: clock)
+        try metrics.visibilityChanged(.background)
+        try metrics.audioQueued(startSample: 0, frameCount: 1_600, queueDepth: 3)
+        let oldStarted = clock.nowNanoseconds()
+        clock.advance(25_000_000)
+        try metrics.processed(startSample: 0, frameCount: 1_600, workStartedAtNanoseconds: oldStarted)
+        try metrics.partialPublished(endSample: 1_600)
+        try metrics.finalPublished(endSample: 1_600)
+        metrics.recordError(.queueOverflow)
+        try metrics.checkpoint()
+        let first = metrics.snapshot()
+        XCTAssertEqual(first.identity, identity)
+        XCTAssertEqual(first.processedSampleCount, 1_600)
+        XCTAssertFalse(first.errors.isEmpty)
+
+        let selectedRevision = "5359861c739e955e79d9a303bcbc70fb988958b1"
+        let selectedIdentity = MetricsBuildIdentity(sourceCommit: identity.sourceCommit,
+            modelRevision: selectedRevision, runtimeVersion: "1.7.5", buildNumber: identity.buildNumber)
+        metrics.beginEpoch(modelRevision: selectedRevision, runtimeVersion: "1.7.5")
+        let fresh = metrics.snapshot()
+        XCTAssertEqual(fresh.identity, selectedIdentity,
+            "A Whisper meeting must never be exported with its predecessor's Zipformer model/runtime pins")
+        XCTAssertEqual(fresh.identity.sourceCommit, identity.sourceCommit)
+        XCTAssertEqual(fresh.identity.buildNumber, identity.buildNumber)
+        XCTAssertEqual(fresh.capturedSampleCount, 0); XCTAssertEqual(fresh.processedSampleCount, 0)
+        XCTAssertEqual(fresh.processingWallNanoseconds, 0); XCTAssertNil(fresh.realTimeFactor)
+        XCTAssertEqual(fresh.peakQueueDepth, 0)
+        XCTAssertEqual(fresh.partialLatency.sampleCount, 0); XCTAssertEqual(fresh.finalLatency.sampleCount, 0)
+        XCTAssertTrue(fresh.checkpoints.isEmpty); XCTAssertTrue(fresh.errors.isEmpty)
+        XCTAssertThrowsError(try metrics.finalPublished(endSample: 1_600)) { error in
+            XCTAssertEqual(error as? MetricsValidationError, .invalidSampleRange)
+        }
+        XCTAssertEqual(metrics.snapshot(), fresh, "Old completed input provenance must not satisfy a new epoch's publication")
+        clock.advance(1_000)
+        try metrics.checkpoint()
+        XCTAssertEqual(metrics.snapshot().checkpoints.last?.visibility, .background)
+        try metrics.audioQueued(startSample: 0, frameCount: 3_200, queueDepth: 1)
+        let newStarted = clock.nowNanoseconds()
+        clock.advance(10_000_000)
+        try metrics.processed(startSample: 0, frameCount: 3_200, workStartedAtNanoseconds: newStarted)
+        try metrics.finalPublished(endSample: 3_200)
+        let second = metrics.snapshot()
+        XCTAssertEqual(second.identity, selectedIdentity)
+        XCTAssertEqual(second.capturedSampleCount, 3_200); XCTAssertEqual(second.processedSampleCount, 3_200)
+        XCTAssertEqual(second.processingWallNanoseconds, 10_000_000)
+        XCTAssertEqual(second.realTimeFactor, 0.05)
+        XCTAssertEqual(second.finalLatency.sampleCount, 1)
+        XCTAssertTrue(second.errors.isEmpty)
+        XCTAssertEqual(try MetricsExportCodec.decodeValidated(MetricsExportCodec.encode(second)), second)
+        XCTAssertEqual(first.identity, identity, "Already exported value snapshots retain their original model provenance")
+        XCTAssertEqual(first.processingWallNanoseconds, 25_000_000)
+    }
+
+    func testLegacyEpochResetRetainsLatestSelectedPinsVisibilityAndMonotonicClockBoundary() throws {
+        let clock = MetricsTestClock()
+        let metrics = try TranscriptionMetricsRecorder(identity: identity, clock: clock)
+        let selectedRevision = String(repeating: "e", count: 40)
+        let selectedIdentity = MetricsBuildIdentity(sourceCommit: identity.sourceCommit,
+            modelRevision: selectedRevision, runtimeVersion: "1.7.5", buildNumber: identity.buildNumber)
+        try metrics.visibilityChanged(.foreground)
+        metrics.beginEpoch(modelRevision: selectedRevision, runtimeVersion: "1.7.5")
+        try metrics.audioQueued(startSample: 0, frameCount: 1_600, queueDepth: 1)
+        let began = clock.nowNanoseconds()
+        clock.advance(1_000_000)
+        try metrics.processed(startSample: 0, frameCount: 1_600, workStartedAtNanoseconds: began)
+        try metrics.checkpoint()
+        XCTAssertEqual(metrics.snapshot().identity, selectedIdentity)
+        metrics.beginEpoch()
+        let reset = metrics.snapshot()
+        XCTAssertEqual(reset.identity, selectedIdentity, "The existing no-argument API must keep the latest equipped model")
+        XCTAssertEqual(reset.capturedSampleCount, 0); XCTAssertEqual(reset.processingWallNanoseconds, 0)
+        XCTAssertTrue(reset.checkpoints.isEmpty)
+        try metrics.checkpoint()
+        XCTAssertEqual(metrics.snapshot().checkpoints.last?.visibility, .foreground)
+        metrics.beginEpoch(modelRevision: identity.modelRevision, runtimeVersion: identity.runtimeVersion)
+        let restored = metrics.snapshot()
+        XCTAssertEqual(restored.identity, identity)
+        XCTAssertEqual(restored.processedSampleCount, 0)
+        clock.set(clock.nowNanoseconds() - 1)
+        XCTAssertThrowsError(try metrics.checkpoint()) { error in
+            XCTAssertEqual(error as? MetricsValidationError, .nonMonotonicTime)
+        }
+        XCTAssertEqual(metrics.snapshot(), restored, "Changing model provenance must not reset the accepted monotonic clock boundary")
+    }
+
+    func testDiagnosticCodecAcceptsReviewedEngineVersionPinsAndRejectsPrivateOrMalformedLabels() throws {
+        for version in ["sherpa-onnx-1.13.8", "whisper.cpp-1.7.5", "llama.cpp-b5046"] {
+            let expected = MetricsBuildIdentity(sourceCommit: identity.sourceCommit,
+                modelRevision: identity.modelRevision, runtimeVersion: version, buildNumber: identity.buildNumber)
+            let metrics = try TranscriptionMetricsRecorder(identity: expected, clock: MetricsTestClock())
+            try metrics.checkpoint()
+            let snapshot = metrics.snapshot()
+            do {
+                let bytes = try MetricsExportCodec.encode(snapshot)
+                let restored = try MetricsExportCodec.decodeValidated(bytes)
+                XCTAssertEqual(restored, snapshot)
+                XCTAssertEqual(restored.identity.runtimeVersion, version,
+                    "Retain the exact engine pin, rather than silently rewriting it into an unrelated numeric identity")
+            } catch {
+                XCTFail("Reviewed engine runtime pin must survive private diagnostics export: \(version)")
+            }
+        }
+        for version in ["sherpa-onnx-", "sherpa-onnx-1..13", "sherpa-onnx-1.13.8/private",
+                        "sherpa-onnx-1.13.8 secret", "whisper.cpp-v1.7.5", "whisper.cpp-1.7.5/token",
+                        "llama.cpp-b", "llama.cpp-b5046-secret", "synthetic-password",
+                        "/private/fixture/runtime", String(repeating: "1", count: 33)] {
+            let restricted = MetricsBuildIdentity(sourceCommit: identity.sourceCommit,
+                modelRevision: identity.modelRevision, runtimeVersion: version, buildNumber: identity.buildNumber)
+            let metrics = try TranscriptionMetricsRecorder(identity: restricted, clock: MetricsTestClock())
+            XCTAssertThrowsError(try MetricsExportCodec.encode(metrics.snapshot())) { error in
+                XCTAssertEqual(error as? MetricsValidationError, .invalidIdentity)
+            }
+        }
+    }
 }

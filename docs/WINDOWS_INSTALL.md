@@ -5,17 +5,19 @@ route using a free Apple Account and accepted seven-day renewal; it requires no
 owned Mac, local Xcode or paid Apple Developer membership. Hosted macOS builds
 are a separate development step.
 
-**No LocalMinutes IPA is available yet:** `docs/STATE.json` still records
-`candidateArtifact: null`. No installation, extension, phone or renewal result
-has been verified. Follow the installation steps only after a checksummed,
-exact-source candidate is actually delivered.
+**Installation update, 24 October 2026:** the owner reports successful installation
+with **iLoader**, now the selected Windows installer. The exact installed IPA,
+phone/iOS and iLoader version have not yet been recorded. Existing MVP and
+feature-preview artifacts are listed in [STATE.json](STATE.json); the full
+release-candidate artifact remains pending. Installation does not establish
+extension, locked-screen, offline or renewal results.
 
 ## Before installing a candidate
 
 Use a candidate whose manifest names the exact tested source commit. Download
 its unsigned IPA, SHA-256 file, build manifest and known limitations together.
 Compare the IPA's SHA-256 with the supplied checksum before opening it in
-Sideloadly; Windows PowerShell provides `Get-FileHash -Algorithm SHA256`.
+iLoader; Windows PowerShell provides `Get-FileHash -Algorithm SHA256`.
 Do not install a simulator app or a file from an unverified download source.
 Model weights are installed separately in the app, after their integrity is
 verified; they are not included in the normal IPA.
@@ -27,45 +29,36 @@ registered devices and three installed apps per device, with seven-day expiry.
 The main app and extension's actual registration/signing capacity is unmeasured.
 [Apple account limits](https://developer.apple.com/help/account/basics/about-your-developer-account)
 
-## Install with the owner's free Apple Account
+## Install with iLoader and the owner's free Apple Account
 
-1. Get Sideloadly for Windows from its official site. The checked site lists
-   version 0.71.0 and requires the **web versions of iTunes and iCloud**, rather
-   than their Microsoft Store versions. Follow its current prerequisite links;
-   this guide does not freeze old Apple installer download addresses.
-   [Official Sideloadly download and prerequisites](https://sideloadly.io/)
+1. Get the Windows desktop installer from [iLoader's official site](https://iloader.app/)
+   or its [official repository](https://github.com/nab138/iloader). The official
+   Windows prerequisites list iTunes. Follow the current prerequisite links;
+   retain the Apple components that already work with the owner's installation.
 
-2. Connect the iPhone by USB and unlock it. Complete the computer trust prompts:
-   select the device in iTunes and continue when prompted, then tap Trust on
-   the phone and enter its passcode when requested.
+2. Connect the iPhone by USB and unlock it. Complete the computer trust prompts
+   in iTunes and on the phone. Enter the passcode on the phone when requested.
    [Apple computer-trust instructions](https://support.apple.com/en-ie/109054)
 
-3. In Sideloadly, select the connected phone and the verified unsigned IPA.
-   Use Apple Account sideloading. The owner enters Apple authentication and
-   handles 2FA **locally in Sideloadly**, never in chat, repository files or CI.
-   Leave **Remove Extensions/PlugIns disabled**. Keep the same bundle-ID
-   configuration on every renewal. Record any identifiers Sideloadly actually
-   rewrites; free signing of this specific extension is still unverified.
-   The build identifiers are `com.niranjankaruna.localminutes` and
-   `com.niranjankaruna.localminutes.LiveActivity`.
-   [Sideloadly features](https://sideloadly.io/)
+3. In iLoader, choose the phone and its custom IPA installation option, then
+   select the verified LocalMinutes unsigned IPA. The owner handles Apple
+   Account sign-in and 2FA **locally in iLoader**, never in chat, files or CI.
+   Keep the embedded Live Activity extension if any option asks about removing
+   extensions. Record the actual installed identifiers and retain those settings
+   for renewal. Build identifiers are `com.niranjankaruna.localminutes` and
+   `com.niranjankaruna.localminutes.LiveActivity`; extension installation still
+   requires its own phone evidence.
 
-4. If iOS reports Untrusted Developer, Sideloadly's FAQ directs the owner to
-   Settings → General → Profiles / VPN & Device Management → the signing
-   account → Trust. Follow the actual free-development prompts on the phone.
-   [Sideloadly FAQ](https://sideloadly.io/faq.html)
+4. Complete any developer-profile trust prompts under Settings → General →
+   VPN & Device Management → the signing account. Follow the phone's actual
+   prompts. If required, enable Settings → Privacy & Security → Developer Mode,
+   restart, unlock and confirm.
+   [Apple Developer Mode instructions](https://developer.apple.com/documentation/xcode/enabling-developer-mode-on-a-device)
 
-5. If required, enable Settings → Privacy & Security → Developer Mode, restart,
-   unlock, confirm Enable and enter the phone passcode. Apple describes
-   installing a development-signed app without Xcode as a way to expose this
-   menu. Record actual availability on the owner's iOS version.
-   [Apple Developer Mode instructions](https://developer.apple.com/documentation/xcode/enabling-developer-mode-on-a-device),
-   [Apple explanation of installation without Xcode](https://developer.apple.com/videos/play/wwdc2022/110344/)
-
-6. Open LocalMinutes unlocked and use **Models → Offline speech → Download
+5. Open LocalMinutes unlocked and use **Models → Offline speech → Download
    speech model**. Wait for **Speech model verified**, then use **Record → Start
-   Recording**. Handle any microphone/Live Activity prompts on the phone. Record
-   what actually appears; an app icon does not prove the extension installed.
+   Recording**. Handle microphone/Live Activity prompts and record what appears.
+   The owner's installation report alone does not establish an extension pass.
 
 ## Models and a short first test
 
@@ -111,13 +104,15 @@ phone behaviors remain **NOT_RUN**.
 
 ## Renew without deleting the app
 
-Finish any recording before renewal. Before the seven-day profile expires, use
-the **same Apple Account and stable bundle IDs**, and install over the existing app. Do not delete the installed app
-as part of normal renewal. Sideloadly documents this overwrite route and advises
-backing up progress. Its automatic refresh requires the Windows PC/daemon to
-run and the device to be detectable over USB or configured Wi-Fi. Manual USB
-renewal remains the explicit fallback; unattended refresh has not been tested.
-[Sideloadly renewal FAQ](https://sideloadly.io/faq.html)
+Finish recording before renewal. Before the seven-day profile expires, connect
+the phone to Windows and use **iLoader** to install the IPA over the existing
+app with the **same Apple Account and actual installed bundle IDs**. Retain the
+identifier settings used during the successful installation and preserve the
+embedded Live Activity extension. Keep the existing app installed throughout.
+
+Manual USB renewal is the documented project procedure. Successful initial
+installation does not establish weekly refresh or data preservation. Use the
+checks below to verify meetings, models, settings and shortcuts after renewal.
 
 Keep any exported real meeting backup local and private. Never attach recordings,
 transcripts, Apple credentials, profiles or raw device logs to GitHub.
@@ -140,7 +135,7 @@ meeting title/note/transcript/audio duration, model revisions and expected hashe
 Renew in place, reopen that same meeting, compare its data/playback, and repeat a
 short offline recording, Live Activity and Action Button test. Current screens
 do not export full model/storage diagnostics; record unavailable evidence as
-unavailable. Stable IDs and Sideloadly's overwrite guidance do not prove this
+unavailable. Stable IDs and a successful iLoader installation do not prove this
 app's data preservation. Keep only a sanitized result in the repository.
 
 ## Owner-run endurance: two separate 125-minute passes
@@ -178,7 +173,8 @@ No actual endurance report has been produced by these instructions.
 
 ## Evidence still required
 
-Free main-app and extension signing, actual installed identifiers, Live Activity
+Main-app installation is owner-reported. Exact installed-build/signing details,
+embedded-extension signing, actual installed identifiers, Live Activity
 rendering and Stop control, Action Button warm and locked cold-start behavior,
 phone-offline inference, live locked transcription, both 125-minute endurance
 passes and renewal preservation all remain **NOT_RUN**. Test each separately.
