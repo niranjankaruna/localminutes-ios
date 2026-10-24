@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T21:11:43.140Z",
+  "lastUpdated": "2026-10-24T21:24:51.001Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -11,9 +11,9 @@
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "Deliver verified MVP2 IPA source35c7cefb; commit/push new MVP3 test-first/no-op boundaries and focused harness, prove actual RED before implementing privacy cover/latestmeeting routing/progress. Continue next MVP without ownerpause.",
+  "nextAction": "Push compile-only native test correction and actual-artifact unusedTTS regression; keep testfirstproof before ASRrepair. Progress candidate follows genuine4caseRED. Next bounded C10 runs corrected native privacy/shortcut RED + progress focusedGREEN, no model/fullsuite/package. Preserve deliveredMVP2.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "35c7cefb946af188f5cc09858dca4ab180d72eab",
+  "remoteBranchHead": "677b477f346292e6922f5995997cf28b84143f4b",
   "localScriptGreen": {
     "sourceCommit": "0181b311abedb3c32745b015be64d6e7c777032b",
     "platform": "Windows11/Node24.21.0",
@@ -36,17 +36,18 @@
     "plannedNewRuns": 0,
     "newRunIds": [
       40131735329,
-      40132528745
+      40132528745,
+      40133352703
     ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-24T20:52:13.101Z",
     "costGuardBasis": "Authenticated owner niranjankaruna/admin, intended PUBLIC repository and matching HTTPS remote HEAD36f9c7f; prior invocation terminal6/6, previous turn classified progress. Official standard free macos-15 AppleSilicon/macos-15-intel only; no cache/artifactstorage/billing/larger-runner spend."
   },
   "latestCIRun": {
-    "runId": 40132528745,
-    "sourceCommit": "35c7cefb946af188f5cc09858dca4ab180d72eab",
+    "runId": 40133352703,
+    "sourceCommit": "677b477f346292e6922f5995997cf28b84143f4b",
     "status": "completed",
-    "conclusion": "success"
+    "conclusion": "failure"
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -2029,5 +2030,30 @@
     "sha256": "21b6feaf59824a2eb6ab92de68fdb07fc9eb36449ba58337b41771ad986ac7f6",
     "sizeBytes": 15779005,
     "localDirectory": "build/delivery/MVP2-Parakeet-40132528745"
+  },
+  "mvp3ProductGates": {
+    "state": "IN_PROGRESS",
+    "testFirstCommit": "677b477f346292e6922f5995997cf28b84143f4b",
+    "actualREDVerified": false,
+    "productionImplemented": false,
+    "runId": 40133352703,
+    "evidence": "docs/evidence/MVP3_PRODUCT_GATES_2026_10_24.md",
+    "portableRED": {
+      "sourceCommit": "677b477f346292e6922f5995997cf28b84143f4b",
+      "runId": 40133352703,
+      "jobId": 120989603428,
+      "executed": 11,
+      "passed": 7,
+      "failed": 4,
+      "assertionFailures": 15,
+      "skipped": 0
+    },
+    "nativeCompileFailure": {
+      "sourceCommit": "677b477f346292e6922f5995997cf28b84143f4b",
+      "runId": 40133352703,
+      "jobId": 120989603247,
+      "executed": 0,
+      "reason": "IntentResultContainer.value is String?; contains requires XCTUnwrap. No nativeRED inferred."
+    }
   }
 }

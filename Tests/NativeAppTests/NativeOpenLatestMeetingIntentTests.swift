@@ -23,7 +23,7 @@ final class NativeOpenLatestMeetingIntentTests: XCTestCase {
             XCTAssertEqual(f.application.meetingNavigation?.requestedMeetingID, latest.id)
             XCTAssertNotNil(f.application.meetingNavigation?.requestID)
             XCTAssertTrue(f.application.meetingNavigation === f.application.meetingNavigation)
-            XCTAssertFalse(result.value.contains(latest.title), "Private titles must not be spoken or exported by the shortcut")
+            XCTAssertFalse(try XCTUnwrap(result.value).contains(latest.title), "Private titles must not be spoken or exported by the shortcut")
             let after = await before.snapshot()
             XCTAssertEqual(after.phase, beforeSnapshot.phase)
             XCTAssertEqual(after.sessionID, beforeSnapshot.sessionID)
