@@ -687,3 +687,24 @@ Added one actual blocked-SQLite-writer cancellation regression to T18.5; product
 Source5 expected299core/71native/88TSAN/8actualmodel/6UI, plus59Node/2product/2compiled-fixture-boundary/13archive. New source5 RED is pending; tests in source4 native/UI never ran and remain no-op. Lazy LocalMinutesApp.application accessor compatibility preserves the original ownership assertion and avoids default storage access from the isolated fixture branch.
 
 After source4 actual QA over-refusal, final bounded attempt3 replaces long examples with balanced generic requested-fact policy. Both statuses/full source IDs/unconstrained quotes and raw actual inference assertions unchanged. No fourth blind QA repair is authorized. Summary pipeline itself is unchanged; DEBUG runtime failure-only diagnostics record literal stage and numeric counts, never text/path/token IDs or retained partial output. Actual default-service fixed-synthetic test labels only summary/question-answer/persistence stage in catch, retaining the real default loader and every oracle. All static diff/JSON checks pass; hosted compile/results are pending.
+
+
+Fifth exact test-first source `0181b311abedb3c32745b015be64d6e7c777032b` pushed/remoteverified; [run40091141417](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40091141417) live, ordinal5/6. New cancellation/shared-app gate behavior remains absent. Native metrics/fixture remain no-op until reached behavioral assertions. Full real-model suite and final QA attempt3 pending; no extra source push while live.
+
+
+## Source5 actual regression RED and owner delivery priority
+
+Exact0181b311abedb3c32745b015be64d6e7c777032b/run40091141417 corejob120863889214 terminal:299executed296passed3failed30assertions0unexpected/skip. All296prior cases pass. New blocked real SQLite commit cancellation fails4assertions: saves after pre-commit cancellation, returns completed/published row, row survives reopen. New actual-owner shared-heavy-gate cases2 fail26assertions: no ASR gate reservation and held summary/QA still admits recording/OS/preparation/meeting claim. These are genuine compatible behavioral RED, authorizing only their bounded repairs; native default wiring/metrics/fixture RED still pending.
+
+Owner raised elapsed runtime/cost and explicitly superseded per-small-change testing cadence: prioritize a downloadable MVP, batch meaningful fixes and split model-quality jobs. Baseline acceptance/device gates are unchanged; MVP delivery must honestly mark summary/QA incomplete. A30–60minute conditional first-package estimate was given; a firm time-cap/pause preference is pending. No further full test/repair loops should be launched after the bounded delivery checkpoint. Five of six runs used, sixth reserved for one batched build/package.
+
+
+## Owner-directed MVP delivery and testing stop
+
+Owner explicitly selected up to60moreminutes for an MVP package then pause, and instructed: “Do not spend more time on Testing, I need MVP.” Further test work stopped. Run40091141417 was cancelled at owner request (terminal12:00:19UTC); its already completed299core/296pass/3fail/30assertions remain recorded. Native/model remainder has no completion claim. User instruction supersedes per-change test cadence for this bounded delivery only; no oracle or baseline/device gate is weakened or deleted.
+
+Preserved unverified WIP after actual core RED: concrete per-request SQLite commit admission in3files and portable owner/heavy admission in2files. No GREEN was run; default App gate/metrics/fixture remain nil/no-op. These WIP changes are excluded from the delivered app.
+
+MVP app source is last fully passing db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04/run40079629180. Build-only mode compiles its real iPhone Release app+embedded extension, packages/checksums via existing audited packager, and uploads only to an owner-only UNPUBLISHED draft release. Official GitHub release storage/bandwidth documentation checked24October (https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases): avoids metered Actions artifact storage; no paid infrastructure or publication. Current auth repo/workflow scopes verified without exposing credentials. Full validation jobs remain saved/manual; no tests execute in MVP mode.
+
+Owner time cap recorded conservatively from11:52:42UTC: hardstop12:52:42UTC. Target35–45minutes from agenda, allow queue margin, pause after package/handoff or at cap with precise blocker. Scope: record/live local ASR/history/notes/playback/search/text-Markdown export. Full summaries/Q&A, onboarding/accessibility/privacy/security/recovery completeness and all physical gates remain unfinished.

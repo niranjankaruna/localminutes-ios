@@ -288,10 +288,14 @@ public actor SQLiteMeetingStore {
     /// One immutable generated original, with a separate initial display value.
     /// A duplicate can only replay the exact initial record; it never replaces
     /// later user edits, original JSON bytes, or generation provenance.
-    public func createGeneratedDocument(_ document: StoredGeneratedDocument) throws {
+    public func createGeneratedDocument(_ document: StoredGeneratedDocument,
+                                        commitAdmission: GeneratedDocumentCommitAdmission? = nil) throws {
         let database = try connection.database()
         try validateGeneratedDocument(document, initialRevision: true)
         try connection.transaction {
+            // BEGIN IMMEDIATE has acquired the actual writer before this body.
+            // A cancelled queued save rolls back before any generated-row write.
+            try commitAdmission?.acceptCommit()
             guard try readMeeting(id: document.meetingID, database: database) != nil else {
                 throw GeneratedDocumentStoreError.notFound
             }

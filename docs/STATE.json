@@ -3,26 +3,26 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T11:44:20.250Z",
+  "lastUpdated": "2026-10-24T12:04:45.316Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "T17 shared app admission test-first; native ownership harness repair; actual T18/T19 quality under verification",
+  "currentTask": "T21 bounded MVP unsigned package delivery; owner requested pause afterward",
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "Push reviewed source5 now: lazy App accessor compile repair; cancellation plus shared-app-admission four new tests/stubs; final QA attempt3 and metadata-only generation diagnostics; actual-model30min. Require299core/71native reached assertions and full8real-model cases. Native metrics/fixture still no-op pending actual RED. Current4/6terminal, source6 reserved for evidence-backed implementation.",
+  "nextAction": "Commit preserved unverified WIP and reviewed build-only workflow; create unpublished draft for db1b8d5; dispatch sixth/final build-only run, download IPA/checksum/manifest, finish Windows handoff, then pause. Hardstop12:52:42UTC. No further tests.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "18f162169a716f0bede99f9240f71cccd6568815",
+  "remoteBranchHead": "0181b311abedb3c32745b015be64d6e7c777032b",
   "localScriptGreen": {
-    "sourceCommit": "cc5049f4bad993bb0bd7cdee9603a12a34f56304",
+    "sourceCommit": "0181b311abedb3c32745b015be64d6e7c777032b",
     "platform": "Windows11/Node24.21.0",
     "executed": 59,
     "passed": 59,
     "failed": 0,
     "skipped": 0,
     "nativePackagingVerified": false,
-    "initialRestrictedAttempt": "EPERM symlink setup, not behavioral RED; same unchanged tests pass in authorized native filesystem execution."
+    "scope": "Portable script regression only, no Swift/iOS/native/inference/device claim."
   },
   "lastVerifiedNativeBuildCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedNativeBuildCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
@@ -36,7 +36,8 @@
       40082088572,
       40084170930,
       40086780531,
-      40089155104
+      40089155104,
+      40091141417
     ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-24T11:35:40.281Z",
@@ -44,16 +45,18 @@
     "jobLimits": {
       "coreMinutes": 15,
       "summaryQualityMinutes": 30,
-      "nativeMinutes": 35
+      "nativeMinutes": 35,
+      "mvpPackageMinutes": 25
     }
   },
   "latestCIRun": {
-    "sourceCommit": "18f162169a716f0bede99f9240f71cccd6568815",
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40089155104",
+    "sourceCommit": "0181b311abedb3c32745b015be64d6e7c777032b",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40091141417",
     "status": "completed",
-    "conclusion": "failure",
-    "ordinal": 4,
-    "completedAt": "2026-10-24T11:35:50Z"
+    "conclusion": "cancelled",
+    "ordinal": 5,
+    "completedAt": "2026-10-24T12:00:19Z",
+    "cancellationReason": "Owner explicitly instructed no more testing and requested MVP delivery within60minutes, then pause. Core terminal RED retained; native/model remainder intentionally cancelled, not hidden or treated as passes."
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -125,7 +128,7 @@
     "T08.4",
     "T08.5"
   ],
-  "remoteBranchHeadScope": "Fourth source pushed and exact HTTPS remote verified",
+  "remoteBranchHeadScope": "Fifth exact source pushed/remoteverified; actual run40091141417 live",
   "nativeCompileRepair": {
     "status": "CODE_COMPLETE_PENDING_DEVICE",
     "candidatePath": "docs/drafts/T06.1/ActivityKitOperations.swift.pending",
@@ -996,10 +999,20 @@
   "intelligenceCommitCancellation": {
     "status": "IN_PROGRESS",
     "test": "testCancellationBeforeBlockedSQLiteCommitSavesNothingAndPreservesOriginalsAndModel",
-    "testFirstSource": null,
-    "redVerified": false,
-    "productionRepairImplemented": false,
-    "acceptance": "Real independent SQLite BEGIN IMMEDIATE holds save before commit; explicit cancellation before release must publish no saved row, preserve originals/model, unload/release and settle cancelled. Do not delete after a committed row."
+    "testFirstSource": "0181b311abedb3c32745b015be64d6e7c777032b",
+    "redVerified": true,
+    "productionRepairImplemented": true,
+    "acceptance": "Real independent SQLite BEGIN IMMEDIATE holds save before commit; explicit cancellation before release must publish no saved row, preserve originals/model, unload/release and settle cancelled. Do not delete after a committed row.",
+    "runId": 40091141417,
+    "red": {
+      "sourceCommit": "0181b311abedb3c32745b015be64d6e7c777032b",
+      "runId": 40091141417,
+      "jobId": 120863889214,
+      "testCases": 1,
+      "assertionFailures": 4,
+      "observation": "Real writer released only after accepted cancellation/draining; operation saves row, publishes completed/non-nil and reopened cancelled row instead of CancellationError/no result."
+    },
+    "greenVerified": false
   },
   "continuation09AdmissionTests": {
     "status": "IN_PROGRESS",
@@ -1012,7 +1025,57 @@
     "expectedActualModel": 8,
     "redVerified": false,
     "productionWiringImplemented": false,
-    "testFirstSource": null,
-    "scope": "App-owned shared heavy gate through real owner preparation/CAF/transcript/Activity cleanup, same default-services identity and distinct resources-settled drain barrier. Nil/pass-through only until actual RED. Counts include the separately named new SQLite cancellation case."
+    "testFirstSource": "0181b311abedb3c32745b015be64d6e7c777032b",
+    "scope": "App-owned shared heavy gate through real owner preparation/CAF/transcript/Activity cleanup, same default-services identity and distinct resources-settled drain barrier. Nil/pass-through only until actual RED. Counts include the separately named new SQLite cancellation case.",
+    "runId": 40091141417,
+    "coreRedVerified": true,
+    "coreRed": {
+      "sourceCommit": "0181b311abedb3c32745b015be64d6e7c777032b",
+      "runId": 40091141417,
+      "jobId": 120863889214,
+      "executed": 299,
+      "passed": 296,
+      "failed": 3,
+      "assertionFailures": 30,
+      "unexpected": 0,
+      "skipped": 0,
+      "gateNewCases": 2,
+      "gateAssertionFailures": 26
+    },
+    "portableBridgeImplemented": true,
+    "greenVerified": false
+  },
+  "deliveryPriority": {
+    "requestedByOwner": "2026-10-24",
+    "request": "Prioritize usable downloadable MVP, batch major fixes, split model-quality work instead of repeated full per-change runs; runtime too costly.",
+    "timeEstimateMinutes": "30-60 conditional on build and delivery",
+    "timeCapAnswerPending": false,
+    "mvpScope": "Recording, real local ASR, history, manual notes, playback, selected search and text/Markdown export; full summary/QA quality and its product screens unfinished. No full-baseline acceptance waiver or device evidence.",
+    "ownerApprovedBudgetMinutes": 60,
+    "budgetStartUTC": "2026-10-24T11:52:42Z",
+    "hardStopUTC": "2026-10-24T12:52:42Z",
+    "pauseAfterDelivery": true,
+    "testingOverride": "Owner: Do not spend more time on Testing, I need MVP. No further test execution; retain oracles/history and label rebuilt package honestly.",
+    "mvpAppSource": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+    "mvpPreviousPassingRun": 40079629180,
+    "deliveryMode": "Build-only actual iPhone Release app+extension; no simulator/test/real-model suite. Unpublished draft release assets avoid Actions artifact storage. Local download and checksum comparison required.",
+    "draftRelease": {
+      "id": 422706783,
+      "tag": "mvp-preview-db1b8d51c5ff",
+      "url": "https://github.com/niranjankaruna/localminutes-ios/releases/tag/untagged-56468ea4d87b7881f809",
+      "isDraft": true,
+      "assets": [],
+      "targetCommitish": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04"
+    }
+  },
+  "nativePrivacyReview": {
+    "status": "IN_PROGRESS",
+    "sourceCommit": "0181b311abedb3c32745b015be64d6e7c777032b",
+    "findings": [
+      "T20: no explicit app-switcher inactive/background privacy cover; privacySensitive modifier alone has no applied privacy redaction.",
+      "T20: pinned native llama loader logs full model filename; actual synthetic path observed. No demonstrated transcript/audio log leakage."
+    ],
+    "productionRepairImplemented": false,
+    "nextAction": "Deferred until owner resumes baseline work; add actual regressions before repair if strict TDD resumes."
   }
 }

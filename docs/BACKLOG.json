@@ -1328,12 +1328,27 @@
     }
   ],
   "executionPausedByOwner": false,
-  "resumeAction": "Push reviewed source5 now: lazy App accessor compile repair; cancellation plus shared-app-admission four new tests/stubs; final QA attempt3 and metadata-only generation diagnostics; actual-model30min. Require299core/71native reached assertions and full8real-model cases. Native metrics/fixture still no-op pending actual RED. Current4/6terminal, source6 reserved for evidence-backed implementation.",
-  "lastUpdated": "2026-10-24T11:44:20.250Z",
+  "resumeAction": "Commit preserved unverified WIP and reviewed build-only workflow; create unpublished draft for db1b8d5; dispatch sixth/final build-only run, download IPA/checksum/manifest, finish Windows handoff, then pause. Hardstop12:52:42UTC. No further tests.",
+  "lastUpdated": "2026-10-24T12:03:24.525Z",
   "latestVerification": {
     "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
     "runId": 40079629180,
     "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
     "evidence": "docs/evidence/CONTINUATION_08_CHECKPOINT.md"
+  },
+  "ownerMVPDeliveryOverride": {
+    "requestedByOwner": "2026-10-24",
+    "request": "Prioritize usable downloadable MVP, batch major fixes, split model-quality work instead of repeated full per-change runs; runtime too costly.",
+    "timeEstimateMinutes": "30-60 conditional on build and delivery",
+    "timeCapAnswerPending": false,
+    "mvpScope": "Recording, real local ASR, history, manual notes, playback, selected search and text/Markdown export; full summary/QA quality and its product screens unfinished. No full-baseline acceptance waiver or device evidence.",
+    "ownerApprovedBudgetMinutes": 60,
+    "budgetStartUTC": "2026-10-24T11:52:42Z",
+    "hardStopUTC": "2026-10-24T12:52:42Z",
+    "pauseAfterDelivery": true,
+    "testingOverride": "Owner: Do not spend more time on Testing, I need MVP. No further test execution; retain oracles/history and label rebuilt package honestly.",
+    "mvpAppSource": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+    "mvpPreviousPassingRun": 40079629180,
+    "deliveryMode": "Build-only actual iPhone Release app+extension; no simulator/test/real-model suite. Unpublished draft release assets avoid Actions artifact storage. Local download and checksum comparison required."
   }
 }

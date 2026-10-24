@@ -164,9 +164,10 @@ public final class RecordingSessionOwner {
         completedManifest = nil
         guard let command = await reservation.value, case .prepare = command else {
             if current === epoch, !epoch.cleanupRequested {
+                guard await finishUsage(epoch) else { return }
+                guard current === epoch else { return }
                 current = nil
                 epochObserver?(nil)
-                releaseUsage(epoch)
             }
             return
         }
@@ -392,6 +393,9 @@ public final class RecordingSessionOwner {
         if let failure = epoch.failure {
             _ = await coordinator.fail(failure, for: epoch.id)
         }
+        // Real capture/transcript/model/Activity barriers are settled. Complete
+        // the shared heavy admission before Saved or releasing this owner epoch.
+        guard await finishUsage(epoch) else { return }
         await coordinator.captureStopped(for: epoch.id)
         let final = await coordinator.snapshot()
         guard current === epoch else { return }
@@ -399,15 +403,23 @@ public final class RecordingSessionOwner {
         current = nil
         epochObserver?(nil)
         epoch.cleanup = nil
-        // Failed cleanup attempts above retain the epoch/token for retry. Only
-        // the settled combined barrier may release its shared recording claim.
-        releaseUsage(epoch)
     }
 
-    private func releaseUsage(_ epoch: RecordingOwnerEpoch) {
-        guard let token = epoch.usageToken else { return }
-        epoch.usageToken = nil
-        usageAdmission?.releaseRecordingUsage(meetingID: epoch.id, token: token)
+    private func finishUsage(_ epoch: RecordingOwnerEpoch) async -> Bool {
+        guard let token = epoch.usageToken else { return true }
+        do {
+            try await usageAdmission?.finishRecordingUsage(meetingID: epoch.id, token: token)
+            guard current === epoch else { return false }
+            epoch.usageToken = nil
+            return true
+        } catch {
+            epoch.failure = epoch.failure ?? .captureUnavailable
+            _ = await coordinator.fail(epoch.failure ?? .captureUnavailable, for: epoch.id)
+            // Retain the exact owner/token for an explicit cleanup retry. Do not
+            // acknowledge completion when shared admission has not settled.
+            if current === epoch { epoch.cleanup = nil }
+            return false
+        }
     }
 
     private static func map(_ failure: CaptureRuntimeFailure) -> RecordingFailure {

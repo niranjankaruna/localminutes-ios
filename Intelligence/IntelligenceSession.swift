@@ -67,7 +67,7 @@ public final class IntelligenceSession {
     private final class Use: HeavyModelResourceLifecycle {
         let request: IntelligenceRequest
         let models: ModelInstallationManager
-        let cancellation = IntelligenceCancellation()
+        let cancellation = GeneratedDocumentCommitAdmission()
         var admissionLease: HeavyModelUseLease?
         var modelLease: ModelLease?
         var runtime: (any IntelligenceRuntime)?
@@ -203,15 +203,13 @@ public final class IntelligenceSession {
         return try await withTaskCancellationHandler {
             try await completion.value
         } onCancel: {
-            cancellation.cancel()
-            Task { @MainActor in self.cancelWork(use) }
+            if cancellation.cancel() { Task { @MainActor in self.cancelWork(use) } }
         }
     }
 
     public func cancelAndDrain(requestID: UUID) async throws {
         guard let use = current, use.request.id == requestID else { throw IntelligenceSessionError.staleRequest }
-        use.cancellation.cancel()
-        cancelWork(use)
+        if use.cancellation.cancel() { cancelWork(use) }
         // A failed native/file-lease cleanup retains current and the gate. Only
         // this later explicit request retries that same resource generation.
         if use.cleanupBlocked {
@@ -228,7 +226,7 @@ public final class IntelligenceSession {
     public func snapshot() -> IntelligenceSnapshot { state }
 
     private func cancelWork(_ use: Use) {
-        guard current === use, !use.committed else { return }
+        guard current === use, !use.committed, use.cancellation.isCancelled else { return }
         use.work?.cancel()
         project(use, phase: .draining)
     }
@@ -309,12 +307,12 @@ public final class IntelligenceSession {
         do {
             // This one committed SQLite write is the saved-result boundary.
             // Cancellation after accepted commit cannot erase an editable row.
-            try await store.createGeneratedDocument(document)
+            try await store.createGeneratedDocument(document, commitAdmission: use.cancellation)
             use.committed = true
             finish(use, phase: .completed, document: document)
             return document
         } catch {
-            finish(use, phase: .failed)
+            finish(use, phase: error is CancellationError ? .cancelled : .failed)
             throw error
         }
     }

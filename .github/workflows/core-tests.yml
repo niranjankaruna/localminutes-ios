@@ -1,27 +1,18 @@
-name: Core tests
+name: LocalMinutes build or validation
 
 on:
-  push:
-    branches: ['task/**']
-    paths:
-      - 'Package.swift'
-      - 'Core/**'
-      - 'Recording/**'
-      - 'Models/**'
-      - 'Persistence/**'
-      - 'Transcription/**'
-      - 'MeetingLibrary/**'
-      - 'Summaries/**'
-      - 'QuestionAnswering/**'
-      - 'Intelligence/**'
-      - 'Tests/**'
-      - 'scripts/**'
-      - 'project.yml'
-      - 'App/**'
-      - 'Shared/**'
-      - 'LiveActivityExtension/**'
-      - '.github/workflows/core-tests.yml'
   workflow_dispatch:
+    inputs:
+      mode:
+        description: Build the MVP package, or explicitly run the saved validation jobs
+        required: true
+        type: choice
+        default: mvp
+        options: [mvp, validation]
+      sourceCommit:
+        description: Reviewed app source for the MVP package
+        required: true
+        default: db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04
 
 permissions:
   contents: read
@@ -32,6 +23,7 @@ concurrency:
 
 jobs:
   core:
+    if: ${{ inputs.mode == 'validation' }}
     runs-on: macos-15-intel
     timeout-minutes: 15
     env:
@@ -114,6 +106,7 @@ jobs:
           node scripts/verify-test-log.mjs .build/queue-tsan.log testParallelSPSCStressPreservesAcceptedSamplesOrderAndAllDroppedFrames testFinishDrainsQueuedFIFOAndReportsTrailingLossExactlyOnce testConcurrentCloseWaitsForAdmittedWorkAndPublishesItToTheStopper testSequentialAdmissionsOnDifferentThreadsPublishThePreviousCallbacksWork testStopWaitsForAnAdmittedCallbackThenDrainsBeforeDeactivationAndAcknowledgement testMissingEndDoesNotAcknowledgeCleanupAndCanBeRetried testQueuedUpdateCannotReuseResourceAfterEarlierLookupFails testActualOwnedAudioReachesRecordingOnlyWithAllThreeFactsAndProducesRealCAF testHeldActivityEndKeepsCleanupPendingAfterRealAudioFlushAndDeactivation testToggleDuringDomainReservationCancelsTheAdmittedStart testCancellingStartDuringPermissionReleasesTheActivityAndOwner testIntentStopAcknowledgesActualSavedCAFOnlyAfterCleanup testIntentStaleLockScreenStopCannotStopAReplacementAndMatchingOwnerStopWorks testIntentCannotAttributeAReplacementManifestToAnEarlierStopOrToggle testRetiredHandleCallbacksCannotTerminateAReplacementWithTheSameID testEndSettlesAdmittedUpdateAndRejectsLaterUpdatesBeforeAcknowledgement
 
   local-summary-quality:
+    if: ${{ inputs.mode == 'validation' }}
     runs-on: macos-15-intel
     timeout-minutes: 30
     env:
@@ -156,6 +149,7 @@ jobs:
   # Native SDK assertions run independently during test-first core failures.
   # All three jobs remain mandatory for the overall workflow result.
   native-build:
+    if: ${{ inputs.mode == 'validation' }}
     runs-on: macos-15-intel
     timeout-minutes: 35
     env:
@@ -346,3 +340,95 @@ jobs:
           console.log(readFileSync(result.manifestPath, 'utf8'));
           console.log(readFileSync(result.checksumPath, 'utf8'));
           JS
+
+  # Owner-requested MVP delivery: compile/package only, no test runner or model weights.
+  # The workflow definition and the reviewed app source are recorded separately.
+  mvp-package:
+    if: ${{ inputs.mode == 'mvp' }}
+    runs-on: macos-15-intel
+    timeout-minutes: 25
+    permissions:
+      contents: write
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+      EXPECTED_SOURCE: ${{ inputs.sourceCommit }}
+    steps:
+      - name: Check out the last fully passing app source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.sourceCommit }}
+          persist-credentials: false
+      - name: Verify exact reviewed source and zero-spend packaging guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$EXPECTED_SOURCE" = 'db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04'
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SOURCE"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          config = json.loads(Path('project-config.json').read_text())
+          assert config['ci']['costGuardVerified'] is True
+          assert config['budget']['maximumAdditionalSpendEUR'] == 0
+          assert config['budget']['allowLargerRunners'] is False
+          assert config['github']['publicationApproved'] is True
+          assert config['github']['visibility'] == 'public'
+          PY
+          printf 'MVP_APP_SOURCE=%s\nWORKFLOW_SOURCE=%s\nTESTS_EXECUTED=0\n' "$EXPECTED_SOURCE" "$GITHUB_SHA"
+      - name: Prepare the pinned native framework without model weights
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 docs/drafts/T17/prepare_native_summary.py --framework-only
+      - name: Generate the reviewed iPhone project
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .agent-local/tools
+          curl --fail --location --proto '=https' --proto-redir '=https' --retry 2 --retry-delay 4 --max-time 120 \
+            https://github.com/yonaskolb/XcodeGen/releases/download/2.46.0/xcodegen.zip -o .agent-local/tools/xcodegen.zip
+          test "$(wc -c < .agent-local/tools/xcodegen.zip | tr -d ' ')" = '4278764'
+          printf '%s  %s\n' '4d9e34b62172d645eed6457cac13fc222569974098ef4ee9c3368bedf0196806' '.agent-local/tools/xcodegen.zip' | shasum -a 256 -c -
+          unzip -q .agent-local/tools/xcodegen.zip -d .agent-local/tools
+          .agent-local/tools/xcodegen/bin/xcodegen generate --spec project.yml
+      - name: Compile the iPhone app and embedded Live Activity extension
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -quiet -project LocalMinutes.xcodeproj -scheme LocalMinutes -configuration Release \
+            -destination 'generic/platform=iOS' -derivedDataPath build/device \
+            -clonedSourcePackagesDirPath .agent-local/source-packages \
+            CODE_SIGNING_ALLOWED=NO LOCALMINUTES_SOURCE_COMMIT="$EXPECTED_SOURCE" build
+      - name: Package the unsigned IPA and record its checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'JS'
+          import { createUnsignedIPA } from './scripts/package-ios.mjs';
+          import { readFileSync } from 'node:fs';
+          const result = await createUnsignedIPA({
+            appPath: 'build/device/Build/Products/Release-iphoneos/LocalMinutes.app',
+            outputDirectory: 'build/package', sourceCommit: process.env.EXPECTED_SOURCE
+          });
+          console.log(readFileSync(result.manifestPath, 'utf8'));
+          console.log(readFileSync(result.checksumPath, 'utf8'));
+          JS
+      - name: Retain the package in the existing unpublished owner draft
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          MVP_TAG="mvp-preview-${EXPECTED_SOURCE:0:12}"
+          gh release view "$MVP_TAG" --repo "$GITHUB_REPOSITORY" \
+            --json isDraft,tagName,targetCommitish > .agent-local/mvp-release.json
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          release = json.loads(Path('.agent-local/mvp-release.json').read_text())
+          assert release['isDraft'] is True, 'MVP assets must stay unpublished'
+          assert release['targetCommitish'] == os.environ['EXPECTED_SOURCE']
+          assert release['tagName'] == 'mvp-preview-' + os.environ['EXPECTED_SOURCE'][:12]
+          PY
+          gh release upload "$MVP_TAG" --repo "$GITHUB_REPOSITORY" \
+            build/package/*.ipa build/package/*.sha256 build/package/build-manifest.json

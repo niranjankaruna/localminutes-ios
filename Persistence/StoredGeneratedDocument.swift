@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 
 public enum GeneratedDocumentKind: String, Codable, Equatable, Sendable {
     case summary
@@ -33,4 +34,40 @@ public struct StoredGeneratedDocument: Equatable, Sendable, Identifiable {
 
 public enum GeneratedDocumentStoreError: Error, Equatable, Sendable {
     case invalidInput, notFound, staleRevision, immutableConflict
+}
+
+/// One request's cancellation and SQLite commit admission linearize under one
+/// short lock. There is no I/O or suspension while this state is locked.
+public final class GeneratedDocumentCommitAdmission: Sendable {
+    private enum State: Sendable { case pending, cancelled, accepted }
+    private let state = Mutex(State.pending)
+
+    public init() {}
+
+    /// True when cancellation won (including a repeated cancellation). Once
+    /// SQLite accepts commit, late cancellation cannot erase its saved result.
+    @discardableResult
+    public func cancel() -> Bool {
+        state.withLock { value in
+            if case .accepted = value { return false }
+            value = .cancelled
+            return true
+        }
+    }
+
+    public var isCancelled: Bool {
+        state.withLock { value in
+            if case .cancelled = value { return true }
+            return false
+        }
+    }
+
+    /// SQLite calls this only after acquiring its real write transaction and
+    /// before writing the generated row. A cancellation throws into rollback.
+    public func acceptCommit() throws {
+        try state.withLock { value in
+            if case .cancelled = value { throw CancellationError() }
+            value = .accepted
+        }
+    }
 }
