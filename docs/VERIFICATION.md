@@ -328,6 +328,22 @@ No furtherprompt/testloop. Ownerwasaskedonetimewhethercompareonecompatiblelocalm
 Inputpackingreviewremovedartificialtwo-sourceinputcap: actualcanonicaltokenizercountsnowpacklongerchunks;output≤2/category,1citationand128map/itemboundspreserved. Existingtwo-sourceactualfixtureshaveidenticalprompts/chunks/schema,nomodelsemanticrepairclaimfromthischange. Finalcompile/package-onlymodeexcludesallmodel/fulltestjobs. ThispreparesanupdatedUIpreviewwhilequalityblockerremains;nomoreinferenceexperimentswithoutownerchoice.
 
 
+## T07 signing attempt — 24 October 2026
+
+[Sanitized authentication evidence](evidence/T07_SIDELOADLY_AUTH_2026_10_24.md):
+owner screenshot shows login -80046, not a successful installation.
+T07 BLOCKED_EXTERNAL; no task completed or new test/CI/commit/artifact from
+this troubleshooting invocation. Package run40101392948 rechecked
+completed/success at d6a3293: compile/package only, zero tests. App/extension
+signing, all locked/Action Button, offline, endurance, renewal and protection
+gates remain unverified. Next: owner checks Apple web sign-in locally, then
+current official Sideloadly and one retry; persistent -80046 stays blocked.
+Independent source/workflow work and model-development checkpoint preserved.
+
 ## Summary/Q&A batch handoff
 
 App screens/shared real-model wiring, durable edits/answers/citations/cancel/export are implemented. Final d6a3293/run40101392948 compile/package SUCCESS,0tests; preview downloaded with matchingSHA256. **Model quality remains FAILED**: current Qwen1.5B unknown-owner/date, default-service summary and QA evidence cases still fail under unchanged oracles. No full/physical acceptance claimed. Original MVP unchanged; preview schema4 prevents old-schema3 binary rollback. See [exact evidence](evidence/SUMMARY_QA_BATCH_2026_10_24.md) and [usage](SUMMARIES_AND_QA.md). Model experiments stopped; awaiting owner choice for one30minute-compatible-model comparison or stop.
+
+| T18/T19 single Phi-3 candidate | Two nested summaries + two selected-meeting questions, actual CPU | Prior Qwen failed; separate comparison | [Pending candidate run](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40104505380) | 1a999b661ef68d4082b0a811d03ec40ef3180b7b | Hosted macOS, pinned b5046/Phi-3 | FAILED overall; Q&A2/2 PASSED | Summary preflight error; two actual generations only; no default/phone/whole-feature pass |
+
+| T18 candidate missing summaries only | testActualPinnedPhi3ComparesTwoSummariesWithReviewedRevision | First-run harness provenance error preserved | [Eight-minute bounded run](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40105186439) | 6d914fe0117964c7019a71d5b9332c9dba3758b4 | Hosted macOS, same pinned Phi/b5046 | NOT_RUN/unverified (job cancelled) | Compile130.24s PASS; no completed case/stage, no semantic outcome inferred |

@@ -153,6 +153,17 @@ Confirmedatcdf4a06/run40038154279: directSDKsetCompleteonoriginalfixturefollowed
 All six permitted runs are terminal. Final `db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04` / [run40079629180](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180) passed all application/model/native/UI/archive groups. No internal archive-ordering blocker remains. The next bounded invocation activates T12.2 tests before behavior; full baseline remains IN_PROGRESS. No owner confirmation is needed for independent development. ARTIFACT_STORAGE_HEADROOM_UNVERIFIED still affects retained delivery only. All physical/signing/renewal gates remain NOT_RUN. Details: [checkpoint](evidence/CONTINUATION_08_CHECKPOINT.md).
 
 
+## SIDELOADLY_APPLE_AUTH_80046 — T07 signing blocked, 24 October 2026
+
+Owner screenshot shows Apple Account login failing with -80046. Matching
+reports exist this week; the exact cause and a working Sideloadly remedy are
+unconfirmed. No successful signing, installation or extension result exists.
+Next: owner checks Apple web sign-in, then current official Sideloadly and one
+retry. Preserve any existing app and account/bundle-ID settings. No new build
+or test was dispatched by this troubleshooting invocation.
+See [sanitized evidence](evidence/T07_SIDELOADLY_AUTH_2026_10_24.md).
+Overall state remains IN_PROGRESS; independent development is unaffected.
+
 ## MVP delivery workaround observed24October2026
 
 The original Actions artifact storage headroom remains unverified for a full release. It did not block the owner-requested MVP: unpublished draft422706783 retained the unsigned IPA and a Windows download matched SHA256. No billing change, paid storage or public release. MVP delivery has no remaining download blocker; all physical/full-baseline gates remain pending. See evidence/MVP_DELIVERY_2026_10_24.md.
@@ -170,3 +181,13 @@ Exact588834b68876e94a6cffe5963fe0a875d1f69315/run40099854249 completedFAILED13:5
 No furtherprompt/testloop. Ownerwasaskedonetimewhethercompareonecompatiblelocalmodelwith30mincaporstopmodelwork, duetothenorepeatedtestrunconstraint. Awaitreplybeforecandidateexperiment;elapsedtimeisnotapproval. OfficialMicrosoftPhi-3-mini-4k-instruct-GGUF(MIT,2.2GBQ4asmodelcard)identifiedaspossibleread-onlycandidate,notdownloaded/pinned/evaluated/recommendedasworking. https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf
 
 Inputpackingreviewremovedartificialtwo-sourceinputcap: actualcanonicaltokenizercountsnowpacklongerchunks;output≤2/category,1citationand128map/itemboundspreserved. Existingtwo-sourceactualfixtureshaveidenticalprompts/chunks/schema,nomodelsemanticrepairclaimfromthischange. Finalcompile/package-onlymodeexcludesallmodel/fulltestjobs. ThispreparesanupdatedUIpreviewwhilequalityblockerremains;nomoreinferenceexperimentswithoutownerchoice.
+
+
+## Owner decision24October2026 at14:43UTC — one comparison authorized
+
+Owner chose one compatible local model capped30minutes. The earlier pending-choice condition is resolved. One pinned MIT Phi-3 candidate/current-format comparison is run40104505380/source1a999b6; no default-model switch or quality PASS assumed. Stop by15:13:11UTC, retain exact outcome and next task. Qwen quality blocker and all device gates remain pending.
+
+
+## Single Phi-3 comparison final checkpoint24October2026
+
+Stopped within owner30min window14:43:11–15:13:11UTC. Source1a999b6/run40104505380: native compile/integrity PASS; actual Q&A known42000credits PASS56s and unknown-owner refusal PASS39s, selected-meeting isolation and SQLite originals/reopen assertions pass. XCTest overallFAIL140.207s/3assertions because both summaries used artifactSHA instead of40char modelrevision and generationcount2!=4. This is harness preflight failure, not Phi summary semantic failure. Correction source6d914fe0117964c7019a71d5b9332c9dba3758b4/run40105186439 runs only the2 missing summaries; unchanged semantic assertions/model/prompt/validators. Native compilePASS130.24s; eight-minute job limit cancelled15:11:06UTC with no completed case/stage reports. Summary quality is unverified/inconclusive; no output reconstruction or inferredPASS. No third run, new model, full suite, IPA, default switch or phone gate. Existing installable package unchanged. OverallIN_PROGRESS, completed feature taskIDs:none. Evidence: evidence/PHI3_SINGLE_COMPARISON_2026_10_24.md. Exact next: T18.3: inspect the bounded Phi summary runtime/generation path before further inference; the8min summary-only run40105186439 had no completed case/stage report. Preserve the2/2 actual Q&A observations, all original oracles and failed/timeout evidence. No automatic retry, new candidate, default-model switch or package. Resume a separately bounded implementation batch only when the owner resumes work.

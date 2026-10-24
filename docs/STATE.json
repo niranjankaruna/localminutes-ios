@@ -2,18 +2,31 @@
   "schemaVersion": 1,
   "project": "LocalMinutes",
   "specVersion": "1.0",
+  "signingTroubleshooting": {
+    "observedAt": "2026-10-24T14:52:02Z",
+    "taskId": "T07",
+    "status": "BLOCKED_EXTERNAL",
+    "blocker": "SIDELOADLY_APPLE_AUTH_80046",
+    "evidence": "docs/evidence/T07_SIDELOADLY_AUTH_2026_10_24.md",
+    "completedTaskIds": [],
+    "testsExecuted": 0,
+    "newCIRuns": 0,
+    "newCommits": [],
+    "newArtifacts": [],
+    "nextAction": "Owner checks Apple web sign-in locally, then current official Sideloadly and one retry. Persistent -80046 stays blocked pending upstream remedy. Preserve existing app/account/bundle-ID settings. Independent development checkpoint is unchanged."
+  },
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T14:52:28.940Z",
+  "lastUpdated": "2026-10-24T15:12:05.226Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "Owner-authorized single Phi-3 comparison, deadline 2026-10-24T15:13:11Z",
+  "currentTask": "Single Phi-3 comparison stopped within owner30minute cap: Q&A2/2 PASS; summaries unverified after timeout",
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "Run one exact-source hosted macOS candidate comparison with four actual generations, record outcomes, and stop by 15:13:11 UTC. No default model switch or additional tuning/testing authorized by this comparison.",
+  "nextAction": "T18.3: inspect the bounded Phi summary runtime/generation path before further inference; the8min summary-only run40105186439 had no completed case/stage report. Preserve the2/2 actual Q&A observations, all original oracles and failed/timeout evidence. No automatic retry, new candidate, default-model switch or package. Resume a separately bounded implementation batch only when the owner resumes work.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "d6a329354ffc095d4dffb9ca4d939c67bf10adc8",
+  "remoteBranchHead": "6d914fe0117964c7019a71d5b9332c9dba3758b4",
   "localScriptGreen": {
     "sourceCommit": "0181b311abedb3c32745b015be64d6e7c777032b",
     "platform": "Windows11/Node24.21.0",
@@ -28,32 +41,33 @@
   "lastVerifiedNativeBuildCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "blockedItems": [
     "ARTIFACT_STORAGE_HEADROOM_UNVERIFIED",
-    "LOCAL_SUMMARY_QA_MODEL_QUALITY"
+    "LOCAL_SUMMARY_QA_MODEL_QUALITY",
+    "SIDELOADLY_APPLE_AUTH_80046"
   ],
   "ciInvocation": {
     "id": "2026-10-24-summary-qa-batch",
     "maxNewRuns": 6,
-    "plannedNewRuns": 1,
+    "plannedNewRuns": 0,
     "newRunIds": [
       40098679075,
       40099854249,
-      40101392948
+      40101392948,
+      40104505380,
+      40105186439
     ],
     "limitReached": false,
-    "costGuardObservedAt": "2026-10-24T13:19:55.441Z",
-    "costGuardBasis": "Live PUBLIC/ADMIN repository, genuine existing auth, exact remote8f6fc1f and terminal previousMVP run40092475736 reverified. Standard publicmacos-15-intel only; existing official GitHub free-compute/release-storage evidence, unpublished draft retention, no paid/larger runner/storage/billing mutation."
+    "costGuardObservedAt": "2026-10-24T14:53:15Z",
+    "costGuardBasis": "Existing genuine auth and live PUBLIC repository verified before the single candidate dispatch; standard public macos-15-intel only, zero extra spend, no artifacts uploaded and no larger runner/billing changes."
   },
   "latestCIRun": {
-    "sourceCommit": "d6a329354ffc095d4dffb9ca4d939c67bf10adc8",
-    "appSourceCommit": "d6a329354ffc095d4dffb9ca4d939c67bf10adc8",
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40101392948",
+    "sourceCommit": "6d914fe0117964c7019a71d5b9332c9dba3758b4",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40105186439",
     "status": "completed",
-    "conclusion": "success",
-    "ordinal": 3,
-    "mode": "package",
-    "testsExecuted": 0,
-    "scope": "Compile/package-only success; all model/fullregression jobs excluded. Not a model-quality PASS.",
-    "completedAt": "2026-10-24T14:14:54Z"
+    "conclusion": "cancelled",
+    "ordinal": 5,
+    "mode": "candidate-summary",
+    "scope": "8minute job limit; actual native compilation PASS130.24s; no completed XCTest/stage report before cancellation. Summary semantic quality NOT_RUN/unverified; no inferred failure or success.",
+    "completedTestCases": 0
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -1249,8 +1263,8 @@
         "stage": "summary"
       }
     },
-    "modelDecisionPending": true,
-    "pendingQuestion": "Owneraskedwhetheronecompatiblelocalmodelcomparisoncapped30minutesorstopmodelwork;noextraexperimentauthorizedbyelapsedtime.",
+    "modelDecisionPending": false,
+    "pendingQuestion": null,
     "inputPacking": "Restoredactualtokenizer-onlychunkpacking;output2/categoryand1citationunchanged. Removesartificial256-utterancecutoffwithoutchangingthetwo-sourcesmokeinputs/prompts. Longmeetingqualitystillunverified.",
     "packageSource": "d6a329354ffc095d4dffb9ca4d939c67bf10adc8",
     "packageRunId": 40101392948,
@@ -1260,7 +1274,8 @@
       "isDraft": true
     },
     "packageComplete": true,
-    "modelExperimentsStopped": true
+    "modelExperimentsStopped": true,
+    "ownerComparisonDecision": "One compatible model, capped30min; absolute deadline15:13:11UTC"
   },
   "featurePreviewArtifact": {
     "status": "IN_PROGRESS",
@@ -1292,9 +1307,46 @@
     "license": "MIT",
     "startedAt": "2026-10-24T14:43:11Z",
     "hardStopAt": "2026-10-24T15:13:11Z",
-    "run": null,
+    "run": {
+      "id": 40104505380,
+      "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40104505380",
+      "jobId": 120903281785,
+      "status": "completed",
+      "conclusion": "failure"
+    },
     "defaultModelChanged": false,
     "observationCount": 4,
-    "evidence": "docs/evidence/PHI3_SINGLE_COMPARISON_2026_10_24.md"
+    "evidence": "docs/evidence/PHI3_SINGLE_COMPARISON_2026_10_24.md",
+    "sourceCommit": "1a999b661ef68d4082b0a811d03ec40ef3180b7b",
+    "firstResult": {
+      "executedTests": 1,
+      "assertionFailures": 3,
+      "skipped": 0,
+      "seconds": 140.207,
+      "nativeGenerations": 2,
+      "summaryPositive": "NOT_RUN: preflight rejected artifact SHA used as model revision",
+      "summaryUnknown": "NOT_RUN: same harness provenance error",
+      "qaPositive": "PASSED actual selected budget",
+      "qaUnknown": "PASSED actual unknown-owner refusal"
+    },
+    "followup": {
+      "sourceCommit": "6d914fe0117964c7019a71d5b9332c9dba3758b4",
+      "runId": 40105186439,
+      "jobId": 120905305903,
+      "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40105186439",
+      "status": "completed",
+      "scope": "Only two missing summary generations; correct immutable revision, no Q&A repeat or model/prompt/validator changes",
+      "timeoutMinutes": 8,
+      "conclusion": "cancelled",
+      "result": "8minute job limit; actual native compilation PASS130.24s; no completed XCTest/stage report before cancellation. Summary semantic quality NOT_RUN/unverified; no inferred failure or success."
+    },
+    "experimentFinished": true,
+    "stoppedAt": "2026-10-24T15:12:05.226Z",
+    "stopReason": "Owner30minute hard cap; no more inference or build dispatch",
+    "result": "INCONCLUSIVE: Q&A2/2 PASS, summaries0verified; no default switch",
+    "furtherRunsAuthorized": false,
+    "newCIRuns": 2,
+    "completedFeatureTaskIds": [],
+    "nextAction": "T18.3: inspect the bounded Phi summary runtime/generation path before further inference; the8min summary-only run40105186439 had no completed case/stage report. Preserve the2/2 actual Q&A observations, all original oracles and failed/timeout evidence. No automatic retry, new candidate, default-model switch or package. Resume a separately bounded implementation batch only when the owner resumes work."
   }
 }

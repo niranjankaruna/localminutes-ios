@@ -2,6 +2,19 @@
   "schemaVersion": 1,
   "specVersion": "1.0",
   "policy": "Split broad tasks into small tests-first child slices. Keep stable IDs. Device-pending tasks do not block unrelated dependencies. Capture development depends on validated T04 build/package children, not separate artifact retention; T04's full delivery acceptance remains mandatory. Infrastructure scripts require their own validation tests; feature production behavior always requires recorded RED.",
+  "signingTroubleshooting": {
+    "observedAt": "2026-10-24T14:52:02Z",
+    "taskId": "T07",
+    "status": "BLOCKED_EXTERNAL",
+    "blocker": "SIDELOADLY_APPLE_AUTH_80046",
+    "evidence": "docs/evidence/T07_SIDELOADLY_AUTH_2026_10_24.md",
+    "completedTaskIds": [],
+    "testsExecuted": 0,
+    "newCIRuns": 0,
+    "newCommits": [],
+    "newArtifacts": [],
+    "nextAction": "Owner verifies Apple web sign-in locally, then current official Sideloadly and one retry. Persistent -80046 stays blocked pending upstream remedy. Preserve existing installation and account/bundle-ID settings."
+  },
   "tasks": [
     {
       "id": "T00",
@@ -389,7 +402,7 @@
       "milestone": "M2",
       "title": "Run early free-signing and device-control feasibility gate",
       "kind": "device",
-      "status": "NOT_STARTED",
+      "status": "BLOCKED_EXTERNAL",
       "dependsOn": [
         "T06"
       ],
@@ -408,7 +421,12 @@
       "redEvidence": [],
       "greenEvidence": [],
       "deviceEvidence": [],
-      "blockers": [],
+      "blockers": [
+        "SIDELOADLY_APPLE_AUTH_80046"
+      ],
+      "observationEvidence": [
+        "docs/evidence/T07_SIDELOADLY_AUTH_2026_10_24.md"
+      ],
       "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
     },
     {
@@ -1149,7 +1167,9 @@
       "deviceEvidence": [],
       "blockers": [],
       "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead.",
-      "latestCheckpoint": "Final feature preview d6a3293 compiled/package SUCCESS; actual model quality at588834b FAILED. See evidence/SUMMARY_QA_BATCH_2026_10_24.md. Await bounded candidate decision; no more blind prompt/test loops."
+      "latestCheckpoint": "One candidate comparison stopped within30min: Phi Q&A2/2PASS run40104505380; summaries preflight harness revision corrected, but summary-only run40105186439 timed out8min with no completed case/stage. Default app/Qwen unchanged; no feature completion.",
+      "candidateEvidence": "docs/evidence/PHI3_SINGLE_COMPARISON_2026_10_24.md",
+      "candidateNextAction": "T18.3: inspect the bounded Phi summary runtime/generation path before further inference; the8min summary-only run40105186439 had no completed case/stage report. Preserve the2/2 actual Q&A observations, all original oracles and failed/timeout evidence. No automatic retry, new candidate, default-model switch or package. Resume a separately bounded implementation batch only when the owner resumes work."
     },
     {
       "id": "T19",
@@ -1218,7 +1238,9 @@
       "deviceEvidence": [],
       "blockers": [],
       "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead.",
-      "latestCheckpoint": "Final feature preview d6a3293 compiled/package SUCCESS; actual model quality at588834b FAILED. See evidence/SUMMARY_QA_BATCH_2026_10_24.md. Await bounded candidate decision; no more blind prompt/test loops."
+      "latestCheckpoint": "One candidate comparison stopped within30min: Phi Q&A2/2PASS run40104505380; summaries preflight harness revision corrected, but summary-only run40105186439 timed out8min with no completed case/stage. Default app/Qwen unchanged; no feature completion.",
+      "candidateEvidence": "docs/evidence/PHI3_SINGLE_COMPARISON_2026_10_24.md",
+      "candidateNextAction": "T18.3: inspect the bounded Phi summary runtime/generation path before further inference; the8min summary-only run40105186439 had no completed case/stage report. Preserve the2/2 actual Q&A observations, all original oracles and failed/timeout evidence. No automatic retry, new candidate, default-model switch or package. Resume a separately bounded implementation batch only when the owner resumes work."
     },
     {
       "id": "T20",

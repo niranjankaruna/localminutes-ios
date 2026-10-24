@@ -769,6 +769,32 @@ No furtherprompt/testloop. Ownerwasaskedonetimewhethercompareonecompatiblelocalm
 Inputpackingreviewremovedartificialtwo-sourceinputcap: actualcanonicaltokenizercountsnowpacklongerchunks;output≤2/category,1citationand128map/itemboundspreserved. Existingtwo-sourceactualfixtureshaveidenticalprompts/chunks/schema,nomodelsemanticrepairclaimfromthischange. Finalcompile/package-onlymodeexcludesallmodel/fulltestjobs. ThispreparesanupdatedUIpreviewwhilequalityblockerremains;nomoreinferenceexperimentswithoutownerchoice.
 
 
+## T07 signing troubleshooting — 24 October 2026
+
+Owner screenshot establishes Sideloadly Apple Account authentication failure
+-80046; T07 is BLOCKED_EXTERNAL (SIDELOADLY_APPLE_AUTH_80046). Matching upstream
+reports are a lead, not a confirmed Apple outage or cause. Completed task IDs
+in this troubleshooting invocation: none; new tests/CI/commits/artifacts: none.
+Package run40101392948 was rechecked through GitHub: completed/success at
+d6a3293, compile/package only, zero tests. Existing source/workflow work and
+independent development checkpoints are preserved. All signing, extension,
+locked/Action Button, offline, endurance, renewal and protection device gates
+remain unverified. Exact next T07 action: owner checks Apple web sign-in and
+Sideloadly version/provider locally, then current official Sideloadly and one
+retry; persistent -80046 stays blocked pending upstream remedy. Preserve
+existing app/account/bundle settings.
+See [evidence](evidence/T07_SIDELOADLY_AUTH_2026_10_24.md).
+
 ## Summary/Q&A batch handoff
 
 App screens/shared real-model wiring, durable edits/answers/citations/cancel/export are implemented. Final d6a3293/run40101392948 compile/package SUCCESS,0tests; preview downloaded with matchingSHA256. **Model quality remains FAILED**: current Qwen1.5B unknown-owner/date, default-service summary and QA evidence cases still fail under unchanged oracles. No full/physical acceptance claimed. Original MVP unchanged; preview schema4 prevents old-schema3 binary rollback. See [exact evidence](evidence/SUMMARY_QA_BATCH_2026_10_24.md) and [usage](SUMMARIES_AND_QA.md). Model experiments stopped; awaiting owner choice for one30minute-compatible-model comparison or stop.
+
+
+## 24 October2026, 14:43–15:13UTC maximum — single Phi-3 comparison
+
+Owner explicitly selected one compatible local model capped30minutes. Phi-3 MIT/pinned2,393,231,072byte candidate and its actual user-only chat template are isolated from the app default. Source1a999b661ef68d4082b0a811d03ec40ef3180b7b is pushed; run40104505380/job120903281785 started14:53:31UTC on standard public macos-15-intel. One actual runtime, at most4 generations across two summaries and two selected-meeting questions; all existing model pins/oracles remain. Other jobs excluded; no full test suite, IPA, billing/publication change or additional candidate. Result pending; stop at15:13:11UTC. Evidence: evidence/PHI3_SINGLE_COMPARISON_2026_10_24.md.
+
+
+## Single Phi-3 comparison final checkpoint24October2026
+
+Stopped within owner30min window14:43:11–15:13:11UTC. Source1a999b6/run40104505380: native compile/integrity PASS; actual Q&A known42000credits PASS56s and unknown-owner refusal PASS39s, selected-meeting isolation and SQLite originals/reopen assertions pass. XCTest overallFAIL140.207s/3assertions because both summaries used artifactSHA instead of40char modelrevision and generationcount2!=4. This is harness preflight failure, not Phi summary semantic failure. Correction source6d914fe0117964c7019a71d5b9332c9dba3758b4/run40105186439 runs only the2 missing summaries; unchanged semantic assertions/model/prompt/validators. Native compilePASS130.24s; eight-minute job limit cancelled15:11:06UTC with no completed case/stage reports. Summary quality is unverified/inconclusive; no output reconstruction or inferredPASS. No third run, new model, full suite, IPA, default switch or phone gate. Existing installable package unchanged. OverallIN_PROGRESS, completed feature taskIDs:none. Evidence: evidence/PHI3_SINGLE_COMPARISON_2026_10_24.md. Exact next: T18.3: inspect the bounded Phi summary runtime/generation path before further inference; the8min summary-only run40105186439 had no completed case/stage report. Preserve the2/2 actual Q&A observations, all original oracles and failed/timeout evidence. No automatic retry, new candidate, default-model switch or package. Resume a separately bounded implementation batch only when the owner resumes work.

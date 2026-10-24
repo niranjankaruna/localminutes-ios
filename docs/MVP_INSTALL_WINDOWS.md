@@ -35,6 +35,19 @@ Account. No owned Mac, local Xcode or paid Apple Developer membership is needed.
    If Developer Mode is required, enable it under Settings → Privacy & Security,
    restart, unlock and confirm. [Apple's Developer Mode guide](https://developer.apple.com/documentation/xcode/enabling-developer-mode-on-a-device)
 
+## If Apple Account login fails with -80046
+
+On 24 October 2026 the owner reported this error before installation.
+[Other Sideloadly users report the exact code](https://github.com/SideloadlyiOS/Sideloadly-Download/issues/24).
+The cause is unconfirmed; no working Sideloadly fix was established here.
+
+Check that you can sign in at [Apple Account](https://account.apple.com/) and
+complete any account prompts locally. Use the current release from
+[Sideloadly's official site](https://sideloadly.io/) and retry once. If the same
+error persists, signing remains blocked pending an upstream remedy. Keep any
+existing LocalMinutes installation and the same Apple Account/bundle-ID
+settings. Rebuilding the IPA does not address this login failure.
+
 ## First launch and everyday use
 
 Open LocalMinutes while unlocked. Go to **Models → Offline speech → Download
