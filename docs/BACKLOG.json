@@ -373,6 +373,16 @@
               ]
             }
           ]
+        },
+        {
+          "id": "T06.3",
+          "title": "Authenticated foreground latest-meeting shortcut and retained navigation",
+          "status": "IN_PROGRESS",
+          "productionImplemented": false,
+          "redEvidence": [],
+          "greenEvidence": [],
+          "deviceEvidence": [],
+          "preparedEvidence": "docs/evidence/MVP3_PRODUCT_GATES_2026_10_24.md"
         }
       ],
       "redEvidence": [
@@ -793,6 +803,16 @@
           "scope": "Three active native metrics cases remain nil/no-op/throwing seams. Source3 canary and source4 compile harness failures prevented execution: no RED yet, no default metric wiring/scene checkpoint/file behavior implemented.",
           "redVerified": false,
           "productionImplemented": false
+        },
+        {
+          "id": "T13.3",
+          "title": "Truthful first-PCM elapsed and measured backlog display",
+          "status": "IN_PROGRESS",
+          "productionImplemented": false,
+          "redEvidence": [],
+          "greenEvidence": [],
+          "deviceEvidence": [],
+          "preparedEvidence": "docs/evidence/MVP3_PRODUCT_GATES_2026_10_24.md"
         }
       ],
       "redEvidence": [],
@@ -1254,7 +1274,7 @@
       "milestone": "M7",
       "title": "Complete accessibility, privacy and dependency hardening",
       "kind": "validation",
-      "status": "NOT_STARTED",
+      "status": "IN_PROGRESS",
       "dependsOn": [
         "T16",
         "T18",
@@ -1271,7 +1291,18 @@
         "Run security/privacy/accessibility negatives and dependency/license review.",
         "Ensure release contains no fixture adapters, secrets or unfinished mandatory states."
       ],
-      "childTasks": [],
+      "childTasks": [
+        {
+          "id": "T20.1",
+          "title": "Scene-scoped opaque app-switcher privacy coverage",
+          "status": "IN_PROGRESS",
+          "productionImplemented": false,
+          "redEvidence": [],
+          "greenEvidence": [],
+          "deviceEvidence": [],
+          "preparedEvidence": "docs/evidence/MVP3_PRODUCT_GATES_2026_10_24.md"
+        }
+      ],
       "redEvidence": [],
       "greenEvidence": [],
       "deviceEvidence": [],
@@ -1458,9 +1489,21 @@
         "sourceCommit": "36f9c7f23a5e3967cb3cae26d28caec5c8c74de5",
         "runId": 40131735329,
         "conclusion": "FAILED",
-        "portable": { "executed": 281, "passed": 280, "failed": 1 },
-        "nativeCoreML": { "executed": 8, "passed": 6, "failed": 2 },
-        "nativeApp": { "executed": 10, "passed": 10, "failed": 0 },
+        "portable": {
+          "executed": 281,
+          "passed": 280,
+          "failed": 1
+        },
+        "nativeCoreML": {
+          "executed": 8,
+          "passed": 6,
+          "failed": 2
+        },
+        "nativeApp": {
+          "executed": 10,
+          "passed": 10,
+          "failed": 0
+        },
         "deviceBuildAndPackage": "PASS",
         "scope": "MVP2 candidate including native Parakeet; overall FAILED pending remaining repairs/exact-source verification. Packaging success is not delivery or a device-gate pass."
       },
@@ -1469,7 +1512,7 @@
     {
       "id": "T25",
       "title": "Owner-requested native FastConformer-TDT v2 speech engine",
-      "status": "IN_PROGRESS",
+      "status": "CODE_COMPLETE_PENDING_DEVICE",
       "acceptance": [
         "Exact NVIDIA Parakeet TDT0.6Bv2 Core ML conversion with immutable artifacts/checksums/license",
         "Direct native Core ML and Swift TDT path; no existing engine wrapper; only equipped speech runtime loaded",
@@ -1478,12 +1521,25 @@
       ],
       "nextAction": "Final code candidate5ac056f is committed/pushed, worktreeclean atverification. NEXT legitimategoalcontinuation: retaincompleted6-run invocationrecord; recheckauth/publicfree costguard; startfreshboundedinvocation. Readactualcurrentlocal/remoteHEAD (checkpoint-onlycommitmayfollow5ac). Create owner-only unpublished draft mvp-preview-<currentSHA12> with target=currentFULLSHA. Dispatch mvp2-parakeet summaryResume=false packageMVP2=true for EXACTcurrentSHA; require ALL281portable/10nativeapp/8nativeCoreML/10speechrecovery plusarm64app+extensionpackage GREEN. Focus remaining7previousfailures: corrected7libraryfixtures; installednativeLive; actualEquip; capturednativeReplay. Onlyboundedfixgenuinefailures. IndependentlyverifyIPA/checksum/buildmanifest/ZIPsource/version3/schema5, deliverMVP2WITHnativeParakeet+iLoaderguide, continueMVP3. PhysicalphonegatesNOT_RUN, overallnotVERIFIED_COMPLETE.",
       "mustShipIn": "MVP2",
-      "nativeDecoderActualCasesPassed": 5
+      "nativeDecoderActualCasesPassed": 5,
+      "productionImplemented": true,
+      "greenEvidence": [
+        "docs/evidence/MVP2_RELIABILITY_2026_10_24.md"
+      ],
+      "latestVerification": {
+        "sourceCommit": "35c7cefb946af188f5cc09858dca4ab180d72eab",
+        "runId": 40132528745,
+        "executed": 8,
+        "passed": 8,
+        "failed": 0,
+        "skipped": 0,
+        "scope": "Dedicated native CoreML+SwiftTDT actual decoder, installedlive/Equip/replay; physicalgates pending"
+      }
     }
   ],
   "executionPausedByOwner": false,
   "resumeAction": "Final code candidate5ac056f is committed/pushed, worktreeclean atverification. NEXT legitimategoalcontinuation: retaincompleted6-run invocationrecord; recheckauth/publicfree costguard; startfreshboundedinvocation. Readactualcurrentlocal/remoteHEAD (checkpoint-onlycommitmayfollow5ac). Create owner-only unpublished draft mvp-preview-<currentSHA12> with target=currentFULLSHA. Dispatch mvp2-parakeet summaryResume=false packageMVP2=true for EXACTcurrentSHA; require ALL281portable/10nativeapp/8nativeCoreML/10speechrecovery plusarm64app+extensionpackage GREEN. Focus remaining7previousfailures: corrected7libraryfixtures; installednativeLive; actualEquip; capturednativeReplay. Onlyboundedfixgenuinefailures. IndependentlyverifyIPA/checksum/buildmanifest/ZIPsource/version3/schema5, deliverMVP2WITHnativeParakeet+iLoaderguide, continueMVP3. PhysicalphonegatesNOT_RUN, overallnotVERIFIED_COMPLETE.",
-  "lastUpdated": "2026-10-24T20:50:29.603Z",
+  "lastUpdated": "2026-10-24T21:12:18.101Z",
   "latestVerification": {
     "sourceCommit": "048481c8c51bd097ffac6b535cd4101470acf3fd",
     "runId": 40130455240,
@@ -1522,25 +1578,12 @@
     "mvpDeliveryBlockers": []
   },
   "latestFeatureArtifact": {
-    "status": "IN_PROGRESS",
-    "sourceCommit": "d6a329354ffc095d4dffb9ca4d939c67bf10adc8",
-    "runId": 40101392948,
-    "runUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40101392948",
-    "artifact": "LocalMinutes-1.0-d6a329354ffc095d4dffb9ca4d939c67bf10adc8-unsigned.ipa",
-    "sha256": "4b89ee364976f661ab206ef914f73746a2c976f5ab2a1b72acb46037d910f19d",
-    "sizeBytes": 12931428,
-    "signing": "unsigned",
-    "retained": true,
-    "published": false,
-    "draftReleaseId": 422770453,
-    "draftReleaseTag": "mvp-preview-d6a329354ffc",
-    "localDirectory": "build/delivery/Summary-QA-40101392948",
-    "localIPA": "build/delivery/Summary-QA-40101392948/LocalMinutes-1.0-d6a329354ffc095d4dffb9ca4d939c67bf10adc8-unsigned.ipa",
-    "checksumMatched": true,
-    "modelQuality": "FAILED",
-    "deviceValidation": "NOT_RUN",
-    "schemaVersion": 4,
-    "downgradeToOriginalSchema3MVP": "Not supported after migration; original rows preserved, older binary refuses future schema."
+    "stage": "MVP2",
+    "sourceCommit": "35c7cefb946af188f5cc09858dca4ab180d72eab",
+    "runId": 40132528745,
+    "sha256": "21b6feaf59824a2eb6ab92de68fdb07fc9eb36449ba58337b41771ad986ac7f6",
+    "path": "build/delivery/MVP2-Parakeet-40132528745",
+    "guide": "docs/MVP2_GUIDE.md"
   },
   "installationCheckpoint": {
     "observedAt": "2026-10-24T15:31:15.814076Z",
@@ -1628,7 +1671,7 @@
     "evidence": "docs/evidence/MVP1_MODEL_DELIVERY_2026_10_24.md"
   },
   "nextMVP2TestFirst": {
-    "state": "IN_PROGRESS",
+    "state": "CODE_COMPLETE_PENDING_DEVICE",
     "initialRED": {
       "source": "34ab9e9dd36a73ffa6fcf6e5e717d2b72f4353f1",
       "runId": 40119556084,
@@ -1649,13 +1692,16 @@
     },
     "integrationCasesPrepared": 34,
     "ownerMeetingDeletionRequested": true,
-    "nextAction": "Final code candidate5ac056f is committed/pushed, worktreeclean atverification. NEXT legitimategoalcontinuation: retaincompleted6-run invocationrecord; recheckauth/publicfree costguard; startfreshboundedinvocation. Readactualcurrentlocal/remoteHEAD (checkpoint-onlycommitmayfollow5ac). Create owner-only unpublished draft mvp-preview-<currentSHA12> with target=currentFULLSHA. Dispatch mvp2-parakeet summaryResume=false packageMVP2=true for EXACTcurrentSHA; require ALL281portable/10nativeapp/8nativeCoreML/10speechrecovery plusarm64app+extensionpackage GREEN. Focus remaining7previousfailures: corrected7libraryfixtures; installednativeLive; actualEquip; capturednativeReplay. Onlyboundedfixgenuinefailures. IndependentlyverifyIPA/checksum/buildmanifest/ZIPsource/version3/schema5, deliverMVP2WITHnativeParakeet+iLoaderguide, continueMVP3. PhysicalphonegatesNOT_RUN, overallnotVERIFIED_COMPLETE.",
+    "nextAction": "MVP2 delivered. Continue MVP3 tests-first privacy/latestshortcut/progress, dependency inventory and consolidated release validation. Physical gates remain owner-owned NOT_RUN.",
     "latestVerificationRun": {
-      "sourceCommit": "048481c8c51bd097ffac6b535cd4101470acf3fd",
-      "runId": 40130455240,
-      "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40130455240",
+      "sourceCommit": "35c7cefb946af188f5cc09858dca4ab180d72eab",
+      "runId": 40132528745,
       "status": "completed",
-      "conclusion": "failure"
+      "conclusion": "success",
+      "executed": 309,
+      "passed": 309,
+      "failed": 0,
+      "skipped": 0
     },
     "finalRepairCodeCommit": "5ac056f2e365233db655eae9e534e184b484d97c"
   }

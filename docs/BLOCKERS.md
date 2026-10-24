@@ -1,5 +1,9 @@
 # Blockers
 
+## Current checkpoint — MVP2 delivered
+
+Source35c7cefb946af188f5cc09858dca4ab180d72eab/run40132528745 passed all309 focused checks and unsigned iPhone app/Live Activity packaging. C7 installed-native and archive failures are resolved; prior records below are historical. Verified IPA and installation/model guide are delivered locally under build/delivery/MVP2-Parakeet-40132528745. Native Parakeet is included. No external coding blocker exists. MVP3 privacy/latest-shortcut/progress, dependency inventory, representative quality and final release validation remain. Physical signing/extension/Lock Screen/Action Button/two125min/renewal remain owner-run NOT_RUN; no completion is inferred from hosted tests.
+
 No confirmed external blocker prevents current code/test development. T00 authentication
 and repository bootstrap succeeded. A sandbox-only network error was resolved
 by an authorized direct check; account billing read access was available in the

@@ -1,13 +1,15 @@
 # LocalMinutes MVP2 guide
 
-**Delivery: NOTDELIVERED. Verification pending.** This guide describes the candidate; it is not a download or a passing-device report. C6 evaluated source `048481c` in [run40130455240](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40130455240). Its native decoder passed five real-model cases; later live/equip/replay and backup-fixture fixes still need exact-source verification. The final delivery handoff must supply the following:
+**MVP2 delivered for sideloading, including native Parakeet.** Exact source below passed [run40132528745](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40132528745): 281 portable, 8 actual native Parakeet, 10 actual speech-recovery and 10 app integration checks passed, with zero failures/skips. Release iPhone app plus Live Activity packaging passed. Windows independently verified the IPA checksum, ZIP CRC, source stamps, arm64 iPhoneOS executables, identifiers and absence of model weights/private fixtures. Physical-device gates remain **NOT_RUN**; this is an MVP delivery, not final baseline acceptance.
 
 | Delivery item | Current value |
 |---|---|
-| Downloadable unsigned IPA | **PENDING — NOTDELIVERED** |
-| Exact packaged source, full commit SHA | **PENDING — confirm against build manifest** |
-| IPA SHA-256 | **PENDING — no delivery checksum claimed** |
-| Build manifest and exact verification results | **PENDING** |
+| Unsigned IPA | `build/delivery/MVP2-Parakeet-40132528745/LocalMinutes-1.0-35c7cefb946af188f5cc09858dca4ab180d72eab-unsigned.ipa` |
+| Exact packaged source | `35c7cefb946af188f5cc09858dca4ab180d72eab` |
+| IPA SHA-256 | `21b6feaf59824a2eb6ab92de68fdb07fc9eb36449ba58337b41771ad986ac7f6` |
+| Version / build / size | 1.0 / 3 / 15,779,005 bytes |
+| Build manifest | `build-manifest.json` beside the IPA; Xcode26.2, SDK26.2, runner image20260907.0337.1 |
+| Retained remote copy | Owner-only unpublished draft `mvp-preview-35c7cefb946a`; no public release published |
 
 Use the [verification record](VERIFICATION.md), [MVP2 evidence](evidence/MVP2_RELIABILITY_2026_10_24.md) and final handoff for results. An earlier IPA is a separate build.
 

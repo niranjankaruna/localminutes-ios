@@ -3,17 +3,17 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T21:02:58.767Z",
+  "lastUpdated": "2026-10-24T21:11:43.140Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "Exact-source MVP2 verification and IPA packaging including native Parakeet",
+  "currentTask": "MVP3 privacy, latest-meeting shortcut, truthful recording progress and dependency handover",
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "Commit/push C7 directory-path repairs, create exact-source unpublished owner draft and dispatch focused mvp2-parakeet package with summaryResume=false; verify real installed live/replay plus backup roundtrip without weakening oracles. Deliver only after required GREEN and local IPA checksum/source verification, then continue MVP3.",
+  "nextAction": "Deliver verified MVP2 IPA source35c7cefb; commit/push new MVP3 test-first/no-op boundaries and focused harness, prove actual RED before implementing privacy cover/latestmeeting routing/progress. Continue next MVP without ownerpause.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "5ac056f2e365233db655eae9e534e184b484d97c",
+  "remoteBranchHead": "35c7cefb946af188f5cc09858dca4ab180d72eab",
   "localScriptGreen": {
     "sourceCommit": "0181b311abedb3c32745b015be64d6e7c777032b",
     "platform": "Windows11/Node24.21.0",
@@ -24,8 +24,8 @@
     "nativePackagingVerified": false,
     "scope": "Portable script regression only, no Swift/iOS/native/inference/device claim."
   },
-  "lastVerifiedNativeBuildCommit": "4aec851bb1c83ec1a9acb8f48074db79dcdd8a23",
-  "lastVerifiedNativeBuildCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40117673355",
+  "lastVerifiedNativeBuildCommit": "35c7cefb946af188f5cc09858dca4ab180d72eab",
+  "lastVerifiedNativeBuildCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40132528745",
   "blockedItems": [
     "ARTIFACT_STORAGE_HEADROOM_UNVERIFIED"
   ],
@@ -35,17 +35,18 @@
     "maxNewRuns": 6,
     "plannedNewRuns": 0,
     "newRunIds": [
-      40131735329
+      40131735329,
+      40132528745
     ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-24T20:52:13.101Z",
     "costGuardBasis": "Authenticated owner niranjankaruna/admin, intended PUBLIC repository and matching HTTPS remote HEAD36f9c7f; prior invocation terminal6/6, previous turn classified progress. Official standard free macos-15 AppleSilicon/macos-15-intel only; no cache/artifactstorage/billing/larger-runner spend."
   },
   "latestCIRun": {
-    "runId": 40131735329,
-    "sourceCommit": "36f9c7f23a5e3967cb3cae26d28caec5c8c74de5",
+    "runId": 40132528745,
+    "sourceCommit": "35c7cefb946af188f5cc09858dca4ab180d72eab",
     "status": "completed",
-    "conclusion": "failure"
+    "conclusion": "success"
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -1673,8 +1674,8 @@
     "meetingDeletion": "Owner requests complete deletion; real SQLite/CAF/cache tests3 and actual app service test1 prepared before behavior",
     "endurance": "Bounded recorder5 and actual OS/service test1 prepared before behavior; physical125min remains owner-run"
   },
-  "lastVerifiedFeatureCommit": "4aec851bb1c83ec1a9acb8f48074db79dcdd8a23",
-  "lastVerifiedFeatureScope": "MVP1 model-choice and its focused checks; whole baseline not complete",
+  "lastVerifiedFeatureCommit": "35c7cefb946af188f5cc09858dca4ab180d72eab",
+  "lastVerifiedFeatureScope": "MVP2 focused309 checks PASS + arm64 app/extension package; baseline/representativequality/device gates pending",
   "mvp1Artifact": {
     "status": "CODE_COMPLETE_PENDING_DEVICE",
     "sourceCommit": "4aec851bb1c83ec1a9acb8f48074db79dcdd8a23",
@@ -1888,7 +1889,7 @@
     "finalRepairGREEN": false
   },
   "parakeetNative": {
-    "state": "IN_PROGRESS",
+    "state": "CODE_COMPLETE_PENDING_DEVICE",
     "ownerRequest": "Dedicated iPhone-native FastConformer-TDT for nvidia/parakeet-tdt-0.6b-v2; no routing through existing engines",
     "architecture": "Core ML + Swift TDT decoding; exact v2 conversion, only equipped speech runtime loaded",
     "productionImplemented": true,
@@ -1937,11 +1938,17 @@
       "selectionAssertions": 7,
       "replayAssertions": 9
     },
-    "pendingGREEN": [
-      "installedLiveModelMetadata",
-      "realModelSelectionAndReopen",
-      "capturedNativeCAFReplay"
-    ]
+    "pendingGREEN": [],
+    "actualInstalledIntegration": {
+      "sourceCommit": "35c7cefb946af188f5cc09858dca4ab180d72eab",
+      "runId": 40132528745,
+      "executed": 8,
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "durationSeconds": 61.043,
+      "physicalDevice": false
+    }
   },
   "localPackageAudit": {
     "passed": 10,
@@ -1960,46 +1967,67 @@
     "manual125MinuteGateBlocksIPADelivery": false
   },
   "mvp2PackageCandidate": {
-    "sourceCommit": "36f9c7f23a5e3967cb3cae26d28caec5c8c74de5",
-    "runId": 40131735329,
-    "tag": "mvp-preview-36f9c7f23a5e",
-    "releaseNodeID": "RE_kwDOVU3Toc4ZNhi1",
+    "sourceCommit": "35c7cefb946af188f5cc09858dca4ab180d72eab",
+    "runId": 40132528745,
+    "tag": "mvp-preview-35c7cefb946a",
     "draft": true,
     "published": false,
-    "status": "IN_PROGRESS",
-    "checksumVerified": false,
-    "delivered": false,
-    "deliveryBlockedBy": "Candidate source has portable1/native2 failing cases; packaging alone is not MVP2 acceptance"
+    "status": "CODE_COMPLETE_PENDING_DEVICE",
+    "checksumVerified": true,
+    "delivered": true,
+    "sha256": "21b6feaf59824a2eb6ab92de68fdb07fc9eb36449ba58337b41771ad986ac7f6",
+    "sizeBytes": 15779005,
+    "localDirectory": "build/delivery/MVP2-Parakeet-40132528745"
   },
   "mvp2LatestObserved": {
-    "sourceCommit": "36f9c7f23a5e3967cb3cae26d28caec5c8c74de5",
-    "runId": 40131735329,
+    "sourceCommit": "35c7cefb946af188f5cc09858dca4ab180d72eab",
+    "runId": 40132528745,
     "portable": {
       "executed": 281,
-      "passed": 280,
-      "failed": 1,
-      "skipped": 0
+      "passed": 281,
+      "failed": 0,
+      "skipped": 0,
+      "durationSeconds": 22.102
     },
     "nativeParakeet": {
+      "sourceCommit": "35c7cefb946af188f5cc09858dca4ab180d72eab",
+      "runId": 40132528745,
       "executed": 8,
-      "passed": 6,
-      "failed": 2,
-      "skipped": 0
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "durationSeconds": 61.043,
+      "physicalDevice": false
     },
     "nativeApp": {
       "executed": 10,
       "passed": 10,
       "failed": 0,
-      "skipped": 0
+      "skipped": 0,
+      "durationSeconds": 1.181
     },
-    "package": "PASS",
-    "overall": "FAIL",
     "speechRecovery": {
       "executed": 10,
       "passed": 10,
       "failed": 0,
       "skipped": 0,
-      "durationSeconds": 73.593
-    }
+      "durationSeconds": 35.164
+    },
+    "package": "PASS",
+    "overall": "PASS",
+    "scope": "MVP2focused; not fullbaseline or physical acceptance"
+  },
+  "mvp2Artifact": {
+    "sourceCommit": "35c7cefb946af188f5cc09858dca4ab180d72eab",
+    "runId": 40132528745,
+    "tag": "mvp-preview-35c7cefb946a",
+    "draft": true,
+    "published": false,
+    "status": "CODE_COMPLETE_PENDING_DEVICE",
+    "checksumVerified": true,
+    "delivered": true,
+    "sha256": "21b6feaf59824a2eb6ab92de68fdb07fc9eb36449ba58337b41771ad986ac7f6",
+    "sizeBytes": 15779005,
+    "localDirectory": "build/delivery/MVP2-Parakeet-40132528745"
   }
 }

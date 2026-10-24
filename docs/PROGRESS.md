@@ -856,3 +856,7 @@ Final repaircode5ac056f2e365233db655eae9e534e184b484d97c is pushed andlocal/HTTP
 ## C7 exact-source results and continued repair
 
 36f9c7f/run40131735329: arm64 iPhone app/Live Activity package PASS; portable280/281PASS; native app10PASS; actual speech recovery10PASS73.593s; native Parakeet6/8PASS (direct5 plus actual Equip/reopen). Three behavioral cases remain: library archive export, installed native live preparation and captured native replay. Overall FAILURE; unpublished candidate is not delivered as MVP2. Separate bounded agents diagnose these existing failures; no full-suite or repeated Phi inference run. Current invocation uses1/6 runs. Next: minimal directory-path repairs preserving validation, focused exact-source GREEN/package, checksum delivery including Parakeet, then MVP3. Physical gates remain NOT_RUN.
+
+## MVP2 delivered at21:12UTC
+
+Source35c7cefb/run40132528745 terminalSUCCESS:309focusedPASS/0fail/skip, including8actualnativeParakeet/10actualspeechrecovery/10nativeapp/281portable. Real installed live/replay and full backup roundtrip nowPASS. arm64app+LiveActivityIPA15,779,005B locallyverifiedSHA25621b6feaf59824a2eb6ab92de68fdb07fc9eb36449ba58337b41771ad986ac7f6, source/plist/devicebinary/CRC verified. Deliveredbuild/delivery/MVP2-Parakeet-40132528745 withdocs/MVP2_GUIDE.md; owner-onlydraft retained. T25CODE_COMPLETE_PENDING_DEVICE; overallIN_PROGRESS, physicalgatesNOT_RUN. ContinuingMVP3test-first privacy/latestshortcut/measuredprogress andlicenseinventory;2/6CIrunsused.
