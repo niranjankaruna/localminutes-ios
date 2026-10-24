@@ -8,7 +8,7 @@ on:
         required: true
         type: choice
         default: mvp
-        options: [mvp, features, package, validation, candidate, candidate-summary, candidate-summary-parts, model-catalog, model-integration, model-repair, model-delivery]
+        options: [mvp, features, package, validation, candidate, candidate-summary, candidate-summary-parts, model-catalog, model-integration, model-repair, model-delivery, mvp2-red, mvp2]
       sourceCommit:
         description: Reviewed app source for the MVP package
         required: true
@@ -22,6 +22,85 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  mvp2-portable:
+    if: ${{ inputs.mode == 'mvp2-red' || inputs.mode == 'mvp2' }}
+    runs-on: macos-15-intel
+    timeout-minutes: 12
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Verify free-runner guard and prepare pinned framework linkage only
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          c = json.loads(Path('project-config.json').read_text())
+          assert c['ci']['costGuardVerified'] is True
+          assert c['budget']['maximumAdditionalSpendEUR'] == 0
+          assert c['budget']['allowLargerRunners'] is False
+          assert c['github']['visibility'] == 'public'
+          PY
+          python3 docs/drafts/T17/prepare_native_summary.py --framework-only
+      - name: Run the MVP2 contracts or their focused module regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .build
+          if [ "${{ inputs.mode }}" = mvp2-red ]; then
+            filter='CoreTests[.]MeetingArchiveTests|ModelTests[.]DownloadResumeTests|PersistenceTests[.]SQLiteSnapshotTests|SummaryTests[.]SummaryResumePipelineTests'
+          else
+            filter='CoreTests[.]|ModelTests[.]|PersistenceTests[.]|SummaryTests[.](SummaryResumePipelineTests|SummaryPipelineTests|GroundedSummaryTests|NestedStructuredSchemaTests|StructuredJSONSchemaTests)'
+          fi
+          swift test --filter "$filter" 2>&1 | tee .build/mvp2-portable.log
+      - name: Require genuine discovered MVP2 assertions
+        if: always()
+        shell: bash
+        run: |
+          node scripts/verify-test-log.mjs .build/mvp2-portable.log \
+            testCancelledPipelinePersistsValidatedPrefixAndReopenedPipelineGeneratesOnlyMissingMaps \
+            testNativeSnapshotIncludesCommittedWALSourcesNotesGeneratedEditsAndFTSAsStandaloneDatabase
+
+  mvp2-recovery:
+    if: ${{ inputs.mode == 'mvp2-red' || inputs.mode == 'mvp2' }}
+    runs-on: macos-15-intel
+    timeout-minutes: 12
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Prepare only the reviewed actual speech fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 docs/drafts/T17/prepare_native_summary.py --framework-only
+          python3 docs/drafts/T10/prepare_whisper_fixture.py
+          python3 docs/drafts/T10/prepare_native_fixture.py
+          printf 'LOCALMINUTES_ASR_MODEL_DIRECTORY=%s/.agent-local/asr-evaluation/native-fixtures/model\n' "$PWD" >> "$GITHUB_ENV"
+          printf 'LOCALMINUTES_ASR_FIXTURE_PATH=%s/.agent-local/asr-evaluation/native-fixtures/6930-75918-0000.flac\n' "$PWD" >> "$GITHUB_ENV"
+      - name: Exercise captured-model recovery and journal integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .build
+          if [ "${{ inputs.mode }}" = mvp2-red ]; then
+            filter='ASRTests[.](TranscriptionReplayCheckpointIntegrityTests|SelectedModelRecoveryTests)'
+          else
+            filter='ASRTests[.](TranscriptionReplayCheckpointIntegrityTests|SelectedModelRecoveryTests|RecoveredTranscriptionReplayTests)'
+          fi
+          swift test --filter "$filter" 2>&1 | tee .build/mvp2-recovery.log
+      - name: Require actual model-backed recovery assertions
+        if: always()
+        run: node scripts/verify-test-log.mjs .build/mvp2-recovery.log testCursorOnlyJumpToTimelineEndCannotSkipRemainingActualSpeechAfterReopen testActualWhisperPreparationPersistsCoherentImmutableMeetingPinBeforeFirstAudioFrame
+
   focused-portable:
     if: ${{ inputs.mode == 'candidate-summary-parts' || inputs.mode == 'model-catalog' || inputs.mode == 'model-integration' || inputs.mode == 'model-repair' || inputs.mode == 'model-delivery' }}
     runs-on: macos-15-intel

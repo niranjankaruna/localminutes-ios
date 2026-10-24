@@ -1383,7 +1383,7 @@
       "milestone": "M6",
       "title": "Owner-requested Hugging Face catalogue, resources and independent model Equip",
       "kind": "feature",
-      "status": "IN_PROGRESS",
+      "status": "CODE_COMPLETE_PENDING_DEVICE",
       "dependsOn": [
         "T09",
         "T10",
@@ -1435,16 +1435,17 @@
         "docs/evidence/MODEL_CATALOG_AND_SUMMARY_2026_10_24.md"
       ],
       "greenEvidence": [
-        "docs/evidence/MODEL_CATALOG_AND_SUMMARY_2026_10_24.md"
+        "docs/evidence/MODEL_CATALOG_AND_SUMMARY_2026_10_24.md",
+        "docs/evidence/MVP1_MODEL_DELIVERY_2026_10_24.md"
       ],
       "deviceEvidence": [],
       "blockers": [],
-      "nextAction": "Finish RED-backed repairs, review and batch focused GREEN with an exact-source iPhone package; deliver MVP1 immediately when verified, then continue MVP2. Do not repeat passed Phi generations."
+      "nextAction": "Owner may install MVP1 with iLoader; independent MVP2 continues. Device model-choice behavior remains pending."
     }
   ],
   "executionPausedByOwner": false,
-  "resumeAction": "Finish RED-backed repairs, review and batch focused GREEN with an exact-source iPhone package; deliver MVP1 immediately when verified, then continue MVP2. Do not repeat passed Phi generations.",
-  "lastUpdated": "2026-10-24T17:34:34.094Z",
+  "resumeAction": "Next bounded invocation: read current required checkpoint, verify Git/PUBLIC zero-spend guard and terminal GREEN run40117673355 at4aec851; run targeted MVP2 portable RED (summaryresume4, HTTPresume11, archive10, SQLite snapshot5) plus actual-model recovery RED (integrity2, selectedmodel5). Implement only after actual assertions; keep modelchoice IPA4aec851 separate from test-first branch HEAD. No full-suite-per-edit run.",
+  "lastUpdated": "2026-10-24T18:05:12.297Z",
   "latestVerification": {
     "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
     "runId": 40079629180,
@@ -1539,7 +1540,9 @@
     {
       "id": "MVP1",
       "scope": "HF model browser/resources/install/remove/independent Equip, selected Whisper and Phi integration, updated IPA",
-      "status": "IN_PROGRESS"
+      "status": "CODE_COMPLETE_PENDING_DEVICE",
+      "delivered": true,
+      "evidence": "docs/evidence/MVP1_MODEL_DELIVERY_2026_10_24.md"
     },
     {
       "id": "MVP2",
@@ -1562,5 +1565,38 @@
     "pauseOnlyAtOwnerRequest": true,
     "repeatedFullSuitePerChange": false,
     "priorCapsRevoked": true
+  },
+  "modelChoiceArtifact": {
+    "status": "CODE_COMPLETE_PENDING_DEVICE",
+    "sourceCommit": "4aec851bb1c83ec1a9acb8f48074db79dcdd8a23",
+    "runId": 40117673355,
+    "runUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40117673355",
+    "artifact": "LocalMinutes-1.0-4aec851bb1c83ec1a9acb8f48074db79dcdd8a23-unsigned.ipa",
+    "sha256": "fb9b8fbb25239896a4881c8b5e771fe1b668610cbc864f629623b595917282f4",
+    "sizeBytes": 13927836,
+    "appVersion": "1.0",
+    "buildNumber": "2",
+    "schemaVersion": 4,
+    "signing": "unsigned",
+    "retained": true,
+    "published": false,
+    "draftReleaseId": 422886787,
+    "draftReleaseTag": "mvp-preview-4aec851bb1c8",
+    "localDirectory": "build/delivery/MVP1-Model-Choices-40117673355",
+    "checksumMatched": true,
+    "deliveredAt": "2026-10-24T18:05:12.297Z",
+    "deviceValidation": "NOT_RUN",
+    "evidence": "docs/evidence/MVP1_MODEL_DELIVERY_2026_10_24.md"
+  },
+  "nextMVP2TestFirst": {
+    "summaryResume": 4,
+    "replayIntegrity": 2,
+    "selectedModelRecovery": 5,
+    "resumableHTTP": 11,
+    "archive": 10,
+    "sqliteSnapshot": 5,
+    "actualRED": false,
+    "productionBehavior": "NOT_IMPLEMENTED_STUBS_ONLY",
+    "evidence": "docs/evidence/MVP1_MODEL_DELIVERY_2026_10_24.md"
   }
 }

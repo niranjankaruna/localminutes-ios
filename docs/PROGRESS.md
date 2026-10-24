@@ -813,3 +813,17 @@ Stopped within owner30min window14:43:11–15:13:11UTC. Source1a999b6/run4010450
 MVP1: real selected Whisper live transcription and selected Phi summary/Q&A now pass on hosted macOS at d0fe973/run40114656922. HF30 and installation/equip/inventory12 cases pass. Two actual resource-reader cases provide RED; OS-backed implementation awaits GREEN. Native metrics xcresult3 executed/2pass/1fail exposes engine-version codec mismatch; quiet-log discovery is corrected next. Windows package-policy3pass after genuine test-first RED; one wider symlink test is host-blocked and stays enabled on macOS. No new IPA delivered yet. T07 iLoader main-app installation is owner-reported; extension/locked/ActionButton/endurance/renewal remain NOT_RUN.
 
 Owner requests delivery after each MVP and immediate continuation, no pause/time cap, no full-suite run after every edit. Next: focused new RED contracts, repairs, checksummed MVP1 package, then recovery/download/backup MVP2. Evidence: evidence/MODEL_CATALOG_AND_SUMMARY_2026_10_24.md.
+
+
+## MVP1 final package dispatched
+
+Implementation4aec851bb1c83ec1a9acb8f48074db79dcdd8a23 is pushed and HTTPSremoteverified. Sixth bounded run40117673355 uses model-delivery mode: focused relevant regressions, changed realASRmetrics/replay primitives, native5cases and actual iPhoneapp/extension compilation/package inparallel. Already-passing actualPhi inference is excluded. Owner-only unpublished draft422886787 targets exactsource; noIPA success/delivery claimed before result/checksum. Native resource2PASS observed at priorc936332, metricscodec actual1FAIL remains beforefinalrepairverification.
+
+MVP2 preparedtests remain separatependingRED: pipelineprefixresume4, replayintegrity2 (knowncursor skip), closedSQLite/CAFarchive10; resumableHTTP/selected-modelrecovery/FilesUI stillunfinished. Appreplay and summarycheckpointresume are not wired or claimed complete. Six-run invocation guard retained; no seventhdispatch. Next: inspect4aec results/deliververifiedMVP1 and proceed independentMVP2 work, keeping exactsourceevidence.
+
+
+## MVP1 delivered — 24 October 2026
+
+Exact4aec851/run40117673355 terminalSUCCESS:80focusedSwift+46Node+6actualASR+5native =137PASS/0fail/skip; actualiPhonearm64app+extension packagePASS. Unsigned1.0(2)IPA13,927,836bytes SHA256fb9b8fbb25239896a4881c8b5e771fe1b668610cbc864f629623b595917282f4 is downloaded in build/delivery/MVP1-Model-Choices-40117673355. LocalIPA/checksum/manifest/GitHubdigest match; embeddedWhisper/llama/extension/license/privacyresources confirmed. Owner notified with IPA/setup links, unpublisheddraft422886787 retained. T24/MVP1 CODE_COMPLETE_PENDING_DEVICE; applicationIN_PROGRESS. No physical gate passed.
+
+ContinuingMVP2:37reviewedtest-first cases prepared (summaryresume4, replayintegrity2, selectedspeechrecovery5, HTTPresume11, archive10, SQLite snapshot5); noactualRED/newbehaviorclaim. Sixof6currentruns used, no7thdispatch. Exactnextaction savedinSTATE: nextboundedinvocation runs onlytheseRED jobs, thenimplements. Separatepipeline4/resumereplay2teststubs alreadyauditable; stableMVP1artifact remains4aec851 independentlyoflaterbranchHEAD. Fullsuite reservedforreleasecheckpoint.

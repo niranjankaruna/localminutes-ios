@@ -8,17 +8,39 @@ import LocalMinutesCore
 public enum ModelTransportError: Error, Equatable, Sendable {
     case notImplemented, insecureURL, unapprovedHost, invalidDestination
     case httpStatus(Int)
-    case sizeMismatch, networkFailure
+    case sizeMismatch, networkFailure, invalidResumeState, invalidRangeResponse
+}
+
+public struct ModelDownloadCheckpoint: Codable, Equatable, Sendable {
+    public let schemaVersion: Int
+    public let downloadURL: URL
+    public let revision: String
+    public let fileName: String
+    public let expectedByteCount: Int64
+    public let sha256: String
+    public let strongETag: String
+    public let receivedByteCount: Int64
+    public let partialSHA256: String
+    public init(schemaVersion: Int = 1, downloadURL: URL, revision: String, fileName: String,
+                expectedByteCount: Int64, sha256: String, strongETag: String,
+                receivedByteCount: Int64, partialSHA256: String) {
+        self.schemaVersion = schemaVersion; self.downloadURL = downloadURL
+        self.revision = revision; self.fileName = fileName; self.expectedByteCount = expectedByteCount
+        self.sha256 = sha256; self.strongETag = strongETag
+        self.receivedByteCount = receivedByteCount; self.partialSHA256 = partialSHA256
+    }
 }
 
 public final class HTTPSModelTransport: @unchecked Sendable {
     private let stagingRootURL: URL
     private let allowedHosts: Set<String>
     private let session: URLSession
+    private let resumeRootURL: URL?
 
     public init(stagingRootURL: URL, allowedHosts: Set<String>,
-                configuration: URLSessionConfiguration = .ephemeral) {
+                configuration: URLSessionConfiguration = .ephemeral, resumeRootURL: URL? = nil) {
         self.stagingRootURL = stagingRootURL.standardizedFileURL
+        self.resumeRootURL = resumeRootURL?.standardizedFileURL
         self.allowedHosts = Set(allowedHosts.map { $0.lowercased() })
         let policy = ModelDownloadRedirectPolicy(allowedHosts: allowedHosts)
         let options = configuration.copy() as! URLSessionConfiguration
@@ -28,6 +50,18 @@ public final class HTTPSModelTransport: @unchecked Sendable {
     }
 
     deinit { session.invalidateAndCancel() }
+
+    /// TEST-FIRST opt-in seam: deliberately delegates to the original fresh
+    /// transfer until compatible hosted assertions prove missing resume behavior.
+    /// Future checkpointDirectory is one owned UUID child of resumeRootURL,
+    /// separate from the installer's disposable .staging directory. Layout is
+    /// partial.bin + checkpoint.json. Checkpoints bind all immutable metadata
+    /// and the retained prefix digest; only a strong ETag authorizes If-Range.
+    /// This method can publish only the operation staging file, never current.json.
+    public func downloadResumable(_ artifact: ModelArtifact, to destination: URL,
+                                  checkpointDirectory: URL) async throws {
+        try await download(artifact, to: destination)
+    }
 
     public func download(_ artifact: ModelArtifact, to destination: URL) async throws {
         try Task.checkCancellation()

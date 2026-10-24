@@ -362,3 +362,6 @@ App screens/shared real-model wiring, durable edits/answers/citations/cancel/exp
 
 
 | MVP1 selected runtime integration | Real installed selected Whisper/Phi | Actual RED run40111205922 | GREEN run40114656922: Whisper live1PASS16.771s, Phi defaultservice1PASS571.357s | d0fe973b0045d5fb11c3dc0a33bd62ab5c39a991 | Hosted macOS CPU, no skips | Partial GREEN | Native metrics2/3 pass; resource reader RED; package/phone gates pending |
+
+
+| T24/MVP1 model-choice delivery | HF/cards/resources/install/remove/independent Equip + real selected models | Preserved multi-stage RED in MODEL_CATALOG_AND_SUMMARY evidence | [run40117673355](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40117673355):137 focusedPASS/0fail/skip + actualdevicepackage | 4aec851bb1c83ec1a9acb8f48074db79dcdd8a23 | Hosted macOS/iOS26.2Simulator; Windows checksum | CODE_COMPLETE_PENDING_DEVICE | UnsignedIPA delivered; fullbaseline/MVP2/MVP3/phone evidence pending; details evidence/MVP1_MODEL_DELIVERY_2026_10_24.md |

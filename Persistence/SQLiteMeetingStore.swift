@@ -243,6 +243,12 @@ public actor SQLiteMeetingStore {
 
     public func close() throws { try connection.close() }
 
+    /// TEST-FIRST seam: native consistent backup waits for hosted behavioral
+    /// RED. No source pointer, connection or mutable database is returned.
+    public func createSnapshot(at destinationURL: URL) throws {
+        throw SQLiteSnapshotError.notImplemented
+    }
+
     /// A returned save has committed. Persisted revisions prevent a delayed
     /// autosave task from replacing newer manual work after navigation/relaunch.
     public func saveManualNote(_ note: StoredManualNote) throws {

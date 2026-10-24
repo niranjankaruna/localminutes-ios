@@ -25,7 +25,7 @@ let package = Package(
         .target(name: "LocalMinutesCore", path: "Core"),
         .target(name: "LocalMinutesRecording", dependencies: ["LocalMinutesCore"], path: "Recording"),
         .target(name: "LocalMinutesModels", dependencies: ["LocalMinutesCore"], path: "Models"),
-        .target(name: "LocalMinutesPersistence", dependencies: ["LocalMinutesCore"], path: "Persistence", linkerSettings: [.linkedLibrary("sqlite3")]),
+        .target(name: "LocalMinutesPersistence", dependencies: ["LocalMinutesCore", "LocalMinutesModels"], path: "Persistence", linkerSettings: [.linkedLibrary("sqlite3")]),
         .target(name: "LocalMinutesTranscription", dependencies: [
             "WhisperFramework",
             .product(name: "sherpa-onnx", package: "sherpa-onnx"),
@@ -37,7 +37,7 @@ let package = Package(
         .target(name: "LocalMinutesQuestionAnswering", dependencies: ["LocalMinutesPersistence", "LocalMinutesSummary"], path: "QuestionAnswering"),
         .target(name: "LocalMinutesIntelligence", dependencies: ["LocalMinutesCore", "LocalMinutesModels", "LocalMinutesPersistence", "LocalMinutesSummary", "LocalMinutesQuestionAnswering"], path: "Intelligence"),
         .testTarget(name: "HarnessTests", path: "Tests/HarnessTests"),
-        .testTarget(name: "CoreTests", dependencies: ["LocalMinutesCore"], path: "Tests/CoreTests"),
+        .testTarget(name: "CoreTests", dependencies: ["LocalMinutesCore"], path: "Tests/CoreTests", linkerSettings: [.linkedLibrary("sqlite3")]),
         .testTarget(name: "RecordingTests", dependencies: ["LocalMinutesRecording", "LocalMinutesCore", "LocalMinutesMeetingLibrary"], path: "Tests/RecordingTests"),
         .testTarget(name: "ModelTests", dependencies: ["LocalMinutesModels", "LocalMinutesCore"], path: "Tests/ModelTests"),
         .testTarget(name: "PersistenceTests", dependencies: ["LocalMinutesPersistence"], path: "Tests/PersistenceTests", linkerSettings: [.linkedLibrary("sqlite3")]),

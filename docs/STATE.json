@@ -3,17 +3,17 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T17:34:34.094Z",
+  "lastUpdated": "2026-10-24T18:05:12.297Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "MVP1 final model-runtime/identity/metrics repairs after actual RED; MVP2 durable replay/checkpoint primitives implementing in parallel",
+  "currentTask": "MVP1 delivered; MVP2 test-first recovery, resumable-download, archive and consistent SQLite snapshot contracts prepared",
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "Finish RED-backed repairs, review and batch focused GREEN with an exact-source iPhone package; deliver MVP1 immediately when verified, then continue MVP2. Do not repeat passed Phi generations.",
+  "nextAction": "Next bounded invocation: read current required checkpoint, verify Git/PUBLIC zero-spend guard and terminal GREEN run40117673355 at4aec851; run targeted MVP2 portable RED (summaryresume4, HTTPresume11, archive10, SQLite snapshot5) plus actual-model recovery RED (integrity2, selectedmodel5). Implement only after actual assertions; keep modelchoice IPA4aec851 separate from test-first branch HEAD. No full-suite-per-edit run.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "6d914fe0117964c7019a71d5b9332c9dba3758b4",
+  "remoteBranchHead": "4aec851bb1c83ec1a9acb8f48074db79dcdd8a23",
   "localScriptGreen": {
     "sourceCommit": "0181b311abedb3c32745b015be64d6e7c777032b",
     "platform": "Windows11/Node24.21.0",
@@ -24,39 +24,38 @@
     "nativePackagingVerified": false,
     "scope": "Portable script regression only, no Swift/iOS/native/inference/device claim."
   },
-  "lastVerifiedNativeBuildCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
-  "lastVerifiedNativeBuildCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
+  "lastVerifiedNativeBuildCommit": "4aec851bb1c83ec1a9acb8f48074db79dcdd8a23",
+  "lastVerifiedNativeBuildCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40117673355",
   "blockedItems": [
-    "ARTIFACT_STORAGE_HEADROOM_UNVERIFIED",
-    "LOCAL_SUMMARY_QA_MODEL_QUALITY"
+    "ARTIFACT_STORAGE_HEADROOM_UNVERIFIED"
   ],
   "ciInvocation": {
     "id": "2026-10-24-owner-unbounded-resume",
     "startedAt": "2026-10-24T15:33:29.213Z",
     "maxNewRuns": 6,
-    "plannedNewRuns": 1,
+    "plannedNewRuns": 0,
     "newRunIds": [
       40107527439,
       40109131483,
       40111205922,
       40114656922,
-      40116270957
+      40116270957,
+      40117673355
     ],
-    "limitReached": false,
-    "costGuardObservedAt": "2026-10-24T17:22:00Z",
+    "limitReached": true,
+    "costGuardObservedAt": "2026-10-24T17:47:00Z",
     "costGuardBasis": "Authenticated intended repository PUBLIC/ADMIN and HTTPS origin verified. Only standard macos-15-intel; no billing/larger runner/Actions artifact storage mutation. Six-run invocation limit retained."
   },
   "latestCIRun": {
-    "sourceCommit": "84ff22a6b54731ec179b78910d48da8476ba746b",
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40107527439",
+    "sourceCommit": "4aec851bb1c83ec1a9acb8f48074db79dcdd8a23",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40117673355",
     "status": "completed",
-    "conclusion": "failure",
-    "executed": 6,
-    "passed": 1,
-    "failed": 5,
+    "conclusion": "success",
+    "executed": 137,
+    "passed": 137,
+    "failed": 0,
     "skipped": 0,
-    "assertionFailures": 12,
-    "scope": "Only2 actual summary observations,3 native metrics contracts and1 SQLite cancellation case; no full regression suite."
+    "scope": "80focusedSwift+46Node+6realASR+5native; actualiPhonepackage. Not full baseline regression."
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -118,7 +117,8 @@
     "fullNativeGreenCommit": "b6f4bdf0231d72d279ae690c5ce20936b8225459"
   },
   "completedThisInvocation": [
-    "T07.1"
+    "T07.1",
+    "T24_MVP1_CODE_AND_DELIVERY"
   ],
   "codeCompletePendingDevice": [
     "T05",
@@ -130,7 +130,7 @@
     "T08.4",
     "T08.5"
   ],
-  "remoteBranchHeadScope": "Summary/Ask functionalbatch pushed/HTTPSremoteverified; same source usedbyappandmodeljobs.",
+  "remoteBranchHeadScope": "HTTPS HEAD observed after candidate implementation push and before this checkpoint; docs-only later commits may follow.",
   "nativeCompileRepair": {
     "status": "CODE_COMPLETE_PENDING_DEVICE",
     "candidatePath": "docs/drafts/T06.1/ActivityKitOperations.swift.pending",
@@ -650,7 +650,7 @@
     "localCIWatchStopped": true,
     "existingHostedWorkflowMayFinish": false,
     "hostedRunId": 40079629180,
-    "resumeAction": "Next bounded invocation: read required documents and verify Git/remote, terminal run40079629180 at db1b8d5, and zero-spend cost guard. Activate T12.2 three interruption/signal tests with minimal stubs and strict reporting, commit/push test-first, and prove hosted assertion RED before implementation. T13Metrics/T18Pipeline/T19QA drafts are inactive NOT_RUN and may be delegated within one branch and six runs. Current invocation is at six of six terminal runs: no run7, rerun or code-triggering push.",
+    "resumeAction": "Next bounded invocation: read current required checkpoint, verify Git/PUBLIC zero-spend guard and terminal GREEN run40117673355 at4aec851; run targeted MVP2 portable RED (summaryresume4, HTTPresume11, archive10, SQLite snapshot5) plus actual-model recovery RED (integrity2, selectedmodel5). Implement only after actual assertions; keep modelchoice IPA4aec851 separate from test-first branch HEAD. No full-suite-per-edit run.",
     "resumedAtUTC": "2026-10-24T05:49:57.365Z"
   },
   "newTestFirstSlice": {
@@ -1104,7 +1104,7 @@
   },
   "executionPausedByOwner": false,
   "goalPauseAuthorized": false,
-  "goalPauseReason": "Owner requested pause to restart the workstation, then asked for confirmation. All3workers interrupted; no active build or test run.",
+  "goalPauseReason": null,
   "mvpArtifact": {
     "status": "READY_FOR_DEVICE_VALIDATION",
     "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
@@ -1565,7 +1565,7 @@
     }
   ],
   "modelChoiceMVP": {
-    "status": "IN_PROGRESS",
+    "status": "CODE_COMPLETE_PENDING_DEVICE",
     "sourceCommit": "d0fe973b0045d5fb11c3dc0a33bd62ab5c39a991",
     "runURL": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40114656922",
     "huggingFaceTests": 30,
@@ -1584,7 +1584,28 @@
     },
     "resourceReader": "HOSTED_GREEN_2_CASES_0_SKIPS",
     "nativeMetrics": "2_PASS_1_FAIL_ENGINE_VERSION_CODEC",
-    "delivery": "PENDING",
+    "delivery": {
+      "status": "CODE_COMPLETE_PENDING_DEVICE",
+      "sourceCommit": "4aec851bb1c83ec1a9acb8f48074db79dcdd8a23",
+      "runId": 40117673355,
+      "runUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40117673355",
+      "artifact": "LocalMinutes-1.0-4aec851bb1c83ec1a9acb8f48074db79dcdd8a23-unsigned.ipa",
+      "sha256": "fb9b8fbb25239896a4881c8b5e771fe1b668610cbc864f629623b595917282f4",
+      "sizeBytes": 13927836,
+      "appVersion": "1.0",
+      "buildNumber": "2",
+      "schemaVersion": 4,
+      "signing": "unsigned",
+      "retained": true,
+      "published": false,
+      "draftReleaseId": 422886787,
+      "draftReleaseTag": "mvp-preview-4aec851bb1c8",
+      "localDirectory": "build/delivery/MVP1-Model-Choices-40117673355",
+      "checksumMatched": true,
+      "deliveredAt": "2026-10-24T18:05:12.297Z",
+      "deviceValidation": "NOT_RUN",
+      "evidence": "docs/evidence/MVP1_MODEL_DELIVERY_2026_10_24.md"
+    },
     "finalRepairRun": {
       "sourceCommit": "c93633213c9cde7fa9d25bc004f26113f98ef265",
       "runId": 40116270957,
@@ -1603,6 +1624,25 @@
         "assertionFailures": 21,
         "skipped": 0
       }
+    },
+    "nativeResources": {
+      "sourceCommit": "c93633213c9cde7fa9d25bc004f26113f98ef265",
+      "runId": 40116270957,
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "durationSeconds": 0.012,
+      "platform": "iOS26.2Simulator"
+    },
+    "finalRepairGreen": {
+      "sourceCommit": "4aec851bb1c83ec1a9acb8f48074db79dcdd8a23",
+      "runId": 40117673355,
+      "portablePassed": 80,
+      "nodePassed": 46,
+      "realASRPassed": 6,
+      "nativePassed": 5,
+      "failed": 0,
+      "skipped": 0
     }
   },
   "ownerDirection": {
@@ -1611,5 +1651,49 @@
     "repeatFullSuitePerChange": false,
     "installer": "iLoader",
     "ownerReportsMainAppInstalled": true
+  },
+  "mvp2Pending": {
+    "summaryResume": "4 tests-first prepared; ignored hook only, no actualRED or app wiring",
+    "replayIntegrity": "2 negatives prepared; cursor-only skip defect known; noRED/repair yet",
+    "selectedSpeechRecovery": "Per-meeting selectedmanifest/Whisper recovery not implemented",
+    "archive": "10 actualSQLite/CAF tests-first with notImplemented API; noactualRED/appbackupyet",
+    "downloads": "ResumableHTTP and Filesimport remain unfinished"
+  },
+  "lastVerifiedFeatureCommit": "4aec851bb1c83ec1a9acb8f48074db79dcdd8a23",
+  "lastVerifiedFeatureScope": "MVP1 model-choice and its focused checks; whole baseline not complete",
+  "mvp1Artifact": {
+    "status": "CODE_COMPLETE_PENDING_DEVICE",
+    "sourceCommit": "4aec851bb1c83ec1a9acb8f48074db79dcdd8a23",
+    "runId": 40117673355,
+    "runUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40117673355",
+    "artifact": "LocalMinutes-1.0-4aec851bb1c83ec1a9acb8f48074db79dcdd8a23-unsigned.ipa",
+    "sha256": "fb9b8fbb25239896a4881c8b5e771fe1b668610cbc864f629623b595917282f4",
+    "sizeBytes": 13927836,
+    "appVersion": "1.0",
+    "buildNumber": "2",
+    "schemaVersion": 4,
+    "signing": "unsigned",
+    "retained": true,
+    "published": false,
+    "draftReleaseId": 422886787,
+    "draftReleaseTag": "mvp-preview-4aec851bb1c8",
+    "localDirectory": "build/delivery/MVP1-Model-Choices-40117673355",
+    "checksumMatched": true,
+    "deliveredAt": "2026-10-24T18:05:12.297Z",
+    "deviceValidation": "NOT_RUN",
+    "evidence": "docs/evidence/MVP1_MODEL_DELIVERY_2026_10_24.md"
+  },
+  "noExternalCodeBlocker": true,
+  "deliveryBlockers": [],
+  "mvp2PreparedTests": {
+    "summaryResume": 4,
+    "replayIntegrity": 2,
+    "selectedModelRecovery": 5,
+    "resumableHTTP": 11,
+    "archive": 10,
+    "sqliteSnapshot": 5,
+    "actualRED": false,
+    "productionBehavior": "NOT_IMPLEMENTED_STUBS_ONLY",
+    "evidence": "docs/evidence/MVP1_MODEL_DELIVERY_2026_10_24.md"
   }
 }
