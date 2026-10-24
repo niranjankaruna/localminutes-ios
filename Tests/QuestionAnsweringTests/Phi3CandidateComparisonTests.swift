@@ -10,6 +10,14 @@ import LocalMinutesQuestionAnswering
 @MainActor
 final class Phi3CandidateComparisonTests: XCTestCase {
     func testActualPinnedPhi3ComparesTwoSummariesAndTwoSelectedMeetingQuestions() async throws {
+        try await runComparison(includeQuestions: true)
+    }
+
+    func testActualPinnedPhi3ComparesTwoSummariesWithReviewedRevision() async throws {
+        try await runComparison(includeQuestions: false)
+    }
+
+    private func runComparison(includeQuestions: Bool) async throws {
         let path = try XCTUnwrap(ProcessInfo.processInfo.environment["LOCALMINUTES_CANDIDATE_MODEL_PATH"])
         let url = URL(fileURLWithPath: path)
         let size = (try FileManager.default.attributesOfItem(atPath: path)[.size] as? NSNumber)?.int64Value
@@ -27,7 +35,7 @@ final class Phi3CandidateComparisonTests: XCTestCase {
         guard digest == expected else { throw LocalSummaryRuntimeError.invalidModel }
         let runtime = try LocalSummaryRuntime(modelURL: url, contextSize: 4_096, threads: 4, chatFormat: .phi3)
         let observations = Phi3ComparisonObservations()
-        let revision = expected
+        let revision = "a64113399c2f6b8ad3e11c394733a2ddadaa7f33"
         do {
             let positiveID = UUID(uuidString: "40000000-0000-0000-0000-000000000018")!
             let positive = GroundedSummarySource(meetingID: positiveID, segments: [
@@ -68,6 +76,7 @@ final class Phi3CandidateComparisonTests: XCTestCase {
                 XCTAssertTrue((output.summaryPoints.flatMap(\.evidence) + output.actions.flatMap(\.evidence))
                     .allSatisfy { $0.sourceID == "unassigned-source" })
             }
+            if includeQuestions {
             try await withQuestionFixture { fixture in
                 for (stage, question) in [("qa_positive", "What is the launch budget?"),
                                           ("qa_unknown", "Who owns the launch budget?")] {
@@ -134,8 +143,10 @@ final class Phi3CandidateComparisonTests: XCTestCase {
                     try await reopened.close()
                 } catch { try? await reopened.close(); throw error }
             }
+            }
             let count = await observations.count
-            XCTAssertEqual(count, 4, "Exactly two summary and two question native generations are required")
+            XCTAssertEqual(count, includeQuestions ? 4 : 2,
+                "Exactly the selected two-summary or four-observation comparison must execute")
             await runtime.unload()
         } catch { await runtime.unload(); throw error }
     }

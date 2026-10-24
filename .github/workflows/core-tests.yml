@@ -8,7 +8,7 @@ on:
         required: true
         type: choice
         default: mvp
-        options: [mvp, features, package, validation, candidate]
+        options: [mvp, features, package, validation, candidate, candidate-summary]
       sourceCommit:
         description: Reviewed app source for the MVP package
         required: true
@@ -23,11 +23,12 @@ concurrency:
 
 jobs:
   phi3-candidate:
-    if: ${{ inputs.mode == 'candidate' }}
+    if: ${{ inputs.mode == 'candidate' || inputs.mode == 'candidate-summary' }}
     runs-on: macos-15-intel
-    timeout-minutes: 18
+    timeout-minutes: ${{ inputs.mode == 'candidate-summary' && 8 || 18 }}
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+      CANDIDATE_CASE: ${{ inputs.mode == 'candidate-summary' && 'testActualPinnedPhi3ComparesTwoSummariesWithReviewedRevision' || 'testActualPinnedPhi3ComparesTwoSummariesAndTwoSelectedMeetingQuestions' }}
     steps:
       - name: Check out exact candidate source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -56,13 +57,13 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p .build
-          swift test --filter 'Phi3CandidateComparisonTests/testActualPinnedPhi3ComparesTwoSummariesAndTwoSelectedMeetingQuestions' 2>&1 | tee .build/phi3-candidate-output.log
+          swift test --filter "Phi3CandidateComparisonTests/$CANDIDATE_CASE" 2>&1 | tee .build/phi3-candidate-output.log
       - name: Require actual candidate discovery and assertions
         if: always()
         shell: bash
         run: |
           set -euo pipefail
-          node scripts/verify-test-log.mjs .build/phi3-candidate-output.log testActualPinnedPhi3ComparesTwoSummariesAndTwoSelectedMeetingQuestions
+          node scripts/verify-test-log.mjs .build/phi3-candidate-output.log "$CANDIDATE_CASE"
 
   core:
     if: ${{ inputs.mode == 'validation' }}

@@ -23,6 +23,27 @@ known selected-meeting answer, unknown owner refusal despite another meeting's
 answer. Actual raw JSON and validators decide; mocks and rewritten output are
 excluded. Existing fixture/manual-note/transcript bytes must survive reopen.
 
-CI result: NOT_RUN at this checkpoint. Source/run and actual outcome will be
-recorded after the single job. No phone/signing/Lock Screen/Action Button/renewal
-or endurance gate is implied. No fresh IPA is requested for this experiment.
+First source `1a999b661ef68d4082b0a811d03ec40ef3180b7b`, run40104505380,
+job120903281785 completed FAILED14:59:07UTC: one actual XCTest, three assertion
+failures, zero skipped,140.207seconds. Candidate bytes/SHA and MIT license
+verified; actual licenseSHA256
+`fa8235e5b48faca34e3ca98cf4f694ef08bd216d28b58071a1f85b1d50cb814d`.
+Native compilation succeeded. Stage observations:
+
+- Q&A known budget: PASSED,56seconds; actual selected source42000credits.
+- Q&A unknown owner: PASSED,39seconds; actual insufficient-evidence refusal.
+- Positive summary: NOT_RUN for generation; preflight GroundedSummaryError.
+- Unknown owner/date summary: NOT_RUN for generation; same preflight failure.
+
+Only two actual generations occurred. This is a comparison-harness error, not
+a measured Phi summary semantic failure: the harness supplied64-character
+artifactSHA as modelRevision; unchanged provenance validation requires the
+40-character immutable model revision. The first failure remains visible.
+One focused correction uses the real immutable revision and a separate case
+running only the two missing summaries, keeping all existing four-case and
+semantic assertions. Q&A is not repeated. No prompt/model/validator changes.
+This corrects the initial one-job plan while retaining the owner's one-model,
+30-minute cap; follow-up job is bounded8minutes and must stop by15:13:11UTC.
+
+No phone/signing/Lock Screen/Action Button/renewal or endurance gate is implied.
+No fresh IPA is requested for this experiment. Final summary outcome pending.
