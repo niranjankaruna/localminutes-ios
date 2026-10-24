@@ -40,15 +40,16 @@ final class RecordingApplication {
         self.init(services: try? LocalMinutesServices())
     }
 
-    /// Storage injection only. This is the actual default Live/OS composition;
-    /// startup execution and shared admission remain unwired before native RED.
+    /// Storage injection only; the default Live/OS composition and its shared
+    /// startup/deletion admission remain identical for the app and native tests.
     init(services: LocalMinutesServices?) {
         let preparation: any RecordingPreparationSource
         if let services { preparation = services.live }
         else { preparation = RequiredSpeechModelPreparation() }
         let owner = RecordingSessionOwner(
             permission: IOSCapturePermissionSource(), hardware: IOSCaptureHardware(),
-            activityBackend: IOSLiveActivityBackend(), preparation: preparation
+            activityBackend: IOSLiveActivityBackend(), preparation: preparation,
+            usageAdmission: services?.usage
         )
         self.services = services
         if let services {
@@ -72,6 +73,17 @@ final class RecordingApplication {
     }
 
     func perform(_ action: RecordingIntentAction) async throws -> RecordingIntentOutcome {
+        switch action {
+        case .start, .toggle:
+            if let services {
+                await services.initialize()
+                guard services.startup.state == .ready else {
+                    lastOutcome = .cleanupPending
+                    return .cleanupPending
+                }
+            }
+        case .stop: break
+        }
         var audioReservation: UUID?
         defer {
             if let audioReservation {

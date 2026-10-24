@@ -40,3 +40,10 @@ Remaining physical-device gates: protection, locked capture/start, Action Button
 Next task: root reviews and pushes this test-first slice; record actual native behavioral RED before startup/admission wiring. SPM startup-component RED/GREEN is not a native application composition result.
 
 Pending/empty fields are unverified, never a pass. No model downloads, real meeting content or credentials are included.
+
+Test-first source1f03e5259ead091c616eb4ce3c49f80d1af79018 pushed/remote verified, actual compatible RED pending [run40075611744](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40075611744). No new working behavior before assertions.
+
+
+## Actual native app RED, 24 October 2026
+
+Exacttest-first1f03e5259ead091c616eb4ce3c49f80d1af79018/run[40075611744](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40075611744), completednativejob120818174077:59app-hosted cases57pass2newfail15assertions0unexpected/skip; strictreporterandxcresultagree. StartleftstartupnotStarted/originalCAFmetadataunrecovered/nodurablereport. ClosedDBStartincorrectlyreachedmissing-modelpreflightandfailedownerinsteadofremainingidle/cleanupPending. Theseactualnativebehaviorfailuresauthorizeminimalservicesinitialize/start-togglegate/sharedregistryownerwiring. Bothdevice/simulatorbundlechecks2/2passafterstrictinspectionreorder. UI3/3passandxcresultagrees. Physical7compileonly/0executedNOT_RUN. Packagingnotrunafternewnativefailures;nocandidate. Noautomaticviewlaunch/replay/phonepassinferred.

@@ -203,10 +203,31 @@ public actor SQLiteMeetingStore {
         return try decodeSegments(statement)
     }
 
-    /// Test-first selected-meeting FTS evidence contract only. Original source
-    /// rows/ranges/provenance must be returned; no schema or query behavior yet.
+    /// Ranked original evidence only from the selected meeting. User punctuation
+    /// and operator spellings have no FTS/SQL authority; literal lexical terms
+    /// form an application-owned conjunction. No answer or citation is generated.
     public func retrieveEvidence(meetingID: UUID, query: String,
-                                 limit: Int = 8) throws -> [StoredTranscriptSegment] { [] }
+                                 limit: Int = 8) throws -> [StoredTranscriptSegment] {
+        let database = try connection.database()
+        guard limit >= 1, limit <= 20 else { throw MeetingStoreError.invalidInput }
+        let tokenCharacters = CharacterSet.alphanumerics.union(.nonBaseCharacters)
+        let terms = query.components(separatedBy: tokenCharacters.inverted).filter { !$0.isEmpty }
+        guard !terms.isEmpty else { return [] }
+        let expression = terms.map {
+            "\"" + $0.replacingOccurrences(of: "\"", with: "\"\"") + "\""
+        }.joined(separator: " AND ")
+        let statement = try MeetingSQLiteStatement(database: database, sql: """
+            SELECT source.id,source.meeting_id,source.sequence,source.start_sample,
+                   source.end_sample,source.text,source.model_revision
+            FROM transcript_fts JOIN transcript_segments AS source ON source.rowid=transcript_fts.rowid
+            WHERE transcript_fts MATCH ? AND source.meeting_id=?
+            ORDER BY bm25(transcript_fts) ASC,source.sequence ASC LIMIT ?
+            """)
+        try statement.bind(expression, at: 1)
+        try statement.bind(meetingID.uuidString, at: 2)
+        try statement.bind(Int64(limit), at: 3)
+        return try decodeSegments(statement)
+    }
 
     public func deleteMeeting(id: UUID) throws {
         let database = try connection.database()

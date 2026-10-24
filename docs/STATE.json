@@ -3,17 +3,17 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T07:47:49.214Z",
+  "lastUpdated": "2026-10-24T08:17:41.252Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "T08.3",
+  "currentTask": "T19.1",
   "lastVerifiedCommit": "40100fdb9a8349acdbf2d22c63eb25ce959e9388",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40017962923",
   "candidateArtifact": null,
-  "nextAction": "Push reviewed source4 with actual-RED repairs/newgrounding6/FTS6/nativeApp2 stubs; preservestrictbundleinspectionbeforeXCTestinstrumentation andbounded35mNativejob(<45). Then readexactSHA newREDbeforeimplementation. 3/6newrunsused.",
+  "nextAction": "Pushreviewedsource5grounding/FTS/nativeAppstartup implementations afteractual1f03e52RED. Requirefull exactSHA269core+59native+5actualmodel+3UI+59scripts/TSAN/nativepackageGREEN. Use sixthCIrunfirstforanyneededrepair; onlyafterfullGREENactivateboundedT12Signals3test-firstdrafts. Allphone/retainedartifactgatespending.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "39d9eaa65f7b030a8bdf87e1447b254508dce2db",
+  "remoteBranchHead": "1f03e5259ead091c616eb4ce3c49f80d1af79018",
   "localScriptGreen": {
     "sourceCommit": "39d9eaa65f7b030a8bdf87e1447b254508dce2db",
     "sourceScope": "Current reviewed source3 working tree before commit",
@@ -35,7 +35,8 @@
     "newRunIds": [
       40069154630,
       40071855360,
-      40073883889
+      40073883889,
+      40075611744
     ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-24T07:20:14.943Z",
@@ -47,38 +48,33 @@
     }
   },
   "latestCIRun": {
-    "sourceCommit": "39d9eaa65f7b030a8bdf87e1447b254508dce2db",
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40073883889",
+    "sourceCommit": "1f03e5259ead091c616eb4ce3c49f80d1af79018",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40075611744",
     "status": "completed",
-    "ordinal": 3,
+    "ordinal": 4,
     "conclusion": "failure",
     "core": {
-      "executed": 257,
-      "passed": 239,
-      "failed": 18,
-      "assertionFailures": 93,
-      "unexpected": 0,
+      "executed": 269,
+      "passed": 257,
+      "failed": 12,
+      "assertionFailures": 55,
+      "unexpected": 1,
       "skipped": 0
     },
     "summary": {
       "executed": 5,
-      "passed": 4,
-      "failed": 1,
-      "assertionFailures": 6,
-      "unexpected": 1,
+      "passed": 5,
+      "failed": 0,
       "skipped": 0,
-      "originalQuality": {
-        "executed": 4,
-        "passed": 4,
-        "failed": 0,
-        "skipped": 0
-      },
-      "scope": "Actual canonical tokenizer stub RED + positive near-limit generation failure; original semantic cases GREEN."
+      "originalSemanticCases": 4,
+      "scope": "ActualpinnedQwen/nativecanonicaltokenizationandcapacity. Fullgrounding/QAunfinished."
     },
     "native": {
-      "executed": 57,
+      "executed": 59,
       "passed": 57,
-      "failed": 0,
+      "failed": 2,
+      "assertionFailures": 15,
+      "unexpected": 0,
       "skipped": 0,
       "resultBundleVerified": true
     },
@@ -96,11 +92,10 @@
     },
     "nativeBundleInspection": {
       "executed": 2,
-      "passed": 1,
-      "failed": 1,
-      "scope": "DeviceReleasecorrect; reusedSimulatorDebugnowcontainsXCTestbundle afterunitrun, strictinspectionmustprecedeinstrumentation."
-    },
-    "retainedArtifact": false
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    }
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -170,7 +165,7 @@
     "T06.2.1",
     "T06.2.2.1"
   ],
-  "remoteBranchHeadScope": "Exact test-first source3 push/remote verified; current fixes follow actual917844bRED; new startup/shared/token interfaces remain no-op until actual RED.",
+  "remoteBranchHeadScope": "Reviewed source4 pushed/remote verified: prior actualRED repairs +grounded/FTS/nativeApp test-first stubs.",
   "nativeCompileRepair": {
     "status": "CODE_COMPLETE_PENDING_DEVICE",
     "candidatePath": "docs/drafts/T06.1/ActivityKitOperations.swift.pending",
@@ -651,7 +646,11 @@
     "newCoreCases": 12,
     "newNativeCases": 2,
     "scope": "Groundedsummaryvalidator/merge6 +actualFTS6 +nativeAppstartup2. AllnewbehaviorsremainminimalstubsuntilRED.",
-    "redVerified": false
+    "redVerified": false,
+    "sourceCommit": "1f03e5259ead091c616eb4ce3c49f80d1af79018",
+    "runId": 40075611744,
+    "coreRedVerified": true,
+    "coreRedRun": 40075611744
   },
   "latestActualDownloadIntegration": {
     "sourceCommit": "917844b016664251c545fb70106c50cfceb62694",
@@ -661,5 +660,16 @@
     "failed": 0,
     "skipped": 0,
     "scope": "Actual HTTPS four-file pinned install/reopen/import/lease and native CPU recognition; macOS only."
+  },
+  "source5Preparation": {
+    "newActiveTests": 0,
+    "expectedCore": 269,
+    "expectedNativeSimulator": 59,
+    "expectedActualModelCases": 5,
+    "expectedUI": 3,
+    "changes": "ImplementedonlyactualREDgrounded6,FTS6,nativeAppstartup2. Requirement-basedcurrentSQLite schema2->3 assertions documented; historicallegacyfixtures unchanged.",
+    "inactiveNextDraft": "docs/drafts/T12Signals/README.md",
+    "draftTestCount": 3,
+    "draftCompiled": false
   }
 }

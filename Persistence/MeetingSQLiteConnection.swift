@@ -34,7 +34,7 @@ final class MeetingSQLiteConnection {
         handle = opened
         do {
             let version = try schemaVersion()
-            guard version == 0 || version == 1 || version == 2 else {
+            guard version == 0 || version == 1 || version == 2 || version == 3 else {
                 throw MeetingStoreError.unsupportedSchemaVersion(Int(version))
             }
             try PersistentFilePolicy.protectItem(databaseURL, within: directory)
@@ -82,6 +82,39 @@ final class MeetingSQLiteConnection {
                         )
                         """)
                     try execute("PRAGMA user_version=2")
+                }
+            }
+            if version < 3 {
+                try transaction {
+                    // Text has one source of truth. The index resolves its
+                    // integer docids to the original transcript row, whose UUID,
+                    // meeting, media range and model revision remain unchanged.
+                    try execute("""
+                        CREATE VIRTUAL TABLE transcript_fts USING fts5(
+                            text, content='transcript_segments', content_rowid='rowid',
+                            tokenize='unicode61 remove_diacritics 2'
+                        )
+                        """)
+                    try execute("""
+                        CREATE TRIGGER transcript_segments_fts_insert AFTER INSERT ON transcript_segments BEGIN
+                            INSERT INTO transcript_fts(rowid,text) VALUES(new.rowid,new.text);
+                        END
+                        """)
+                    try execute("""
+                        CREATE TRIGGER transcript_segments_fts_delete AFTER DELETE ON transcript_segments BEGIN
+                            INSERT INTO transcript_fts(transcript_fts,rowid,text) VALUES('delete',old.rowid,old.text);
+                        END
+                        """)
+                    try execute("""
+                        CREATE TRIGGER transcript_segments_fts_update AFTER UPDATE ON transcript_segments BEGIN
+                            INSERT INTO transcript_fts(transcript_fts,rowid,text) VALUES('delete',old.rowid,old.text);
+                            INSERT INTO transcript_fts(rowid,text) VALUES(new.rowid,new.text);
+                        END
+                        """)
+                    // Triggers maintain subsequent source changes; rebuild
+                    // indexes all preexisting v1/v2 finalized rows exactly once.
+                    try execute("INSERT INTO transcript_fts(transcript_fts) VALUES('rebuild')")
+                    try execute("PRAGMA user_version=3")
                 }
             }
             try Self.protectDatabaseFiles(at: databaseURL, within: directory)

@@ -97,3 +97,11 @@ terminal, proves meaningful RED, then authorizes bounded validation/merge.
 Actual Qwen map/reduce, nested-schema generation, complete-meeting sentence
 segmentation, generated editing/SQLite retention, checkpoint resume, app model
 admission and Q&A remain mandatory independent work, with actual-model tests.
+
+Test-first source1f03e5259ead091c616eb4ce3c49f80d1af79018 pushed/remote verified, actual compatible RED pending [run40075611744](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40075611744). No new working behavior before assertions.
+
+
+## Actual hosted RED, 24 October 2026
+
+Test-first source1f03e5259ead091c616eb4ce3c49f80d1af79018/run[40075611744](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40075611744), completedcorejob120818174062:269cases executed257passed12failed55assertions(1unexpected)0skip. All257earlierregressionspassed, includingall11CAF/SQLiterecovery,4startup,2pagination,4sharedowner,6chunkplanner and3filesystemscope cases. No compile/tool failure or zero-test RED.
+Allsixnewgroundedcasesfailed31assertions0unexpected/skip: emptydecoder/merger publishednodata, acceptedinvalidJSON/othermeeting/unknownIDs/unsupportedquotesandclaims insteadofthrowing. These actual missing-behavior failures authorizeboundedextractivedecoder/mergeimplementation, not a model-pipeline completion claim.

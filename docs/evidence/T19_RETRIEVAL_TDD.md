@@ -44,3 +44,24 @@ Git, workflow, state and CI. No additional dispatch is authorized by this file.
 This is retrieval only. Grounded Q&A, generated-answer citation/semantic checks,
 token budgets and physical offline behavior remain pending. Evidence output is
 original text; fabricated answers or mocked inference cannot satisfy later gates.
+
+Test-first source1f03e5259ead091c616eb4ce3c49f80d1af79018 pushed/remote verified, actual compatible RED pending [run40075611744](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40075611744). No new working behavior before assertions.
+
+
+## Actual hosted RED, 24 October 2026
+
+Test-first source1f03e5259ead091c616eb4ce3c49f80d1af79018/run[40075611744](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40075611744), completedcorejob120818174062:269cases executed257passed12failed55assertions(1unexpected)0skip. All257earlierregressionspassed, includingall11CAF/SQLiterecovery,4startup,2pagination,4sharedowner,6chunkplanner and3filesystemscope cases. No compile/tool failure or zero-test RED.
+AllsixnewFTScasesfailed24assertions(1unexpected missing-index sqlite(1))0skip. The actualnativeFTS5probe succeeded and the migrationcase reached real v2schema/data assertions; applicationstillversion2/no transcript_fts andquerystubreturnedempty. This authorizesactualFTS5schema3/backfill/triggers/bound-selectedquery. Evolve onlycurrent-schema assertions2->3 with explicitmigrationreason; all oldfixturedata/equality/searchsafety remainsmandatory.
+
+## Requirement-based schema expectation evolution before implementation
+
+The current schema advances to3 because T19.1 adds the actual FTS5 index and its
+transactional backfill/maintenance. Rename only the current-version creation
+test to testCreatesAnActualSQLiteDatabaseWithCurrentVersionThreeSchema and change
+its version expectation2→3. The existing version-one manual-note migration case
+also expects the new current version3 after opening, while its actual legacy
+fixture remains user_version1. The new evidence fixture remains user_version2.
+Every metadata/note/source equality, file/table, future999 rejection and literal
+search assertion is retained. This expresses the new migration requirement;
+it does not accept multiple versions, remove failures or weaken source integrity.
+The six original FTS oracles remain unchanged after their actual RED.

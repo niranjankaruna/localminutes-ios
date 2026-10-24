@@ -662,6 +662,18 @@
           "testCount": 7,
           "testFirstSource": "7659a1980b53fc17d624973c6666d83084234ab6",
           "nextAction": "ActualiOSnativeREDstillrequired; firstfixturecompilelabelserrorsrepairedwithoutassertionchanges."
+        },
+        {
+          "id": "T12.2",
+          "title": "Real ASR owner interruption and native audio-session signals",
+          "status": "IN_PROGRESS",
+          "testCount": 3,
+          "draftPath": "docs/drafts/T12Signals/README.md",
+          "inActiveBuildPaths": false,
+          "redEvidence": [],
+          "greenEvidence": [],
+          "deviceEvidence": [],
+          "scope": "Inactive test-first drafts; no compiledREDorworkingbehavior."
         }
       ],
       "redEvidence": [],

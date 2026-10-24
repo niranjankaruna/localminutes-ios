@@ -1,0 +1,119 @@
+// APPEND this entire fragment to the END of
+// Tests/RecordingTests/RecordingSessionOwnerTests.swift. It reuses private
+// helpers only in that same file; all existing assertions remain unchanged.
+
+#if os(iOS)
+@MainActor
+extension RecordingSessionOwnerTests {
+    func testNativeInterruptionNotificationDrainsCAFWaitsForCleanupAndRejectsOldTap() async throws {
+        try await withHarness { h in
+            try await recordOneBuffer(h)
+            let oldTap = try XCTUnwrap(h.hardware.tap)
+            let center = NotificationCenter()
+            let monitor = IOSRecordingSignalMonitor(owner: h.owner, center: center)
+            monitor.beginEpoch(sessionID: h.id)
+            defer { monitor.endEpoch(sessionID: h.id); h.preparation.resolveFinish() }
+            h.preparation.holdFinish = true
+            center.post(name: AVAudioSession.interruptionNotification,
+                object: AVAudioSession.sharedInstance(),
+                userInfo: [AVAudioSessionInterruptionTypeKey: AVAudioSession.InterruptionType.began.rawValue])
+            let joined = OwnerTestProbe()
+            let flushing = Task { await monitor.flush(); joined.finished = true }
+            defer { flushing.cancel() }
+            let arrived = await ownerEventually { h.preparation.finishIsWaiting || joined.finished }
+            XCTAssertTrue(arrived)
+            XCTAssertTrue(h.preparation.finishIsWaiting)
+            XCTAssertFalse(joined.finished, "Notification cleanup cannot acknowledge before transcript finish")
+            let pending = await h.owner.snapshot()
+            XCTAssertEqual(pending.phase, .interrupted)
+            XCTAssertTrue(pending.cleanupPending)
+            XCTAssertFalse(h.hardware.sessionActive)
+            XCTAssertFalse(h.hardware.engineRunning)
+            XCTAssertNil(h.owner.completedManifest)
+            h.preparation.resolveFinish()
+            try await complete { await flushing.value }
+            let final = await h.owner.snapshot()
+            XCTAssertEqual(final.phase, .interrupted)
+            XCTAssertFalse(final.cleanupPending)
+            XCTAssertNil(h.owner.completedManifest)
+            XCTAssertNil(h.hardware.tap)
+            XCTAssertEqual(h.hardware.stopCalls, 1)
+            let checkpointURL = h.directory.appendingPathComponent("capture-manifest.json")
+            let bytes = try? Data(contentsOf: checkpointURL)
+            XCTAssertNotNil(bytes)
+            if let bytes {
+                let manifest = try JSONDecoder().decode(AudioCaptureManifest.self, from: bytes)
+                XCTAssertEqual(manifest.sessionID, h.id)
+                XCTAssertEqual(manifest.totalFrames, 64)
+                XCTAssertEqual(try decode(manifest, directory: h.directory).count, 64)
+            }
+            let late = try signal(h)
+            oldTap(late, AVAudioTime(sampleTime: 40_064, atRate: h.hardware.format.sampleRate))
+            let afterLateBuffer = await h.owner.snapshot()
+            XCTAssertEqual(afterLateBuffer.phase, .interrupted)
+            XCTAssertFalse(afterLateBuffer.readiness.firstBufferAccepted)
+            XCTAssertFalse(afterLateBuffer.readiness.audioSessionActive)
+            XCTAssertEqual(try? Data(contentsOf: checkpointURL), bytes,
+                "A retained old audio callback cannot add samples after interrupted flush")
+        }
+    }
+
+    func testNativeMediaResetCancelsPendingCaptureAndStaleEpochEndCannotDetachReplacement() async throws {
+        try await withHarness { h in
+            let center = NotificationCenter()
+            let monitor = IOSRecordingSignalMonitor(owner: h.owner, center: center)
+            h.permission.hold = true
+            let starting = Task { await h.owner.start(sessionID: h.id) }
+            defer { starting.cancel(); h.permission.resolve(); monitor.endEpoch(sessionID: h.id) }
+            let held = await ownerEventually { h.permission.isWaiting }
+            XCTAssertTrue(held)
+            monitor.beginEpoch(sessionID: h.id)
+            center.post(name: AVAudioSession.mediaServicesWereResetNotification,
+                        object: AVAudioSession.sharedInstance())
+            try await complete { await monitor.flush() }
+            let pendingInterrupted = await h.owner.snapshot()
+            XCTAssertEqual(pendingInterrupted.phase, .interrupted)
+            XCTAssertFalse(pendingInterrupted.cleanupPending)
+            XCTAssertNil(h.owner.completedManifest)
+            XCTAssertEqual(h.hardware.startCalls, 0)
+            h.permission.resolve()
+            try await complete { await starting.value }
+            XCTAssertEqual(h.hardware.startCalls, 0, "The old permission grant cannot reactivate reset capture")
+            XCTAssertFalse(h.hardware.sessionActive)
+            // Ensures a no-op RED stub also releases its real resources before
+            // the replacement portion; this never changes the assertions above.
+            try await complete { await h.owner.stop() }
+
+            let replacementID = UUID()
+            let replacementDirectory = h.root.appendingPathComponent("reset-replacement", isDirectory: true)
+            h.preparation.result = .ready(directory: replacementDirectory)
+            monitor.beginEpoch(sessionID: replacementID)
+            defer { monitor.endEpoch(sessionID: replacementID) }
+            try await complete { await h.owner.start(sessionID: replacementID) }
+            try h.hardware.emit(signal(h), sampleTime: 90_000)
+            let recording = await ownerEventually { await h.owner.snapshot().phase == .recording }
+            XCTAssertTrue(recording)
+            monitor.endEpoch(sessionID: h.id)
+            center.post(name: AVAudioSession.mediaServicesWereResetNotification,
+                        object: AVAudioSession.sharedInstance())
+            try await complete { await monitor.flush() }
+            let replacement = await h.owner.snapshot()
+            XCTAssertEqual(replacement.sessionID, replacementID)
+            XCTAssertEqual(replacement.phase, .interrupted,
+                "A stale old-epoch end cannot remove the replacement's native signal observation")
+            XCTAssertFalse(replacement.cleanupPending)
+            XCTAssertFalse(h.hardware.sessionActive)
+            XCTAssertFalse(h.hardware.engineRunning)
+            XCTAssertNil(h.owner.completedManifest)
+            let data = try? Data(contentsOf: replacementDirectory.appendingPathComponent("capture-manifest.json"))
+            XCTAssertNotNil(data)
+            if let data {
+                let manifest = try JSONDecoder().decode(AudioCaptureManifest.self, from: data)
+                XCTAssertEqual(manifest.sessionID, replacementID)
+                XCTAssertEqual(manifest.totalFrames, 64)
+                XCTAssertEqual(try decode(manifest, directory: replacementDirectory).count, 64)
+            }
+        }
+    }
+}
+#endif

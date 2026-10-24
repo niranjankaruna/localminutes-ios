@@ -17,6 +17,7 @@ final class LocalMinutesServices: PlaybackHardware {
     private(set) var speechInstalled = false
     private(set) var summaryInstalled = false
     private(set) var operationMessage: String?
+    private(set) var startupMessage: String?
     private(set) var modelError: String?
     private(set) var playback: AVAudioPlayer?
     @ObservationIgnored private var ownsPlaybackSession = false
@@ -70,9 +71,21 @@ final class LocalMinutesServices: PlaybackHardware {
         startup = LibraryStartupCoordinator(store: database, recordingsRoot: meetings, usage: usage)
     }
 
-    /// Test-first application startup surface. Do not execute startup or grant
-    /// admission until the native app integration has recorded behavioral RED.
-    func initialize() async {}
+    /// The retained coordinator coalesces callers and finishes admitted recovery
+    /// even when a requesting view or intent is cancelled. A later explicit
+    /// Start can retry failure; ready reports are reused without another replay.
+    func initialize() async {
+        do {
+            let report = try await startup.run()
+            guard startup.state == .ready else { return }
+            startupMessage = report.issues.isEmpty ? nil : "Some saved meetings need recovery review."
+        } catch {
+            // A waiter from a failed attempt must not overwrite a newer retry's
+            // running/ready projection. No paths or raw database errors escape.
+            guard startup.state == .failed else { return }
+            startupMessage = "Saved meetings could not be prepared. Recording is paused. Reopen LocalMinutes and try again."
+        }
+    }
 
     var isChangingModels: Bool { operation != nil }
 

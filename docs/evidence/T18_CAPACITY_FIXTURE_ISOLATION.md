@@ -71,3 +71,6 @@ Next: root runs the exact-source focused and regression suites, records actual
 counter/capacity outcome and preserves any further failure. No GREEN is claimed.
 Grounded decoder/merge remain empty stubs pending their own source4 assertion
 RED. Complete summary/Q&A/admission/persistence and all device gates remain open.
+
+
+Source1f03e52/run40075611744 completedactualmodeljob120818174083 SUCCESS: all5mandatoryactualQwen/b5046 casespass0fail/skip,286.44seconds; strictreporteragrees. Actualcanonical tokenization/input-output capacity/cancel/unload nowpass, alongwithall4unchangedsemantic/model-size/cancellationcases. Originalunboundedcapacityfailureat39d9eaa remainsarchived/unexplained; boundedcaller-enum positivefixtureestablishescapacityonly, not semantictruth. Fullsummary/QApipeline/phoneadmissionstillunfinished.
