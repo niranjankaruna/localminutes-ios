@@ -3,17 +3,17 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T12:04:45.316Z",
+  "lastUpdated": "2026-10-24T12:12:16.729Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "T21 bounded MVP unsigned package delivery; owner requested pause afterward",
+  "currentTask": "T21.MVP_BUILD delivered; owner-requested pause",
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "Commit preserved unverified WIP and reviewed build-only workflow; create unpublished draft for db1b8d5; dispatch sixth/final build-only run, download IPA/checksum/manifest, finish Windows handoff, then pause. Hardstop12:52:42UTC. No further tests.",
+  "nextAction": "PAUSED by owner after MVP delivery. Owner can install build/delivery/MVP-40092475736 using MVP_INSTALL_WINDOWS.md. Do not dispatch tests, CI, feature work or continuation until explicit resume. On resume, inspect preserved0181b31 RED and unverified3e25aae WIP; full baseline still needs native app/metrics/gate/UI/model-quality and physical signing/locked/renewal evidence.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "0181b311abedb3c32745b015be64d6e7c777032b",
+  "remoteBranchHead": "3e25aae6117b9cad9d0251bded2f345b3155bdcf",
   "localScriptGreen": {
     "sourceCommit": "0181b311abedb3c32745b015be64d6e7c777032b",
     "platform": "Windows11/Node24.21.0",
@@ -37,9 +37,10 @@
       40084170930,
       40086780531,
       40089155104,
-      40091141417
+      40091141417,
+      40092475736
     ],
-    "limitReached": false,
+    "limitReached": true,
     "costGuardObservedAt": "2026-10-24T11:35:40.281Z",
     "costGuardBasis": "Live GitHub PUBLIC/ADMIN, configured publication approval, exact HTTPS origin/task branch/main reverified 24October11:35UTC. Previously rechecked official GitHub Actions standard public runner free-compute terms; unchanged macos-15-intel only, no upload/cache, larger runner, paid resource or billing mutation.",
     "jobLimits": {
@@ -50,13 +51,16 @@
     }
   },
   "latestCIRun": {
-    "sourceCommit": "0181b311abedb3c32745b015be64d6e7c777032b",
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40091141417",
+    "sourceCommit": "3e25aae6117b9cad9d0251bded2f345b3155bdcf",
+    "appSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40092475736",
     "status": "completed",
-    "conclusion": "cancelled",
-    "ordinal": 5,
-    "completedAt": "2026-10-24T12:00:19Z",
-    "cancellationReason": "Owner explicitly instructed no more testing and requested MVP delivery within60minutes, then pause. Core terminal RED retained; native/model remainder intentionally cancelled, not hidden or treated as passes."
+    "conclusion": "success",
+    "ordinal": 6,
+    "mode": "mvp",
+    "testsExecuted": 0,
+    "completedAt": "2026-10-24T12:07:42Z",
+    "validationJobs": "Excluded by owner instruction; not a validation GREEN."
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -117,7 +121,9 @@
     "fullNativeGreenVerified": true,
     "fullNativeGreenCommit": "b6f4bdf0231d72d279ae690c5ce20936b8225459"
   },
-  "completedThisInvocation": [],
+  "completedThisInvocation": [
+    "T21.MVP_BUILD"
+  ],
   "codeCompletePendingDevice": [
     "T05",
     "T05.3",
@@ -128,7 +134,7 @@
     "T08.4",
     "T08.5"
   ],
-  "remoteBranchHeadScope": "Fifth exact source pushed/remoteverified; actual run40091141417 live",
+  "remoteBranchHeadScope": "Reviewed build-only workflow plus preserved unverified WIP pushed and HTTPS remoteverified. MVP checkout is separately pinned to db1b8d5.",
   "nativeCompileRepair": {
     "status": "CODE_COMPLETE_PENDING_DEVICE",
     "candidatePath": "docs/drafts/T06.1/ActivityKitOperations.swift.pending",
@@ -138,7 +144,7 @@
     "missingLookupPolicyNeedsRegressionRed": false
   },
   "codeCompletedThisInvocation": [],
-  "codeCompletionScope": "Only named bounded child components are verified: canonical formatter, flat caller schema, tokenizer/whole-segment planner, extractive decoder/merge and selected-meeting FTS. Shared owner lifetime and native Start-before-model startup are code complete pending device validation. Full baseline, summaries/Q&A/UI, resource admission and physical gates remain IN_PROGRESS.",
+  "codeCompletionScope": "Only the bounded MVP unsigned build delivery is complete. Full baseline remains IN_PROGRESS; no signing/phone/model-quality gate is waived or passed.",
   "ownerCompositionTestFirst": {
     "testCount": 12,
     "inActiveBuildPaths": true,
@@ -1066,7 +1072,14 @@
       "isDraft": true,
       "assets": [],
       "targetCommitish": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04"
-    }
+    },
+    "buildRunId": 40092475736,
+    "workflowSource": "3e25aae6117b9cad9d0251bded2f345b3155bdcf",
+    "validationJobs": "Explicitly excluded in mvp mode; no new test run. Previous validation evidence unchanged.",
+    "delivered": true,
+    "deliveredAt": "2026-10-24T12:12:16.729Z",
+    "pausedAfterHandoff": true,
+    "mvpDeliveryBlockers": []
   },
   "nativePrivacyReview": {
     "status": "IN_PROGRESS",
@@ -1077,5 +1090,34 @@
     ],
     "productionRepairImplemented": false,
     "nextAction": "Deferred until owner resumes baseline work; add actual regressions before repair if strict TDD resumes."
-  }
+  },
+  "executionPausedByOwner": true,
+  "goalPauseAuthorized": true,
+  "goalPauseReason": "Owner approved up to60moreminutes for MVP package then pause, then explicitly stopped further testing. Package/download/handoff completed within cap.",
+  "mvpArtifact": {
+    "status": "READY_FOR_DEVICE_VALIDATION",
+    "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+    "workflowCommit": "3e25aae6117b9cad9d0251bded2f345b3155bdcf",
+    "runId": 40092475736,
+    "runUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40092475736",
+    "artifact": "LocalMinutes-1.0-db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04-unsigned.ipa",
+    "sha256": "65d90c31a1109ee8291d1870b096dddb7cde1330962dd9e9ad8d557a5f96a70d",
+    "sizeBytes": 12632630,
+    "signing": "unsigned",
+    "retained": true,
+    "deliveredLocally": true,
+    "localDirectory": "build/delivery/MVP-40092475736",
+    "localIPA": "build/delivery/MVP-40092475736/LocalMinutes-1.0-db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04-unsigned.ipa",
+    "checksumMatched": true,
+    "githubAssetId": 672174708,
+    "githubAssetDigest": "sha256:65d90c31a1109ee8291d1870b096dddb7cde1330962dd9e9ad8d557a5f96a70d",
+    "draftReleaseId": 422706783,
+    "draftReleaseTag": "mvp-preview-db1b8d51c5ff",
+    "published": false,
+    "fullBaselineCandidate": false,
+    "testsExecutedThisBuild": 0,
+    "physicalDeviceValidation": "NOT_RUN",
+    "evidence": "docs/evidence/MVP_DELIVERY_2026_10_24.md"
+  },
+  "candidateArtifactReason": "Retained MVP build is recorded separately in mvpArtifact; full-baseline verified candidate is not ready."
 }

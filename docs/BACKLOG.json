@@ -1235,7 +1235,7 @@
       "milestone": "M7",
       "title": "Create reproducible release candidate and full handover",
       "kind": "validation",
-      "status": "NOT_STARTED",
+      "status": "IN_PROGRESS",
       "dependsOn": [
         "T20"
       ],
@@ -1251,7 +1251,20 @@
         "Write Windows installation, models, Action Button, privacy and recovery docs.",
         "Declare pending device evidence honestly."
       ],
-      "childTasks": [],
+      "childTasks": [
+        {
+          "id": "T21.MVP_BUILD",
+          "title": "Bounded owner-requested unsigned MVP package delivery",
+          "status": "READY_FOR_DEVICE_VALIDATION",
+          "scope": "Actual iPhone app+extension compiled from last passing db1b8d5, retained in unpublished draft, downloaded to Windows with matching SHA256. Current delivery executes0tests by owner instruction. Full baseline/signing/physical gates remain pending.",
+          "greenEvidence": [
+            "docs/evidence/MVP_DELIVERY_2026_10_24.md"
+          ],
+          "deviceEvidence": [],
+          "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
+          "runId": 40092475736
+        }
+      ],
       "redEvidence": [],
       "greenEvidence": [],
       "deviceEvidence": [],
@@ -1327,9 +1340,9 @@
       "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
     }
   ],
-  "executionPausedByOwner": false,
-  "resumeAction": "Commit preserved unverified WIP and reviewed build-only workflow; create unpublished draft for db1b8d5; dispatch sixth/final build-only run, download IPA/checksum/manifest, finish Windows handoff, then pause. Hardstop12:52:42UTC. No further tests.",
-  "lastUpdated": "2026-10-24T12:03:24.525Z",
+  "executionPausedByOwner": true,
+  "resumeAction": "PAUSED by owner after MVP delivery. Owner can install build/delivery/MVP-40092475736 using MVP_INSTALL_WINDOWS.md. Do not dispatch tests, CI, feature work or continuation until explicit resume. On resume, inspect preserved0181b31 RED and unverified3e25aae WIP; full baseline still needs native app/metrics/gate/UI/model-quality and physical signing/locked/renewal evidence.",
+  "lastUpdated": "2026-10-24T12:12:16.729Z",
   "latestVerification": {
     "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
     "runId": 40079629180,
@@ -1349,6 +1362,21 @@
     "testingOverride": "Owner: Do not spend more time on Testing, I need MVP. No further test execution; retain oracles/history and label rebuilt package honestly.",
     "mvpAppSource": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
     "mvpPreviousPassingRun": 40079629180,
-    "deliveryMode": "Build-only actual iPhone Release app+extension; no simulator/test/real-model suite. Unpublished draft release assets avoid Actions artifact storage. Local download and checksum comparison required."
+    "deliveryMode": "Build-only actual iPhone Release app+extension; no simulator/test/real-model suite. Unpublished draft release assets avoid Actions artifact storage. Local download and checksum comparison required.",
+    "draftRelease": {
+      "id": 422706783,
+      "tag": "mvp-preview-db1b8d51c5ff",
+      "url": "https://github.com/niranjankaruna/localminutes-ios/releases/tag/untagged-56468ea4d87b7881f809",
+      "isDraft": true,
+      "assets": [],
+      "targetCommitish": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04"
+    },
+    "buildRunId": 40092475736,
+    "workflowSource": "3e25aae6117b9cad9d0251bded2f345b3155bdcf",
+    "validationJobs": "Explicitly excluded in mvp mode; no new test run. Previous validation evidence unchanged.",
+    "delivered": true,
+    "deliveredAt": "2026-10-24T12:12:16.729Z",
+    "pausedAfterHandoff": true,
+    "mvpDeliveryBlockers": []
   }
 }

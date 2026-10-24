@@ -151,3 +151,8 @@ Confirmedatcdf4a06/run40038154279: directSDKsetCompleteonoriginalfixturefollowed
 ## Continuation 08 execution boundary — not an external blocker
 
 All six permitted runs are terminal. Final `db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04` / [run40079629180](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180) passed all application/model/native/UI/archive groups. No internal archive-ordering blocker remains. The next bounded invocation activates T12.2 tests before behavior; full baseline remains IN_PROGRESS. No owner confirmation is needed for independent development. ARTIFACT_STORAGE_HEADROOM_UNVERIFIED still affects retained delivery only. All physical/signing/renewal gates remain NOT_RUN. Details: [checkpoint](evidence/CONTINUATION_08_CHECKPOINT.md).
+
+
+## MVP delivery workaround observed24October2026
+
+The original Actions artifact storage headroom remains unverified for a full release. It did not block the owner-requested MVP: unpublished draft422706783 retained the unsigned IPA and a Windows download matched SHA256. No billing change, paid storage or public release. MVP delivery has no remaining download blocker; all physical/full-baseline gates remain pending. See evidence/MVP_DELIVERY_2026_10_24.md.

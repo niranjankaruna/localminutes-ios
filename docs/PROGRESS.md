@@ -708,3 +708,19 @@ Preserved unverified WIP after actual core RED: concrete per-request SQLite comm
 MVP app source is last fully passing db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04/run40079629180. Build-only mode compiles its real iPhone Release app+embedded extension, packages/checksums via existing audited packager, and uploads only to an owner-only UNPUBLISHED draft release. Official GitHub release storage/bandwidth documentation checked24October (https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases): avoids metered Actions artifact storage; no paid infrastructure or publication. Current auth repo/workflow scopes verified without exposing credentials. Full validation jobs remain saved/manual; no tests execute in MVP mode.
 
 Owner time cap recorded conservatively from11:52:42UTC: hardstop12:52:42UTC. Target35–45minutes from agenda, allow queue margin, pause after package/handoff or at cap with precise blocker. Scope: record/live local ASR/history/notes/playback/search/text-Markdown export. Full summaries/Q&A, onboarding/accessibility/privacy/security/recovery completeness and all physical gates remain unfinished.
+
+
+## MVP build-only run dispatched
+
+Workflow/WIP source3e25aae6117b9cad9d0251bded2f345b3155bdcf pushed and remoteverified. Sixth/final [run40092475736](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40092475736) compiles/package ONLY reviewed APP source db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04. Source distinction is explicit in job guard and bundle stamp. All three validation jobs excluded by owner-selected mvp mode; no XCTest/Swift test/model suite executes. Run already reached actual iPhone Release app+extension compilation. No new test-cycle dispatch is authorized.
+
+Unpublished draft release422706783/tagmvp-preview-db1b8d51c5ff targets exactlydb1b8d5; owner access/draft flag verified. Windows guide uploaded successfully. Package step uses existing native packager to exclude secrets, models, user media/data and signing material; upload verifies exact draft/source before writing assets. Same free standard public runner,25minute bound, no Actions artifact upload, paid storage, Apple credentials or public release publication.
+
+
+## MVP delivered; owner-requested pause
+
+Actual build-only run40092475736 SUCCESS at12:07:42UTC. Workflow3e25aae checks out reviewed appdb1b8d5; no new tests execute and all validation jobs are explicitly excluded. Real iPhone arm64/iOS18+ app plus embedded Live Activity extension compiled with Xcode26.2/SDK26.2. Unsigned IPA 12632630bytes, SHA256 `65d90c31a1109ee8291d1870b096dddb7cde1330962dd9e9ad8d557a5f96a70d`, retained as unpublished draft release422706783 and downloaded locally; local bytes/checksum/manifest/GitHub digest MATCH. See [delivery evidence](evidence/MVP_DELIVERY_2026_10_24.md) and [Windows guide](MVP_INSTALL_WINDOWS.md).
+
+Local directory: `build/delivery/MVP-40092475736`. Includes IPA, checksum, manifest, guide and build notes. No model/user/signing data. MVP source already implements recording/localASR/history/notes/playback/search/text-Markdown export; summaries/QA and full baseline unfinished. Full candidateArtifact remainsnull, separate mvpArtifact retained. No physical signing/extension/ActionButton/locked/offline/125minute/renewal/protection pass.
+
+Owner explicitly requested pause after MVP within60minutes; delivery finished before conservative12:52:42UTC cap. Work is checkpointed and no further tests, CI, feature edits or automatic continuation are authorized before explicit resume. Preserved branch WIP remains unverified/excluded from delivered IPA. Project remains IN_PROGRESS.
