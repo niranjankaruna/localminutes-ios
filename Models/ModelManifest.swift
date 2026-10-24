@@ -2,7 +2,7 @@ import Foundation
 
 // TEST-FIRST INTERFACE DRAFT. Immutable metadata only; no installer behavior.
 public enum ModelPurpose: String, Codable, Sendable { case speechRecognition, summary }
-public enum ModelFileRole: String, Codable, Sendable { case encoder, decoder, joiner, tokens, summary, whisper }
+public enum ModelFileRole: String, Codable, Sendable { case encoder, decoder, joiner, tokens, summary, whisper, coreMLAsset }
 public enum ModelDigestProvenance: String, Codable, Sendable {
     case upstreamReported, independentlyDownloaded
 }

@@ -15,6 +15,10 @@ packages:
   sherpa-onnx:
     url: https://github.com/k2-fsa/sherpa-onnx
     revision: 11afbd009a7f8c08f4bcf2fc1b265d0df4670fbf
+  FluidAudio:
+    url: https://github.com/FluidInference/FluidAudio.git
+    revision: c79c4106b954f81205113c3343e5a7e59a1089b5
+    traits: []
 targets:
   LocalMinutes:
     type: application
@@ -60,6 +64,8 @@ targets:
         codeSign: false
       - package: sherpa-onnx
         product: sherpa-onnx
+      - package: FluidAudio
+        product: FluidAudio
       - sdk: libsqlite3.tbd
       - target: LocalMinutesLiveActivity
         embed: true

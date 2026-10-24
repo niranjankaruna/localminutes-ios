@@ -31,8 +31,17 @@ final class NativeMVP2LibraryTests: XCTestCase {
                 to: progress.appendingPathComponent("checkpoint.json"), within: progress)
             NativeResumeURLProtocol.prepare(bytes: f.modelBytes, offset: prefix.count)
             defer { NativeResumeURLProtocol.clear() }
+            let transfer = Task { try await f.services.models.download(manifest) }
+            // A missing native download completion is a failure, not permission
+            // to leave this focused app job waiting until its overall timeout.
+            let deadline = Task {
+                do { try await Task.sleep(for: .seconds(8)) }
+                catch { return }
+                transfer.cancel()
+            }
+            defer { deadline.cancel() }
             do {
-                let installed = try await f.services.models.download(manifest)
+                let installed = try await transfer.value
                 XCTAssertEqual(installed.manifest, manifest)
                 XCTAssertEqual(try Data(contentsOf: installed.files[.summary]!), f.modelBytes)
             } catch { XCTFail("The actual app manager must resume its pinned partial download: \(type(of: error))") }

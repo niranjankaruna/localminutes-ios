@@ -8,7 +8,7 @@ on:
         required: true
         type: choice
         default: mvp
-        options: [mvp, features, package, validation, candidate, candidate-summary, candidate-summary-parts, model-catalog, model-integration, model-repair, model-delivery, mvp2-red, mvp2, mvp2-integration]
+        options: [mvp, features, package, validation, candidate, candidate-summary, candidate-summary-parts, model-catalog, model-integration, model-repair, model-delivery, mvp2-red, mvp2, mvp2-integration, mvp2-parakeet]
       sourceCommit:
         description: Reviewed app source for the MVP package
         required: true
@@ -23,7 +23,7 @@ concurrency:
 
 jobs:
   mvp2-portable:
-    if: ${{ inputs.mode == 'mvp2-red' || inputs.mode == 'mvp2' || inputs.mode == 'mvp2-integration' }}
+    if: ${{ inputs.mode == 'mvp2-red' || inputs.mode == 'mvp2' || inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet' }}
     runs-on: macos-15-intel
     timeout-minutes: 12
     env:
@@ -54,7 +54,7 @@ jobs:
           mkdir -p .build
           if [ "${{ inputs.mode }}" = mvp2-red ]; then
             filter='CoreTests[.]MeetingArchiveTests|ModelTests[.]DownloadResumeTests|PersistenceTests[.]SQLiteSnapshotTests|SummaryTests[.]SummaryResumePipelineTests'
-          elif [ "${{ inputs.mode }}" = mvp2-integration ]; then
+          elif [[ "${{ inputs.mode }}" == mvp2-integration || "${{ inputs.mode }}" == mvp2-parakeet ]]; then
             filter='CoreTests[.]|ModelTests[.]|PersistenceTests[.]|SummaryTests[.](SummaryResumePipelineTests|SummaryPipelineTests|GroundedSummaryTests|NestedStructuredSchemaTests|StructuredJSONSchemaTests)|IntelligenceTests[.]SummaryResumeIntelligenceTests|MeetingLibraryTests[.](LibraryArchiveCoordinatorTests|MeetingDeletionArtifactTests)'
           else
             filter='CoreTests[.]|ModelTests[.]|PersistenceTests[.]|SummaryTests[.](SummaryResumePipelineTests|SummaryPipelineTests|GroundedSummaryTests|NestedStructuredSchemaTests|StructuredJSONSchemaTests)'
@@ -67,9 +67,22 @@ jobs:
           node scripts/verify-test-log.mjs .build/mvp2-portable.log \
             testCancelledPipelinePersistsValidatedPrefixAndReopenedPipelineGeneratesOnlyMissingMaps \
             testNativeSnapshotIncludesCommittedWALSourcesNotesGeneratedEditsAndFTSAsStandaloneDatabase
+          if [ "${{ inputs.mode }}" = mvp2-parakeet ]; then
+            node scripts/verify-test-log.mjs .build/mvp2-portable.log \
+              testOriginalNvidiaNeMoModelExplainsNativeConversionAndSuggestsExactCoreMLFamily \
+              testCompletePinnedV2CoreMLFilesHaveDedicatedAdapterAndHonestEstimatedPhoneRequirements \
+              testMissingChangedUnreviewedOrGatedCoreMLAssetsCannotAdvertiseReadyAndONNXCannotUseNativeProfile \
+              testNestedAssetImportReopensInventoriesAndLeasesWithoutCollapsingRepeatedRolesOrChangingSources \
+              testNestedDownloadCreatesOwnedParentsVerifiesEveryAssetAndPreservesCurrentAfterLaterFailure \
+              testFilesFolderSelectionBalancesOneSecurityScopeAndRefusesDeniedOrAliasedRootsWithoutSourceChanges \
+              testExactNativeTDTIdentityAndMeasuredCountersRoundTripWithoutInventedComputeClaims \
+              testNativeRuntimeIdentityCannotAuthorizeUnmeasuredGPUOrPrivatePayloadFields \
+              testRemovingModelCanPurgeItsCompletedDownloadCacheWithoutErasingAnotherPinAndRefusesCacheLinks \
+              testFilesImportWithoutDirectoryURLHintLeavesNoOwnedSourceCopiesAfterSuccessfulInstall
+          fi
 
   mvp2-recovery:
-    if: ${{ inputs.mode == 'mvp2-red' || inputs.mode == 'mvp2' || inputs.mode == 'mvp2-integration' }}
+    if: ${{ inputs.mode == 'mvp2-red' || inputs.mode == 'mvp2' || inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet' }}
     runs-on: macos-15-intel
     timeout-minutes: 12
     env:
@@ -150,14 +163,14 @@ jobs:
         run: node --test scripts/tests/whisper-package-policy.test.mjs scripts/tests/package-audit.test.mjs scripts/tests/ios-artifacts.test.mjs
 
   focused-app-metrics:
-    if: ${{ inputs.mode == 'candidate-summary-parts' || inputs.mode == 'model-catalog' || inputs.mode == 'model-integration' || inputs.mode == 'model-repair' || inputs.mode == 'model-delivery' || inputs.mode == 'mvp2-integration' }}
+    if: ${{ inputs.mode == 'candidate-summary-parts' || inputs.mode == 'model-catalog' || inputs.mode == 'model-integration' || inputs.mode == 'model-repair' || inputs.mode == 'model-delivery' || inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet' }}
     name: Native focused (${{ matrix.testclass }})
-    runs-on: macos-15-intel
-    timeout-minutes: ${{ (inputs.mode == 'model-delivery' || inputs.mode == 'mvp2-integration') && 18 || 15 }}
+    runs-on: ${{ inputs.mode == 'mvp2-parakeet' && 'macos-15' || 'macos-15-intel' }}
+    timeout-minutes: ${{ (inputs.mode == 'model-delivery' || inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet') && 18 || 15 }}
     strategy:
       fail-fast: false
       matrix:
-        testclass: ${{ fromJSON(inputs.mode == 'mvp2-integration' && '["NativeMVP2LibraryTests"]' || inputs.mode == 'model-delivery' && '["MVP1Services"]' || (inputs.mode == 'model-integration' || inputs.mode == 'model-repair') && '["NativeAppMetricsTests","NativeModelResourceTests"]' || '["NativeAppMetricsTests"]') }}
+        testclass: ${{ fromJSON((inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet') && '["NativeMVP2LibraryTests"]' || inputs.mode == 'model-delivery' && '["MVP1Services"]' || (inputs.mode == 'model-integration' || inputs.mode == 'model-repair') && '["NativeAppMetricsTests","NativeModelResourceTests"]' || '["NativeAppMetricsTests"]') }}
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
       NATIVE_TEST_CLASS: ${{ matrix.testclass }}
@@ -211,6 +224,8 @@ jobs:
           set -euo pipefail
           if [ "$NATIVE_TEST_CLASS" = MVP1Services ]; then
             native_cases=(-only-testing:LocalMinutesAppTests/NativeAppMetricsTests -only-testing:LocalMinutesAppTests/NativeModelResourceTests)
+          elif [ "$NATIVE_TEST_CLASS" = NativeMVP2LibraryTests ]; then
+            native_cases=(-only-testing:LocalMinutesAppTests/NativeMVP2LibraryTests -only-testing:LocalMinutesAppTests/NativeMVP2AdmissionRaceTests)
           else
             native_cases=("-only-testing:LocalMinutesAppTests/$NATIVE_TEST_CLASS")
           fi
@@ -241,7 +256,10 @@ jobs:
               testRestoringClosedBackupRebindsAppServicesAndOwnerWhilePreservingPreviousLibraryAndModels \
               testRestoreRefusesSharedRecordingAdmissionBeforeClosingOrReplacingCurrentData \
               testInvalidSelectedGenerationFailsWithoutFallingBackToOrRewritingLegacyData \
-              testAppDeleteMeetingRemovesAudioTranscriptNotesSummaryAnswersAndPendingCacheAndRefreshesSelection
+              testAppDeleteMeetingRemovesAudioTranscriptNotesSummaryAnswersAndPendingCacheAndRefreshesSelection \
+              testSecondMeetingEnduranceSamplingCannotRetainThePriorEpochOriginOrCountersDuringPreparation \
+              testActualSQLiteBlockedDeletionOwnsTheSharedHeavyGateUntilCacheAndMetadataCleanupSettle \
+              testPlaybackHeldAfterIdleSnapshotCannotActivateAfterLibraryRestoreAdmission
           elif [ "$NATIVE_TEST_CLASS" = NativeModelResourceTests ]; then
             node scripts/verify-test-log.mjs .agent-local/focused-app-metrics.log testModelResourcesReadActualVolumeAndPhysicalRAMWithoutFabricatedCapacity testModelResourcesDoNotInventFreeStorageForAnUnusablePath
           else
@@ -255,7 +273,7 @@ jobs:
           fi
 
   actual-summary-resume:
-    if: ${{ inputs.mode == 'mvp2-integration' }}
+    if: ${{ inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet' }}
     runs-on: macos-15-intel
     timeout-minutes: 18
     env:
@@ -281,6 +299,43 @@ jobs:
       - name: Require actual inference and durable resume assertions
         if: always()
         run: node scripts/verify-test-log.mjs .build/actual-summary-resume.log testActualPhiValidatedMapsSurviveCancelledCommitAndReopenedServiceCommitsWithoutRegeneration
+
+  native-parakeet:
+    if: ${{ inputs.mode == 'mvp2-parakeet' }}
+    runs-on: macos-15
+    timeout-minutes: 18
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Prepare only exact v2 Core ML assets and licensed speech
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 docs/drafts/T17/prepare_native_summary.py --framework-only
+          python3 docs/drafts/T10/prepare_native_parakeet_fixture.py
+      - name: Exercise native Core ML TDT and actual selected capture
+        shell: bash
+        run: |
+          set -euo pipefail
+          export LOCALMINUTES_PARAKEET_COREML_MODEL_DIRECTORY="$PWD/.agent-local/parakeet-coreml-fixtures/model"
+          export LOCALMINUTES_PARAKEET_COREML_FIXTURE_PATH="$PWD/.agent-local/parakeet-coreml-fixtures/6930-75918-0000.flac"
+          mkdir -p .build
+          swift test --filter 'ASRTests[.](CoreMLParakeetRecognizerTests|SelectedCoreMLParakeetLiveSessionTests)' 2>&1 | tee .build/native-parakeet.log
+      - name: Require real native inference contracts without skip
+        if: always()
+        shell: bash
+        run: |
+          node scripts/verify-test-log.mjs .build/native-parakeet.log \
+            testActualParakeetLoadsOnCPUAndNativeCallsStayOnOwnedWorker \
+            testDisjointWindowsPublishRealSpeechBeforeStopAndFlushTailExactlyOnce \
+            testCancellationIsEpochScopedAndUnloadAllowsFreshActualRecognition \
+            testInvalidPCMAndGapsCannotAdvanceActualNativeTimeline \
+            testUnverifiedModelIsRejectedBeforeAnyNativeConstructor \
+            testEquippedNativeParakeetPublishesLicensedSpeechDuringCaptureAndPersistsCapturedPin
 
   selected-model-integration:
     if: ${{ inputs.mode == 'model-integration' || inputs.mode == 'model-repair' || inputs.mode == 'model-delivery' }}

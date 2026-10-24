@@ -75,6 +75,51 @@ private final class FileScopeProbe: ModelFileSecurityScope, @unchecked Sendable 
 
 @MainActor
 final class ModelTransferIntegrationTests: XCTestCase {
+    func testFilesImportWithoutDirectoryURLHintLeavesNoOwnedSourceCopiesAfterSuccessfulInstall() async throws {
+        try await fixture { f in
+            let manager = f.factory().makeManager()
+            let path = f.app.appendingPathComponent("ModelImports", isDirectory: true)
+            try FileManager.default.createDirectory(at: path, withIntermediateDirectories: false)
+            let noHint = URL(fileURLWithPath: path.path, isDirectory: false)
+            let importer = ModelFilesImporter(manager: manager, stagingRootURL: noHint)
+            let access = FileScopeProbe()
+            let before = try f.sourceSnapshot()
+            let model = try await importer.importFiles(f.files, manifest: f.speechManifest, access: access)
+            XCTAssertEqual(model.manifest, f.speechManifest)
+            XCTAssertEqual(try f.importOperations(), [], "Directory URL spelling cannot retain potentially multi-GB source copies")
+            XCTAssertEqual(try f.sourceSnapshot(), before)
+            assertBalanced(access)
+        }
+    }
+
+    func testRemovingModelCanPurgeItsCompletedDownloadCacheWithoutErasingAnotherPinAndRefusesCacheLinks() async throws {
+        try await fixture { f in
+            let factory = f.factory()
+            let manager = factory.makeManager()
+            TransferHTTPProtocol.state.reset(.init(status: 200,
+                headers: ["Content-Length": "\(f.downloadBytes.count)", "ETag": "\"complete-v1\""],
+                bytes: f.downloadBytes, interrupted: false))
+            _ = try await manager.download(f.downloadManifest)
+            let cached = try factory.checkpointDirectory(for: f.artifact)
+            XCTAssertTrue(FileManager.default.fileExists(atPath: cached.appendingPathComponent("partial.bin").path))
+            let other = try factory.checkpointDirectory(for: f.changedArtifact(name: "different.gguf"))
+            try FileManager.default.createDirectory(at: other, withIntermediateDirectories: false)
+            let sentinel = other.appendingPathComponent("partial.bin")
+            try Data("Other model download".utf8).write(to: sentinel)
+            try await manager.remove(modelID: f.downloadManifest.modelID)
+            try factory.discardProgress(for: f.downloadManifest)
+            XCTAssertFalse(FileManager.default.fileExists(atPath: cached.path), "Remove must free retained weights as well as the installation")
+            XCTAssertEqual(try Data(contentsOf: sentinel), Data("Other model download".utf8))
+            // Independent unsafe cache after the success path must fail closed.
+            if FileManager.default.fileExists(atPath: cached.path) { try FileManager.default.removeItem(at: cached) }
+            try FileManager.default.createSymbolicLink(at: cached, withDestinationURL: other)
+            XCTAssertThrowsError(try factory.discardProgress(for: f.downloadManifest))
+            XCTAssertEqual(try Data(contentsOf: sentinel), Data("Other model download".utf8))
+            let removed = try await manager.current(modelID: f.downloadManifest.modelID)
+            XCTAssertNil(removed)
+        }
+    }
+
     func testResumeCacheIsStableOwnedAndDistinctForEveryArtifactPinAcrossFactoryReopen() async throws {
         try await fixture { f in
             let first = f.factory()
