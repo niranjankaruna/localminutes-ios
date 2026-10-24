@@ -3,15 +3,15 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T12:12:16.729Z",
+  "lastUpdated": "2026-10-24T12:57:19.624Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "T21.MVP_BUILD delivered; owner-requested pause",
+  "currentTask": "Paused for workstation restart; resumed functional batch saved uncompiled",
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "PAUSED by owner after MVP delivery. Owner can install build/delivery/MVP-40092475736 using MVP_INSTALL_WINDOWS.md. Do not dispatch tests, CI, feature work or continuation until explicit resume. On resume, inspect preserved0181b31 RED and unverified3e25aae WIP; full baseline still needs native app/metrics/gate/UI/model-quality and physical signing/locked/renewal evidence.",
+  "nextAction": "WAIT for explicit owner resume after reboot. Then read required docs and inspect saved WIP; finish summary/Q&A app screens and real default shared model wiring, integrate exact storageDirectory into production signal monitor, review current pressure/native logging changes, and make one batched build under owner no-per-change-testing preference. Existing delivered MVP remains build/delivery/MVP-40092475736; no replacement IPA created in this resumed batch.",
   "pendingPushCommit": null,
   "remoteBranchHead": "3e25aae6117b9cad9d0251bded2f345b3155bdcf",
   "localScriptGreen": {
@@ -1093,7 +1093,7 @@
   },
   "executionPausedByOwner": true,
   "goalPauseAuthorized": true,
-  "goalPauseReason": "Owner approved up to60moreminutes for MVP package then pause, then explicitly stopped further testing. Package/download/handoff completed within cap.",
+  "goalPauseReason": "Owner requested pause to restart the workstation, then asked for confirmation. All3workers interrupted; no active build or test run.",
   "mvpArtifact": {
     "status": "READY_FOR_DEVICE_VALIDATION",
     "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
@@ -1119,5 +1119,22 @@
     "physicalDeviceValidation": "NOT_RUN",
     "evidence": "docs/evidence/MVP_DELIVERY_2026_10_24.md"
   },
-  "candidateArtifactReason": "Retained MVP build is recorded separately in mvpArtifact; full-baseline verified candidate is not ready."
+  "candidateArtifactReason": "Retained MVP build is recorded separately in mvpArtifact; full-baseline verified candidate is not ready.",
+  "resumedBatch": {
+    "startedAt": "2026-10-24T12:46:18Z",
+    "pausedAt": "2026-10-24T12:57:19.624Z",
+    "reason": "Owner workstation restart",
+    "testsExecuted": 0,
+    "newCIRuns": 0,
+    "sourceBuildVerified": false,
+    "files": [
+      "App/IOSRecordingSignalMonitor.swift",
+      "Recording/IOSCaptureHardware.swift",
+      "Recording/RecordingSessionOwner.swift",
+      "Summaries/LocalSummaryRuntime.swift",
+      "Transcription/LiveTranscriptionSession.swift"
+    ],
+    "scope": "WIP low-space reserve/polling, route/thermal monitoring, fresh capture engine, scoped failure interruption and bounded native logging. No new compile/device result. Summary/Q&A UI and default Services wiring were being inspected but no source edits were made for those yet.",
+    "workers": "All3interrupted; no automatic continuation authorized until owner resumes."
+  }
 }

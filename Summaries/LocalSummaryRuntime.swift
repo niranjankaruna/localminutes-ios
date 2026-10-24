@@ -14,7 +14,14 @@ private enum SummaryGenerationFailureStage: String {
 }
 
 private enum SummaryNativeBackend {
-    static let initialized: Void = { llama_backend_init() }()
+    static let initialized: Void = {
+        // The pinned libraries otherwise emit full model paths and native
+        // details. Keep their own callbacks quiet before any backend/model load;
+        // application failures remain typed and diagnostics contain counts only.
+        llama_log_set({ _, _, _ in }, nil)
+        ggml_log_set({ _, _, _ in }, nil)
+        llama_backend_init()
+    }()
 }
 
 private final class SummaryCancellation: @unchecked Sendable {
@@ -216,7 +223,10 @@ public actor LocalSummaryRuntime {
         #if DEBUG
         // One bounded metadata row per failure. Never emit prompt/output bytes,
         // source identifiers, paths or token IDs. Zero status means no C status.
-        print("LOCALMINUTES_SUMMARY_FAILURE stage=\(stage.rawValue) inputTokens=\(inputTokens) maxOutput=\(maximumOutput) generatedTokens=\(generatedTokens) outputBytes=\(outputBytes) nativeStatus=\(nativeStatus)")
+        let metadata = "LOCALMINUTES_SUMMARY_FAILURE stage=\(stage.rawValue) inputTokens=\(inputTokens) maxOutput=\(maximumOutput) generatedTokens=\(generatedTokens) outputBytes=\(outputBytes) nativeStatus=\(nativeStatus)\n"
+        // Emit this bounded row directly so a cancelled CI process cannot leave
+        // the failure stage stranded in stdout buffering. No stream redirection.
+        try? FileHandle.standardError.write(contentsOf: Data(metadata.utf8))
         #endif
         return .generationFailed
     }

@@ -283,3 +283,10 @@ Actual build-only run40092475736 SUCCESS at12:07:42UTC. Workflow3e25aae checks o
 Local directory: `build/delivery/MVP-40092475736`. Includes IPA, checksum, manifest, guide and build notes. No model/user/signing data. MVP source already implements recording/localASR/history/notes/playback/search/text-Markdown export; summaries/QA and full baseline unfinished. Full candidateArtifact remainsnull, separate mvpArtifact retained. No physical signing/extension/ActionButton/locked/offline/125minute/renewal/protection pass.
 
 Owner explicitly requested pause after MVP within60minutes; delivery finished before conservative12:52:42UTC cap. Work is checkpointed and no further tests, CI, feature edits or automatic continuation are authorized before explicit resume. Preserved branch WIP remains unverified/excluded from delivered IPA. Project remains IN_PROGRESS.
+
+
+## Paused for workstation restart —24October2026
+
+Owner explicitly requested pause, then confirmation. All3subagents were interrupted. Resumed batch made no CI/test dispatch and no new IPA; last MVP run40092475736 remains SUCCESS. Five source files contain uncompiled WIP: IOSRecordingSignalMonitor, IOSCaptureHardware, RecordingSessionOwner, LocalSummaryRuntime, LiveTranscriptionSession. Low-space/route/thermal/fresh-engine/native logging edits have no compile or physical evidence. Summary/Q&A UI/default-services work was still in inspection and has not been implemented in this resumed batch.
+
+State/backlog saved with exact next action. No background build/test/agent work continues. Resume only on owner request after reboot; finish missing app functionality and integrate/review this WIP before one batched build.

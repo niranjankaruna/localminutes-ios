@@ -96,11 +96,14 @@ public final class RecordingSessionOwner {
         observer?(current?.id)
     }
 
-    public func interrupt(sessionID: UUID) async {
+    public func interrupt(sessionID: UUID, failure: RecordingFailure? = nil) async {
         guard let epoch = current, epoch.id == sessionID else { return }
         // Latch the exact owned epoch before suspension. Late readiness and tap
         // callbacks use that same epoch and cannot acknowledge a saved meeting.
-        if !epoch.cleanupRequested { epoch.interrupted = true }
+        if !epoch.cleanupRequested {
+            epoch.interrupted = true
+            epoch.failure = epoch.failure ?? failure
+        }
         await requestCleanup(epoch)
     }
 

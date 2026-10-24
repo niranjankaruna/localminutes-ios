@@ -32,16 +32,24 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
     private let store: SQLiteMeetingStore
     private let meetingsDirectory: URL
     private let router: TranscriptSinkRouter
+    private let storageReserveBytes: Int64
+    private let availableStorageBytes: @MainActor (URL) throws -> Int64
     @ObservationIgnored private let metrics: TranscriptionMetricsRecorder?
     var metricsRecorder: TranscriptionMetricsRecorder? { metrics }
     @ObservationIgnored private var current: LiveTranscriptEpoch?
 
     public init(models: ModelInstallationManager, store: SQLiteMeetingStore,
-                meetingsDirectory: URL, metrics: TranscriptionMetricsRecorder? = nil) {
+                meetingsDirectory: URL, metrics: TranscriptionMetricsRecorder? = nil,
+                storageReserveBytes: Int64 = 1_000_000_000,
+                availableStorageBytes: @escaping @MainActor (URL) throws -> Int64 = {
+                    try ModelStoragePolicy.availableBytes(at: $0)
+                }) {
         self.models = models
         self.store = store
         self.meetingsDirectory = meetingsDirectory
         self.metrics = metrics
+        self.storageReserveBytes = max(1_000_000_000, storageReserveBytes)
+        self.availableStorageBytes = availableStorageBytes
         let router = TranscriptSinkRouter()
         self.router = router
         normalizedSink = router
@@ -71,9 +79,21 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
     }
 
     private func prepare(_ epoch: LiveTranscriptEpoch) async -> RecordingPreparationResult {
-        var stageFailure = RecordingFailure.modelUnavailable
+        var stageFailure = RecordingFailure.storageFull
         do {
             try Task.checkCancellation()
+            // Installed weights already occupy their volume. Require this much
+            // additional free space before acquiring/loading ASR or creating any
+            // meeting/OS capture resources. Unknown capacity fails closed.
+            guard meetingsDirectory.isFileURL else { throw MeetingStoreError.invalidInput }
+            var capacityURL = meetingsDirectory.standardizedFileURL
+            while !FileManager.default.fileExists(atPath: capacityURL.path), capacityURL.path != "/" {
+                capacityURL.deleteLastPathComponent()
+            }
+            guard try availableStorageBytes(capacityURL) >= storageReserveBytes else {
+                throw LiveRecordingStorageError.insufficientSpace
+            }
+            stageFailure = .modelUnavailable
             let lease = try await models.acquire(modelID: StreamingEnglishModel.manifest.modelID)
             epoch.lease = lease
             let model = lease.model
@@ -315,6 +335,7 @@ private final class LiveTranscriptEpoch {
 }
 
 private struct TranscriptDrain: Sendable { let snapshot: LiveTranscriptSnapshot }
+private enum LiveRecordingStorageError: Error { case insufficientSpace }
 
 private final class TranscriptIngress: Sendable {
     let queue: OwnedPCMQueue

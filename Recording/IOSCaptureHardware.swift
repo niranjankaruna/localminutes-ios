@@ -17,13 +17,13 @@ public enum IOSCaptureHardwareError: Error, Sendable, Equatable {
     case inputUnavailable
 }
 
-/// MainActor owns one stable engine and its installed tap. The runtime owns the
+/// MainActor owns one stable engine per capture epoch and its installed tap. The runtime owns the
 /// callback epoch, closes admission before shutdown, and independently proves
 /// callback quiescence; engine.stop/removeTap do not provide that proof here.
 @MainActor
 public final class IOSCaptureHardware: CaptureHardware {
     private let session: AVAudioSession
-    private let engine: AVAudioEngine
+    private var engine: AVAudioEngine?
     private var sessionActive = false
     private var preparedInput: AVAudioInputNode?
     private var tapInstalled = false
@@ -31,20 +31,23 @@ public final class IOSCaptureHardware: CaptureHardware {
 
     public init() {
         session = AVAudioSession.sharedInstance()
-        engine = AVAudioEngine()
     }
 
     public func activateSession() throws {
-        guard !sessionActive, !tapInstalled, !ownsEngineResources else {
+        guard !sessionActive, !tapInstalled, !ownsEngineResources, engine == nil else {
             throw IOSCaptureHardwareError.invalidState
         }
         try session.setCategory(.record, mode: .measurement, options: [])
         try session.setActive(true)
         sessionActive = true
+        // Media-services reset invalidates old audio objects. Every subsequent
+        // explicit user start creates a fresh engine after prior cleanup; an
+        // orphaned engine is never silently reused or restarted mid-epoch.
+        engine = AVAudioEngine()
     }
 
     public func inputFormat() throws -> AVAudioFormat {
-        guard sessionActive, !tapInstalled, !ownsEngineResources else {
+        guard sessionActive, !tapInstalled, !ownsEngineResources, let engine else {
             throw IOSCaptureHardwareError.invalidState
         }
         // No input node access or assumed preferred sample rate before the
@@ -75,7 +78,7 @@ public final class IOSCaptureHardware: CaptureHardware {
     }
 
     public func startEngine() throws {
-        guard sessionActive, tapInstalled, !ownsEngineResources, !engine.isRunning else {
+        guard sessionActive, tapInstalled, !ownsEngineResources, let engine, !engine.isRunning else {
             throw IOSCaptureHardwareError.invalidState
         }
         // Keep ownership on a failed start, so runtime cleanup still calls
@@ -87,7 +90,7 @@ public final class IOSCaptureHardware: CaptureHardware {
 
     public func stopEngine() {
         guard ownsEngineResources else { return }
-        engine.stop()
+        engine?.stop()
         ownsEngineResources = false
     }
 
@@ -105,6 +108,7 @@ public final class IOSCaptureHardware: CaptureHardware {
         try session.setActive(false, options: [.notifyOthersOnDeactivation])
         sessionActive = false
         preparedInput = nil
+        engine = nil
     }
 }
 #endif

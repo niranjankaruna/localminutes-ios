@@ -1341,8 +1341,8 @@
     }
   ],
   "executionPausedByOwner": true,
-  "resumeAction": "PAUSED by owner after MVP delivery. Owner can install build/delivery/MVP-40092475736 using MVP_INSTALL_WINDOWS.md. Do not dispatch tests, CI, feature work or continuation until explicit resume. On resume, inspect preserved0181b31 RED and unverified3e25aae WIP; full baseline still needs native app/metrics/gate/UI/model-quality and physical signing/locked/renewal evidence.",
-  "lastUpdated": "2026-10-24T12:12:16.729Z",
+  "resumeAction": "WAIT for explicit owner resume after reboot. Then read required docs and inspect saved WIP; finish summary/Q&A app screens and real default shared model wiring, integrate exact storageDirectory into production signal monitor, review current pressure/native logging changes, and make one batched build under owner no-per-change-testing preference. Existing delivered MVP remains build/delivery/MVP-40092475736; no replacement IPA created in this resumed batch.",
+  "lastUpdated": "2026-10-24T12:57:19.624Z",
   "latestVerification": {
     "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
     "runId": 40079629180,
