@@ -83,8 +83,16 @@ public final class RecordingSessionOwner {
     private let beforeReservation: (@MainActor @Sendable () async -> Void)?
     private let usageAdmission: (any RecordingUsageAdmission)?
     private var current: RecordingOwnerEpoch?
+    private var epochObserver: (@MainActor (UUID?) -> Void)?
 
     public private(set) var completedManifest: AudioCaptureManifest?
+
+    /// App-owned notification observation follows resource reservation before
+    /// any model/permission await, and ends only at the combined cleanup barrier.
+    public func setEpochObserver(_ observer: (@MainActor (UUID?) -> Void)?) {
+        epochObserver = observer
+        observer?(current?.id)
+    }
 
     public func interrupt(sessionID: UUID) async {
         guard let epoch = current, epoch.id == sessionID else { return }
@@ -150,10 +158,12 @@ public final class RecordingSessionOwner {
         // Reserve before any suspension, so competing starts cannot create a
         // second preflight/resource set while the actor command is in flight.
         current = epoch
+        epochObserver?(epoch.id)
         completedManifest = nil
         guard let command = await reservation.value, case .prepare = command else {
             if current === epoch, !epoch.cleanupRequested {
                 current = nil
+                epochObserver?(nil)
                 releaseUsage(epoch)
             }
             return
@@ -385,6 +395,7 @@ public final class RecordingSessionOwner {
         guard current === epoch else { return }
         completedManifest = final.phase == .completed && epoch.failure == nil ? epoch.manifest : nil
         current = nil
+        epochObserver?(nil)
         epoch.cleanup = nil
         // Failed cleanup attempts above retain the epoch/token for retry. Only
         // the settled combined barrier may release its shared recording claim.

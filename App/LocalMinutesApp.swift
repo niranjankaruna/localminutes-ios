@@ -5,20 +5,20 @@ import SwiftUI
 @main
 @MainActor
 struct LocalMinutesApp: App {
-    let application = RecordingApplication.shared
-
     var body: some Scene {
         WindowGroup {
             #if DEBUG
-            if ProcessInfo.processInfo.arguments.contains("--ui-test-activity-controls") {
-                RecordingActivityTestScreen(application: application, finished: false)
+            if LibraryUITestFixture.requested {
+                LibraryUITestFixtureRoot()
+            } else if ProcessInfo.processInfo.arguments.contains("--ui-test-activity-controls") {
+                RecordingActivityTestScreen(application: RecordingApplication.shared, finished: false)
             } else if ProcessInfo.processInfo.arguments.contains("--ui-test-activity-finished") {
-                RecordingActivityTestScreen(application: application, finished: true)
+                RecordingActivityTestScreen(application: RecordingApplication.shared, finished: true)
             } else {
-                LocalMinutesHomeView(application: application)
+                LocalMinutesHomeView(application: RecordingApplication.shared)
             }
             #else
-            LocalMinutesHomeView(application: application)
+            LocalMinutesHomeView(application: RecordingApplication.shared)
             #endif
         }
     }

@@ -30,7 +30,7 @@ final class MeetingEvidenceRetrievalTests: XCTestCase {
             XCTAssertEqual(found, [original], "Unicode token normalization must retain the exact original source value")
             try await store.close()
             try withEvidenceSQLite(database) { db in
-                XCTAssertEqual(try evidenceScalar(db, "PRAGMA user_version"), 3)
+                XCTAssertEqual(try evidenceScalar(db, "PRAGMA user_version"), 4)
                 let sql = try evidenceText(db, "SELECT sql FROM sqlite_master WHERE name='transcript_fts'")
                 XCTAssertNotNil(sql, "The actual on-disk FTS5 index must exist after migration")
                 guard let sql else { return }

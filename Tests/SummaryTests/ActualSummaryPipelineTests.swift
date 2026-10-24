@@ -32,7 +32,7 @@ final class ActualSummaryPipelineTests: XCTestCase {
                 return count
             }, generator: { prompt, schema, maximum in
                 let result = try await runtime.generateJSON(prompt: prompt, schema: schema, maximumTokens: maximum)
-                await calls.generated()
+                await calls.generated(result)
                 return result
             })
         let meetingID = UUID(uuidString: "40000000-0000-0000-0000-000000000018")!
@@ -43,6 +43,7 @@ final class ActualSummaryPipelineTests: XCTestCase {
                   text: "Leo: I will write the guide by Thursday.")
         ], originalManualNotes: "Original manual note — Café 📝. Keep this separate from generated text.")
         let before = source
+        let failuresBefore = testRun?.failureCount ?? 0
         do {
             let positive = try await pipeline.summarize(selectedMeetingID: meetingID, source: source)
             XCTAssertEqual(positive.meetingID, meetingID)
@@ -79,10 +80,21 @@ final class ActualSummaryPipelineTests: XCTestCase {
             XCTAssertGreaterThan(observed.tokenized, 0)
             XCTAssertGreaterThanOrEqual(observed.generated, 2,
                                         "Both fixtures require actual model generation, not decoder-only success")
+            if (testRun?.failureCount ?? 0) > failuresBefore { await printFailureDiagnostics(calls) }
             await runtime.unload()
         } catch {
+            await printFailureDiagnostics(calls)
             await runtime.unload()
             throw error
+        }
+    }
+
+    private func printFailureDiagnostics(_ calls: ActualPipelineCallCounter) async {
+        // This fixed, non-sensitive synthetic corpus is the only permitted
+        // source here. Never add production prompts, file paths or user text.
+        let outputs = await calls.failureOutputs()
+        for (index, json) in outputs.enumerated() {
+            print("SYNTHETIC_SUMMARY_MAP_JSON[\(index)] (maximum 4096 characters): \(json)")
         }
     }
 
@@ -110,7 +122,12 @@ final class ActualSummaryPipelineTests: XCTestCase {
 private actor ActualPipelineCallCounter {
     private var tokenizedCount = 0
     private var generatedCount = 0
+    private var outputs: [String] = []
     func tokenized() { tokenizedCount += 1 }
-    func generated() { generatedCount += 1 }
+    func generated(_ json: String) {
+        generatedCount += 1
+        if outputs.count < 4 { outputs.append(String(json.prefix(4_096))) }
+    }
+    func failureOutputs() -> [String] { outputs }
     func snapshot() -> (tokenized: Int, generated: Int) { (tokenizedCount, generatedCount) }
 }

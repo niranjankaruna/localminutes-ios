@@ -3,17 +3,17 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T09:59:33.345Z",
+  "lastUpdated": "2026-10-24T10:39:26.277Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "T12/T13/T18/T19 implementation verification; app retention/storage/admission/regression test-first",
+  "currentTask": "T12/T13/T17/T18 repairs and app-owned intelligence/diagnostics/library test-first",
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "Push source2 after terminal cc5049f run: implement only its17 proven-RED contracts; require actual old/new behavior results at exact SHA. Newly added10core/4native executions remain test-first and require their own assertion RED before storage/admission/app-binding/early-interruption/metrics-reset behavior.",
+  "nextAction": "Push third source after terminal run2. Require292oldcore/65oldnative GREEN, observe bounded QA repair and synthetic summary diagnostics. New app-service4core+1actual/model, appmetrics3native and library3UI remain interfaces only: obtain actual RED before their behavior. Library fixture failure alone does not authorize Summary/Ask UI until fixture data exists and product assertions are reached.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "cc5049f4bad993bb0bd7cdee9603a12a34f56304",
+  "remoteBranchHead": "8ae153b615bda64c77568ddf1f49f0af504f64f1",
   "localScriptGreen": {
     "sourceCommit": "cc5049f4bad993bb0bd7cdee9603a12a34f56304",
     "platform": "Windows11/Node24.21.0",
@@ -33,7 +33,8 @@
     "id": "2026-10-24-continuation-09",
     "maxNewRuns": 6,
     "newRunIds": [
-      40082088572
+      40082088572,
+      40084170930
     ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-24T09:27:50.539Z",
@@ -45,11 +46,11 @@
     }
   },
   "latestCIRun": {
-    "sourceCommit": "cc5049f4bad993bb0bd7cdee9603a12a34f56304",
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40082088572",
+    "sourceCommit": "8ae153b615bda64c77568ddf1f49f0af504f64f1",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40084170930",
     "status": "completed",
     "conclusion": "failure",
-    "ordinal": 1
+    "ordinal": 2
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -121,7 +122,7 @@
     "T08.4",
     "T08.5"
   ],
-  "remoteBranchHeadScope": "Test-first source pushed and live remote HEAD verified",
+  "remoteBranchHeadScope": "Second source pushed; live HTTPS remote HEAD equals local",
   "nativeCompileRepair": {
     "status": "CODE_COMPLETE_PENDING_DEVICE",
     "candidatePath": "docs/drafts/T06.1/ActivityKitOperations.swift.pending",
@@ -218,7 +219,7 @@
     "latestRunUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180"
   },
   "activeCIRun": null,
-  "pendingPushScope": "Reviewed current17 RED implementations plus new unimplemented test-first APIs/regressions. No actual-model GREEN claim yet.",
+  "pendingPushScope": null,
   "repositoryVisibility": "PUBLIC",
   "publication": {
     "approvedByOwner": true,
@@ -830,7 +831,12 @@
       "xcresultAgrees": true
     },
     "nativeRedVerified": true,
-    "greenVerified": false
+    "greenVerified": false,
+    "coreGreen": {
+      "sourceCommit": "8ae153b615bda64c77568ddf1f49f0af504f64f1",
+      "runId": 40084170930,
+      "scope": "All original282 core cases pass, including previous13 new cases. Native/actual-model integration still live."
+    }
   },
   "continuation09NextBatch": {
     "newCore": 10,
@@ -842,7 +848,64 @@
     "expectedTSAN": 86,
     "testFirst": true,
     "redVerified": false,
+    "productionImplemented": true,
+    "scope": "Generated storage4 + heavy admission4 + early model-preparation interruption1 + actual metrics epoch reuse1; native app-retention/reset3 plus shared early-owner1. New behavior is no-op/unfixed until next exact-source assertions.",
+    "sourceCommit": "8ae153b615bda64c77568ddf1f49f0af504f64f1",
+    "runId": 40084170930,
+    "coreRedVerified": true,
+    "coreRed": {
+      "sourceCommit": "8ae153b615bda64c77568ddf1f49f0af504f64f1",
+      "runId": 40084170930,
+      "jobId": 120843597924,
+      "executed": 292,
+      "passed": 282,
+      "failed": 10,
+      "assertionFailures": 93,
+      "skipped": 0
+    },
+    "nativeRedVerified": true,
+    "nativeRed": {
+      "sourceCommit": "8ae153b615bda64c77568ddf1f49f0af504f64f1",
+      "runId": 40084170930,
+      "jobId": 120843597949,
+      "executed": 65,
+      "passed": 61,
+      "failed": 4,
+      "assertionFailures": 22,
+      "skipped": 0,
+      "xcresultAgrees": true
+    },
+    "greenVerified": false
+  },
+  "actualModelPipelineQuality": {
+    "status": "IN_PROGRESS",
+    "sourceCommit": "8ae153b615bda64c77568ddf1f49f0af504f64f1",
+    "runId": 40084170930,
+    "jobId": 120843597706,
+    "executed": 7,
+    "passed": 5,
+    "failed": 2,
+    "assertionFailures": 6,
+    "unexpected": 1,
+    "skipped": 0,
+    "positiveObservations": "Fixed positive decision/action pipeline assertions and selected budget42000 answer pass. All5 original/runtime/capacity cases pass.",
+    "failedObservations": "Raw QA unknown-owner response is supported_quote with exact undecided statement instead of refusal (5assertions). Unknown summary fixture throws unsupportedClaim at line85 (1unexpected); exact generated field not yet captured.",
+    "qaUnknownRepairAttempts": 1,
+    "pipelineUnknownRepairAttempts": 0,
+    "pipelineDiagnosticsAdded": true
+  },
+  "continuation09AppBatch": {
+    "newCore": 4,
+    "newActualModel": 1,
+    "newNative": 3,
+    "newUI": 3,
+    "expectedCore": 296,
+    "expectedActualModel": 8,
+    "expectedNative": 68,
+    "expectedUI": 6,
+    "expectedTSAN": 86,
+    "redVerified": false,
     "productionImplemented": false,
-    "scope": "Generated storage4 + heavy admission4 + early model-preparation interruption1 + actual metrics epoch reuse1; native app-retention/reset3 plus shared early-owner1. New behavior is no-op/unfixed until next exact-source assertions."
+    "fixtureHarnessOnly": true
   }
 }

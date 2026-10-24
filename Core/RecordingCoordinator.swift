@@ -119,11 +119,11 @@ public actor RecordingCoordinator {
 
     public func interrupt(for id: UUID) -> RecordingCommand? {
         guard id == sessionID, !cleanupPending else { return nil }
-        guard phase == .recording || (phase == .preparing && activationIssued) else { return nil }
+        guard phase == .recording || phase == .preparing else { return nil }
         phase = .interrupted
         cleanupPending = true
         readiness = .init()
-        return .stopAndFlush(id)
+        return activationIssued ? .stopAndFlush(id) : .cancelPreparation(id)
     }
 
     public func fail(_ failure: RecordingFailure, for id: UUID) -> RecordingCommand? {

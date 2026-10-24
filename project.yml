@@ -28,6 +28,8 @@ targets:
       - Transcription
       - MeetingLibrary
       - Summaries
+      - QuestionAnswering
+      - Intelligence
       - Shared
     info:
       path: App/Info.plist

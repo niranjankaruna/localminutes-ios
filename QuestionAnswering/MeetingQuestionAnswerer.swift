@@ -201,6 +201,12 @@ public struct MeetingQuestionAnswerer: Sendable {
         paraphrase, combine sources, use outside knowledge, or infer missing facts.
         A speaker label alone does not establish responsibility. Unknown,
         undecided, missing or ambiguous requested facts are insufficient evidence.
+        Decide whether the requested fact is known before selecting a quote.
+        A source saying that the requested fact is unknown, absent or undecided
+        does not supply that fact. Even if that statement can be quoted exactly,
+        it must produce status "insufficient_evidence", source_id "none", and
+        an empty quote. Use "supported_quote" only when the quote supplies the
+        requested known fact, rather than a statement that no answer is known.
         Return exactly one JSON object with keys in this order:
         status: "supported_quote" or "insufficient_evidence";
         source_id: the quoted source's identifier, or "none" for insufficient evidence;

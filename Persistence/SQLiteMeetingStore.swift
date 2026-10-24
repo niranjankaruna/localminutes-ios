@@ -285,6 +285,150 @@ public actor SQLiteMeetingStore {
             editRevision: revision, modifiedAt: Date(timeIntervalSince1970: timestamp))
     }
 
+    /// One immutable generated original, with a separate initial display value.
+    /// A duplicate can only replay the exact initial record; it never replaces
+    /// later user edits, original JSON bytes, or generation provenance.
+    public func createGeneratedDocument(_ document: StoredGeneratedDocument) throws {
+        let database = try connection.database()
+        try validateGeneratedDocument(document, initialRevision: true)
+        try connection.transaction {
+            guard try readMeeting(id: document.meetingID, database: database) != nil else {
+                throw GeneratedDocumentStoreError.notFound
+            }
+            if let previous = try readGeneratedDocument(id: document.id, meetingID: nil, database: database) {
+                guard previous == document,
+                      Data(previous.editedText.utf8) == Data(document.editedText.utf8),
+                      previous.question.map({ Data($0.utf8) }) == document.question.map({ Data($0.utf8) }),
+                      Data(previous.modelRevision.utf8) == Data(document.modelRevision.utf8),
+                      Data(previous.promptVersion.utf8) == Data(document.promptVersion.utf8) else {
+                    throw GeneratedDocumentStoreError.immutableConflict
+                }
+                return
+            }
+            let statement = try MeetingSQLiteStatement(database: database, sql:
+                "INSERT INTO generated_documents(id,meeting_id,kind,original_json,question,edited_text,edit_revision,model_revision,prompt_version,created_at,modified_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)")
+            try statement.bind(document.id.uuidString, at: 1)
+            try statement.bind(document.meetingID.uuidString, at: 2)
+            try statement.bind(document.kind.rawValue, at: 3)
+            try statement.bind(document.originalJSON, at: 4)
+            try statement.bind(document.question, at: 5)
+            try statement.bind(document.editedText, at: 6)
+            try statement.bind(document.editRevision, at: 7)
+            try statement.bind(document.modelRevision, at: 8)
+            try statement.bind(document.promptVersion, at: 9)
+            try statement.bind(document.createdAt.timeIntervalSince1970, at: 10)
+            try statement.bind(document.modifiedAt.timeIntervalSince1970, at: 11)
+            try statement.finish()
+        }
+    }
+
+    public func generatedDocument(id: UUID, meetingID: UUID) throws -> StoredGeneratedDocument? {
+        try readGeneratedDocument(id: id, meetingID: meetingID, database: connection.database())
+    }
+
+    public func generatedDocuments(meetingID: UUID, kind: GeneratedDocumentKind? = nil,
+                                   limit: Int = 50) throws -> [StoredGeneratedDocument] {
+        let database = try connection.database()
+        guard (1...1_000).contains(limit) else { throw GeneratedDocumentStoreError.invalidInput }
+        let statement = try MeetingSQLiteStatement(database: database, sql:
+            "SELECT \(Self.generatedDocumentColumns) FROM generated_documents WHERE meeting_id=? AND (? IS NULL OR kind=?) ORDER BY created_at DESC,id ASC LIMIT ?")
+        try statement.bind(meetingID.uuidString, at: 1)
+        try statement.bind(kind?.rawValue, at: 2)
+        try statement.bind(kind?.rawValue, at: 3)
+        try statement.bind(Int64(limit), at: 4)
+        var documents: [StoredGeneratedDocument] = []
+        while try statement.next() { documents.append(try decodeGeneratedDocument(statement)) }
+        return documents
+    }
+
+    /// Compare-and-swap modifies only the user's display text and edit metadata.
+    /// Meeting identity and expected revision are part of the bound SQL update,
+    /// inside the same transaction as validation and the returned durable value.
+    public func saveGeneratedDocumentEdit(id: UUID, meetingID: UUID, text: String,
+                                          expectedRevision: Int64, modifiedAt: Date) throws -> StoredGeneratedDocument {
+        let database = try connection.database()
+        let (nextRevision, overflow) = expectedRevision.addingReportingOverflow(1)
+        guard expectedRevision >= 0, !overflow, modifiedAt.timeIntervalSince1970.isFinite,
+              text.utf8.count <= Self.maximumGeneratedBytes else { throw GeneratedDocumentStoreError.invalidInput }
+        var committed: StoredGeneratedDocument?
+        try connection.transaction {
+            guard let current = try readGeneratedDocument(id: id, meetingID: meetingID, database: database) else {
+                throw GeneratedDocumentStoreError.notFound
+            }
+            guard current.editRevision == expectedRevision else { throw GeneratedDocumentStoreError.staleRevision }
+            let statement = try MeetingSQLiteStatement(database: database, sql:
+                "UPDATE generated_documents SET edited_text=?,edit_revision=?,modified_at=? WHERE id=? AND meeting_id=? AND edit_revision=?")
+            try statement.bind(text, at: 1)
+            try statement.bind(nextRevision, at: 2)
+            try statement.bind(modifiedAt.timeIntervalSince1970, at: 3)
+            try statement.bind(id.uuidString, at: 4)
+            try statement.bind(meetingID.uuidString, at: 5)
+            try statement.bind(expectedRevision, at: 6)
+            try statement.finish()
+            guard sqlite3_changes(database) == 1 else { throw GeneratedDocumentStoreError.staleRevision }
+            committed = try readGeneratedDocument(id: id, meetingID: meetingID, database: database)
+            guard committed != nil else { throw MeetingStoreError.databaseFailure }
+        }
+        guard let committed else { throw MeetingStoreError.databaseFailure }
+        return committed
+    }
+
+    private static let maximumGeneratedBytes = 1_048_576
+    private static let generatedDocumentColumns = "id,meeting_id,kind,original_json,question,edited_text,edit_revision,model_revision,prompt_version,created_at,modified_at"
+
+    private func readGeneratedDocument(id: UUID, meetingID: UUID?,
+                                        database: OpaquePointer) throws -> StoredGeneratedDocument? {
+        let statement = try MeetingSQLiteStatement(database: database, sql:
+            "SELECT \(Self.generatedDocumentColumns) FROM generated_documents WHERE id=? AND (? IS NULL OR meeting_id=?)")
+        try statement.bind(id.uuidString, at: 1)
+        try statement.bind(meetingID?.uuidString, at: 2)
+        try statement.bind(meetingID?.uuidString, at: 3)
+        guard try statement.next() else { return nil }
+        return try decodeGeneratedDocument(statement)
+    }
+
+    private func decodeGeneratedDocument(_ statement: MeetingSQLiteStatement) throws -> StoredGeneratedDocument {
+        guard let id = UUID(uuidString: try statement.text(at: 0)),
+              let meetingID = UUID(uuidString: try statement.text(at: 1)),
+              let kind = GeneratedDocumentKind(rawValue: try statement.text(at: 2)) else {
+            throw MeetingStoreError.databaseFailure
+        }
+        let document = StoredGeneratedDocument(id: id, meetingID: meetingID, kind: kind,
+            originalJSON: try statement.blob(at: 3, maximumBytes: Self.maximumGeneratedBytes),
+            question: try statement.optionalText(at: 4), editedText: try statement.text(at: 5),
+            editRevision: try statement.integer(at: 6), modelRevision: try statement.text(at: 7),
+            promptVersion: try statement.text(at: 8), createdAt: Date(timeIntervalSince1970: try statement.real(at: 9)),
+            modifiedAt: Date(timeIntervalSince1970: try statement.real(at: 10)))
+        do { try validateGeneratedDocument(document, initialRevision: false) }
+        catch { throw MeetingStoreError.databaseFailure }
+        return document
+    }
+
+    private func validateGeneratedDocument(_ document: StoredGeneratedDocument, initialRevision: Bool) throws {
+        guard document.editRevision >= 0, !initialRevision || document.editRevision == 0,
+              document.createdAt.timeIntervalSince1970.isFinite, document.modifiedAt.timeIntervalSince1970.isFinite,
+              !document.originalJSON.isEmpty, document.originalJSON.count <= Self.maximumGeneratedBytes,
+              String(data: document.originalJSON, encoding: .utf8) != nil,
+              document.editedText.utf8.count <= Self.maximumGeneratedBytes,
+              !document.modelRevision.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              document.modelRevision.utf8.count <= 256,
+              !document.promptVersion.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              document.promptVersion.utf8.count <= 128 else { throw GeneratedDocumentStoreError.invalidInput }
+        switch document.kind {
+        case .summary:
+            guard document.question == nil else { throw GeneratedDocumentStoreError.invalidInput }
+        case .questionAnswer:
+            guard let question = document.question,
+                  !question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                  question.utf8.count <= 8_192 else { throw GeneratedDocumentStoreError.invalidInput }
+        }
+        do {
+            guard try JSONSerialization.jsonObject(with: document.originalJSON) is [String: Any] else {
+                throw GeneratedDocumentStoreError.invalidInput
+            }
+        } catch { throw GeneratedDocumentStoreError.invalidInput }
+    }
+
     private func readMeeting(id: UUID, database: OpaquePointer) throws -> MeetingRecord? {
         let statement = try MeetingSQLiteStatement(database: database, sql:
             "SELECT id,title,created_at,recording_state,captured_sample_count FROM meetings WHERE id=?")

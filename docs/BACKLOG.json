@@ -752,6 +752,18 @@
           "greenEvidence": [],
           "deviceEvidence": [],
           "scope": "Test-first interfaces and reviewed tests activated; compiled assertion RED pending. No new working behavior."
+        },
+        {
+          "id": "T13.2",
+          "title": "Default app metric recorder, visibility and protected diagnostics",
+          "status": "IN_PROGRESS",
+          "testCount": 3,
+          "redEvidence": [
+            "docs/evidence/T12_T13_T18_T19_TDD.md"
+          ],
+          "greenEvidence": [],
+          "deviceEvidence": [],
+          "scope": "Test-first minimal interfaces only; no implementation before compatible assertions. UI fixture RED is separate from product UI RED."
         }
       ],
       "redEvidence": [],
@@ -811,7 +823,20 @@
         "Test empty/loading/error states, search isolation, rename/delete and transcript presentation.",
         "Implement native accessible UI and full local history without login."
       ],
-      "childTasks": [],
+      "childTasks": [
+        {
+          "id": "T15.1",
+          "title": "Real library fixture harness and native product flows",
+          "status": "IN_PROGRESS",
+          "testCount": 3,
+          "redEvidence": [
+            "docs/evidence/T12_T13_T18_T19_TDD.md"
+          ],
+          "greenEvidence": [],
+          "deviceEvidence": [],
+          "scope": "Test-first minimal interfaces only; no implementation before compatible assertions. UI fixture RED is separate from product UI RED."
+        }
+      ],
       "redEvidence": [
         "docs/evidence/T10_T11_TDD.md"
       ],
@@ -1048,6 +1073,18 @@
           "greenEvidence": [],
           "deviceEvidence": [],
           "scope": "Active test-first interfaces only; compatible assertion RED pending. No working behavior before RED."
+        },
+        {
+          "id": "T18.5",
+          "title": "App-owned actual-backed intelligence with durable generated results",
+          "status": "IN_PROGRESS",
+          "testCount": 5,
+          "redEvidence": [
+            "docs/evidence/T12_T13_T18_T19_TDD.md"
+          ],
+          "greenEvidence": [],
+          "deviceEvidence": [],
+          "scope": "Test-first minimal interfaces only; no implementation before compatible assertions. UI fixture RED is separate from product UI RED."
         }
       ],
       "redEvidence": [],
@@ -1242,8 +1279,8 @@
     }
   ],
   "executionPausedByOwner": false,
-  "resumeAction": "Push source2 after terminal cc5049f run: implement only its17 proven-RED contracts; require actual old/new behavior results at exact SHA. Newly added10core/4native executions remain test-first and require their own assertion RED before storage/admission/app-binding/early-interruption/metrics-reset behavior.",
-  "lastUpdated": "2026-10-24T09:59:33.345Z",
+  "resumeAction": "Push third source after terminal run2. Require292oldcore/65oldnative GREEN, observe bounded QA repair and synthetic summary diagnostics. New app-service4core+1actual/model, appmetrics3native and library3UI remain interfaces only: obtain actual RED before their behavior. Library fixture failure alone does not authorize Summary/Ask UI until fixture data exists and product assertions are reached.",
+  "lastUpdated": "2026-10-24T10:39:26.277Z",
   "latestVerification": {
     "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
     "runId": 40079629180,

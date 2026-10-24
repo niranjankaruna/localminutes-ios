@@ -34,7 +34,7 @@ final class MeetingSQLiteConnection {
         handle = opened
         do {
             let version = try schemaVersion()
-            guard version == 0 || version == 1 || version == 2 || version == 3 else {
+            guard version == 0 || version == 1 || version == 2 || version == 3 || version == 4 else {
                 throw MeetingStoreError.unsupportedSchemaVersion(Int(version))
             }
             try PersistentFilePolicy.protectItem(databaseURL, within: directory)
@@ -115,6 +115,30 @@ final class MeetingSQLiteConnection {
                     // indexes all preexisting v1/v2 finalized rows exactly once.
                     try execute("INSERT INTO transcript_fts(transcript_fts) VALUES('rebuild')")
                     try execute("PRAGMA user_version=3")
+                }
+            }
+            if version < 4 {
+                try transaction {
+                    // Generated originals and user edits have their own meeting
+                    // ownership. This migration never rewrites source text,
+                    // manual notes, or the existing external-content FTS index.
+                    try execute("""
+                        CREATE TABLE generated_documents(
+                            id TEXT NOT NULL PRIMARY KEY,
+                            meeting_id TEXT NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
+                            kind TEXT NOT NULL CHECK(kind IN ('summary','question_answer')),
+                            original_json BLOB NOT NULL CHECK(length(original_json) BETWEEN 1 AND 1048576),
+                            question TEXT,
+                            edited_text TEXT NOT NULL,
+                            edit_revision INTEGER NOT NULL CHECK(edit_revision>=0),
+                            model_revision TEXT NOT NULL,
+                            prompt_version TEXT NOT NULL,
+                            created_at REAL NOT NULL,
+                            modified_at REAL NOT NULL
+                        )
+                        """)
+                    try execute("CREATE INDEX generated_documents_history ON generated_documents(meeting_id,created_at DESC,id ASC)")
+                    try execute("PRAGMA user_version=4")
                 }
             }
             try Self.protectDatabaseFiles(at: databaseURL, within: directory)
@@ -213,6 +237,24 @@ final class MeetingSQLiteStatement {
         }
     }
 
+    func bind(_ value: String?, at index: Int32) throws {
+        if let value { try bind(value, at: index) }
+        else if sqlite3_bind_null(handle, index) != SQLITE_OK { throw MeetingStoreError.databaseFailure }
+    }
+
+    func bind(_ value: Data, at index: Int32) throws {
+        guard let length = Int32(exactly: value.count) else { throw MeetingStoreError.invalidInput }
+        let result: Int32
+        if value.isEmpty { result = sqlite3_bind_zeroblob(handle, index, 0) }
+        else {
+            result = value.withUnsafeBytes { bytes in
+                sqlite3_bind_blob(handle, index, bytes.baseAddress, length,
+                    unsafeBitCast(-1, to: sqlite3_destructor_type.self))
+            }
+        }
+        guard result == SQLITE_OK else { throw MeetingStoreError.databaseFailure }
+    }
+
     func bind(_ value: Double, at index: Int32) throws {
         guard sqlite3_bind_double(handle, index, value) == SQLITE_OK else {
             throw MeetingStoreError.databaseFailure
@@ -245,6 +287,20 @@ final class MeetingSQLiteStatement {
             throw MeetingStoreError.databaseFailure
         }
         return sqlite3_column_int64(handle, index)
+    }
+
+    func optionalText(at index: Int32) throws -> String? {
+        if sqlite3_column_type(handle, index) == SQLITE_NULL { return nil }
+        return try text(at: index)
+    }
+
+    func blob(at index: Int32, maximumBytes: Int) throws -> Data {
+        guard sqlite3_column_type(handle, index) == SQLITE_BLOB else { throw MeetingStoreError.databaseFailure }
+        let length = Int(sqlite3_column_bytes(handle, index))
+        guard maximumBytes >= 0, length >= 0, length <= maximumBytes else { throw MeetingStoreError.databaseFailure }
+        guard length > 0 else { return Data() }
+        guard let bytes = sqlite3_column_blob(handle, index) else { throw MeetingStoreError.databaseFailure }
+        return Data(bytes: bytes, count: length)
     }
 
     func real(at index: Int32) throws -> Double {

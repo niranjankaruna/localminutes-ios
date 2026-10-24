@@ -7,6 +7,10 @@ import Observation
 /// in-place signing refresh; preservation still requires physical verification.
 @MainActor @Observable
 final class LocalMinutesServices: PlaybackHardware {
+    let metrics: TranscriptionMetricsRecorder? = nil
+
+    func persistMetricsCheckpoint() throws -> URL { throw MetricsValidationError.notImplemented }
+    func exportMetrics() throws -> Data { throw MetricsValidationError.notImplemented }
     let models: ModelInstallationManager
     let store: SQLiteMeetingStore
     let live: LiveTranscriptionSession

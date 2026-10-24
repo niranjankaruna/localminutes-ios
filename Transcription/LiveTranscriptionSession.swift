@@ -33,6 +33,7 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
     private let meetingsDirectory: URL
     private let router: TranscriptSinkRouter
     @ObservationIgnored private let metrics: TranscriptionMetricsRecorder?
+    var metricsRecorder: TranscriptionMetricsRecorder? { metrics }
     @ObservationIgnored private var current: LiveTranscriptEpoch?
 
     public init(models: ModelInstallationManager, store: SQLiteMeetingStore,
@@ -57,6 +58,9 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
         // another lease or replace the active sink during model loading.
         let epoch = LiveTranscriptEpoch(id: sessionID)
         current = epoch
+        // A completed epoch has already closed ingress and joined its consumer.
+        // Reset once per new reservation, never on an active/coalesced prepare.
+        metrics?.beginEpoch()
         let operation = Task { await self.prepare(epoch) }
         epoch.preparation = operation
         return await withTaskCancellationHandler {

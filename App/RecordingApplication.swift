@@ -1,6 +1,7 @@
 #if os(iOS)
 import Foundation
 import Observation
+import SwiftUI
 
 /// OS foreground-transition boundary only. Production must use the real intent
 /// context/API; tests may observe or reject a requested transition.
@@ -31,7 +32,7 @@ final class RecordingApplication {
     let playbackOwnership: PlaybackOwnershipController?
     private(set) var lastOutcome: RecordingIntentOutcome?
     private let router: RecordingIntentRouter
-    @ObservationIgnored private let signalCenter: NotificationCenter?
+    @ObservationIgnored private let signalMonitor: IOSRecordingSignalMonitor
     @ObservationIgnored
     private var toggleOperation: (id: UUID, task: Task<RecordingIntentOutcome, Never>)?
     @ObservationIgnored
@@ -44,7 +45,6 @@ final class RecordingApplication {
     /// Storage injection only; the default Live/OS composition and its shared
     /// startup/deletion admission remain identical for the app and native tests.
     init(services: LocalMinutesServices?) {
-        signalCenter = nil
         let preparation: any RecordingPreparationSource
         if let services { preparation = services.live }
         else { preparation = RequiredSpeechModelPreparation() }
@@ -62,22 +62,40 @@ final class RecordingApplication {
         self.owner = owner
         router = RecordingIntentRouter(owner: owner)
         foreground = nil
+        let monitor = IOSRecordingSignalMonitor(owner: owner)
+        signalMonitor = monitor
+        Self.bindSignals(monitor, to: owner)
     }
 
     init(owner: RecordingSessionOwner,
          foreground: (any RecordingForegroundContinuation)? = nil,
          playbackOwnership: PlaybackOwnershipController? = nil,
          signalCenter: NotificationCenter? = nil) {
-        self.signalCenter = signalCenter
         services = nil
         self.playbackOwnership = playbackOwnership
         self.owner = owner
         router = RecordingIntentRouter(owner: owner)
         self.foreground = foreground
+        let monitor = IOSRecordingSignalMonitor(owner: owner, center: signalCenter ?? .default)
+        signalMonitor = monitor
+        Self.bindSignals(monitor, to: owner)
     }
 
-    // Test-first join boundary; no native app signal observation exists yet.
-    func flushSignals() async {}
+    func flushSignals() async { await signalMonitor.flush() }
+    func recordScenePhase(_ scenePhase: ScenePhase) throws {}
+
+    private static func bindSignals(_ monitor: IOSRecordingSignalMonitor, to owner: RecordingSessionOwner) {
+        var observedID: UUID?
+        owner.setEpochObserver { [weak monitor] id in
+            guard let monitor else { return }
+            if let id {
+                monitor.beginEpoch(sessionID: id)
+            } else if let previous = observedID {
+                monitor.endEpoch(sessionID: previous)
+            }
+            observedID = id
+        }
+    }
 
     func perform(_ action: RecordingIntentAction) async throws -> RecordingIntentOutcome {
         switch action {

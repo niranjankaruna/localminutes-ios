@@ -12,7 +12,8 @@ let package = Package(
         .library(name: "LocalMinutesTranscription", targets: ["LocalMinutesTranscription"]),
         .library(name: "LocalMinutesMeetingLibrary", targets: ["LocalMinutesMeetingLibrary"]),
         .library(name: "LocalMinutesSummary", targets: ["LocalMinutesSummary"]),
-        .library(name: "LocalMinutesQuestionAnswering", targets: ["LocalMinutesQuestionAnswering"])
+        .library(name: "LocalMinutesQuestionAnswering", targets: ["LocalMinutesQuestionAnswering"]),
+        .library(name: "LocalMinutesIntelligence", targets: ["LocalMinutesIntelligence"])
     ],
     dependencies: [
         .package(url: "https://github.com/k2-fsa/sherpa-onnx",
@@ -32,6 +33,7 @@ let package = Package(
         .target(name: "LocalMinutesSummary", dependencies: ["llama"], path: "Summaries",
                 linkerSettings: [.linkedLibrary("c++"), .linkedFramework("Accelerate"), .linkedFramework("Metal")]),
         .target(name: "LocalMinutesQuestionAnswering", dependencies: ["LocalMinutesPersistence", "LocalMinutesSummary"], path: "QuestionAnswering"),
+        .target(name: "LocalMinutesIntelligence", dependencies: ["LocalMinutesCore", "LocalMinutesModels", "LocalMinutesPersistence", "LocalMinutesSummary", "LocalMinutesQuestionAnswering"], path: "Intelligence"),
         .testTarget(name: "HarnessTests", path: "Tests/HarnessTests"),
         .testTarget(name: "CoreTests", dependencies: ["LocalMinutesCore"], path: "Tests/CoreTests"),
         .testTarget(name: "RecordingTests", dependencies: ["LocalMinutesRecording", "LocalMinutesCore"], path: "Tests/RecordingTests"),
@@ -40,6 +42,7 @@ let package = Package(
         .testTarget(name: "ASRTests", dependencies: ["LocalMinutesTranscription", "LocalMinutesCore", "LocalMinutesModels", "LocalMinutesPersistence", "LocalMinutesRecording", "LocalMinutesMeetingLibrary"], path: "Tests/ASRTests"),
         .testTarget(name: "MeetingLibraryTests", dependencies: ["LocalMinutesMeetingLibrary", "LocalMinutesPersistence", "LocalMinutesRecording", "LocalMinutesCore"], path: "Tests/MeetingLibraryTests"),
         .testTarget(name: "SummaryTests", dependencies: ["LocalMinutesSummary", "llama"], path: "Tests/SummaryTests"),
-        .testTarget(name: "QuestionAnsweringTests", dependencies: ["LocalMinutesQuestionAnswering", "LocalMinutesPersistence", "LocalMinutesSummary"], path: "Tests/QuestionAnsweringTests")
+        .testTarget(name: "QuestionAnsweringTests", dependencies: ["LocalMinutesQuestionAnswering", "LocalMinutesPersistence", "LocalMinutesSummary"], path: "Tests/QuestionAnsweringTests"),
+        .testTarget(name: "IntelligenceTests", dependencies: ["LocalMinutesIntelligence", "LocalMinutesCore", "LocalMinutesModels", "LocalMinutesPersistence", "LocalMinutesSummary", "LocalMinutesQuestionAnswering"], path: "Tests/IntelligenceTests")
     ]
 )

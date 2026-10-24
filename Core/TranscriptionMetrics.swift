@@ -114,6 +114,19 @@ public final class TranscriptionMetricsRecorder: Sendable {
 
     public func nowNanoseconds() -> UInt64 { clock.nowNanoseconds() }
 
+    /// Begin one new audio epoch on the control path, after the preceding
+    /// producer/consumer have quiesced. Pins and current app visibility belong
+    /// to the recorder; audio counters, timings and errors belong to a meeting.
+    public func beginEpoch() {
+        state.withLock { value in
+            let visibility = value.visibility
+            let lastTime = value.lastTime
+            value = State(capacity: capacity)
+            value.visibility = visibility
+            value.lastTime = lastTime
+        }
+    }
+
     public func audioQueued(startSample: Int64, frameCount: Int, queueDepth: Int) throws {
         try state.withLock { value in
             let end = try checkedEnd(start: startSample, count: frameCount)
