@@ -135,3 +135,29 @@ Library UI seeding is test-harness bootstrap only. A separately named old-source
 exercise real isolated SQLite/CAF and retain original data/edit/isolation oracles.
 Only obsolete Qwen settings expectations are reconciled with the owner's current
 model browser. No product RED is inferred from missing fixture setup.
+
+## C12 terminal checkpoint
+
+Run40138806203 at14ff749a2bd8678b6523cf377b6695283513a76e is terminal
+FAILURE. Core, current Phi and native product jobs stopped before tests because
+the local package declared Swift tools5.9 while using iOS18/macOS15 platform
+constants introduced in newer PackageDescription. No new current behavior RED,
+quality outcome or app linking/IPA result is inferred. The accompanying llama
+artifact mapping diagnostic followed the invalid dependency manifest; a distinct
+llama defect is not proven. First repair sets the local tools declaration6.2,
+matching the root/dependency toolchain. Preparation now validates the local
+manifest, and the Phi job builds test code before downloading weights.
+
+The independent, explicitly old-source8edff56 library harness did execute:
+3tests,3failures,0unexpected/skip,64.008s. Each fails at actual product home
+initialization with the original nil fixture. This is harness-only failure
+evidence; the real SQLite/CAF seeding candidate still needs its successful UI
+run. It is not evidence that current product interactions passed or failed.
+
+Six of six runs in the carried bounded invocation are consumed. No seventh run
+is dispatched. Corrected metadata/build ordering and all pending tests remain
+reviewable/persisted; remaining nil/unknown product seams and CPU/ANE default
+are not implemented before their actual behavioral RED. The next legitimate
+bounded invocation must first prove compatible native compilation, then record
+actual remaining RED/GREEN and model results before completing MVP3. Existing
+MVP2 source35c7 delivery and all physical NOT_RUN gates remain unchanged.

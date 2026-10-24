@@ -307,6 +307,13 @@ def main():
         platforms["ios"] = details
     receipt["platforms"] = platforms
     create_xcframework("SherpaOnnxC", frameworks, receipt)
+    # Reject an incompatible local package declaration before later jobs spend
+    # time fetching model weights. This compiles metadata, not model behavior.
+    run(["swift", "package", "--package-path", ROOT / "Vendor" / "SherpaASROnly",
+         "dump-package"], capture_output=True)
+    receipt["swiftPackageManifestSHA256"] = digest(ROOT / "Vendor" / "SherpaASROnly" / "Package.swift")
+    receipt["swiftPackageManifestValidated"] = True
+    (ARTIFACTS / "SherpaOnnxC.receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")
 
 
 if __name__ == "__main__":

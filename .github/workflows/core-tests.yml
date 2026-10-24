@@ -59,6 +59,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           python3 scripts/prepare_asr_only.py --platform macos
           python3 docs/drafts/T17/prepare_native_summary.py --framework-only
+          swift build --build-tests
           python3 docs/drafts/T17/prepare_phi3_candidate.py
       - name: Evaluate real selected service and multi-map refusal quality
         shell: bash
@@ -66,7 +67,7 @@ jobs:
           set -euo pipefail
           export LOCALMINUTES_PHI_MODEL_PATH="$LOCALMINUTES_CANDIDATE_MODEL_PATH"
           mkdir -p .build
-          swift test --filter 'IntelligenceTests[.]ActualSelectedModelIntelligenceTests|QuestionAnsweringTests[.]Phi3CandidateComparisonTests/testActualPinnedPhi3RepresentativeMultiMapMergeAndUnknownDeadlineRefusal' 2>&1 | tee .build/current-phi-integration.log
+          swift test --skip-build --filter 'IntelligenceTests[.]ActualSelectedModelIntelligenceTests|QuestionAnsweringTests[.]Phi3CandidateComparisonTests/testActualPinnedPhi3RepresentativeMultiMapMergeAndUnknownDeadlineRefusal' 2>&1 | tee .build/current-phi-integration.log
       - name: Require both actual model evaluations without skips
         if: always()
         run: node scripts/verify-test-log.mjs .build/current-phi-integration.log testActualSelectedPhiDefaultLoaderSavesSummaryAndGuideAnswerWithOriginalsPreserved testActualPinnedPhi3RepresentativeMultiMapMergeAndUnknownDeadlineRefusal
