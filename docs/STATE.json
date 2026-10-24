@@ -3,17 +3,17 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T13:32:03.203Z",
+  "lastUpdated": "2026-10-24T13:49:28.669Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "T17/T18/T19 functionalbatch readyforonecurrent-source build and parallelmodel observations",
+  "currentTask": "T18wholequotevalidationandT19retrievalprecisionrepair; oneboundedbatchedverification",
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "Commit/push featurebatch; create unpublished drafttargetingexactcommit; dispatch modefeatures once. Observe independent build/service/summary/questions; downloadIPA+hash whenbuildsucceeds, recordexactmodelresultswithoutinferringfullbaselinecompletion.",
+  "nextAction": "Commit/pushpreciserepair,currentrunterminal;createunpublisheddraftfornewSHA;dispatchsinglecombinedrepairfeaturesbuildand3actualflowchecks. DownloadnewIPA/hash,reportactualresultsandremaininglimits;nofurtherblindpromptorfullregressionloops.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "3e25aae6117b9cad9d0251bded2f345b3155bdcf",
+  "remoteBranchHead": "1eeb403f864d5532b8046bf4e8c270f5614399bb",
   "localScriptGreen": {
     "sourceCommit": "0181b311abedb3c32745b015be64d6e7c777032b",
     "platform": "Windows11/Node24.21.0",
@@ -33,22 +33,23 @@
     "id": "2026-10-24-summary-qa-batch",
     "maxNewRuns": 6,
     "plannedNewRuns": 1,
-    "newRunIds": [],
+    "newRunIds": [
+      40098679075
+    ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-24T13:19:55.441Z",
     "costGuardBasis": "Live PUBLIC/ADMIN repository, genuine existing auth, exact remote8f6fc1f and terminal previousMVP run40092475736 reverified. Standard publicmacos-15-intel only; existing official GitHub free-compute/release-storage evidence, unpublished draft retention, no paid/larger runner/storage/billing mutation."
   },
   "latestCIRun": {
-    "sourceCommit": "3e25aae6117b9cad9d0251bded2f345b3155bdcf",
-    "appSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
-    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40092475736",
+    "sourceCommit": "1eeb403f864d5532b8046bf4e8c270f5614399bb",
+    "appSourceCommit": "1eeb403f864d5532b8046bf4e8c270f5614399bb",
+    "url": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40098679075",
     "status": "completed",
-    "conclusion": "success",
-    "ordinal": 6,
-    "mode": "mvp",
-    "testsExecuted": 0,
-    "completedAt": "2026-10-24T12:07:42Z",
-    "validationJobs": "Excluded by owner instruction; not a validation GREEN."
+    "conclusion": "failure",
+    "ordinal": 1,
+    "mode": "features",
+    "scope": "Appbuild+3independentone-timeactualmodelflows; nofullregression.",
+    "completedAt": "2026-10-24T13:39:02Z"
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -122,7 +123,7 @@
     "T08.4",
     "T08.5"
   ],
-  "remoteBranchHeadScope": "Reviewed build-only workflow plus preserved unverified WIP pushed and HTTPS remoteverified. MVP checkout is separately pinned to db1b8d5.",
+  "remoteBranchHeadScope": "Summary/Ask functionalbatch pushed/HTTPSremoteverified; same source usedbyappandmodeljobs.",
   "nativeCompileRepair": {
     "status": "CODE_COMPLETE_PENDING_DEVICE",
     "candidatePath": "docs/drafts/T06.1/ActivityKitOperations.swift.pending",
@@ -1145,6 +1146,62 @@
       "Defensive small source-derived summary maps/one citation/output item bounds"
     ],
     "limits": "Existing128maps/totalitems guard and atomicsegment/tool context limits remain; notes are context only, not standalone cited summary sources. Quality/native UI/device behavior not yet proven.",
-    "validationPlan": "One workflow at endofbatch: current-source iPhone compile/package plus3independent real pinned model flow observations inparallel. Existingfullregression/per-change testloops are notdispatched. Original tests/oracles/pins unchanged."
+    "validationPlan": "One workflow at endofbatch: current-source iPhone compile/package plus3independent real pinned model flow observations inparallel. Existingfullregression/per-change testloops are notdispatched. Original tests/oracles/pins unchanged.",
+    "sourceCommit": "1eeb403f864d5532b8046bf4e8c270f5614399bb",
+    "runId": 40098679075,
+    "draftRelease": {
+      "id": 422751627,
+      "tag": "mvp-preview-1eeb403f864d",
+      "isDraft": true,
+      "url": "https://github.com/niranjankaruna/localminutes-ios/releases/tag/untagged-6a9f7bc69b9918843c2f"
+    },
+    "build": {
+      "sourceCommit": "1eeb403f864d5532b8046bf4e8c270f5614399bb",
+      "runId": 40098679075,
+      "jobId": 120886163077,
+      "conclusion": "success",
+      "unsignedIPA": "LocalMinutes-1.0-1eeb403f864d5532b8046bf4e8c270f5614399bb-unsigned.ipa",
+      "sizeBytes": 12929041,
+      "sha256": "acd9ff543dfcd264023e0712c8c6ca4d46b3bc20512db13a31b2aab1a74c2fcc",
+      "draftReleaseId": 422751627
+    },
+    "modelObservations": {
+      "sourceCommit": "1eeb403f864d5532b8046bf4e8c270f5614399bb",
+      "runId": 40098679075,
+      "summary": {
+        "jobId": 120886163092,
+        "executed": 1,
+        "failed": 1,
+        "assertionFailures": 1,
+        "skipped": 0,
+        "durationSeconds": 88.333,
+        "error": "unsupportedClaim",
+        "capturedPositive": "Summary and decision exactsourcequote+text; action wholequotedLeo IwillguideThursday, ownerLeo dueThursday. Validator excludes speakerfromits body lookup and rejects this supported wholequote."
+      },
+      "service": {
+        "jobId": 120886163115,
+        "executed": 1,
+        "failed": 1,
+        "assertionFailures": 1,
+        "skipped": 0,
+        "durationSeconds": 123.126,
+        "error": "unsupportedClaim",
+        "stage": "summary"
+      },
+      "questions": {
+        "jobId": 120886162871,
+        "executed": 1,
+        "failed": 1,
+        "assertionFailures": 5,
+        "skipped": 0,
+        "durationSeconds": 130.03,
+        "observation": "Finalthirdpromptstillrawinsufficient_evidence/none/emptyforknownbudget;unknownownerrefusalassertionspass. No4thpromptrepair."
+      }
+    },
+    "repair": {
+      "summary": "AcceptexactwholequotedONEsentencefirstpersoncommitmentwithmatchinglabel/Iwill;originalbody-substring,wrong-owner/due/range/source/provenancechecksunchanged. Rawoutputunchanged.",
+      "questions": "Single-quoteRAGsuppliestop-rankedoriginalsource;boundedownershipwordfamilynormalizationandrequested-termcoveragerank. Contextpollutionisahypothesis,notproven;nogeneratedanswerforced/prompt/oracle/pinchange.",
+      "validation": "OneboundedrepairworkflowofactualfailingflowsinparallelwithcurrentiPhonebuild;nofull/perchange/regressionloops."
+    }
   }
 }

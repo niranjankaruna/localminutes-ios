@@ -301,3 +301,19 @@ ActualAppServicesnowretainsoneHeavyModelAdmission, recording bridge and realdefa
 Summary output defensivebudgeting keepsactualcanonicaltokenizer andallmaps/validation/merge, capsdefaultmap2sources andcategoryitems≤sourcecount,1citation/item. Priorfailurecause remainsUNKNOWN; this is not a measuredtoken-exhaustionrepair. Existing128map/128item andlongsegmentlimits remain materialforlongmeetings; no silenttruncation or full2hsummaryqualityclaim. Notes remaincontextonly. FinalQAattempt3 unchanged, no fourthblindpromptedit. All original tests/oracles/modelpins remain unchanged.
 
 Oneend-of-batch features workflow will compile/packageactualnewiPhone source and observe3actualmodel flowsonseparatestandardpublicmacOSjobs (service,summary,questions). No per-change/fullregressionloop. Outputsremaininunpublishedownerdraft; no Actions artifact storage or public release. Implementation exists; compile/model/nativeUI/physical resultsarepending.
+
+
+## First functional-batch actual result
+
+Exact1eeb403f864d5532b8046bf4e8c270f5614399bb/run40098679075: iPhone app+extension build/packageSUCCESS; unsigned12929041byteIPA retainedunpublished, SHA256acd9ff543dfcd264023e0712c8c6ca4d46b3bc20512db13a31b2aab1a74c2fcc. Actualsummaryjob120886163092:1caseFAILunsupportedClaim/1assertion0skip88.333s. Actualservicejob120886163115:1caseFAILunsupportedClaim atsummary/1assertion0skip123.126s. No semantic GREEN claim.
+
+CapturedfirstpositiveJSON has exactsource summary/decisiontext, and action task equals the entire quote“Leo: I will write the guide by Thursday.” withcorrectownerLeo/dueThursday. Existingvalidator strips labelthen searches the fullquotedtask inside the body, rejecting a supported complete quoted commitment. Narrowvalidationrepairmayacceptthisshapeonlywithexactlabel,explicitIwill,ONESENTENCEboundandsametaskdeadline; no outputrewriting,answerinjection,wrongowner/dateguardweakeningortestoraclechange. Unknownsummaryfixturehasnotbeenreached. Questionsjobpending.
+
+
+## Q&A observation and bounded functional repair
+
+1eeb403/run40098679075 terminalFAILED at13:39:02UTC. Questionsjob120886162871:1caseFAIL5assertions0skip130.030s; knownbudgetrawinsufficient_evidence/none/empty, unknown-ownerrefusalassertionspass. Thisconfirms3rdpromptattemptfailed;blindpromptretriesstop. AppbuildSUCCESSisnotmodelqualitysuccess.
+
+SummaryvalidationrepairacceptsexactwholequotedSINGLEfirstpersoncommitmentonlywithmatchingownerlabelandIwillbody;duedate/source/range/provenance/one-sentencechecksremain. Neitherrawoutputnornegativeoraclesarechanged. QAindependentretrievalprecisionrepairusesboundedownershipwordfamilies,meaningful-termcoverageandtop1sourcefortheone-quoteAPI. Original3fieldstatus/ID/freestringschema,prompt,modelandalltestsremainunchanged. Contextpollutionisahypothesis,notaprovenrefusalcause.
+
+Oneboundedrepairbuild+failed-flowverificationwillobservebothchangesinparallel;nofullsuite/per-change/4thpromptloop. Exactfunctional/model/longmeetinglimitsremainpendinguntilactualevidence.

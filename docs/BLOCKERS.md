@@ -156,3 +156,8 @@ All six permitted runs are terminal. Final `db1b8d51c5ff72bf1d8abfd13f99a1da06a1
 ## MVP delivery workaround observed24October2026
 
 The original Actions artifact storage headroom remains unverified for a full release. It did not block the owner-requested MVP: unpublished draft422706783 retained the unsigned IPA and a Windows download matched SHA256. No billing change, paid storage or public release. MVP delivery has no remaining download blocker; all physical/full-baseline gates remain pending. See evidence/MVP_DELIVERY_2026_10_24.md.
+
+
+## Qwen QA known-fact over-refusal after three prompt repairs —24October2026
+
+Confirmed1eeb403/run40098679075 actualquestionscase: knownbudgetrefused whileunknownownerrefusescorrectly. Threeblindpromptattemptsstopped;no4thprompt/model-oracleweakening. Aseparateretrieval-precisionrepair(top1single-quoteevidence,ownershipmorphologyandtermcoveragerank)isunderoneboundedactualverification.Contextpollutionisahypothesis. KeepsemanticqualityIN_PROGRESSunlessrawknownandunknownoraclespass.

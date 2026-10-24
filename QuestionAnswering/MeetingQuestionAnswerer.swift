@@ -156,7 +156,15 @@ public struct MeetingQuestionAnswerer: Sendable {
         // The conjunction promotes sources covering the question's topic. The
         // individual literal queries also retrieve unknown/undecided statements
         // when the question's requested predicate is absent from the transcript.
-        let queries = (terms.count > 1 ? [terms.joined(separator: " ")] : []) + Array(terms)
+        let requestedTerms = Set(terms.map(Self.retrievalTerm))
+        var queries = (terms.count > 1 ? [terms.joined(separator: " ")] : []) + Array(terms)
+        // FTS stores literal words: a question's verb and a source's noun can
+        // express the same predicate. Expand only this bounded lexical family;
+        // no answer, speaker, topic or fixture-specific value is selected here.
+        if requestedTerms.contains("ownership") {
+            let additionalQueries = Self.ownershipTerms.sorted().filter { !queries.contains($0) }
+            queries += additionalQueries
+        }
         var candidates: [UUID: RetrievalCandidate] = [:]
         for query in queries {
             try Task.checkCancellation()
@@ -177,12 +185,23 @@ public struct MeetingQuestionAnswerer: Sendable {
                 }
             }
         }
-        return candidates.values.sorted { first, second in
+        let ranked = candidates.values.sorted { first, second in
+            let firstTerms = Set(first.source.text.components(separatedBy: characters.inverted)
+                .map { Self.retrievalTerm($0.lowercased()) })
+            let secondTerms = Set(second.source.text.components(separatedBy: characters.inverted)
+                .map { Self.retrievalTerm($0.lowercased()) })
+            let firstCoverage = firstTerms.intersection(requestedTerms).count
+            let secondCoverage = secondTerms.intersection(requestedTerms).count
+            if firstCoverage != secondCoverage { return firstCoverage > secondCoverage }
             if first.matches != second.matches { return first.matches > second.matches }
             if first.rankPoints != second.rankPoints { return first.rankPoints > second.rankPoints }
             if first.source.sequence != second.source.sequence { return first.source.sequence < second.source.sequence }
             return first.source.id.uuidString < second.source.id.uuidString
-        }.prefix(limits.maximumEvidenceCount).map(\.source)
+        }
+        // This contract asks the model for one exact supporting quote. Give it
+        // the highest-ranked original segment instead of unrelated lower-ranked
+        // attributes; either answer/refusal and every supplied ID remain valid.
+        return ranked.prefix(1).map(\.source)
     }
 
     private func makePrompt(question: String, evidence: [StoredTranscriptSegment]) throws -> String {
@@ -258,6 +277,12 @@ public struct MeetingQuestionAnswerer: Sendable {
         "and", "or", "with", "from", "it", "its", "this", "that", "these", "those", "our", "my",
         "your", "please", "tell", "me"
     ]
+
+    private static let ownershipTerms: Set<String> = ["own", "owns", "owned", "owning", "owner", "owners", "ownership"]
+
+    private static func retrievalTerm(_ term: String) -> String {
+        ownershipTerms.contains(term) ? "ownership" : term
+    }
 }
 
 private struct RetrievalCandidate {

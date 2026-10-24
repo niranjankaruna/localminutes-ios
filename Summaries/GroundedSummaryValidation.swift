@@ -152,9 +152,19 @@ struct GroundedSummaryValidation {
                 let label = quote.subdata(in: quote.startIndex..<divider.lowerBound)
                 let body = quote.subdata(in: divider.upperBound..<quote.endIndex)
                 guard !label.contains(10), !label.contains(13), label == Data(owner.utf8),
-                      body.starts(with: Data("I will ".utf8)), let ownedTask = body.range(of: task),
-                      ownedTask.upperBound <= Self.sentenceEnd(in: body, from: body.startIndex) else {
+                      body.starts(with: Data("I will ".utf8)) else {
                     throw GroundedSummaryError.unsupportedClaim
+                }
+                let firstSentenceEnd = Self.sentenceEnd(in: body, from: body.startIndex)
+                if task == quote {
+                    // A verbatim task may include its exact speaker label. Only
+                    // the complete single first-person commitment is admitted;
+                    // later sentences cannot inherit this speaker's ownership.
+                    guard firstSentenceEnd == body.endIndex else { throw GroundedSummaryError.unsupportedClaim }
+                } else {
+                    guard let ownedTask = body.range(of: task), ownedTask.upperBound <= firstSentenceEnd else {
+                        throw GroundedSummaryError.unsupportedClaim
+                    }
                 }
             }
             if let due = value.due {
