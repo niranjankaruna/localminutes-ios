@@ -1,5 +1,7 @@
 # Local summaries and questions
 
+**Current status: screens and model wiring compile, but the pinned model has not passed the summary/Q&A quality gate. Incorrect or unsupported output is rejected, and some requests return an error. This is a feature preview.**
+
 This feature preview adds Summary and Ask sections to a saved meeting. It requires the separate local summary-model download.
 
 1. Install the new unsigned IPA over the existing app using the same Sideloadly Apple Account and bundle-ID settings. Avoid uninstalling to preserve the existing container; actual renewal/data preservation remains unverified.

@@ -50,17 +50,17 @@ public actor SummaryPipeline {
             let validation = try GroundedSummaryValidation(selectedMeetingID: selectedMeetingID,
                                                            source: source, limits: limits)
             try validation.provenance(.init(modelRevision: modelRevision, promptVersion: promptVersion, mapIndex: 0))
-            // Allocate a small number of source slots to each bounded output.
-            // This is an output-size policy, never an input-token estimate or a
-            // guarantee that arbitrary model-generated strings will terminate.
+            // Bound output slots independently of input source packing. Actual
+            // canonical token counts determine chunks, so a long meeting need
+            // not create a separate map for every few utterances. This output
+            // policy does not guarantee arbitrary generated strings terminate.
             let sourceLimit = max(1, min(2, reservedOutputTokens / 512))
             let notes = String(decoding: try JSONEncoder().encode(source.originalManualNotes), as: UTF8.self)
             let prefix = Self.mapInstructions + "\n\nOUTPUT_ITEM_LIMIT: \(sourceLimit)"
                 + "\nSELECTED_MEETING_ID: " + selectedMeetingID.uuidString
                 + "\n\nMANUAL_NOTES_JSON:\n" + notes
             let planner = SummaryChunkPlanner(contextTokenLimit: contextTokenLimit,
-                reservedOutputTokens: reservedOutputTokens, promptPrefix: prefix,
-                maximumSegmentsPerChunk: sourceLimit, tokenizer: tokenizer)
+                reservedOutputTokens: reservedOutputTokens, promptPrefix: prefix, tokenizer: tokenizer)
             let chunks = try await planner.plan(source.segments)
             try Task.checkCancellation()
             guard chunks.count <= limits.maximumItems else { throw GroundedSummaryError.limitExceeded }

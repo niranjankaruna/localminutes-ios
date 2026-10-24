@@ -8,7 +8,7 @@ on:
         required: true
         type: choice
         default: mvp
-        options: [mvp, features, validation]
+        options: [mvp, features, package, validation]
       sourceCommit:
         description: Reviewed app source for the MVP package
         required: true
@@ -344,26 +344,26 @@ jobs:
   # Owner-requested MVP delivery: compile/package only, no test runner or model weights.
   # The workflow definition and the reviewed app source are recorded separately.
   mvp-package:
-    if: ${{ inputs.mode == 'mvp' || inputs.mode == 'features' }}
+    if: ${{ inputs.mode == 'mvp' || inputs.mode == 'features' || inputs.mode == 'package' }}
     runs-on: macos-15-intel
     timeout-minutes: 25
     permissions:
       contents: write
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
-      EXPECTED_SOURCE: ${{ inputs.mode == 'features' && github.sha || inputs.sourceCommit }}
+      EXPECTED_SOURCE: ${{ inputs.mode != 'mvp' && github.sha || inputs.sourceCommit }}
       DELIVERY_MODE: ${{ inputs.mode }}
     steps:
       - name: Check out the exact selected app source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ inputs.mode == 'features' && github.sha || inputs.sourceCommit }}
+          ref: ${{ inputs.mode != 'mvp' && github.sha || inputs.sourceCommit }}
           persist-credentials: false
       - name: Verify exact reviewed source and zero-spend packaging guard
         shell: bash
         run: |
           set -euo pipefail
-          if [ "$DELIVERY_MODE" = 'features' ]; then
+          if [ "$DELIVERY_MODE" != 'mvp' ]; then
             test "$EXPECTED_SOURCE" = "$GITHUB_SHA"
           else
             test "$EXPECTED_SOURCE" = 'db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04'
