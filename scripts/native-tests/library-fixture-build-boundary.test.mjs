@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { basename, join, resolve } from 'node:path';
 import test from 'node:test';
 
 // Reads actual compiled Mach-O bytes. Missing products fail; source-text checks
@@ -28,7 +28,20 @@ test('actual compiled Release app and extension exclude every library fixture mo
 });
 
 test('actual compiled Debug app contains the linked library fixture canary and launch mode', () => {
-  const bytes = readFileSync(join(debugRoot, 'LocalMinutes'));
+  const executable = join(debugRoot, 'LocalMinutes');
+  const debugDylib = join(debugRoot, 'LocalMinutes.debug.dylib');
+  // Xcode's documented unoptimized layout puts app code in this exact dylib
+  // and leaves a trampoline executable. Inspect code, never arbitrary resources.
+  const codePath = existsSync(debugDylib) ? debugDylib : executable;
+  const entry = readFileSync(executable);
+  const bytes = readFileSync(codePath);
+  const magic = new Set([0xcffaedfe, 0xfeedfacf, 0xcafebabe, 0xbebafeca, 0xcafebabf, 0xbfbafeca]);
+  for (const image of [entry, bytes]) {
+    assert.ok(image.length >= 4 && magic.has(image.readUInt32BE(0)), 'Actual compiled Mach-O image required');
+  }
+  console.log(JSON.stringify({ debugFixtureCodeImage: basename(codePath), bytes: bytes.length,
+    canary: bytes.includes(Buffer.from(canary, 'utf8')),
+    launchMode: bytes.includes(Buffer.from('--ui-test-library-fixture', 'utf8')) }));
   assert.ok(bytes.includes(Buffer.from(canary, 'utf8')), 'A positive Debug control proves the hook was compiled/linked');
   assert.ok(bytes.includes(Buffer.from('--ui-test-library-fixture', 'utf8')));
 });

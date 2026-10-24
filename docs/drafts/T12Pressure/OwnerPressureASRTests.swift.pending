@@ -1,0 +1,216 @@
+// APPEND to Tests/ASRTests/LiveTranscriptionSessionTests.swift after its final
+// brace. Reuses its private licensed fixture, actual Live/CAF/SQLite pipeline,
+// T12SpeechHardware/Activity helpers, waitForText and t12SpeechEventually.
+// INACTIVE, uncompiled, no RED. No model runtime or storage writer is doubled.
+
+@MainActor
+private final class T12PressureSource: RecordingPressureSource {
+    var freeBytes: Int64
+    var timeNanoseconds: UInt64 = 0
+    private(set) var reads = 0
+    init(availableBytes: Int64) { freeBytes = availableBytes }
+    func availableBytes() throws -> Int64 {
+        reads += 1
+        return freeBytes
+    }
+    func nowNanoseconds() -> UInt64 { timeNanoseconds }
+}
+
+@MainActor
+private final class T12PressurePermission: CapturePermissionSource {
+    private(set) var requests = 0
+    func requestRecordPermission() async -> Bool { requests += 1; return true }
+}
+
+@MainActor
+private final class T12PressureActivityBackend: LiveActivityBackend {
+    let handle = T12SpeechActivity()
+    private(set) var requests = 0
+    var areActivitiesEnabled: Bool { true }
+    func request(sessionID: UUID, status: LiveActivityStatus) throws -> any LiveActivityHandle {
+        requests += 1
+        return handle
+    }
+}
+
+@MainActor
+private final class T12PressureOwnerFixture {
+    let source: T12PressureSource
+    let permission = T12PressurePermission()
+    let activity = T12PressureActivityBackend()
+    let hardware: T12SpeechHardware
+    let owner: RecordingSessionOwner
+    init(_ h: LiveSessionFixture, bytes: Int64) throws {
+        let source = T12PressureSource(availableBytes: bytes)
+        self.source = source
+        hardware = try T12SpeechHardware()
+        owner = RecordingSessionOwner(permission: permission, hardware: hardware,
+            activityBackend: activity, preparation: h.session, pressureSource: source,
+            storageReserveBytes: 1_000_000_000, storagePollIntervalNanoseconds: 5_000_000_000)
+    }
+}
+
+@MainActor
+private func t12PressureComplete(_ operation: @escaping @MainActor () async -> Void) async throws {
+    let completion = T12SpeechCompletion()
+    let task = Task { await operation(); completion.finished = true }
+    guard await t12SpeechEventually({ completion.finished }) else {
+        task.cancel()
+        XCTFail("Pressure operation did not settle within the bounded actual-model deadline")
+        throw T12SpeechInterruptionDraftError.timedOut
+    }
+    await task.value
+}
+
+@MainActor
+private func t12PressureCleanup(_ h: LiveSessionFixture, owners: [T12PressureOwnerFixture]) async {
+    for fixture in owners { fixture.activity.handle.releaseEnd() }
+    for fixture in owners {
+        do { try await t12PressureComplete { await fixture.owner.stop() } }
+        catch { XCTFail("Retain the owned pressure fixture while cleanup is incomplete"); return }
+        let state = await fixture.owner.snapshot()
+        guard !state.cleanupPending, !fixture.hardware.active, !fixture.hardware.running else {
+            XCTFail("Pressure fixture still owns native resources; retain its files"); return
+        }
+    }
+    await h.cleanup()
+}
+
+@MainActor
+extension LiveTranscriptionSessionTests {
+    func testOneGigabyteReservePrecedesActualModelPreparationAndAcceptsExactBoundary() async throws {
+        let h = try await LiveSessionFixture.create()
+        var owners: [T12PressureOwnerFixture] = []
+        do {
+            // Weights are already genuinely installed. Free bytes therefore
+            // describe reserve beyond those installed requirements, not a model
+            // download size that could be accidentally counted twice.
+            let low = try T12PressureOwnerFixture(h, bytes: 999_999_999)
+            owners.append(low)
+            let rejectedID = UUID()
+            try await t12PressureComplete { await low.owner.start(sessionID: rejectedID) }
+            let blocked = await low.owner.snapshot()
+            XCTAssertEqual(low.source.reads, 1)
+            XCTAssertEqual(blocked.failure, .storageFull)
+            XCTAssertNotEqual(blocked.phase, .recording)
+            XCTAssertFalse(blocked.cleanupPending)
+            XCTAssertNil(low.owner.completedManifest)
+            XCTAssertNil(h.session.transcript.sessionID, "The real model preparation must not have run")
+            let history = try await h.store.history()
+            XCTAssertTrue(history.isEmpty)
+            XCTAssertFalse(FileManager.default.fileExists(atPath: h.meetings.path))
+            XCTAssertEqual(low.permission.requests, 0)
+            XCTAssertEqual(low.activity.requests, 0)
+            XCTAssertFalse(low.hardware.active)
+            XCTAssertNil(low.hardware.tap)
+            // A no-op RED stub may have admitted real work; release it before
+            // testing the independent exact boundary. No assertion is bypassed.
+            low.activity.handle.releaseEnd()
+            try await t12PressureComplete { await low.owner.stop() }
+
+            let exact = try T12PressureOwnerFixture(h, bytes: 1_000_000_000)
+            owners.append(exact)
+            let acceptedID = UUID()
+            try await t12PressureComplete { await exact.owner.start(sessionID: acceptedID) }
+            XCTAssertEqual(exact.source.reads, 1)
+            XCTAssertEqual(h.session.transcript.sessionID, acceptedID)
+            XCTAssertEqual(exact.permission.requests, 1)
+            XCTAssertEqual(exact.activity.requests, 1)
+            XCTAssertTrue(exact.hardware.active)
+            XCTAssertTrue(exact.hardware.running)
+            let accepted = await exact.owner.snapshot()
+            XCTAssertNil(accepted.failure)
+            XCTAssertEqual(accepted.phase, .preparing,
+                "Even a passed storage reserve is not first-buffer/recording success")
+        } catch { await t12PressureCleanup(h, owners: owners); throw error }
+        await t12PressureCleanup(h, owners: owners)
+    }
+
+    func testPeriodicLowStorageDrainsActualSpeechAndPersistsInterruptedWithoutSaved() async throws {
+        let h = try await LiveSessionFixture.create()
+        let fixture = try T12PressureOwnerFixture(h, bytes: 1_000_000_001)
+        do {
+            let id = UUID()
+            try await t12PressureComplete { await fixture.owner.start(sessionID: id) }
+            for offset in stride(from: 0, to: h.speech.samples.count, by: 1_600) {
+                let end = min(offset + 1_600, h.speech.samples.count)
+                try fixture.hardware.emit(h.speech.samples[offset..<end], start: Int64(offset))
+                try await Task.sleep(for: .milliseconds(12))
+            }
+            let hasText = await waitForText(h.session)
+            XCTAssertTrue(hasText, "Actual licensed speech must reach the real CPU consumer before pressure")
+            let live = await fixture.owner.snapshot()
+            XCTAssertEqual(live.phase, .recording)
+            XCTAssertEqual(fixture.source.reads, 1)
+            fixture.source.freeBytes = 999_999_999
+            fixture.source.timeNanoseconds = 4_999_999_999
+            await fixture.owner.pollStoragePressure(sessionID: id)
+            XCTAssertEqual(fixture.source.reads, 1, "A caller cannot force an unbounded filesystem polling loop")
+            let beforeTick = await fixture.owner.snapshot()
+            XCTAssertEqual(beforeTick.phase, .recording)
+
+            fixture.source.timeNanoseconds = 5_000_000_000
+            let completion = T12SpeechCompletion()
+            let polling = Task { await fixture.owner.pollStoragePressure(sessionID: id); completion.finished = true }
+            defer { polling.cancel(); fixture.activity.handle.releaseEnd() }
+            let reached = await t12SpeechEventually { fixture.activity.handle.isWaiting || completion.finished }
+            XCTAssertTrue(reached)
+            XCTAssertTrue(fixture.activity.handle.isWaiting)
+            XCTAssertFalse(completion.finished, "Pressure cleanup must join the actual Activity end barrier")
+            XCTAssertEqual(fixture.source.reads, 2)
+            let pending = await fixture.owner.snapshot()
+            XCTAssertTrue(pending.cleanupPending)
+            XCTAssertEqual(pending.failure, .storageFull)
+            XCTAssertNotEqual(pending.phase, .completed)
+            XCTAssertFalse(fixture.hardware.active)
+            XCTAssertFalse(fixture.hardware.running)
+            XCTAssertNil(fixture.owner.completedManifest)
+            let persisted = try await h.store.meeting(id: id)
+            XCTAssertEqual(persisted?.recordingState, .interrupted)
+            XCTAssertEqual(persisted?.capturedSampleCount, Int64(h.speech.samples.count))
+
+            fixture.activity.handle.releaseEnd()
+            try await t12PressureComplete { await polling.value }
+            let final = await fixture.owner.snapshot()
+            XCTAssertEqual(final.failure, .storageFull)
+            XCTAssertNotEqual(final.phase, .completed)
+            XCTAssertFalse(final.cleanupPending)
+            XCTAssertNil(fixture.owner.completedManifest, "Low-space interruption is never Saved success")
+            let directory = h.meetings.appendingPathComponent(id.uuidString, isDirectory: true)
+            let bytes = try? Data(contentsOf: directory.appendingPathComponent("capture-manifest.json"))
+            XCTAssertNotNil(bytes)
+            if let bytes {
+                let manifest = try JSONDecoder().decode(AudioCaptureManifest.self, from: bytes)
+                XCTAssertEqual(manifest.totalFrames, Int64(h.speech.samples.count))
+                var decoded: Int64 = 0
+                for segment in manifest.segments {
+                    let file = try AVAudioFile(forReading: directory.appendingPathComponent(segment.relativePath))
+                    let buffer = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: file.processingFormat,
+                        frameCapacity: AVAudioFrameCount(segment.frameCount)))
+                    try file.read(into: buffer)
+                    decoded += Int64(buffer.frameLength)
+                }
+                XCTAssertEqual(decoded, manifest.totalFrames)
+            }
+            let rows = try await h.store.transcript(meetingID: id)
+            let words = rows.flatMap { $0.text.lowercased().split { !$0.isLetter }.map(String.init) }
+            XCTAssertEqual(words, NativeASRFixture.reference.lowercased().split(separator: " ").map(String.init))
+            fixture.source.freeBytes = 2_000_000_000
+            fixture.source.timeNanoseconds = 10_000_000_000
+            await fixture.owner.pollStoragePressure(sessionID: id)
+            XCTAssertFalse(fixture.hardware.running, "Capacity recovery cannot automatically restart capture")
+            XCTAssertNil(fixture.hardware.tap)
+            try await h.store.close()
+            let reopened = try SQLiteMeetingStore(databaseURL: h.database)
+            do {
+                let durable = try await reopened.meeting(id: id)
+                XCTAssertEqual(durable?.recordingState, .interrupted)
+                XCTAssertEqual(durable?.capturedSampleCount, Int64(h.speech.samples.count))
+                let durableRows = try await reopened.transcript(meetingID: id)
+                XCTAssertEqual(durableRows, rows)
+                try await reopened.close()
+            } catch { try? await reopened.close(); throw error }
+        } catch { await t12PressureCleanup(h, owners: [fixture]); throw error }
+        await t12PressureCleanup(h, owners: [fixture])
+    }
+}

@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 #if SWIFT_PACKAGE
 import LocalMinutesCore
 import LocalMinutesModels
@@ -51,44 +52,353 @@ public enum IntelligenceSessionError: Error, Equatable, Sendable {
     case notImplemented, busy, staleRequest, meetingMissing, invalidModel
 }
 
-/// INACTIVE TEST-FIRST STUB. The app-services owner must retain this instance
-/// and its outer operation independently of view/caller lifetime.
+private final class IntelligenceCancellation: @unchecked Sendable {
+    private let lock = NSLock()
+    private var cancelled = false
+    func cancel() { lock.withLock { cancelled = true } }
+    var isCancelled: Bool { lock.withLock { cancelled } }
+}
+
+/// App-services owns this session independently of view/caller lifetime. The
+/// generation worker and the retained outer cleanup/save operation are distinct.
 @MainActor
 public final class IntelligenceSession {
+    @MainActor
+    private final class Use: HeavyModelResourceLifecycle {
+        let request: IntelligenceRequest
+        let models: ModelInstallationManager
+        let cancellation = IntelligenceCancellation()
+        var admissionLease: HeavyModelUseLease?
+        var modelLease: ModelLease?
+        var runtime: (any IntelligenceRuntime)?
+        var work: Task<StoredGeneratedDocument, Error>?
+        var completion: Task<StoredGeneratedDocument, Error>?
+        var cleanup: Task<Void, Error>?
+        var released = false
+        var cleanupBlocked = false
+        var committed = false
+
+        init(request: IntelligenceRequest, models: ModelInstallationManager) {
+            self.request = request; self.models = models
+        }
+
+        func requestCancellation() { work?.cancel() }
+
+        func drain() async throws {
+            // Never join completion: it is the outer operation awaiting this
+            // gate cleanup. Joining only the worker avoids a cleanup self-join.
+            if let work { _ = await work.result }
+        }
+
+        func unloadAndReleaseModel() async throws {
+            if let runtime { await runtime.unload(); self.runtime = nil }
+            if let lease = modelLease { try await models.release(lease); modelLease = nil }
+        }
+    }
+
+    private let store: SQLiteMeetingStore
+    private let models: ModelInstallationManager
+    private let admission: HeavyModelAdmission
     private let manifest: ModelManifest
+    private let runtimeLoader: IntelligenceRuntimeLoader
+    private var current: Use?
+    private var state = IntelligenceSnapshot(phase: .idle, requestID: nil, meetingID: nil, document: nil)
     public init(store: SQLiteMeetingStore, models: ModelInstallationManager, admission: HeavyModelAdmission,
                 manifest: ModelManifest,
                 runtimeLoader: @escaping IntelligenceRuntimeLoader = { model in
                     try await IntelligenceSession.loadPinnedRuntime(model)
                 }) {
-        self.manifest = manifest
+        self.store = store; self.models = models; self.admission = admission
+        self.manifest = manifest; self.runtimeLoader = runtimeLoader
     }
 
-    /// Future implementation must validate the exact reviewed manifest/runtime,
-    /// then construct real LocalSummaryRuntime off MainActor. No working loader
-    /// or native construction is supplied before compatible behavioral RED.
+    /// Validate the reviewed local artifact, then construct the CPU runtime
+    /// explicitly off MainActor. Cancellation joins loading before releasing it.
     public nonisolated static func loadPinnedRuntime(_ model: VerifiedModel) async throws -> any IntelligenceRuntime {
         try Task.checkCancellation()
-        throw IntelligenceSessionError.notImplemented
+        let manifest = model.manifest
+        let revision = "91cad51170dc346986eccefdc2dd33a9da36ead9"
+        let fileName = "qwen2.5-1.5b-instruct-q4_k_m.gguf"
+        let digest = "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e"
+        let byteCount: Int64 = 1_117_320_736
+        guard manifest.schemaVersion == 1, manifest.modelID == "qwen2.5-1.5b-instruct-q4_k_m",
+              manifest.purpose == .summary, manifest.revision == revision,
+              manifest.runtimeVersion == "llama.cpp-b5046", manifest.licenseIdentifier == "Apache-2.0",
+              !manifest.licenseNotice.isEmpty, manifest.sampleRate == nil, manifest.featureDimension == nil,
+              manifest.upstreamRepository.absoluteString == "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF",
+              manifest.artifacts.count == 1, let artifact = manifest.artifacts.first,
+              artifact.role == .summary, artifact.fileName == fileName,
+              artifact.byteCount == byteCount, artifact.sha256 == digest,
+              artifact.downloadURL.absoluteString == "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/\(revision)/\(fileName)",
+              model.directoryURL.isFileURL, model.files.count == 1,
+              let file = model.files[.summary], file.isFileURL,
+              file.standardizedFileURL.path == model.directoryURL.appendingPathComponent(fileName).standardizedFileURL.path else {
+            throw IntelligenceSessionError.invalidModel
+        }
+        let cancellation = IntelligenceCancellation()
+        let loading = Task.detached(priority: .userInitiated) { () throws -> LocalSummaryRuntime in
+            try Task.checkCancellation()
+            do {
+                let attributes = try FileManager.default.attributesOfItem(atPath: file.path)
+                guard attributes[.type] as? FileAttributeType == .typeRegular,
+                      (attributes[.size] as? NSNumber)?.int64Value == byteCount else {
+                    throw IntelligenceSessionError.invalidModel
+                }
+                let input = try FileHandle(forReadingFrom: file)
+                defer { try? input.close() }
+                var hash = SHA256()
+                var readCount: Int64 = 0
+                while let bytes = try input.read(upToCount: 65_536), !bytes.isEmpty {
+                    try Task.checkCancellation()
+                    readCount += Int64(bytes.count)
+                    guard readCount <= byteCount else { throw IntelligenceSessionError.invalidModel }
+                    hash.update(data: bytes)
+                }
+                guard readCount == byteCount,
+                      hash.finalize().map({ String(format: "%02x", $0) }).joined() == digest else {
+                    throw IntelligenceSessionError.invalidModel
+                }
+            } catch is CancellationError { throw CancellationError() }
+            catch { throw IntelligenceSessionError.invalidModel }
+            try Task.checkCancellation()
+            // Once native construction begins, always return its actor to the
+            // joining owner. A late cancellation must explicitly unload it.
+            return try LocalSummaryRuntime(modelURL: file, contextSize: 4_096, threads: 4)
+        }
+        return try await withTaskCancellationHandler {
+            let runtime: LocalSummaryRuntime
+            do { runtime = try await loading.value }
+            catch {
+                if cancellation.isCancelled || Task.isCancelled { throw CancellationError() }
+                throw error
+            }
+            if cancellation.isCancelled || Task.isCancelled {
+                await runtime.unload()
+                throw CancellationError()
+            }
+            return runtime
+        } onCancel: {
+            cancellation.cancel()
+            loading.cancel()
+        }
     }
 
     public func run(_ request: IntelligenceRequest) async throws -> StoredGeneratedDocument {
         try Task.checkCancellation()
-        let kind: GeneratedDocumentKind
-        let question: String?
-        switch request.operation {
-        case .summary: kind = .summary; question = nil
-        case .question(let text): kind = .questionAnswer; question = text
+        guard current == nil else { throw IntelligenceSessionError.busy }
+        let use = Use(request: request, models: models)
+        let purpose: HeavyModelPurpose
+        switch request.operation { case .summary: purpose = .summary; case .question: purpose = .questionAnswering }
+        // Reserve the one shared heavy claim before any model/store suspension.
+        use.admissionLease = try admission.acquire(purpose: purpose, requestID: request.id, resource: use)
+        current = use
+        project(use, phase: .loading)
+        let work = Task { @MainActor in try await self.generate(use) }
+        use.work = work
+        let completion = Task { @MainActor in try await self.complete(use, work: work) }
+        use.completion = completion
+        let cancellation = use.cancellation
+        return try await withTaskCancellationHandler {
+            try await completion.value
+        } onCancel: {
+            cancellation.cancel()
+            Task { @MainActor in self.cancelWork(use) }
         }
-        // Empty value only: no model acquisition, inference or persistence.
-        return .init(id: request.documentID, meetingID: request.meetingID, kind: kind,
-            originalJSON: Data("{}".utf8), question: question, editedText: "",
-            modelRevision: manifest.revision, promptVersion: "",
-            createdAt: request.createdAt, modifiedAt: request.createdAt)
     }
 
-    public func cancelAndDrain(requestID: UUID) async throws { try Task.checkCancellation() }
-    public func snapshot() -> IntelligenceSnapshot {
-        .init(phase: .idle, requestID: nil, meetingID: nil, document: nil)
+    public func cancelAndDrain(requestID: UUID) async throws {
+        guard let use = current, use.request.id == requestID else { throw IntelligenceSessionError.staleRequest }
+        use.cancellation.cancel()
+        cancelWork(use)
+        // A failed native/file-lease cleanup retains current and the gate. Only
+        // this later explicit request retries that same resource generation.
+        if use.cleanupBlocked {
+            do { try await cleanup(use); finish(use, phase: .cancelled) }
+            catch { project(use, phase: .failed); throw error }
+        } else if let completion = use.completion {
+            do { _ = try await completion.value }
+            catch is CancellationError { }
+            catch { throw error }
+        }
+        try Task.checkCancellation()
+    }
+
+    public func snapshot() -> IntelligenceSnapshot { state }
+
+    private func cancelWork(_ use: Use) {
+        guard current === use, !use.committed else { return }
+        use.work?.cancel()
+        project(use, phase: .draining)
+    }
+
+    private func check(_ use: Use) throws {
+        try Task.checkCancellation()
+        guard current === use else { throw IntelligenceSessionError.staleRequest }
+        if use.cancellation.isCancelled { throw CancellationError() }
+        guard let lease = use.admissionLease else { throw IntelligenceSessionError.staleRequest }
+        try admission.validate(lease)
+    }
+
+    private func generate(_ use: Use) async throws -> StoredGeneratedDocument {
+        try check(use)
+        let request = use.request
+        guard request.createdAt.timeIntervalSince1970.isFinite else { throw GeneratedDocumentStoreError.invalidInput }
+        guard let meeting = try await store.meeting(id: request.meetingID) else { throw IntelligenceSessionError.meetingMissing }
+        try check(use)
+        guard meeting.recordingState != .recording else { throw IntelligenceSessionError.busy }
+        let segments = try await store.transcript(meetingID: request.meetingID)
+        try check(use)
+        let note = try await store.manualNote(meetingID: request.meetingID)
+        try check(use)
+        let lease = try await models.acquire(modelID: manifest.modelID)
+        use.modelLease = lease
+        try check(use)
+        guard lease.model.manifest == manifest, manifest.purpose == .summary,
+              lease.model.files[.summary] != nil else { throw IntelligenceSessionError.invalidModel }
+        let runtime = try await runtimeLoader(lease.model)
+        use.runtime = runtime
+        try check(use)
+        project(use, phase: .generating)
+        switch request.operation {
+        case .summary:
+            let source = GroundedSummarySource(meetingID: request.meetingID,
+                segments: segments.map { .init(id: $0.id.uuidString, startSample: $0.startSample,
+                    endSample: $0.endSample, text: $0.text) }, originalManualNotes: note?.text ?? "")
+            let pipeline = SummaryPipeline(modelRevision: manifest.revision,
+                tokenizer: { try await runtime.promptTokenCount(prompt: $0) },
+                generator: { prompt, schema, maximum in
+                    try await runtime.generateJSON(prompt: prompt, schema: schema, maximumTokens: maximum)
+                })
+            let summary = try await pipeline.summarize(selectedMeetingID: request.meetingID, source: source)
+            try check(use)
+            return try Self.document(summary: summary, request: request, revision: manifest.revision)
+        case .question(let question):
+            let answerer = MeetingQuestionAnswerer(store: store, modelRevision: manifest.revision,
+                tokenCounter: { try await runtime.promptTokenCount(prompt: $0) },
+                generator: { try await runtime.generateJSON(prompt: $0.prompt, schema: $0.schema,
+                                                            maximumTokens: $0.maximumOutputTokens) })
+            let answer = try await answerer.answer(meetingID: request.meetingID, question: question)
+            try check(use)
+            return try Self.document(answer: answer, request: request)
+        }
+    }
+
+    private func complete(_ use: Use, work: Task<StoredGeneratedDocument, Error>) async throws -> StoredGeneratedDocument {
+        let generated = await work.result
+        project(use, phase: .draining)
+        do { try await cleanup(use) }
+        catch {
+            // Preserve the actual resource/gate claim for an explicit retry.
+            use.cleanupBlocked = true
+            project(use, phase: .failed)
+            throw error
+        }
+        if use.cancellation.isCancelled {
+            finish(use, phase: .cancelled)
+            throw CancellationError()
+        }
+        let document: StoredGeneratedDocument
+        do { document = try generated.get() }
+        catch {
+            finish(use, phase: error is CancellationError ? .cancelled : .failed)
+            throw error
+        }
+        project(use, phase: .saving)
+        do {
+            // This one committed SQLite write is the saved-result boundary.
+            // Cancellation after accepted commit cannot erase an editable row.
+            try await store.createGeneratedDocument(document)
+            use.committed = true
+            finish(use, phase: .completed, document: document)
+            return document
+        } catch {
+            finish(use, phase: .failed)
+            throw error
+        }
+    }
+
+    private func cleanup(_ use: Use) async throws {
+        if let existing = use.cleanup { try await existing.value; return }
+        guard let lease = use.admissionLease else { throw IntelligenceSessionError.staleRequest }
+        let owned = Task { @MainActor in
+            do {
+                try await self.admission.cancelAndDrain(lease)
+                use.released = true
+                use.cleanupBlocked = false
+            } catch {
+                use.cleanup = nil
+                throw error
+            }
+        }
+        use.cleanup = owned
+        try await owned.value
+    }
+
+    private func project(_ use: Use, phase: IntelligencePhase, document: StoredGeneratedDocument? = nil) {
+        guard current === use else { return }
+        state = .init(phase: phase, requestID: use.request.id, meetingID: use.request.meetingID, document: document)
+    }
+
+    private func finish(_ use: Use, phase: IntelligencePhase, document: StoredGeneratedDocument? = nil) {
+        guard current === use else { return }
+        project(use, phase: phase, document: document)
+        if use.released { current = nil }
+    }
+
+    private static func evidence(_ value: GroundedSummaryEvidence) -> [String: Any] {
+        ["source_id": value.sourceID, "start_sample": value.startSample,
+         "end_sample": value.endSample, "quote": value.quote]
+    }
+
+    private static func provenance(_ values: [SummaryGenerationProvenance]) -> [[String: Any]] {
+        values.map { ["model_revision": $0.modelRevision, "prompt_version": $0.promptVersion, "map_index": $0.mapIndex] }
+    }
+
+    private static func point(_ value: GroundedSummaryPoint) -> [String: Any] {
+        ["text": value.text, "evidence": value.evidence.map { evidence($0) }, "provenance": provenance(value.provenance)]
+    }
+
+    private static func document(summary: GroundedSummary, request: IntelligenceRequest,
+                                 revision: String) throws -> StoredGeneratedDocument {
+        let actions: [[String: Any]] = summary.actions.map {
+            ["task": $0.task, "owner": $0.owner.map { $0 as Any } ?? NSNull(),
+             "due": $0.due.map { $0 as Any } ?? NSNull(), "evidence": $0.evidence.map { evidence($0) },
+             "provenance": provenance($0.provenance)]
+        }
+        let payload: [String: Any] = ["schema_version": 1, "meeting_id": summary.meetingID.uuidString,
+            "summary_points": summary.summaryPoints.map { point($0) },
+            "decisions": summary.decisions.map { point($0) }, "actions": actions]
+        let text = (summary.summaryPoints.map(\.text) + summary.decisions.map { "Decision: " + $0.text }
+            + summary.actions.map { action in
+                "Action: " + action.task + (action.owner.map { " — " + $0 } ?? "") + (action.due.map { " (" + $0 + ")" } ?? "")
+            }).joined(separator: "\n")
+        return try document(payload: payload, text: text, request: request, kind: .summary,
+                            revision: revision, prompt: "grounded-map-v1", question: nil)
+    }
+
+    private static func document(answer: MeetingQuestionAnswer, request: IntelligenceRequest) throws -> StoredGeneratedDocument {
+        let citations: [[String: Any]] = answer.evidence.map {
+            ["source_id": $0.source.id.uuidString, "start_sample": $0.source.startSample,
+             "end_sample": $0.source.endSample, "quote": $0.quote, "asr_model_revision": $0.source.modelRevision]
+        }
+        let payload: [String: Any] = ["schema_version": 1, "meeting_id": answer.meetingID.uuidString,
+            "status": answer.status.rawValue, "evidence": citations,
+            "model_revision": answer.modelRevision, "prompt_version": answer.promptVersion]
+        let text = answer.status == .insufficientEvidence ? "Insufficient evidence in this meeting."
+            : answer.evidence.map(\.quote).joined(separator: "\n")
+        let question: String?
+        if case .question(let value) = request.operation { question = value } else { question = nil }
+        return try document(payload: payload, text: text, request: request, kind: .questionAnswer,
+                            revision: answer.modelRevision, prompt: answer.promptVersion, question: question)
+    }
+
+    private static func document(payload: [String: Any], text: String, request: IntelligenceRequest,
+                                 kind: GeneratedDocumentKind, revision: String, prompt: String,
+                                 question: String?) throws -> StoredGeneratedDocument {
+        let json = try JSONSerialization.data(withJSONObject: payload, options: [.sortedKeys, .withoutEscapingSlashes])
+        guard json.count <= 1_048_576, text.utf8.count <= 1_048_576 else { throw GeneratedDocumentStoreError.invalidInput }
+        return .init(id: request.documentID, meetingID: request.meetingID, kind: kind, originalJSON: json,
+            question: question, editedText: text, modelRevision: revision, promptVersion: prompt,
+            createdAt: request.createdAt, modifiedAt: request.createdAt)
     }
 }

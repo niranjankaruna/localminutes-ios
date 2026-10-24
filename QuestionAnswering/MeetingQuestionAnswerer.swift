@@ -201,12 +201,19 @@ public struct MeetingQuestionAnswerer: Sendable {
         paraphrase, combine sources, use outside knowledge, or infer missing facts.
         A speaker label alone does not establish responsibility. Unknown,
         undecided, missing or ambiguous requested facts are insufficient evidence.
-        Decide whether the requested fact is known before selecting a quote.
-        A source saying that the requested fact is unknown, absent or undecided
-        does not supply that fact. Even if that statement can be quoted exactly,
-        it must produce status "insufficient_evidence", source_id "none", and
-        an empty quote. Use "supported_quote" only when the quote supplies the
-        requested known fact, rather than a statement that no answer is known.
+        First classify answerability: identify the requested value, then check
+        whether a source actually supplies that value. If the source only says
+        the value has not been determined, select insufficient_evidence. An exact
+        quote about uncertainty is not a supported answer to the missing value.
+        Only after finding a known value may you select its supporting quote.
+        These unrelated format examples are illustrations, not meeting evidence:
+        Question: What is the parcel weight?
+        Example source demo-unknown: "The parcel weight has not been determined."
+        Output: {"status":"insufficient_evidence","source_id":"none","quote":""}
+        Question: What is the parcel weight?
+        Example source demo-known: "The parcel weighs 3 kilograms."
+        Output: {"status":"supported_quote","source_id":"demo-known","quote":"The parcel weighs 3 kilograms."}
+        Apply the same answerability distinction to the actual JSON below.
         Return exactly one JSON object with keys in this order:
         status: "supported_quote" or "insufficient_evidence";
         source_id: the quoted source's identifier, or "none" for insufficient evidence;

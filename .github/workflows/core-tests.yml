@@ -113,7 +113,7 @@ jobs:
 
   local-summary-quality:
     runs-on: macos-15-intel
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     steps:

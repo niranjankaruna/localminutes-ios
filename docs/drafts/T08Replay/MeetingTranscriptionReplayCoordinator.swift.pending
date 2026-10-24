@@ -1,0 +1,64 @@
+import Foundation
+#if SWIFT_PACKAGE
+import LocalMinutesCore
+import LocalMinutesModels
+import LocalMinutesPersistence
+import LocalMinutesRecording
+import LocalMinutesMeetingLibrary
+#endif
+
+public struct TranscriptionReplayCheckpoint: Codable, Equatable, Sendable {
+    public let schemaVersion: Int
+    public let meetingID: UUID
+    public let manifestSHA256: String
+    public let modelRevision: String
+    /// Global resume position; explicit gaps are accounted, never decoded frames.
+    public let nextGlobalSample: Int64
+    public let committedSequence: Int
+    public init(schemaVersion: Int = 1, meetingID: UUID, manifestSHA256: String,
+                modelRevision: String, nextGlobalSample: Int64, committedSequence: Int) {
+        self.schemaVersion = schemaVersion; self.meetingID = meetingID
+        self.manifestSHA256 = manifestSHA256; self.modelRevision = modelRevision
+        self.nextGlobalSample = nextGlobalSample; self.committedSequence = committedSequence
+    }
+}
+
+public struct TranscriptionReplayReport: Equatable, Sendable {
+    public let meetingID: UUID
+    public let durableFrameCount: Int64
+    public let replayedFrameCount: Int64
+    public let timelineEndSample: Int64
+    public let insertedSegmentIDs: [UUID]
+    public let gaps: [AudioRecoveryGap]
+    public init(meetingID: UUID, durableFrameCount: Int64, replayedFrameCount: Int64,
+                timelineEndSample: Int64, insertedSegmentIDs: [UUID], gaps: [AudioRecoveryGap]) {
+        self.meetingID = meetingID; self.durableFrameCount = durableFrameCount
+        self.replayedFrameCount = replayedFrameCount; self.timelineEndSample = timelineEndSample
+        self.insertedSegmentIDs = insertedSegmentIDs; self.gaps = gaps
+    }
+}
+
+public enum TranscriptionReplayError: Error, Equatable, Sendable {
+    case meetingInUse, invalidCheckpoint, invalidAudio, metadataFailure, modelUnavailable
+}
+
+/// Inactive test-first seam. No model replacement or working replay is supplied.
+@MainActor
+public final class MeetingTranscriptionReplayCoordinator {
+    public init(store: SQLiteMeetingStore, models: ModelInstallationManager,
+                recordingsRoot: URL, usage: MeetingUsageRegistry, admission: HeavyModelAdmission) { }
+
+    // Scheduling boundaries only. Production uses the public initializer; these
+    // never replace file decoding, persistence, or actual model inference.
+    init(store: SQLiteMeetingStore, models: ModelInstallationManager,
+         recordingsRoot: URL, usage: MeetingUsageRegistry, admission: HeavyModelAdmission,
+         afterClaim: @escaping @Sendable () async -> Void,
+         afterCheckpoint: @escaping @Sendable (TranscriptionReplayCheckpoint) async -> Void) { }
+
+    public func replay(meetingID: UUID) async throws -> TranscriptionReplayReport {
+        .init(meetingID: meetingID, durableFrameCount: 0, replayedFrameCount: 0,
+              timelineEndSample: 0, insertedSegmentIDs: [], gaps: [])
+    }
+
+    public func checkpoint(meetingID: UUID) async throws -> TranscriptionReplayCheckpoint? { nil }
+}

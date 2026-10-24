@@ -201,3 +201,19 @@ After actual source2 RED, implemented schema4 exact-BLOB generated storage/CAS, 
 New test-first slices: app-owned intelligence4core+1mandatoryactualQwen; app diagnostics3native; library3UI with DEBUG-only no-op isolated-root fixture hook plus two compiled Release/Debug boundary checks. New sources/targets only expose empty/no-op/throwing APIs until actual RED. The Release path has no fixture/environment override; normal shared services creation is delayed away from the DEBUG fixture branch. Source3 expected296core/68native/8actualQwen/6UI/86TSAN, plus59scripts and unchanged13archive checks. The actual-model case checks >=2.5GB real temporary headroom before owned imports; no downloads, skips or fake inference are substituted.
 
 Important: no-op fixture failure is harness RED only. Seed real synthetic SQLite/CAF after that proof, then require actually reached Summary/Ask assertions before product UI code. App scenePhase control tests do not establish SwiftUI binding/periodic checkpoints/phone locking. No device or baseline completion claim. Budget2/6used, run2terminal. Next: push source3 and inspect exact compatible evidence.
+
+
+## Correction from actual synthetic model output
+
+Prior source2 positive-pipeline PASS / unknown-summary failure was incorrectly inferred from a catch-clause line number. It was not established. Source3c972600/run40086780531 actualjob120851237575 captures ONLY the first positive map: decision text omits its speaker prefix while quote includes it; task is rewritten/case-changed; due is invented2023-01-15 while source states onlyThursday. The decoder correctly rejects unsupportedClaim before the positive pipeline completes; the unknown-summary fixture is not reached. All five earlier flat/runtime/capacity tests and budget QA positive pass. Full nested summary quality remains FAILED/unproven; no field normalization or validator weakening is authorized. QA unknown attempt1 still produces raw supported_quote/undecided source (fiveassertions).
+
+Actual model suite8executed5passed3failed7assertions(1unexpected)0skip. The new actual service test verifies/imports the pinned model but fails missing decisions array from the empty service stub; this is missing integration RED, not a native-loader pass. It now authorizes the real default off-MainActor loader with unchanged pinned identity/bytes and actual generation before durable output. Source3alljobs terminal; native tests were blocked by canary reader before execution.
+
+
+## Continuation09 fourth-source preparation
+
+Actual service orchestration/default CPU loader implemented only after source3 four-core + one actual composite missing-behavior RED. Loader validates reviewed manifest/size/SHA/runtime, hashes real bytes and constructs the actual runtime off MainActor; cancellation joins load/unload. No actual service GREEN yet. QA unknown handling: distinct generic classification examples attempt2, no forced status/rewritten output. Nested summary: first diagnosed repair puts evidence before claims and requires exact text/task case plus literal weekday dates; no answers seeded in grammar, no weaker validation or test change.
+
+Compiled Debug canary reader now handles the exact documented NAME.debug.dylib code image when present (otherwise main executable), requires actual Mach-O headers and positive canary/launch mode, and prints bounded image metadata. Release app+extension exclusion remains unchanged and strict. SDK app metrics/fixture seeding remain no-op until their native/UI assertions execute.
+
+Source3 actual model execution617.9seconds plus preparation/compilation nearly filled15minute job while the default service was still a stub. Real service adds two actual generations; bound that job at20minutes (<45spec), same free standard public runner, no uploads/payment changes. Other15/35minute bounds, six-run cap and one active run/branch unchanged. Current3/6runs terminal; source4 expected296core/68native/8actualmodel/6UI.
