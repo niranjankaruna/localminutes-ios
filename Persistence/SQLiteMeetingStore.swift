@@ -25,6 +25,22 @@ public struct MeetingRecord: Equatable, Sendable, Identifiable {
     }
 }
 
+public struct MeetingHistoryCursor: Equatable, Sendable {
+    public let createdAt: Date
+    public let id: UUID
+    public init(createdAt: Date, id: UUID) { self.createdAt = createdAt; self.id = id }
+}
+
+public struct MeetingHistoryPage: Sendable {
+    public let meetings: [MeetingRecord]
+    public let nextCursor: MeetingHistoryCursor?
+}
+
+public struct TranscriptSearchPage: Sendable {
+    public let matches: [StoredTranscriptSegment]
+    public let nextSequence: Int?
+}
+
 /// Finalized recognizer text only. Sample positions refer to the meeting's global
 /// 16 kHz audio timeline; these are utterance ranges, not claimed word timings.
 public struct StoredTranscriptSegment: Equatable, Sendable, Identifiable {
@@ -118,6 +134,37 @@ public actor SQLiteMeetingStore {
         var records: [MeetingRecord] = []
         while try statement.next() { records.append(try decodeMeeting(statement)) }
         return records
+    }
+
+    /// Bounded keyset pages preserve the same date/UUID order as history().
+    /// User punctuation is literal query data, never a LIKE/FTS expression.
+    public func historyPage(query: String = "", after cursor: MeetingHistoryCursor? = nil,
+                            limit: Int = 100) throws -> MeetingHistoryPage {
+        guard (1...100).contains(limit), cursor?.createdAt.timeIntervalSince1970.isFinite != false else {
+            throw MeetingStoreError.invalidInput
+        }
+        let database = try connection.database()
+        var clauses: [String] = []
+        if !query.isEmpty { clauses.append("instr(lower(title),lower(?))>0") }
+        if cursor != nil { clauses.append("(created_at<? OR (created_at=? AND id>?))") }
+        let filter = clauses.isEmpty ? "" : " WHERE " + clauses.joined(separator: " AND ")
+        let statement = try MeetingSQLiteStatement(database: database, sql:
+            "SELECT id,title,created_at,recording_state,captured_sample_count FROM meetings" + filter
+            + " ORDER BY created_at DESC,id ASC LIMIT ?")
+        var parameter: Int32 = 1
+        if !query.isEmpty { try statement.bind(query, at: parameter); parameter += 1 }
+        if let cursor {
+            try statement.bind(cursor.createdAt.timeIntervalSince1970, at: parameter); parameter += 1
+            try statement.bind(cursor.createdAt.timeIntervalSince1970, at: parameter); parameter += 1
+            try statement.bind(cursor.id.uuidString, at: parameter); parameter += 1
+        }
+        try statement.bind(Int64(limit + 1), at: parameter)
+        var records: [MeetingRecord] = []
+        while try statement.next() { records.append(try decodeMeeting(statement)) }
+        let more = records.count > limit
+        if more { records.removeLast() }
+        let next = more ? records.last.map { MeetingHistoryCursor(createdAt: $0.createdAt, id: $0.id) } : nil
+        return .init(meetings: records, nextCursor: next)
     }
 
     /// Exclusive canonical-UUID keyset, independent of changing recording state
@@ -223,6 +270,28 @@ public actor SQLiteMeetingStore {
         try statement.bind(query, at: 2)
         try statement.bind(Int64(limit), at: 3)
         return try decodeSegments(statement)
+    }
+
+    public func searchTranscriptPage(meetingID: UUID, query: String, afterSequence: Int? = nil,
+                                     limit: Int = 50) throws -> TranscriptSearchPage {
+        guard (1...50).contains(limit), afterSequence == nil || afterSequence! >= 0 else {
+            throw MeetingStoreError.invalidInput
+        }
+        let database = try connection.database()
+        guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return .init(matches: [], nextSequence: nil)
+        }
+        let statement = try MeetingSQLiteStatement(database: database, sql:
+            "SELECT id,meeting_id,sequence,start_sample,end_sample,text,model_revision FROM transcript_segments"
+            + " WHERE meeting_id=? AND instr(lower(text),lower(?))>0 AND sequence>? ORDER BY sequence ASC LIMIT ?")
+        try statement.bind(meetingID.uuidString, at: 1)
+        try statement.bind(query, at: 2)
+        try statement.bind(Int64(afterSequence ?? -1), at: 3)
+        try statement.bind(Int64(limit + 1), at: 4)
+        var matches = try decodeSegments(statement)
+        let more = matches.count > limit
+        if more { matches.removeLast() }
+        return .init(matches: matches, nextSequence: more ? matches.last?.sequence : nil)
     }
 
     /// Ranked original evidence only from the selected meeting. User punctuation

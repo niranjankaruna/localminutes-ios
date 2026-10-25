@@ -3,11 +3,11 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-25T11:09:31.845Z",
+  "lastUpdated": "2026-10-25T11:46:45.918Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "T23 final functional closure: T12.5 memory pressure, T15.2 complete history/search/loading, T18.7 saved-answer editing",
+  "currentTask": "T23 final MVP4 combined regression/package: T12.5/T15.2/T18.7 implemented after actual RED",
   "lastVerifiedCommit": "880d3dcd2e21f79e6435ec134279cad192e7435d",
   "lastVerifiedCIRun": 40181776855,
   "candidateArtifact": {
@@ -58,7 +58,7 @@
     },
     "evidence": "docs/evidence/MVP3_DELIVERY_2026_10_25.md"
   },
-  "nextAction": "Watch exact live storage UI job121148120197/run40186443609; other storage gates are actual GREEN(7Core/46scripts/15native/Release+3hygiene). No competing run. Once terminal, dispatch mvp4-final RED at pushed b05e7d9730ecefea1c5ba216183cad928861fc8f with packageMVP2=false; 5portable+9native+3UI. Empty seams only; no history/answer/memory behavior until each actualRED. Then implement parallel, one final combined app regression/package build6 and verified delivery. No quality benchmarks. Phone checks owner-only.",
+  "nextAction": "Commit/push reviewed build6 implementation and UI-only/split-UI verification configuration. Create unpublished exact-SHA owner draft and dispatch one mvp4-final GREEN/package batch (packageMVP2=true); only standard free public macOS, one active branch run. Related portable regression, app-hosted regression, history/infoUI and answers/libraryUI in parallel, ReleaseIPA+3hygiene/provenance. Verify exact source/run then downloaded bytes/IDs/arm64/pins/notices, deliver MVP4 development IPA/guide. Phone17Pro/iOS27.0.1 ownerreported; all actual phone checks NOT_RUN. No model quality benchmark.",
   "pendingPushCommit": null,
   "remoteBranchHead": "880d3dcd2e21f79e6435ec134279cad192e7435d",
   "localScriptGreen": {
@@ -88,7 +88,8 @@
       40180161772,
       40181776855,
       40184895367,
-      40186443609
+      40186443609,
+      40188134859
     ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-25T10:31:04.335Z",
@@ -96,9 +97,9 @@
     "runLimitPolicy": "Owner explicitly removed six-run cap; batch checks, retain bounded retries and zero spend"
   },
   "latestCIRun": {
-    "runId": 40184895367,
-    "sourceCommit": "e9b1701cb81e0fb5f0a84f608f7c7598cd917449",
-    "mode": "mvp4-storage",
+    "runId": 40188134859,
+    "sourceCommit": "3df777c9cc4beccf652294874e52f889bb9204c3",
+    "mode": "mvp4-final",
     "status": "completed",
     "conclusion": "failure",
     "purpose": "actual tests-first RED"
@@ -277,12 +278,7 @@
     "latestSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
     "latestRunUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180"
   },
-  "activeCIRun": {
-    "runId": 40186443609,
-    "sourceCommit": "3273fb20401023fd8095d36c7007923aa42d7bca",
-    "mode": "mvp4-storage",
-    "status": "in_progress"
-  },
+  "activeCIRun": null,
   "pendingPushScope": null,
   "repositoryVisibility": "PUBLIC",
   "publication": {
@@ -2561,14 +2557,14 @@
     "status": "IN_PROGRESS",
     "checklist": "docs/MVP4_DEVICE_CHECKLIST.md",
     "exactArtifactSource": "880d3dcd2e21f79e6435ec134279cad192e7435d",
-    "phoneModel": null,
-    "iOSVersion": null,
+    "phoneModel": "iPhone 17 Pro",
+    "iOSVersion": "27.0.1",
     "ownerPerformsEndurance": true,
     "allDeviceChecks": "NOT_RUN",
-    "nextInput": "Phone/iOS facts and short Live Activity/Stop observation",
+    "nextInput": "Owner short recording/LiveActivityStop observation and exact installed build; other phone gates remain NOT_RUN",
     "blocker": "OWNER_PHONE_VALIDATION_REQUIRED: agent has no physical iPhone access; installation/signing, extension/Action Button/locked live capture, two125min, offline use, file protection and renewal need owner evidence.",
     "storageAudit": {
-      "status": "IN_PROGRESS",
+      "status": "CODE_COMPLETE_PENDING_DEVICE",
       "behaviorImplemented": true,
       "redVerified": true,
       "tests": {
@@ -2594,7 +2590,7 @@
         "assertionFailures": 28,
         "skipped": 0
       },
-      "greenVerified": false,
+      "greenVerified": true,
       "buildNumber": "5",
       "nativeRed": {
         "executed": 7,
@@ -2658,8 +2654,18 @@
         "sha256": "66cce1440d83dfaf6c93b528b0fb1b3f6d558780c271c2f7eb3db7c215d5238f",
         "sizeBytes": 14925881,
         "retainedInUnpublishedDraft": true,
-        "localDownloadedVerification": "PENDING",
+        "localDownloadedVerification": "PASS: SHA256/GitHub digest/CRC/IDs/source/build5/arm64 iPhoneOS app+extension/pins/notices",
         "uiGate": "PENDING"
+      },
+      "uiGreen": {
+        "sourceCommit": "3273fb20401023fd8095d36c7007923aa42d7bca",
+        "runId": 40186443609,
+        "jobId": 121148120197,
+        "executed": 3,
+        "passed": 3,
+        "failed": 0,
+        "skipped": 0,
+        "durationSeconds": 209.543
       }
     },
     "partialAudit": {
@@ -2683,11 +2689,47 @@
         "native": 9,
         "ui": 3
       },
-      "redVerified": false,
-      "productionImplemented": false,
+      "redVerified": true,
+      "productionImplemented": true,
       "evidence": "docs/evidence/MVP4_FINAL_GAPS_TDD.md",
       "testFirstSource": "b05e7d9730ecefea1c5ba216183cad928861fc8f",
-      "testFirstPushed": true
-    }
+      "testFirstPushed": true,
+      "redRun": {
+        "runId": 40188134859,
+        "sourceCommit": "3df777c9cc4beccf652294874e52f889bb9204c3",
+        "mode": "mvp4-final",
+        "status": "in_progress",
+        "phase": "tests-first RED"
+      },
+      "greenVerified": false,
+      "coreRed": {
+        "executed": 5,
+        "passed": 1,
+        "failed": 4,
+        "assertionFailures": 14,
+        "skipped": 0,
+        "jobId": 121153187659
+      },
+      "nativeRed": {
+        "executed": 9,
+        "passed": 1,
+        "failed": 8,
+        "assertionFailures": 20,
+        "skipped": 0,
+        "jobId": 121153187938
+      },
+      "uiRed": {
+        "executed": 3,
+        "passed": 0,
+        "failed": 3,
+        "assertionFailures": 3,
+        "skipped": 0,
+        "jobId": 121153187939
+      },
+      "review": "Root plus independent Medium review completed; tests unchanged; actual GREEN pending",
+      "buildNumber": "6"
+    },
+    "phoneFactsSource": "OWNER_REPORTED_2026_10_25",
+    "liveActivityStopObservation": "NOT_REPORTED"
   }
 }

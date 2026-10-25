@@ -8,7 +8,7 @@ settings:
   base:
     SWIFT_VERSION: '6.0'
     MARKETING_VERSION: '1.0'
-    CURRENT_PROJECT_VERSION: '5'
+    CURRENT_PROJECT_VERSION: '6'
     TARGETED_DEVICE_FAMILY: '1'
     CODE_SIGNING_ALLOWED: 'NO'
 packages:
@@ -135,6 +135,16 @@ targets:
         GENERATE_INFOPLIST_FILE: 'YES'
         CODE_SIGNING_ALLOWED: 'NO'
 schemes:
+  LocalMinutesUIValidation:
+    build:
+      targets:
+        LocalMinutes: all
+        LocalMinutesUITests: [test]
+    test:
+      config: Debug
+      targets:
+        - name: LocalMinutesUITests
+          parallelizable: false
   LocalMinutesFocusedValidation:
     build:
       targets:

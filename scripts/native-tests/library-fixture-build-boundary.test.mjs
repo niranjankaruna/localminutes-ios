@@ -13,6 +13,7 @@ const canary = 'LOCALMINUTES_DEBUG_LIBRARY_FIXTURE_CANARY_v1';
 const modelCanary = 'LOCALMINUTES_DEBUG_MODEL_ACCESSIBILITY_FIXTURE_CANARY_v1';
 const markers = [canary, '--ui-test-library-fixture', 'LOCALMINUTES_UI_LIBRARY_TOKEN',
   '--ui-test-library-content-status',
+  '--ui-test-library-pagination', 'UI Earlier Archive Target',
   'UI Library Alpha', 'UI Library Beta', 'Alpha shared-term original transcript.',
   'Beta shared-term original transcript.', 'Original Alpha manual note.', 'Original Beta manual note.',
   'Seeded Alpha generated summary.', 'Seeded Beta generated summary.', 'Seeded Beta private answer.',

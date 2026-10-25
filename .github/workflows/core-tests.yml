@@ -347,7 +347,11 @@ jobs:
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           mkdir -p .build
           if [ "${{ inputs.mode }}" = mvp4-final ]; then
+            if [ "${{ inputs.packageMVP2 }}" = true ]; then
+              swift test --filter 'MeetingLibraryTests|CoreTests[.](StorageAuditTests|HeavyModelAdmissionTests)|PersistenceTests[.](GeneratedDocumentStorageTests|MeetingContentStatusTests)' 2>&1 | tee .build/focused-portable.log
+            else
             swift test --filter 'MeetingLibraryTests[.]HistoryPaginationTests' 2>&1 | tee .build/focused-portable.log
+            fi
           elif [ "${{ inputs.mode }}" = mvp4-storage ]; then
             swift test --filter 'CoreTests[.]StorageAuditTests' 2>&1 | tee .build/focused-portable.log
           elif [[ "${{ inputs.mode }}" == mvp3 || "${{ inputs.mode }}" == mvp3-startup || "${{ inputs.mode }}" == mvp3-functional ]]; then
@@ -406,7 +410,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        testclass: ${{ fromJSON(inputs.mode == 'mvp4-final' && '["MVP4FinalContracts","MVP4FinalUI"]' || inputs.mode == 'mvp4-storage' && '["NativeStoragePrivacyReportTests","MVP4StorageUI"]' || inputs.mode == 'mvp3-startup' && '["NativeSummarySelectionStartupTests","MVP3AccessibilityUI"]' || inputs.mode == 'mvp3' && '["MVP3Contracts","MVP3AccessibilityUI"]' || (inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet') && '["NativeMVP2LibraryTests"]' || inputs.mode == 'model-delivery' && '["MVP1Services"]' || (inputs.mode == 'model-integration' || inputs.mode == 'model-repair') && '["NativeAppMetricsTests","NativeModelResourceTests"]' || '["NativeAppMetricsTests"]') }}
+        testclass: ${{ fromJSON(inputs.mode == 'mvp4-final' && (inputs.packageMVP2 && '["MVP4FinalContracts","MVP4FinalHistoryUI","MVP4FinalAnswersUI"]' || '["MVP4FinalContracts","MVP4FinalUI"]') || inputs.mode == 'mvp4-storage' && '["NativeStoragePrivacyReportTests","MVP4StorageUI"]' || inputs.mode == 'mvp3-startup' && '["NativeSummarySelectionStartupTests","MVP3AccessibilityUI"]' || inputs.mode == 'mvp3' && '["MVP3Contracts","MVP3AccessibilityUI"]' || (inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet') && '["NativeMVP2LibraryTests"]' || inputs.mode == 'model-delivery' && '["MVP1Services"]' || (inputs.mode == 'model-integration' || inputs.mode == 'model-repair') && '["NativeAppMetricsTests","NativeModelResourceTests"]' || '["NativeAppMetricsTests"]') }}
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
       NATIVE_TEST_CLASS: ${{ matrix.testclass }}
@@ -460,7 +464,13 @@ jobs:
         run: |
           set -euo pipefail
           native_scheme=LocalMinutesFocusedValidation
-          if [ "$NATIVE_TEST_CLASS" = MVP4FinalUI ]; then
+          if [ "$NATIVE_TEST_CLASS" = MVP4FinalHistoryUI ]; then
+            native_scheme=LocalMinutesUIValidation
+            native_cases=(-only-testing:LocalMinutesUITests/HistoryPaginationUITests -only-testing:LocalMinutesUITests/RequiredScreenInformationUITests)
+          elif [ "$NATIVE_TEST_CLASS" = MVP4FinalAnswersUI ]; then
+            native_scheme=LocalMinutesUIValidation
+            native_cases=(-only-testing:LocalMinutesUITests/AnswerEditingUITests -only-testing:LocalMinutesUITests/LibraryProductUITests)
+          elif [ "$NATIVE_TEST_CLASS" = MVP4FinalUI ]; then
             native_scheme=LocalMinutes
             if [ "${{ inputs.packageMVP2 }}" = true ]; then
               native_cases=(-only-testing:LocalMinutesUITests)
@@ -512,7 +522,19 @@ jobs:
           if [ -f .agent-local/focused-simulator-boot.log ]; then
             tail -40 .agent-local/focused-simulator-boot.log
           fi
-          if [ "$NATIVE_TEST_CLASS" = MVP4FinalUI ]; then
+          if [ "$NATIVE_TEST_CLASS" = MVP4FinalHistoryUI ]; then
+            node scripts/verify-test-log.mjs .agent-local/focused-app-metrics.log \
+              testHistoryOffersExplicitNextPageAndExhaustsItsActualOlderRows \
+              testHistoryTitleSearchFindsAndOpensAStoredMeetingBeyondTheInitialPage \
+              testActualRecordAndModelsScreensExplainMicrophoneLiveActivityAndDisplayVersionAndBuild \
+              testActualHistoryRowsReportOnlyTheirOwnPersistedTranscriptAndSummaryAvailability
+          elif [ "$NATIVE_TEST_CLASS" = MVP4FinalAnswersUI ]; then
+            node scripts/verify-test-log.mjs .agent-local/focused-app-metrics.log \
+              testSavedAnswerEditorExplicitSaveNavigationAndRelaunchPreserveOnlyItsDisplayCopy \
+              testActualHistoryDetailsAndTranscriptSearchStayWithinTheSelectedMeeting \
+              testManualNoteNavigationAndRelaunchPreserveTheEditWithoutChangingAnotherMeeting \
+              testEditableGeneratedSummaryAndAskMissingModelStaySeparateFromOriginalsAndOtherMeetings
+          elif [ "$NATIVE_TEST_CLASS" = MVP4FinalUI ]; then
             node scripts/verify-test-log.mjs .agent-local/focused-app-metrics.log \
               testHistoryOffersExplicitNextPageAndExhaustsItsActualOlderRows \
               testHistoryTitleSearchFindsAndOpensAStoredMeetingBeyondTheInitialPage \

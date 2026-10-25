@@ -402,3 +402,7 @@ App screens/shared real-model wiring, durable edits/answers/citations/cancel/exp
 | T12.5/T15.2/T18.7 prepared | Final functional gaps from audit | Tests5portable+9native+3UI prepared; actualRED pending | NOT_RUN | Pending test-firstcommit | HostedmacOS/iOS required | IN_PROGRESS | Emptyseams only, no new inference/modelquality. |
 
 | T12.1a native/package partialGREEN | Actual privacy report and guarded reads | R7actualRED retained | R8native15PASS0fail/skip1.280s; actualdevicebuild5 +3hygienePASS | 3273fb20401023fd8095d36c7007923aa42d7bca | Hosted iOS Simulator/devicecompilation | IN_PROGRESS | UIstilllive; localbytespending; finalMVP4gaps testsfirstb05e7d9pushed. |
+
+| T12.1a storage report final GREEN | Owner-accessible observed metadata and explicit sanitized sharing | R7actualRED preserved | R8run40186443609:7Core+46scripts+15native+3UI+3hygienePASS;0fail/skip; localbytes/pins/noticesPASS | 3273fb20401023fd8095d36c7007923aa42d7bca | HostedmacOS/iOS Simulator +WindowsIPAverification | CODE_COMPLETE_PENDING_DEVICE | Phone17Pro/iOS27.0.1 ownerreported; no physical test result. FinalothergapsR9live. |
+
+| T12.5/T15.2/T18.7 actual RED | Memory cleanup, complete search/history, saved-answer editing | R9run40188134859:5portable/4FAIL14assert;9native/8FAIL20assert;3UI/3FAIL3assert;0skip | Implemented/reviewed; finalGREENpending | 3df777c9cc4beccf652294874e52f889bb9204c3 | HostedmacOS/iOS Simulator | IN_PROGRESS | b05testfirstcode unchanged; build6 finalgate next. No physical/inference-quality claim. |

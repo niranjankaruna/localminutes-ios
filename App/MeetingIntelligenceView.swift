@@ -48,6 +48,7 @@ final class MeetingIntelligenceController {
     @ObservationIgnored private var debounce: Task<Void, Never>?
     @ObservationIgnored private var resetSummaryTask: Task<Void, Never>?
     @ObservationIgnored private var saveOperation: (id: UUID, task: Task<Bool, Never>)?
+    @ObservationIgnored private var answerSaveOperations: [UUID: (id: UUID, task: Task<Bool, Never>)] = [:]
 
     init(services: LocalMinutesServices, meetingID: UUID) {
         self.services = services
@@ -56,12 +57,78 @@ final class MeetingIntelligenceController {
 
     var busy: Bool { isRunning || cleanupPending || isResetting }
     var hasSummaryEdits: Bool { summary.map { summaryText != $0.editedText } ?? false }
+    var hasAnswerEdits: Bool {
+        answers.contains { answer in answerDrafts[answer.id].map { $0 != answer.editedText } == true }
+    }
 
-    // Minimal test-first seams. Hosted assertion RED must precede answer-save,
-    // reopen and navigation-flush behavior or its product editor controls.
-    func flushAnswerEdits(documentID: UUID) async -> Bool { false }
-    func flushAllAnswerEdits() async -> Bool { false }
-    func reopenSavedAnswer(documentID: UUID) async {}
+    /// Each saved display copy retains its original document, meeting and CAS
+    /// revision. Concurrent callers join the same write, then drain newer text.
+    func flushAnswerEdits(documentID: UUID) async -> Bool {
+        while true {
+            if let existing = answerSaveOperations[documentID] {
+                guard await existing.task.value else { return false }
+                continue
+            }
+            guard let document = answers.first(where: { $0.id == documentID && $0.meetingID == meetingID }),
+                  document.kind == .questionAnswer else { return false }
+            guard !answerEditConflicts.contains(documentID) else { return false }
+            guard let text = answerDrafts[documentID], text != document.editedText else { return true }
+            let token = UUID()
+            savingAnswerIDs.insert(documentID)
+            let task = Task { @MainActor in
+                defer {
+                    if self.answerSaveOperations[documentID]?.id == token {
+                        self.answerSaveOperations[documentID] = nil
+                        self.savingAnswerIDs.remove(documentID)
+                    }
+                }
+                do {
+                    let saved = try await self.services.store.saveGeneratedDocumentEdit(id: document.id,
+                        meetingID: self.meetingID, text: text, expectedRevision: document.editRevision,
+                        modifiedAt: Date(timeIntervalSince1970: Date().timeIntervalSince1970))
+                    guard let index = self.answers.firstIndex(where: { $0.id == document.id }) else { return false }
+                    self.answers[index] = saved
+                    self.answerSaveErrors[documentID] = nil
+                    return true
+                } catch GeneratedDocumentStoreError.staleRevision {
+                    self.answerEditConflicts.insert(documentID)
+                    self.answerSaveErrors[documentID] = "This answer changed elsewhere. Copy your draft before reopening the saved version."
+                    return false
+                } catch {
+                    self.answerSaveErrors[documentID] = "The answer edit could not be saved. Keep this meeting open and tap Save answer to retry."
+                    return false
+                }
+            }
+            answerSaveOperations[documentID] = (token, task)
+            guard await task.value else { return false }
+        }
+    }
+
+    func flushAllAnswerEdits() async -> Bool {
+        var saved = true
+        for id in answers.map(\.id) {
+            if !(await flushAnswerEdits(documentID: id)) { saved = false }
+        }
+        return saved
+    }
+
+    func reopenSavedAnswer(documentID: UUID) async {
+        guard !busy, !savingAnswerIDs.contains(documentID),
+              answers.contains(where: { $0.id == documentID && $0.meetingID == meetingID }) else { return }
+        let draft = answerDrafts[documentID]
+        do {
+            let rows = try await services.store.generatedDocuments(meetingID: meetingID, kind: .questionAnswer, limit: 50)
+            guard answerDrafts[documentID] == draft, !savingAnswerIDs.contains(documentID),
+                  let index = answers.firstIndex(where: { $0.id == documentID }) else { return }
+            guard let saved = rows.first(where: { $0.id == documentID }) else { throw GeneratedDocumentStoreError.notFound }
+            answers[index] = saved
+            answerDrafts[documentID] = saved.editedText
+            answerEditConflicts.remove(documentID)
+            answerSaveErrors[documentID] = nil
+        } catch {
+            answerSaveErrors[documentID] = "The saved answer could not be reopened. Your local draft is still available."
+        }
+    }
 
     func load() async {
         let token = UUID()
@@ -77,8 +144,20 @@ final class MeetingIntelligenceController {
                 summary = rows.first { $0.kind == .summary }
                 summaryText = summary?.editedText ?? ""
             }
-            answers = rows.filter { $0.kind == .questionAnswer }
-            citations = Dictionary(uniqueKeysWithValues: rows.map { ($0.id, validatedCitations(in: $0)) })
+            let retained = answers.filter { document in
+                savingAnswerIDs.contains(document.id) || answerEditConflicts.contains(document.id)
+                    || answerDrafts[document.id].map { $0 != document.editedText } == true
+                    // A concurrent save can finish while this load awaits its
+                    // transcript read. Never restore that older database read.
+                    || savedAnswers.first(where: { $0.id == document.id }).map { $0.editRevision < document.editRevision } == true
+            }
+            let retainedByID = Dictionary(uniqueKeysWithValues: retained.map { ($0.id, $0) })
+            answers = savedAnswers.map { retainedByID[$0.id] ?? $0 }
+            answers += retained.filter { document in !savedAnswers.contains(where: { $0.id == document.id }) }
+            for answer in answers where retainedByID[answer.id] == nil {
+                answerDrafts[answer.id] = answer.editedText
+            }
+            citations = Dictionary(uniqueKeysWithValues: (summaries + answers).map { ($0.id, validatedCitations(in: $0)) })
         } catch {
             guard loadID == token else { return }
             errorMessage = "Saved generated notes could not be opened. Your original notes and transcript are unchanged."
@@ -194,6 +273,10 @@ final class MeetingIntelligenceController {
                     self.finish(owned)
                     return
                 }
+                guard await self.flushAllAnswerEdits() else {
+                    self.finish(owned)
+                    return
+                }
                 await self.services.initialize()
                 try Task.checkCancellation()
                 guard self.services.startup.state == .ready else {
@@ -278,7 +361,10 @@ final class MeetingIntelligenceController {
         debounce?.cancel()
         cancel()
         // Unstructured save survives view removal and remains bound to this UUID.
-        Task { _ = await flushSummaryEdits() }
+        Task {
+            _ = await flushSummaryEdits()
+            _ = await flushAllAnswerEdits()
+        }
     }
 
     private func validatedCitations(in document: StoredGeneratedDocument) -> [MeetingIntelligenceCitation] {
@@ -382,14 +468,7 @@ struct MeetingIntelligenceView: View {
                     .disabled(controller.busy || controller.question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     .accessibilityIdentifier("meeting.qa.ask")
                 ForEach(controller.answers) { answer in
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(answer.question ?? "Saved question").font(.headline).textSelection(.enabled)
-                        Text(answer.editedText).textSelection(.enabled)
-                            .accessibilityIdentifier("meeting.qa.answer")
-                        provenance(answer)
-                        citationRows(answer)
-                    }
-                    .padding(.vertical, 5)
+                    answerRow(answer)
                 }
             }
             Section {
@@ -407,7 +486,8 @@ struct MeetingIntelligenceView: View {
                 if let error = controller.errorMessage { Text(error).foregroundStyle(.red) }
                 if let text = controller.exportText {
                     ShareLink("Share generated notes and answers", item: text)
-                        .disabled(controller.hasSummaryEdits || controller.isSaving)
+                        .disabled(controller.hasSummaryEdits || controller.isSaving || controller.hasAnswerEdits
+                                  || !controller.savingAnswerIDs.isEmpty || !controller.answerEditConflicts.isEmpty)
                 }
                 Text("Generated content is separate from original notes and transcripts. Review it before sharing.")
                     .font(.caption).foregroundStyle(.secondary)
@@ -419,6 +499,46 @@ struct MeetingIntelligenceView: View {
         } message: {
             Text("Discard unfinished summary progress for this meeting and generate again. Saved summaries, original notes and the transcript stay available.")
         }
+    }
+
+    private func answerRow(_ answer: StoredGeneratedDocument) -> some View {
+        let changed = (controller.answerDrafts[answer.id] ?? answer.editedText) != answer.editedText
+        let saving = controller.savingAnswerIDs.contains(answer.id)
+        let conflict = controller.answerEditConflicts.contains(answer.id)
+        return VStack(alignment: .leading, spacing: 8) {
+            Text(answer.question ?? "Saved question").font(.headline).textSelection(.enabled)
+            TextEditor(text: Binding(
+                get: { controller.answerDrafts[answer.id] ?? answer.editedText },
+                set: { controller.answerDrafts[answer.id] = $0 }))
+                .frame(minHeight: 120)
+                .accessibilityLabel("Saved answer")
+                .accessibilityIdentifier("meeting.qa.answer.editor.\(answer.id.uuidString)")
+                .disabled(controller.busy)
+            Button("Save answer") {
+                Task { _ = await controller.flushAnswerEdits(documentID: answer.id) }
+            }
+            .disabled(controller.busy || !changed || saving || conflict)
+            .accessibilityIdentifier("meeting.qa.answer.save.\(answer.id.uuidString)")
+            if saving { Text("Saving answer…").font(.caption) }
+            if answer.editRevision > 0 && !changed && !saving && !conflict {
+                Text("Answer edit saved on this iPhone.")
+                    .font(.caption).foregroundStyle(.secondary)
+                    .accessibilityIdentifier("meeting.qa.answer.saved.\(answer.id.uuidString)")
+            }
+            if let error = controller.answerSaveErrors[answer.id] {
+                Text(error).font(.caption).foregroundStyle(.red)
+            }
+            if conflict {
+                Button("Reopen saved answer", role: .destructive) {
+                    Task { await controller.reopenSavedAnswer(documentID: answer.id) }
+                }
+                .disabled(controller.busy || saving)
+                .accessibilityIdentifier("meeting.qa.answer.reopen.\(answer.id.uuidString)")
+            }
+            provenance(answer)
+            citationRows(answer)
+        }
+        .padding(.vertical, 5)
     }
 
     private func provenance(_ document: StoredGeneratedDocument) -> some View {

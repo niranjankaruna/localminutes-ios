@@ -205,6 +205,9 @@ final class LocalMinutesServices: PlaybackHardware {
         intelligence = IntelligenceSession(store: database, models: manager, admission: admission,
             manifest: Self.summaryManifest, summaryCheckpoints: checkpoints)
         intelligenceManifest = Self.summaryManifest
+        intelligenceMemoryPressureMonitor = IntelligenceMemoryPressureMonitor(activeSession: { [weak self] in
+            self?.intelligence
+        })
     }
 
     /// Retain cancellation independently of the scene/view that requested it.

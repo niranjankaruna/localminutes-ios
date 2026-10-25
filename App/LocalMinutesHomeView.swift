@@ -87,7 +87,7 @@ private struct MeetingHistoryView: View {
             .navigationTitle("Meetings")
             .searchable(text: $query, prompt: "Search meeting titles")
             .refreshable { await services.library.refresh() }
-            .task { await services.library.refresh() }
+            .task(id: query) { await services.library.searchHistory(query) }
             .onChange(of: path) { _, destinations in
                 if destinations.isEmpty { Task { await services.library.refresh() } }
             }
@@ -141,6 +141,7 @@ private struct MeetingHistoryView: View {
 
     private var historyList: some View {
         List {
+            historyPagingState
             if let error = services.library.errorMessage { Text(error).foregroundStyle(.red) }
             if let actionMessage { Text(actionMessage).foregroundStyle(.secondary) }
             if let message = services.libraryMessage { Text(message).font(.caption).foregroundStyle(.secondary) }
@@ -159,13 +160,11 @@ private struct MeetingHistoryView: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }
-            if services.library.meetings.isEmpty {
-                ContentUnavailableView("No meetings yet", systemImage: "text.book.closed",
-                    description: Text("Install the speech model, then start your first meeting."))
+            if services.library.meetings.isEmpty && !services.library.isLoadingHistory && services.library.errorMessage == nil {
+                ContentUnavailableView(query.isEmpty ? "No meetings yet" : "No matching meetings", systemImage: "text.book.closed",
+                    description: Text(query.isEmpty ? "Install the speech model, then start your first meeting." : "Try another meeting title."))
             }
-            ForEach(services.library.meetings.filter {
-                query.isEmpty || $0.title.localizedCaseInsensitiveContains(query)
-            }) { meeting in
+            ForEach(services.library.meetings) { meeting in
                 NavigationLink(value: meeting.id) {
                     MeetingHistoryRow(meeting: meeting,
                         content: services.library.contentStatuses[meeting.id] ?? .unknown)
@@ -179,6 +178,16 @@ private struct MeetingHistoryView: View {
                         .disabled(unavailable)
                 }
             }
+        }
+    }
+
+    @ViewBuilder private var historyPagingState: some View {
+        if services.library.isLoadingHistory {
+            ProgressView("Loading meetings…").accessibilityIdentifier("meeting.history.loading")
+        } else if services.library.hasMoreMeetings {
+            Button("Load more meetings") { Task { await services.library.loadMoreMeetings() } }
+                .accessibilityIdentifier("meeting.history.loadMore")
+                .disabled(unavailable)
         }
     }
 
@@ -288,6 +297,9 @@ private struct MeetingDetailView: View {
     var body: some View {
         ScrollViewReader { transcriptScroll in
         List {
+            if controller.isLoadingDetail {
+                ProgressView("Loading meeting…").accessibilityIdentifier("meeting.detail.loading")
+            }
             if let error = controller.errorMessage { Text(error).foregroundStyle(.red) }
             if let deletionMessage { Text(deletionMessage).foregroundStyle(.red) }
             Section("Meeting name") {
@@ -295,9 +307,11 @@ private struct MeetingDetailView: View {
                     .onSubmit { Task { await controller.rename(title) } }
                 Button("Save name") { Task { await controller.rename(title) } }
             }
+            .disabled(controller.isLoadingDetail)
             Section("Original notes") {
                 MeetingNotesEditor(controller: controller)
             }
+            .disabled(controller.isLoadingDetail)
             Section("Transcript") {
                 if services.recoveringMeetingID == id {
                     ProgressView("Resuming transcript from saved audio…")
@@ -312,7 +326,9 @@ private struct MeetingDetailView: View {
                 if let message = services.libraryMessage { Text(message).font(.caption).foregroundStyle(.secondary) }
                 TextField("Find in this transcript", text: $search)
                     .onChange(of: search) { _, query in Task { await controller.search(query) } }
-                if (recoveredTranscript ?? controller.transcript).isEmpty {
+                    .disabled(controller.isLoadingDetail)
+                transcriptMoreMatches
+                if (recoveredTranscript ?? controller.transcript).isEmpty && !controller.isLoadingDetail {
                     Text("No finalized transcript is available.").foregroundStyle(.secondary)
                 }
                 ForEach(search.isEmpty ? (recoveredTranscript ?? controller.transcript) : controller.matches) { segment in
@@ -406,6 +422,14 @@ private struct MeetingDetailView: View {
             if phase == .background { intelligenceController.leaveMeeting() }
         }
         .privacySensitive()
+    }
+
+    @ViewBuilder private var transcriptMoreMatches: some View {
+        if !search.isEmpty && controller.hasMoreTranscriptMatches {
+            Button("Load more matches") { Task { await controller.loadMoreTranscriptMatches() } }
+                .accessibilityIdentifier("meeting.transcript.loadMore")
+                .disabled(unavailable || controller.isLoadingDetail)
+        }
     }
 
     private func timestamp(_ sample: Int64) -> String {

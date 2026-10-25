@@ -41,13 +41,14 @@
   },
   "device": {
     "expectedModel": "iPhone 17 Pro",
-    "actualModel": null,
-    "actualIOSVersion": null,
+    "actualModel": "iPhone 17 Pro",
+    "actualIOSVersion": "27.0.1",
     "minimumMeetingMinutes": 120,
     "enduranceTestMinutes": 125,
     "minimumLongPasses": 2,
     "language": "en",
-    "lockedColdStartStatus": "UNVERIFIED"
+    "lockedColdStartStatus": "UNVERIFIED",
+    "detailsSource": "Owner text reply, 25 October 2026; installation build and Live Activity/Stop observation not reported"
   },
   "models": {
     "qualityEvaluationPolicy": "Owner chooses and evaluates models manually; automated model-quality benchmarks are not an MVP3 delivery gate (25 October 2026). Preserve tests/results; no mocked production inference.",

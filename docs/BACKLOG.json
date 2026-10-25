@@ -781,7 +781,7 @@
         {
           "id": "T12.1a",
           "title": "Owner-accessible read-only actual OS storage metadata report",
-          "status": "IN_PROGRESS",
+          "status": "CODE_COMPLETE_PENDING_DEVICE",
           "tddRequired": true,
           "acceptance": [
             "Inspect actual owned root with bounded enumeration and truthful environment/status",
@@ -792,30 +792,39 @@
           "redEvidence": [
             "docs/evidence/MVP4_STORAGE_AUDIT_TDD.md"
           ],
-          "greenEvidence": [],
+          "greenEvidence": [
+            "docs/evidence/MVP4_STORAGE_AUDIT_TDD.md"
+          ],
           "deviceEvidence": [],
           "nextAction": "T12.1a implementation reviewed after actual Core/native/UI RED. Commit/push build5, create unpublished exact-SHA owner draft, dispatch one mvp4-storage focused GREEN plus actual iPhone package (legacy packageMVP2 input true). Verify exact source/run, download/checksum/device bundles/dependency pins, deliver MVP4 development IPA and guide. No automated model-quality/full-suite run. Owner phone gates remain NOT_RUN.",
           "redVerified": true,
           "testFirstSource": "e9b1701cb81e0fb5f0a84f608f7c7598cd917449",
           "redRunId": 40184895367,
           "productionImplemented": true,
-          "greenVerified": false
+          "greenVerified": true,
+          "greenSourceCommit": "3273fb20401023fd8095d36c7007923aa42d7bca",
+          "greenRunId": 40186443609
         },
         {
           "id": "T12.5",
           "title": "App-owned memory-pressure intelligence cleanup preserving capture",
           "status": "IN_PROGRESS",
           "tddRequired": true,
-          "redEvidence": [],
+          "redEvidence": [
+            "docs/evidence/MVP4_FINAL_GAPS_TDD.md"
+          ],
           "greenEvidence": [],
           "deviceEvidence": [],
           "testsFirstPrepared": true,
-          "redVerified": false,
-          "productionImplemented": false,
-          "nextAction": "Watch exact live storage UI job121148120197/run40186443609; other storage gates are actual GREEN(7Core/46scripts/15native/Release+3hygiene). No competing run. Once terminal, dispatch mvp4-final RED at pushed b05e7d9730ecefea1c5ba216183cad928861fc8f with packageMVP2=false; 5portable+9native+3UI. Empty seams only; no history/answer/memory behavior until each actualRED. Then implement parallel, one final combined app regression/package build6 and verified delivery. No quality benchmarks. Phone checks owner-only.",
+          "redVerified": true,
+          "productionImplemented": true,
+          "nextAction": "Commit/push reviewed build6 implementation and UI-only/split-UI verification configuration. Create unpublished exact-SHA owner draft and dispatch one mvp4-final GREEN/package batch (packageMVP2=true); only standard free public macOS, one active branch run. Related portable regression, app-hosted regression, history/infoUI and answers/libraryUI in parallel, ReleaseIPA+3hygiene/provenance. Verify exact source/run then downloaded bytes/IDs/arm64/pins/notices, deliver MVP4 development IPA/guide. Phone17Pro/iOS27.0.1 ownerreported; all actual phone checks NOT_RUN. No model quality benchmark.",
           "evidence": "docs/evidence/MVP4_FINAL_GAPS_TDD.md",
           "testFirstSource": "b05e7d9730ecefea1c5ba216183cad928861fc8f",
-          "testFirstPushed": true
+          "testFirstPushed": true,
+          "redSourceCommit": "3df777c9cc4beccf652294874e52f889bb9204c3",
+          "redRunId": 40188134859,
+          "greenVerified": false
         }
       ],
       "redEvidence": [],
@@ -972,16 +981,21 @@
           "title": "Complete paged history/title search/loading and transcript result access",
           "status": "IN_PROGRESS",
           "tddRequired": true,
-          "redEvidence": [],
+          "redEvidence": [
+            "docs/evidence/MVP4_FINAL_GAPS_TDD.md"
+          ],
           "greenEvidence": [],
           "deviceEvidence": [],
           "testsFirstPrepared": true,
-          "redVerified": false,
-          "productionImplemented": false,
-          "nextAction": "Watch exact live storage UI job121148120197/run40186443609; other storage gates are actual GREEN(7Core/46scripts/15native/Release+3hygiene). No competing run. Once terminal, dispatch mvp4-final RED at pushed b05e7d9730ecefea1c5ba216183cad928861fc8f with packageMVP2=false; 5portable+9native+3UI. Empty seams only; no history/answer/memory behavior until each actualRED. Then implement parallel, one final combined app regression/package build6 and verified delivery. No quality benchmarks. Phone checks owner-only.",
+          "redVerified": true,
+          "productionImplemented": true,
+          "nextAction": "Commit/push reviewed build6 implementation and UI-only/split-UI verification configuration. Create unpublished exact-SHA owner draft and dispatch one mvp4-final GREEN/package batch (packageMVP2=true); only standard free public macOS, one active branch run. Related portable regression, app-hosted regression, history/infoUI and answers/libraryUI in parallel, ReleaseIPA+3hygiene/provenance. Verify exact source/run then downloaded bytes/IDs/arm64/pins/notices, deliver MVP4 development IPA/guide. Phone17Pro/iOS27.0.1 ownerreported; all actual phone checks NOT_RUN. No model quality benchmark.",
           "evidence": "docs/evidence/MVP4_FINAL_GAPS_TDD.md",
           "testFirstSource": "b05e7d9730ecefea1c5ba216183cad928861fc8f",
-          "testFirstPushed": true
+          "testFirstPushed": true,
+          "redSourceCommit": "3df777c9cc4beccf652294874e52f889bb9204c3",
+          "redRunId": 40188134859,
+          "greenVerified": false
         }
       ],
       "redEvidence": [
@@ -1285,16 +1299,21 @@
           "title": "Durable editable saved answers with immutable evidence and conflict handling",
           "status": "IN_PROGRESS",
           "tddRequired": true,
-          "redEvidence": [],
+          "redEvidence": [
+            "docs/evidence/MVP4_FINAL_GAPS_TDD.md"
+          ],
           "greenEvidence": [],
           "deviceEvidence": [],
           "testsFirstPrepared": true,
-          "redVerified": false,
-          "productionImplemented": false,
-          "nextAction": "Watch exact live storage UI job121148120197/run40186443609; other storage gates are actual GREEN(7Core/46scripts/15native/Release+3hygiene). No competing run. Once terminal, dispatch mvp4-final RED at pushed b05e7d9730ecefea1c5ba216183cad928861fc8f with packageMVP2=false; 5portable+9native+3UI. Empty seams only; no history/answer/memory behavior until each actualRED. Then implement parallel, one final combined app regression/package build6 and verified delivery. No quality benchmarks. Phone checks owner-only.",
+          "redVerified": true,
+          "productionImplemented": true,
+          "nextAction": "Commit/push reviewed build6 implementation and UI-only/split-UI verification configuration. Create unpublished exact-SHA owner draft and dispatch one mvp4-final GREEN/package batch (packageMVP2=true); only standard free public macOS, one active branch run. Related portable regression, app-hosted regression, history/infoUI and answers/libraryUI in parallel, ReleaseIPA+3hygiene/provenance. Verify exact source/run then downloaded bytes/IDs/arm64/pins/notices, deliver MVP4 development IPA/guide. Phone17Pro/iOS27.0.1 ownerreported; all actual phone checks NOT_RUN. No model quality benchmark.",
           "evidence": "docs/evidence/MVP4_FINAL_GAPS_TDD.md",
           "testFirstSource": "b05e7d9730ecefea1c5ba216183cad928861fc8f",
-          "testFirstPushed": true
+          "testFirstPushed": true,
+          "redSourceCommit": "3df777c9cc4beccf652294874e52f889bb9204c3",
+          "redRunId": 40188134859,
+          "greenVerified": false
         }
       ],
       "redEvidence": [],
