@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "READY_FOR_DEVICE_VALIDATION",
-  "lastUpdated": "2026-10-25T12:52:18.363Z",
+  "lastUpdated": "2026-10-25T12:55:08.758Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -2893,7 +2893,8 @@
     "requirements": "R01–R12 mapped to actual evidence/remaining acceptance",
     "fullGoalAchieved": false,
     "remainingExternalBlocker": "OWNER_PHONE_VALIDATION_REQUIRED",
-    "blockedAuditConsecutiveTurns": 0,
-    "scope": "First phone-only handoff after final focused verification; no completion or blocked goal transition"
+    "blockedAuditConsecutiveTurns": 2,
+    "scope": "Phone-only prerequisite persisted across delivery handoff and this follow-up audit. Previous turn made progress by finalizing actual R11 PASS/delivery; current audit confirms terminal R11, clean worktree, backlog acceptance and production marker scan. No live CI, no new concrete unblocked development task. Goal remains active until third consecutive phone-only audit.",
+    "lastRevalidatedAt": "2026-10-25T12:55:08.758Z"
   }
 }

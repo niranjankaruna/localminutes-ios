@@ -1823,7 +1823,7 @@
   ],
   "executionPausedByOwner": false,
   "resumeAction": "Owner phone validation on delivered build6: confirm installed version/build and a short actual recording whose Live Activity Stop saves the meeting; then checklist offline chosen models, Action Button warm/locked continuation/cold-start, two125min passes with120min locked each, storage protection and in-place renewal preservation. Device iPhone17Pro/iOS27.0.1 is OWNER_REPORTED only. No safe remaining development change identified by requirement audit; do not rerun passed suites or model-quality benchmarks while awaiting real evidence.",
-  "lastUpdated": "2026-10-25T12:52:18.363Z",
+  "lastUpdated": "2026-10-25T12:55:08.758Z",
   "latestVerification": {
     "runId": 40193408469,
     "sourceCommit": "81fbff3a1bdf4ed17b757dd96d97486d9485254f",
@@ -2052,5 +2052,11 @@
     },
     "finalRepairCodeCommit": "5ac056f2e365233db655eae9e534e184b484d97c"
   },
-  "ownerModelEvaluationPolicy": "Owner evaluates chosen models manually; automatedqualitybenchmarks notMVP3deliverygate asof25Oct2026. Preservehistoricaltests/results; nofalsePASS. Functionality/reliability/actualengines/devicechecksremain."
+  "ownerModelEvaluationPolicy": "Owner evaluates chosen models manually; automatedqualitybenchmarks notMVP3deliverygate asof25Oct2026. Preservehistoricaltests/results; nofalsePASS. Functionality/reliability/actualengines/devicechecksremain.",
+  "phoneOnlyAudit": {
+    "at": "2026-10-25T12:55:08.758Z",
+    "consecutiveTurns": 2,
+    "blocker": "OWNER_PHONE_VALIDATION_REQUIRED",
+    "nextAction": "Owner phone validation on delivered build6: confirm installed version/build and a short actual recording whose Live Activity Stop saves the meeting; then checklist offline chosen models, Action Button warm/locked continuation/cold-start, two125min passes with120min locked each, storage protection and in-place renewal preservation. Device iPhone17Pro/iOS27.0.1 is OWNER_REPORTED only. No safe remaining development change identified by requirement audit; do not rerun passed suites or model-quality benchmarks while awaiting real evidence."
+  }
 }
