@@ -818,13 +818,16 @@
           "testsFirstPrepared": true,
           "redVerified": true,
           "productionImplemented": true,
-          "nextAction": "Commit/push reviewed build6 implementation and UI-only/split-UI verification configuration. Create unpublished exact-SHA owner draft and dispatch one mvp4-final GREEN/package batch (packageMVP2=true); only standard free public macOS, one active branch run. Related portable regression, app-hosted regression, history/infoUI and answers/libraryUI in parallel, ReleaseIPA+3hygiene/provenance. Verify exact source/run then downloaded bytes/IDs/arm64/pins/notices, deliver MVP4 development IPA/guide. Phone17Pro/iOS27.0.1 ownerreported; all actual phone checks NOT_RUN. No model quality benchmark.",
+          "nextAction": "Watch exact live finalGREEN/package run40190643613 source36bf6f4c8726fbc5d2efbfa4f740ef4031457233. StandardfreepublicmacOS5paralleljobs: relatedportable, app-hostedregression, UIhistory/info, UIanswers/library (UI-onlyscheme), ReleaseIPA/hygiene/receipt. CompiledfixtureRelease/Debugguards split acrossappropriatejobs; eachrequiredcaseactuallyruns, opposingcasefilterisintentional. No quality/fullsuitepereachchange. IfallGREEN downloadowner-onlydraftmvp-preview-36bf6f4c8726 toignoredfinaldeliveryfolder, verifyexactSHA/version6/IDs/arm64CRC/GitHubdigests/pins/notices/fixtureabsence, generateMVP4guide/checklist anddeliverdevelopmentIPA. Onactualfailurefixonlyitsrootcausewithboundedretries. Ownerphone17Pro/iOS27.0.1; actualdevicegatesNOT_RUN.",
           "evidence": "docs/evidence/MVP4_FINAL_GAPS_TDD.md",
           "testFirstSource": "b05e7d9730ecefea1c5ba216183cad928861fc8f",
           "testFirstPushed": true,
           "redSourceCommit": "3df777c9cc4beccf652294874e52f889bb9204c3",
           "redRunId": 40188134859,
-          "greenVerified": false
+          "greenVerified": false,
+          "implementationCommit": "716feae8863e0f10a1e5caf13e99925c14d69a04",
+          "candidateSource": "36bf6f4c8726fbc5d2efbfa4f740ef4031457233",
+          "greenRunId": 40190643613
         }
       ],
       "redEvidence": [],
@@ -989,13 +992,16 @@
           "testsFirstPrepared": true,
           "redVerified": true,
           "productionImplemented": true,
-          "nextAction": "Commit/push reviewed build6 implementation and UI-only/split-UI verification configuration. Create unpublished exact-SHA owner draft and dispatch one mvp4-final GREEN/package batch (packageMVP2=true); only standard free public macOS, one active branch run. Related portable regression, app-hosted regression, history/infoUI and answers/libraryUI in parallel, ReleaseIPA+3hygiene/provenance. Verify exact source/run then downloaded bytes/IDs/arm64/pins/notices, deliver MVP4 development IPA/guide. Phone17Pro/iOS27.0.1 ownerreported; all actual phone checks NOT_RUN. No model quality benchmark.",
+          "nextAction": "Watch exact live finalGREEN/package run40190643613 source36bf6f4c8726fbc5d2efbfa4f740ef4031457233. StandardfreepublicmacOS5paralleljobs: relatedportable, app-hostedregression, UIhistory/info, UIanswers/library (UI-onlyscheme), ReleaseIPA/hygiene/receipt. CompiledfixtureRelease/Debugguards split acrossappropriatejobs; eachrequiredcaseactuallyruns, opposingcasefilterisintentional. No quality/fullsuitepereachchange. IfallGREEN downloadowner-onlydraftmvp-preview-36bf6f4c8726 toignoredfinaldeliveryfolder, verifyexactSHA/version6/IDs/arm64CRC/GitHubdigests/pins/notices/fixtureabsence, generateMVP4guide/checklist anddeliverdevelopmentIPA. Onactualfailurefixonlyitsrootcausewithboundedretries. Ownerphone17Pro/iOS27.0.1; actualdevicegatesNOT_RUN.",
           "evidence": "docs/evidence/MVP4_FINAL_GAPS_TDD.md",
           "testFirstSource": "b05e7d9730ecefea1c5ba216183cad928861fc8f",
           "testFirstPushed": true,
           "redSourceCommit": "3df777c9cc4beccf652294874e52f889bb9204c3",
           "redRunId": 40188134859,
-          "greenVerified": false
+          "greenVerified": false,
+          "implementationCommit": "716feae8863e0f10a1e5caf13e99925c14d69a04",
+          "candidateSource": "36bf6f4c8726fbc5d2efbfa4f740ef4031457233",
+          "greenRunId": 40190643613
         }
       ],
       "redEvidence": [
@@ -1307,13 +1313,16 @@
           "testsFirstPrepared": true,
           "redVerified": true,
           "productionImplemented": true,
-          "nextAction": "Commit/push reviewed build6 implementation and UI-only/split-UI verification configuration. Create unpublished exact-SHA owner draft and dispatch one mvp4-final GREEN/package batch (packageMVP2=true); only standard free public macOS, one active branch run. Related portable regression, app-hosted regression, history/infoUI and answers/libraryUI in parallel, ReleaseIPA+3hygiene/provenance. Verify exact source/run then downloaded bytes/IDs/arm64/pins/notices, deliver MVP4 development IPA/guide. Phone17Pro/iOS27.0.1 ownerreported; all actual phone checks NOT_RUN. No model quality benchmark.",
+          "nextAction": "Watch exact live finalGREEN/package run40190643613 source36bf6f4c8726fbc5d2efbfa4f740ef4031457233. StandardfreepublicmacOS5paralleljobs: relatedportable, app-hostedregression, UIhistory/info, UIanswers/library (UI-onlyscheme), ReleaseIPA/hygiene/receipt. CompiledfixtureRelease/Debugguards split acrossappropriatejobs; eachrequiredcaseactuallyruns, opposingcasefilterisintentional. No quality/fullsuitepereachchange. IfallGREEN downloadowner-onlydraftmvp-preview-36bf6f4c8726 toignoredfinaldeliveryfolder, verifyexactSHA/version6/IDs/arm64CRC/GitHubdigests/pins/notices/fixtureabsence, generateMVP4guide/checklist anddeliverdevelopmentIPA. Onactualfailurefixonlyitsrootcausewithboundedretries. Ownerphone17Pro/iOS27.0.1; actualdevicegatesNOT_RUN.",
           "evidence": "docs/evidence/MVP4_FINAL_GAPS_TDD.md",
           "testFirstSource": "b05e7d9730ecefea1c5ba216183cad928861fc8f",
           "testFirstPushed": true,
           "redSourceCommit": "3df777c9cc4beccf652294874e52f889bb9204c3",
           "redRunId": 40188134859,
-          "greenVerified": false
+          "greenVerified": false,
+          "implementationCommit": "716feae8863e0f10a1e5caf13e99925c14d69a04",
+          "candidateSource": "36bf6f4c8726fbc5d2efbfa4f740ef4031457233",
+          "greenRunId": 40190643613
         }
       ],
       "redEvidence": [],

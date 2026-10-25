@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-25T11:46:45.918Z",
+  "lastUpdated": "2026-10-25T11:54:59.747Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -58,7 +58,7 @@
     },
     "evidence": "docs/evidence/MVP3_DELIVERY_2026_10_25.md"
   },
-  "nextAction": "Commit/push reviewed build6 implementation and UI-only/split-UI verification configuration. Create unpublished exact-SHA owner draft and dispatch one mvp4-final GREEN/package batch (packageMVP2=true); only standard free public macOS, one active branch run. Related portable regression, app-hosted regression, history/infoUI and answers/libraryUI in parallel, ReleaseIPA+3hygiene/provenance. Verify exact source/run then downloaded bytes/IDs/arm64/pins/notices, deliver MVP4 development IPA/guide. Phone17Pro/iOS27.0.1 ownerreported; all actual phone checks NOT_RUN. No model quality benchmark.",
+  "nextAction": "Watch exact live finalGREEN/package run40190643613 source36bf6f4c8726fbc5d2efbfa4f740ef4031457233. StandardfreepublicmacOS5paralleljobs: relatedportable, app-hostedregression, UIhistory/info, UIanswers/library (UI-onlyscheme), ReleaseIPA/hygiene/receipt. CompiledfixtureRelease/Debugguards split acrossappropriatejobs; eachrequiredcaseactuallyruns, opposingcasefilterisintentional. No quality/fullsuitepereachchange. IfallGREEN downloadowner-onlydraftmvp-preview-36bf6f4c8726 toignoredfinaldeliveryfolder, verifyexactSHA/version6/IDs/arm64CRC/GitHubdigests/pins/notices/fixtureabsence, generateMVP4guide/checklist anddeliverdevelopmentIPA. Onactualfailurefixonlyitsrootcausewithboundedretries. Ownerphone17Pro/iOS27.0.1; actualdevicegatesNOT_RUN.",
   "pendingPushCommit": null,
   "remoteBranchHead": "880d3dcd2e21f79e6435ec134279cad192e7435d",
   "localScriptGreen": {
@@ -89,10 +89,11 @@
       40181776855,
       40184895367,
       40186443609,
-      40188134859
+      40188134859,
+      40190643613
     ],
     "limitReached": false,
-    "costGuardObservedAt": "2026-10-25T10:31:04.335Z",
+    "costGuardObservedAt": "2026-10-25T11:54:59.746Z",
     "costGuardBasis": "Authenticated owner/admin, configured publication approval and actual public repository verified; standard macos-15 and macos-15-intel only, 45-minute jobs, one active branch run, no paid runners, billing changes, Actions cache/artifact storage or public release.",
     "runLimitPolicy": "Owner explicitly removed six-run cap; batch checks, retain bounded retries and zero spend"
   },
@@ -278,7 +279,13 @@
     "latestSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
     "latestRunUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180"
   },
-  "activeCIRun": null,
+  "activeCIRun": {
+    "runId": 40190643613,
+    "sourceCommit": "36bf6f4c8726fbc5d2efbfa4f740ef4031457233",
+    "mode": "mvp4-final",
+    "status": "in_progress",
+    "phase": "final GREEN and package"
+  },
   "pendingPushScope": null,
   "repositoryVisibility": "PUBLIC",
   "publication": {
@@ -2727,9 +2734,25 @@
         "jobId": 121153187939
       },
       "review": "Root plus independent Medium review completed; tests unchanged; actual GREEN pending",
-      "buildNumber": "6"
+      "buildNumber": "6",
+      "greenRun": {
+        "runId": 40190643613,
+        "sourceCommit": "36bf6f4c8726fbc5d2efbfa4f740ef4031457233",
+        "mode": "mvp4-final",
+        "status": "in_progress",
+        "phase": "final GREEN and package"
+      }
     },
     "phoneFactsSource": "OWNER_REPORTED_2026_10_25",
-    "liveActivityStopObservation": "NOT_REPORTED"
+    "liveActivityStopObservation": "NOT_REPORTED",
+    "finalCandidate": {
+      "sourceCommit": "36bf6f4c8726fbc5d2efbfa4f740ef4031457233",
+      "implementationCommit": "716feae8863e0f10a1e5caf13e99925c14d69a04",
+      "runId": 40190643613,
+      "buildNumber": "6",
+      "draftTag": "mvp-preview-36bf6f4c8726",
+      "delivered": false,
+      "verified": false
+    }
   }
 }
