@@ -626,6 +626,10 @@ jobs:
             fi
           fi
 
+      - name: Verify actual Debug fixture boundary without compiling unrelated app tests
+        if: ${{ inputs.mode == 'mvp4-final' && inputs.packageMVP2 && matrix.testclass == 'MVP4FinalHistoryUI' }}
+        run: LOCALMINUTES_DEBUG_APP_PATH=build/focused-app/Build/Products/Debug-iphonesimulator/LocalMinutes.app node --test --test-name-pattern='actual compiled Debug app' scripts/native-tests/library-fixture-build-boundary.test.mjs
+
   actual-summary-resume:
     if: ${{ (inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet') && inputs.summaryResume }}
     runs-on: macos-15-intel
@@ -1280,6 +1284,7 @@ jobs:
           export LOCALMINUTES_AUDIT_SOURCE_COMMIT="$GITHUB_SHA"
           export LOCALMINUTES_AUDIT_IPA_SHA256="$(python3 -c "import json;print(json.load(open('build/package/build-manifest.json'))['sha256'])")"
           python3 -m unittest discover -s scripts/native-hygiene-tests -p 'test_*.py' -v
+          node --test --test-name-pattern='actual compiled Release app' scripts/native-tests/library-fixture-build-boundary.test.mjs
       - name: Retain the package in the existing unpublished owner draft
         shell: bash
         env:
