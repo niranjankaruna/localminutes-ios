@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-25T08:13:02.653Z",
+  "lastUpdated": "2026-10-25T08:14:32.681Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -11,7 +11,7 @@
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "Commit reviewed combined MVP3 repairs. Create existing-owner-only unpublished draft at exact candidate SHA; dispatch mvp3-integration retainMVP3=true, no old nil-harness retry. Require core/model/native/UI/hygiene GREEN and all expected cases, download IPA/SHA/manifest/dependency receipt, independently verify bytes/bundles/notices, deliver MVP3 with iLoader guide. If genuine failure, bounded focused diagnosis/repair; no blind full per-change reruns. Device gates NOT_RUN.",
+  "nextAction": "Observe combined40175800050 exact866935cb. Require core/actualmodels/native/UI/releasefixture/IPA hygiene GREEN; no result inferred yet. Native success retainsIPA/checksum/manifest/dependency receipt in owner-only draftmvp-preview-866935cb6644. Download locally, independently verifydeviceapp+extension/source/hash/notices and allmandatoryjobresults, then deliverMVP3. Boundedfocusrepaironly genuinefailures; physicalgatesNOT_RUN.",
   "pendingPushCommit": null,
   "remoteBranchHead": "14ff749a2bd8678b6523cf377b6695283513a76e",
   "localScriptGreen": {
@@ -35,7 +35,8 @@
     "maxNewRuns": null,
     "newRunIds": [
       40172670154,
-      40174152880
+      40174152880,
+      40175800050
     ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-25T07:26:02.293Z",
@@ -43,10 +44,12 @@
     "runLimitPolicy": "Owner explicitly removed six-run cap; batch checks, retain bounded retries and zero spend"
   },
   "latestCIRun": {
-    "runId": 40174152880,
-    "sourceCommit": "a1308e9283be1d89aa3025ca88fb8a0a43c7974d",
-    "status": "completed",
-    "conclusion": "failure"
+    "runId": 40175800050,
+    "sourceCommit": "866935cb66445d485f35df9355c35945496b2b4f",
+    "mode": "mvp3-integration",
+    "status": "in_progress",
+    "conclusion": null,
+    "retainMVP3": true
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -222,7 +225,14 @@
     "latestSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
     "latestRunUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180"
   },
-  "activeCIRun": null,
+  "activeCIRun": {
+    "runId": 40175800050,
+    "sourceCommit": "866935cb66445d485f35df9355c35945496b2b4f",
+    "mode": "mvp3-integration",
+    "status": "in_progress",
+    "conclusion": null,
+    "retainMVP3": true
+  },
   "pendingPushScope": null,
   "repositoryVisibility": "PUBLIC",
   "publication": {
@@ -2283,6 +2293,14 @@
       "distinct model action spoken labels",
       "original transcript before generated sections"
     ],
-    "review": "Independent Medium agent reviewed combined source; no concrete compile/data-handling issue found. Hosted GREEN pending. Tests unchanged except added test-first regression and explicit current build4 oracle."
+    "review": "Independent Medium agent reviewed combined source; no concrete compile/data-handling issue found. Hosted GREEN pending. Tests unchanged except added test-first regression and explicit current build4 oracle.",
+    "finalCandidate": {
+      "runId": 40175800050,
+      "sourceCommit": "866935cb66445d485f35df9355c35945496b2b4f",
+      "mode": "mvp3-integration",
+      "status": "in_progress",
+      "conclusion": null,
+      "retainMVP3": true
+    }
   }
 }

@@ -8,7 +8,7 @@ on:
         required: true
         type: choice
         default: mvp
-        options: [mvp, features, package, validation, candidate, candidate-summary, candidate-summary-parts, model-catalog, model-integration, model-repair, model-delivery, mvp2-red, mvp2, mvp2-integration, mvp2-parakeet, mvp3, mvp3-integration]
+        options: [mvp, features, package, validation, candidate, candidate-summary, candidate-summary-parts, model-catalog, model-integration, model-repair, model-delivery, mvp2-red, mvp2, mvp2-integration, mvp2-parakeet, mvp3, mvp3-integration, mvp3-startup]
       sourceCommit:
         description: Reviewed app source for the MVP package
         required: true
@@ -359,14 +359,14 @@ jobs:
         run: node --test scripts/tests/whisper-package-policy.test.mjs scripts/tests/package-audit.test.mjs scripts/tests/ios-artifacts.test.mjs
 
   focused-app-metrics:
-    if: ${{ inputs.mode == 'candidate-summary-parts' || inputs.mode == 'model-catalog' || inputs.mode == 'model-integration' || inputs.mode == 'model-repair' || inputs.mode == 'model-delivery' || inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet' || inputs.mode == 'mvp3' }}
+    if: ${{ inputs.mode == 'candidate-summary-parts' || inputs.mode == 'model-catalog' || inputs.mode == 'model-integration' || inputs.mode == 'model-repair' || inputs.mode == 'model-delivery' || inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet' || inputs.mode == 'mvp3' || inputs.mode == 'mvp3-startup' }}
     name: Native focused (${{ matrix.testclass }})
-    runs-on: ${{ (inputs.mode == 'mvp2-parakeet' || inputs.mode == 'mvp3') && 'macos-15' || 'macos-15-intel' }}
-    timeout-minutes: ${{ inputs.mode == 'mvp3' && 45 || (inputs.mode == 'model-delivery' || inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet') && 18 || 15 }}
+    runs-on: ${{ (inputs.mode == 'mvp2-parakeet' || inputs.mode == 'mvp3' || inputs.mode == 'mvp3-startup') && 'macos-15' || 'macos-15-intel' }}
+    timeout-minutes: ${{ (inputs.mode == 'mvp3' || inputs.mode == 'mvp3-startup') && 45 || (inputs.mode == 'model-delivery' || inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet') && 18 || 15 }}
     strategy:
       fail-fast: false
       matrix:
-        testclass: ${{ fromJSON(inputs.mode == 'mvp3' && '["MVP3Contracts","MVP3AccessibilityUI"]' || (inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet') && '["NativeMVP2LibraryTests"]' || inputs.mode == 'model-delivery' && '["MVP1Services"]' || (inputs.mode == 'model-integration' || inputs.mode == 'model-repair') && '["NativeAppMetricsTests","NativeModelResourceTests"]' || '["NativeAppMetricsTests"]') }}
+        testclass: ${{ fromJSON(inputs.mode == 'mvp3-startup' && '["NativeSummarySelectionStartupTests"]' || inputs.mode == 'mvp3' && '["MVP3Contracts","MVP3AccessibilityUI"]' || (inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet') && '["NativeMVP2LibraryTests"]' || inputs.mode == 'model-delivery' && '["MVP1Services"]' || (inputs.mode == 'model-integration' || inputs.mode == 'model-repair') && '["NativeAppMetricsTests","NativeModelResourceTests"]' || '["NativeAppMetricsTests"]') }}
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
       NATIVE_TEST_CLASS: ${{ matrix.testclass }}
@@ -473,6 +473,13 @@ jobs:
               testAnswerCitationWithSameOffsetAsAnotherMeetingStillTargetsOnlySelectedTranscriptRow \
               testForeignUnknownOutOfBoundsAndUnsupportedQuoteCitationsCannotCreateNavigationTargets \
               testDisplayedBuildIdentityReadsTheActualHostedAppBundleVersionAndBuild
+          elif [ "$NATIVE_TEST_CLASS" = NativeSummarySelectionStartupTests ]; then
+            node scripts/verify-test-log.mjs .agent-local/focused-app-metrics.log \
+              testFreshServicesInitializeBindsPersistedAlternativeSummaryInsteadOfDefaultPhi \
+              testFreshServicesInitializeHonorsExplicitlyClearedSummarySelection \
+              testFreshServicesWithoutSelectionRecordRetainsLegacyDefaultPhiBinding \
+              testProductionControllerFirstRequestUsesRestoredSelectionRatherThanCapturingDefaultBeforeStartup \
+              testProductionControllerWithRestoredUnequipShowsModelRequiredWithoutResurrectingPhi
           elif [ "$NATIVE_TEST_CLASS" = NativeMVP2LibraryTests ]; then
             node scripts/verify-test-log.mjs .agent-local/focused-app-metrics.log \
               testDefaultAppManagerResumesPinnedDownloadThroughItsConfiguredTransportAndPublishesVerifiedInstallation \

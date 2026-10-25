@@ -55,21 +55,34 @@ The main app and extension's actual registration/signing capacity is unmeasured.
    restart, unlock and confirm.
    [Apple Developer Mode instructions](https://developer.apple.com/documentation/xcode/enabling-developer-mode-on-a-device)
 
-5. Open LocalMinutes unlocked and use **Models → Offline speech → Download
-   speech model**. Wait for **Speech model verified**, then use **Record → Start
-   Recording**. Handle microphone/Live Activity prompts and record what appears.
+5. Open LocalMinutes unlocked and use **Models → Speech**. Look up a supported
+   repository, review compatibility, choose its supported files, then use
+   **Download selected model** or **Import selected model from Files**. After
+   verification, choose **Equip**, then use **Record → Start Recording**. Handle
+   microphone/Live Activity prompts and record what appears.
    The owner's installation report alone does not establish an extension pass.
 
 ## Models and a short first test
 
-The current screens provide downloads, not a Files import picker:
+Models supports repository lookup, verified downloads and Files imports.
+Downloading or importing and equipping are separate actions. Equip one Speech
+model and one Summary model independently; keep the original speech installation
+available for any meeting whose unfinished transcript needs recovery.
 
-| Model | Screen download | Intended use |
+| Model | Supported selection | Intended use |
 | --- | --- | --- |
-| Pinned sherpa-onnx streaming English int8, revision `672fbf1b30579d6585301139bb363f42a0ad4a24` | 73 MB | Required local live transcription |
-| Pinned Qwen2.5-1.5B-Instruct Q4_K_M, revision `91cad51170dc346986eccefdc2dd33a9da36ead9` | 1.12 GB | Optional download; summary/Q&A pipeline and UI remain unfinished |
+| Streaming Zipformer | Reviewed matching encoder, decoder, joiner and tokens set | CPU local streaming transcription |
+| Whisper | Compatible Whisper GGML `ggml-*.bin` file | CPU chunked transcription |
+| Parakeet v2 | Reviewed FluidInference Core ML conversion, with all required bundles and vocabulary | Chunked local transcription; see the candidate's compute policy |
+| Phi summary model | `microsoft/Phi-3-mini-4k-instruct-gguf`, `Phi-3-mini-4k-instruct-q4.gguf`, about 2.39 GB | Local summaries and selected-meeting questions after recording |
 
-Models are separate from the IPA. The verified label checks the pinned files;
+Use [MVP2's exact model/setup instructions](MVP2_GUIDE.md) for the delivered
+MVP2 build. The [MVP3 guide](MVP3_GUIDE.md) remains marked delivery pending until
+its exact passing source, run and IPA checksum are recorded. The MVP3 candidate
+changes Parakeet to CPU-only; evidence from an earlier CPU/Neural Engine
+configuration cannot validate that changed runtime. Fresh phone checks are required.
+
+Models are separate from the IPA. File verification checks integrity;
 phone recognition and endurance still need their own evidence. Keep the model
 revision/checksums from the candidate manifest with each report.
 
@@ -77,8 +90,11 @@ Use original, non-sensitive speech for a short unlocked recording. Require
 **Recording is active**, evolving local transcript text, a completed Stop, and a
 saved meeting under **Meetings**. Check its transcript, original notes and segment
 playback. Missing models or pending cleanup are not a successful recording. After
-model download, repeat with network access disabled to check the actual offline
-path. Do not infer summary or Q&A support from the download button.
+model installation, repeat with network access disabled to check the actual
+offline path. Stop recording before generating a summary or asking questions,
+keep the app open, and review generated claims against their sources. Compatible
+files and download success do not establish answer quality or long-meeting
+performance; existing Qwen quality limitations remain documented.
 
 ## Action Button: measure each start mode separately
 
@@ -124,17 +140,25 @@ precaution: use iTunes **Summary → Back Up Now** and check its completion date
 
 **Backup limitation:** LocalMinutes requests system-backup exclusion for its
 private storage. A device backup is therefore not proof that its meetings/models
-are recoverable. Current **Share text / Share Markdown** exports omit raw audio,
-the database and model installations; full backup/restore export is unfinished.
-Use disposable synthetic meetings for refresh tests until a complete backup
-route has been verified. Keep original reference audio and exported text locally;
+are recoverable. **Share text / Share Markdown** exports omit raw audio, the
+database and model installations. For a complete meeting-library backup, use
+**Meetings → Library actions → Create library backup**, then **Save or share
+library backup**. The folder contains private meeting data, including audio;
+models and credentials are separate.
+
+To restore, choose **Restore library backup…**, select the complete backup
+folder and confirm after saving edits and stopping recording, playback and
+processing. The previous library is retained; installed model storage stays
+separate. Validate restoration with disposable synthetic meetings before relying
+on it for important data. Keep original reference audio and exports locally;
 do not delete a good installation to work around a renewal problem.
 
 For the preservation test, record the actual installed identifiers, synthetic
 meeting title/note/transcript/audio duration, model revisions and expected hashes.
 Renew in place, reopen that same meeting, compare its data/playback, and repeat a
-short offline recording, Live Activity and Action Button test. Current screens
-do not export full model/storage diagnostics; record unavailable evidence as
+short offline recording, Live Activity and Action Button test. Use **Meetings →
+Library actions → Prepare recording report**, then **Share sampled recording
+report** for bounded diagnostic samples. Record unavailable evidence as
 unavailable. Stable IDs and a successful iLoader installation do not prove this
 app's data preservation. Keep only a sanitized result in the repository.
 
@@ -142,7 +166,10 @@ app's data preservation. Keep only a sanitized result in the repository.
 
 Begin only after a delivered candidate passes the short phone tests. Copy
 [DEVICE_TEST_REPORT.md](templates/DEVICE_TEST_REPORT.md) for **each** pass; use the
-same source/model versions or explicitly record any change.
+same source/model versions or explicitly record any change. Use a separate
+report for in-place renewal and its preservation checks. For the CPU-only MVP3
+candidate, both long passes must identify the new delivered candidate rather
+than reuse evidence from an earlier compute policy.
 
 1. Note IPA checksum, installed IDs, phone/iOS, model pins, audio route, storage,
    battery/charging, Low Power Mode, consent and network state. Play permitted
@@ -159,13 +186,16 @@ same source/model versions or explicitly record any change.
 4. Repeat as a second independent pass. Complete the report's latency, backlog,
    memory, thermal, battery, audio and accuracy fields using actual measurements.
 
-**Locked ASR evidence remains unavailable:** a Live Activity timer or a transcript
+**Locked ASR requires separate evidence:** a Live Activity timer or a transcript
 seen after unlock cannot establish that recognition progressed while locked.
-The candidate must supply processed-sample/timestamp/checkpoint evidence tied to
-the locked interval, alongside owner observations. Redacted metrics/timeline
-instrumentation is unfinished (T13). Mark absent measurements **NOT_AVAILABLE**
-and the locked-live gate **UNVERIFIED**; neither long pass can be claimed from
-the current UI alone.
+After each pass, use **Meetings → Library actions → Prepare recording report**,
+then **Share sampled recording report**. Keep the report locally and record its
+hash alongside independent lock/start/stop times. Its sampled processing,
+backlog, memory, thermal, battery and route facts are evidence inputs; app
+background state alone does not prove that the phone was locked. Require
+processed-sample/timestamp evidence tied to the locked interval and owner
+observations. Mark absent measurements **NOT_AVAILABLE** and leave the
+locked-live gate **UNVERIFIED** when evidence is insufficient.
 
 Keep detailed evidence privately. A sanitized report can reference local evidence
 hashes and the exact candidate; [VERIFICATION.md](VERIFICATION.md) is the index.
