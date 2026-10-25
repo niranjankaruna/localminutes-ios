@@ -29,7 +29,7 @@ public enum ModelRuntimeCompatibility {
                   } }) else {
                 return result(.unsupported, "The native Core ML adapter needs the complete resource set declared by this supported Parakeet model pack.")
             }
-            return result(.supported, "Native Core ML + Swift TDT decodes bounded speech chunks with the configured CPU/Neural Engine policy. iPhone memory, live speed and locked use remain unverified.")
+            return result(.supported, "Core ML decodes speech on CPU in short chunks. Memory use, live speed and locked-screen operation still need checks on this iPhone.")
         case .streamingZipformerONNX:
             let reviewed = StreamingEnglishModel.manifest
             guard repository.revision == reviewed.revision,

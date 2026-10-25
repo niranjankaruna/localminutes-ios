@@ -297,20 +297,20 @@ struct ModelBrowserView: View {
             }
             LabeledContent("License", value: repository.licenseIdentifier ?? "Unknown — review required")
             DisclosureGroup("Source details") {
-            LabeledContent("Task", value: repository.pipelineTag ?? "Unknown")
-            LabeledContent("Architecture", value: repository.modelType
-                ?? (repository.architectures.isEmpty ? "Unknown" : repository.architectures.joined(separator: ", ")))
-            LabeledContent("Library", value: repository.libraryName ?? "Unknown")
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Pinned revision").font(.caption).foregroundStyle(.secondary)
-                Text(verbatim: repository.revision).font(.caption.monospaced()).textSelection(.enabled)
-            }
-            Button("Read full model card") { showingCard = true }
-                .disabled(repository.cardMarkdown == nil)
-            if repository.cardMarkdown == nil {
-                Text("No public model card was available at this revision.")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
+                LabeledContent("Task", value: repository.pipelineTag ?? "Unknown")
+                LabeledContent("Architecture", value: repository.modelType
+                    ?? (repository.architectures.isEmpty ? "Unknown" : repository.architectures.joined(separator: ", ")))
+                LabeledContent("Library", value: repository.libraryName ?? "Unknown")
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Pinned revision").font(.caption).foregroundStyle(.secondary)
+                    Text(verbatim: repository.revision).font(.caption.monospaced()).textSelection(.enabled)
+                }
+                Button("Read full model card") { showingCard = true }
+                    .disabled(repository.cardMarkdown == nil)
+                if repository.cardMarkdown == nil {
+                    Text("No public model card was available at this revision.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
             }
         }
     }
@@ -335,13 +335,13 @@ struct ModelBrowserView: View {
                 }
                 if !result.selectedFiles.isEmpty {
                     DisclosureGroup("\(result.selectedFiles.count) model files") {
-                    ForEach(result.selectedFiles, id: \.fileName) { file in
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(verbatim: file.fileName).font(.caption).textSelection(.enabled)
-                            Text("\(bytes(file.byteCount)) · \(file.sha256 == nil ? "SHA-256 unavailable" : "Expected SHA-256 available")")
-                                .font(.caption).foregroundStyle(.secondary)
+                        ForEach(result.selectedFiles, id: \.fileName) { file in
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(verbatim: file.fileName).font(.caption).textSelection(.enabled)
+                                Text("\(bytes(file.byteCount)) · \(file.sha256 == nil ? "SHA-256 unavailable" : "Expected SHA-256 available")")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
                         }
-                    }
                     }
                 }
             }

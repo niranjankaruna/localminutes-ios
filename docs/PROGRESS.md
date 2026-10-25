@@ -1,8 +1,10 @@
 # Progress
 
-## T26/T27 implementation checkpoint
+## T26/T27 final verification checkpoint
 
-Latest exact source fe7aa94 / run 40215222725: 123 model tests, 122 passed, one new generic-discovery case failed (three assertions), zero skips. Raw/aggregate progress, Apple selection, pack install/equip and the 512 MiB regression passed; peak growth was 69,632 bytes. The new discovery assertion precedes its implementation. Real v2/v3 adapter, Apple composition/startup and iPhone UI verification remain pending. No new IPA or physical inference result is claimed. Next: focused native model-upgrades tests and startup binding after its behavioral RED. See T26/T27 evidence.
+At 6d95c74 / run 40217546023, all 12 actual Parakeet v2/v3 functionality checks, 195 Core/storage/summary/coordinator regressions and six native iPhone UI checks passed. App-native tests passed 11/12; the newly committed Apple fresh-startup assertion failed two assertions before service binding. Actual FoundationModels schema construction and summary/storage composition passed; real Apple inference on a phone remains NOT_RUN.
+
+At test-only 29061c7 / run 40219610954, all 123 model cases passed and four of 67 script cases provided hosted RED for the combined-app/UI log helper. Its implementation now passes the unchanged 21 focused cases locally and correctly retains both historical native failures. The final source, build-7 IPA and exact-source GREEN remain pending. All physical gates remain pending. Next: final focused checks and package, then owner phone validation. See the T26/T27 evidence.
 
 ## Model format clarification — 25 October 2026
 

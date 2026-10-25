@@ -34,7 +34,7 @@ struct LocalMinutesHomeView: View {
         }
         .id(application.services.map { ObjectIdentifier($0) })
         .disabled(application.isRestoringLibrary || application.services?.maintainingLibrary == true)
-        .tint(.teal)
+        .tint(.blue)
         .task(id: application.services.map { ObjectIdentifier($0) }) { await application.services?.initialize() }
         .onChange(of: application.meetingNavigation?.requestID, initial: true) { _, requestID in
             guard requestID != nil, let id = application.meetingNavigation?.requestedMeetingID else {

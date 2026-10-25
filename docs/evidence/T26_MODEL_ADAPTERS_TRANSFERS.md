@@ -75,3 +75,7 @@ The native v2/v3 runtime and final UI/Apple checks are still pending at the new 
 ## Focused model GREEN
 
 At 7cb82d436adfbc9e20ec7006bd020538dfadd354, run 40216369493 passed all 123 model tests (zero failures/skips, 19.344 seconds) and all 62 unchanged script tests (zero failures/skips). The 512 MiB regression measured 40,488,960 bytes before and 40,550,400 after: 61,440 bytes additional peak. Native run 40216588328 is pending at the same exact source; it includes actual v2/v3 ASR and the new Apple startup binding test.
+
+## Actual v2/v3 functional GREEN
+
+Source 6d95c74975ee5584c421c057604cc2c04652f73b, native job 121241866043 in run 40217546023: all 12 actual v2/v3 recognition, selection, captured-pin/live and replay tests passed. The aggregate intentionally remains FAILURE because two new Apple JSON bridge cases failed four assertions (15 total executed, 13 passed, two failed, zero skips, 90.513 seconds). Direct v3 recognition passed in 7.485 seconds, selected live capture in 16.199 seconds and captured-pin replay in 15.540 seconds. These are actual licensed-speech functionality checks, with no automated quality threshold. The independent Core/Persistence/Summary/Intelligence/Q&A regression step passed 195 tests, zero failures/skips, 3.686 seconds. Final exact-source/package verification is still pending.

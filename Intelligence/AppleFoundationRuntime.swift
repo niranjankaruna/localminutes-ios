@@ -141,8 +141,57 @@ struct AppleGenerationSchemaCompiler {
 }
 #endif
 
-/// Compileable contract for adapting Apple's omitted optional members into the
-/// existing explicit-null document schema. Implement after its native RED.
+/// The iOS 26.0 API can omit optional object members. Restore only schema-declared
+/// unknown nulls; preserve provided values and extra keys for strict validation.
 enum AppleGeneratedJSON {
-    static func completeOptionalFields(_ json: String, schema: StructuredJSONSchema) throws -> String { json }
+    static func completeOptionalFields(_ json: String, schema: StructuredJSONSchema) throws -> String {
+        guard json.utf8.count <= 65_536 else { throw AppleFoundationRuntimeError.invalidRequest }
+        _ = try schema.grammar()
+        let object: Any
+        do { object = try JSONSerialization.jsonObject(with: Data(json.utf8)) }
+        catch { throw AppleFoundationRuntimeError.invalidRequest }
+        guard object is [String: Any] else { throw AppleFoundationRuntimeError.invalidRequest }
+        let normalized = try complete(object, type: .object(schema.fields), depth: 0)
+        let bytes = try JSONSerialization.data(withJSONObject: normalized, options: [.sortedKeys])
+        guard bytes.count <= 65_536 else { throw AppleFoundationRuntimeError.invalidRequest }
+        return String(decoding: bytes, as: UTF8.self)
+    }
+
+    private static func complete(_ value: Any, type: StructuredJSONType, depth: Int) throws -> Any {
+        guard depth <= 8 else { throw AppleFoundationRuntimeError.unsupportedSchema }
+        switch type {
+        case .object(let fields):
+            guard var object = value as? [String: Any] else { return value }
+            for field in fields {
+                if let existing = object[field.name] {
+                    object[field.name] = try complete(existing, type: field.type, depth: depth + 1)
+                } else if case .nullable = field.type {
+                    object[field.name] = NSNull()
+                }
+            }
+            return object
+        case .array(let element, let maximum):
+            guard let array = value as? [Any] else { return value }
+            guard array.count <= maximum else { throw AppleFoundationRuntimeError.invalidRequest }
+            return try array.map { try complete($0, type: element, depth: depth + 1) }
+        case .nullable(let wrapped):
+            if value is NSNull { return value }
+            return try complete(value, type: wrapped, depth: depth + 1)
+        case .alternatives(let variants):
+            guard let first = variants.first else { throw AppleFoundationRuntimeError.unsupportedSchema }
+            let result = try complete(value, type: first, depth: depth + 1)
+            // Actual correlated evidence branches differ in allowed IDs/ranges,
+            // not optional-member shape. Refuse an ambiguous transformation.
+            let expected = try JSONSerialization.data(withJSONObject: [result], options: [.sortedKeys])
+            for variant in variants.dropFirst() {
+                let candidate = try complete(value, type: variant, depth: depth + 1)
+                let matches = try autoreleasepool {
+                    try JSONSerialization.data(withJSONObject: [candidate], options: [.sortedKeys]) == expected
+                }
+                guard matches else { throw AppleFoundationRuntimeError.unsupportedSchema }
+            }
+            return result
+        default: return value
+        }
+    }
 }

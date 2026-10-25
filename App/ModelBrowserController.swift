@@ -352,6 +352,12 @@ final class ModelBrowserController {
     }
 
     private static func describe(_ error: any Error) -> String {
+        if let value = error as? ParakeetModelPackError {
+            switch value {
+            case .unsupportedContract: return "This Parakeet decoder version needs an app update."
+            case .invalidManifest: return "This model pack has invalid source, checksum or component details."
+            }
+        }
         if let value = error as? HuggingFaceRepositoryError {
             switch value {
             case .invalidRepository: return "Paste an owner/repository name or a Hugging Face model URL."

@@ -1949,8 +1949,31 @@
         "Detailed download/verification UI; bounded updates.",
         "List Apple Intelligence with actual availability, persistent selection and real on-device summary runtime; no fabricated weights or exact model digest."
       ],
-      "redEvidence": [],
-      "greenEvidence": [],
+      "redEvidence": [
+        {
+          "sourceCommit": "1d2f290032bdebcc497d2701eb456caef887124c",
+          "runId": 40213241251,
+          "scope": "Apple session, missing progress/layout/system row"
+        },
+        {
+          "sourceCommit": "6d95c74975ee5584c421c057604cc2c04652f73b",
+          "runId": 40217546023,
+          "scope": "Apple optional JSON and fresh startup"
+        },
+        {
+          "sourceCommit": "29061c7444d51c822a86987944b6e5efe3cde13d",
+          "runId": 40219610954,
+          "scope": "Mixed app/UI log verification"
+        }
+      ],
+      "greenEvidence": [
+        {
+          "sourceCommit": "6d95c74975ee5584c421c057604cc2c04652f73b",
+          "runId": 40217546023,
+          "scope": "six native UI and actual schema/local summary composition; startup still RED",
+          "skips": 0
+        }
+      ],
       "deviceEvidence": [],
       "evidence": [
         "docs/evidence/T27_MODELS_UI_APPLE.md"
