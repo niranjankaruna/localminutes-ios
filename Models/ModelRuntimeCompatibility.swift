@@ -18,15 +18,16 @@ public enum ModelRuntimeCompatibility {
         }
         switch profile {
         case .parakeetTDTCoreML:
-            let reviewed = ParakeetCoreMLModel.manifest
-            guard repository.id.rawValue.lowercased() == ParakeetCoreMLModel.repositoryID.lowercased(),
+            let reviewed = repository.parakeetManifest ?? ParakeetCoreMLModel.manifest
+            guard (try? ParakeetModelPack.configuration(for: reviewed)) != nil,
+                  repository.id.rawValue.lowercased() == reviewed.upstreamRepository.path.trimmingCharacters(in: CharacterSet(charactersIn: "/")).lowercased(),
                   repository.revision == reviewed.revision,
                   format.selectedFiles.count == reviewed.artifacts.count,
                   Set(format.selectedFiles.map(\.fileName)).count == reviewed.artifacts.count,
                   format.selectedFiles.allSatisfy({ file in reviewed.artifacts.contains {
                       $0.fileName == file.fileName && $0.byteCount == file.byteCount && $0.sha256 == file.sha256
                   } }) else {
-                return result(.unsupported, "The native Core ML adapter needs the complete reviewed Parakeet v2 resource set.")
+                return result(.unsupported, "The native Core ML adapter needs the complete resource set declared by this supported Parakeet model pack.")
             }
             return result(.supported, "Native Core ML + Swift TDT decodes bounded speech chunks with the configured CPU/Neural Engine policy. iPhone memory, live speed and locked use remain unverified.")
         case .streamingZipformerONNX:

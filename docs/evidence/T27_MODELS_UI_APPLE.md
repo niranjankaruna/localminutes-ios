@@ -48,3 +48,5 @@ implement no system-model behavior until hosted RED is observed.
 GREEN, native availability, source SHA and device evidence: PENDING.
 Next: observe original progress UI RED, push the added contracts/fixture, then
 prove genuine Parakeet/Apple/layout failures before implementing those behaviors.
+
+Implementation checkpoint: compact native installed rows now collapse artifact details; Apple availability/selection, FoundationModels runtime composition and source validation are implemented locally. Additional fresh-startup binding and bundled descriptor tests are committed before implementing the service binding. These must produce actual hosted results; no simulator Apple inference is claimed.

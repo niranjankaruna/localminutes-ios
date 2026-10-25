@@ -28,6 +28,9 @@ final class ModelBrowserController {
     private(set) var message: String?
     private(set) var errorMessage: String?
     private(set) var downloadProgress: ModelTransferProgress?
+    private(set) var usingPackDescriptor = false
+    var appleAvailability: AppleSummaryAvailability { AppleFoundationRuntime.availability() }
+    var appleEquipped: Bool { equippedSummaryID == AppleSummaryModel.identifier }
     func updateDownloadProgress(_ value: ModelTransferProgress) { downloadProgress = value }
     @ObservationIgnored private weak var services: LocalMinutesServices?
     @ObservationIgnored private let remote = HuggingFaceRepositoryService()
@@ -98,7 +101,13 @@ final class ModelBrowserController {
         defer { isInspecting = false }
         do {
             let found = try await remote.inspect(repositoryInput)
-            repository = found
+            var enriched = found
+            for pack in BundledParakeetPacks.manifests where
+                pack.upstreamRepository.path.trimmingCharacters(in: CharacterSet(charactersIn: "/")).lowercased() == found.id.rawValue.lowercased()
+                    && pack.revision == found.revision {
+                enriched.parakeetManifest = pack
+            }
+            repository = enriched; usingPackDescriptor = false
             repositoryInput = found.id.rawValue
             if let services { resources = ModelDeviceResourcesReader.current(at: services.meetingsDirectory) }
             message = "Repository details loaded. Choose a file and review its format and estimated resources."
@@ -120,6 +129,9 @@ final class ModelBrowserController {
     }
 
     private func selectionID(for purpose: ModelPurpose, services: LocalMinutesServices) async throws -> String? {
+        if purpose == .summary, try services.modelSelections.isAppleIntelligenceSelected() {
+            return AppleSummaryModel.identifier
+        }
         if try await services.modelSelections.hasSelectionRecord(for: purpose) {
             return try await services.modelSelections.selected(for: purpose)?.manifest.modelID
         }
@@ -159,6 +171,55 @@ final class ModelBrowserController {
     }
 
     func cancelDownload() { download?.cancel() }
+
+    func equipAppleIntelligence() async {
+        guard !isWorking, let services else { return }
+        isWorking = true; errorMessage = nil
+        defer { isWorking = false }
+        do {
+            try await services.modelSelections.selectAppleIntelligence(available: appleAvailability == .available)
+            await services.refreshModels(); await refresh()
+            message = "Apple Intelligence selected for on-device summaries and questions."
+        } catch { errorMessage = Self.describe(error) }
+    }
+
+    func loadParakeetPack(_ manifest: ModelManifest) throws {
+        guard !isWorking, !isInspecting, !isPreparingStorageCheck else { throw ModelSelectionError.selectionInUse }
+        _ = try ParakeetModelPack.configuration(for: manifest)
+        let id = try HuggingFaceRepositoryID(input: manifest.upstreamRepository.absoluteString)
+        var descriptor = HuggingFaceModelRepository(id: id, revision: manifest.revision,
+            files: manifest.artifacts.map { .init(fileName: $0.fileName, byteCount: $0.byteCount,
+                sha256: $0.sha256, downloadURL: $0.downloadURL) },
+            licenseIdentifier: manifest.licenseIdentifier, cardMarkdown: nil,
+            pipelineTag: "automatic-speech-recognition", libraryName: "coreml", modelType: "parakeet_tdt",
+            architectures: ["FastConformerTDT"], isGated: false, contextConfiguration: nil)
+        descriptor.parakeetManifest = manifest
+        purpose = .speechRecognition; repository = descriptor; repositoryInput = id.rawValue
+        usingPackDescriptor = true; selectedFileName = nil; errorMessage = nil
+        message = "Model pack descriptor loaded. Review its source, license and files before downloading or importing weights."
+    }
+
+    func loadBundledParakeetV3() {
+        do {
+            guard let manifest = BundledParakeetPacks.manifests.first else { throw ParakeetModelPackError.invalidManifest }
+            try loadParakeetPack(manifest)
+        } catch { errorMessage = Self.describe(error) }
+    }
+
+    func importParakeetPack(_ url: URL) {
+        do {
+            let access = url.startAccessingSecurityScopedResource()
+            defer { if access { url.stopAccessingSecurityScopedResource() } }
+            let values = try url.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey])
+            guard values.isRegularFile == true, values.isSymbolicLink != true,
+                  let size = values.fileSize, (1...65_536).contains(size) else { throw ParakeetModelPackError.invalidManifest }
+            let input = try FileHandle(forReadingFrom: url)
+            defer { try? input.close() }
+            let data = try input.read(upToCount: 65_537) ?? Data()
+            guard data.count == size else { throw ParakeetModelPackError.invalidManifest }
+            try loadParakeetPack(ParakeetModelPack.decode(data))
+        } catch { errorMessage = Self.describe(error) }
+    }
 
     func selectedImportManifest() -> ModelManifest? {
         guard !isWorking, !isPreparingStorageCheck, let repository else { return nil }
@@ -232,7 +293,7 @@ final class ModelBrowserController {
 
     private static func profile(_ manifest: ModelManifest) -> HuggingFaceRuntimeProfile? {
         switch manifest.runtimeVersion {
-        case ParakeetCoreMLModel.runtimeVersion: return .parakeetTDTCoreML
+        case ParakeetCoreMLModel.runtimeVersion, ParakeetModelPack.runtimeVersion: return .parakeetTDTCoreML
         case "whisper.cpp-1.7.5": return .whisperGGML
         case "sherpa-onnx-1.13.8": return .streamingZipformerONNX
         case "llama.cpp-b5046": return .llamaGGUF
@@ -245,10 +306,12 @@ final class ModelBrowserController {
         guard let profile = assessment.profile, let license = repository.licenseIdentifier,
               !license.isEmpty, !assessment.selectedFiles.isEmpty else { throw ModelInstallationError.invalidManifest }
         if profile == .parakeetTDTCoreML {
-            guard assessment.status == .supported, repository.revision == ParakeetCoreMLModel.revision else {
+            let pack = repository.parakeetManifest ?? ParakeetCoreMLModel.manifest
+            guard assessment.status == .supported, repository.revision == pack.revision else {
                 throw ModelInstallationError.invalidManifest
             }
-            return ParakeetCoreMLModel.manifest
+            _ = try ParakeetModelPack.configuration(for: pack)
+            return pack
         }
         let artifacts = try assessment.selectedFiles.map { file -> ModelArtifact in
             guard let bytes = file.byteCount, let digest = file.sha256, bytes > 0 else {

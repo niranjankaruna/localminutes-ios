@@ -10,6 +10,7 @@ struct ModelBrowserView: View {
     @State private var pendingRemoval: ModelManifest?
     @State private var showingRemoval = false
     @State private var showingImport = false
+    @State private var showingPackImport = false
     @State private var importManifest: ModelManifest?
 
     init(controller: ModelBrowserController, application: RecordingApplication? = nil) {
@@ -30,6 +31,17 @@ struct ModelBrowserView: View {
 
                 transferProgressSection
 
+                installedSection
+
+                if controller.purpose == .speechRecognition {
+                    Section("Parakeet Core ML") {
+                        Button("Browse Parakeet TDT v3") { controller.loadBundledParakeetV3() }
+                        Button("Open a model pack…") { showingPackImport = true }
+                        Text("A model pack describes the files and decoder version. Open a compatible pack to add another model.")
+                            .font(.footnote).foregroundStyle(.secondary)
+                    }.disabled(controller.isWorking || controller.isInspecting)
+                }
+
                 Section("Hugging Face repository") {
                     TextField("owner/repository or Hugging Face URL", text: $controller.repositoryInput)
                         .textInputAutocapitalization(.never)
@@ -45,8 +57,8 @@ struct ModelBrowserView: View {
                     }
                     .disabled(controller.repositoryInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                               || controller.isInspecting || controller.isWorking)
-                    Text("Lookup reads public metadata and the model card. Choose a file and review compatibility before downloading weights.")
-                        .font(.caption).foregroundStyle(.secondary)
+                    Text("Find a model, choose a compatible version, then download it to this iPhone.")
+                        .font(.footnote).foregroundStyle(.secondary)
                 }
 
                 if let repository = controller.repository {
@@ -79,25 +91,16 @@ struct ModelBrowserView: View {
                             showingImport = importManifest != nil
                         }
                         .disabled(!controller.canDownload || controller.isWorking || controller.isInspecting)
-                        if controller.isDownloading {
-                            ProgressView(controller.message ?? "Working with model files…")
-                            Button("Pause download") { controller.cancelDownload() }
-                        }
                         if controller.isImporting {
                             ProgressView(controller.message ?? "Importing model…")
                             Button("Cancel import") { controller.cancelDownload() }
                         }
                         Button("Remove unfinished download", role: .destructive) { controller.discardSelectedDownload() }
                             .disabled(controller.selectedImportManifest() == nil || controller.isWorking)
-                        Text("For Whisper or GGUF, select the expected file. For native Parakeet, select the folder containing all four Core ML bundles and parakeet_vocab.json.")
-                            .font(.caption).foregroundStyle(.secondary)
-                        Text("Downloads are verified before installation. Format compatibility does not establish answer quality, speed or memory use on this iPhone.")
-                            .font(.caption).foregroundStyle(.secondary)
+                        Text("Import a Whisper or GGUF file, or the complete Parakeet folder. Downloads and imports are checked before installation.")
+                            .font(.footnote).foregroundStyle(.secondary)
                     }
                 }
-
-                deviceResourcesSection
-                installedSection
 
                 if let message = controller.message, !controller.isDownloading {
                     Section { Text(verbatim: message).accessibilityIdentifier("model-browser-status") }
@@ -107,17 +110,6 @@ struct ModelBrowserView: View {
                         Text(verbatim: error).foregroundStyle(.red)
                             .accessibilityIdentifier("model-browser-error")
                     }
-                }
-                Section("Action Button") {
-                    Text("In iPhone Settings, choose Action Button → Shortcut → Toggle LocalMinutes Recording.")
-                    Text("Locked start and two-hour recording behavior still require checks on your iPhone.")
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-                Section("Privacy and renewal") {
-                    Text("Meeting audio and text are processed on this iPhone. Repository lookup and model downloads need internet.")
-                    Text("Use a free Apple Account and refresh with iLoader every seven days. Keep the same Apple Account and bundle IDs, and install over the existing app.")
-                    Text("Export important notes before renewal and verify your meetings and models afterward. Do not delete the app to refresh it.")
-                    Text("Record meetings only with the participants’ consent.")
                 }
                 storageCheckSection
                 Section("About LocalMinutes") {
@@ -129,12 +121,18 @@ struct ModelBrowserView: View {
                             .accessibilityIdentifier("settings.appBuildIdentity")
                     }
                 }
+                deviceResourcesSection
             }
+            .formStyle(.grouped)
+            .tint(.blue)
             .disabled(controller.isPreparingStorageCheck)
             .navigationTitle("Models")
             .task { await controller.refresh() }
             .refreshable { await controller.refresh() }
             .sheet(isPresented: $showingCard) { modelCard }
+            .fileImporter(isPresented: $showingPackImport, allowedContentTypes: [.json]) { result in
+                if case .success(let file) = result { controller.importParakeetPack(file) }
+            }
             .fileImporter(isPresented: $showingImport, allowedContentTypes: [.data, .folder],
                           allowsMultipleSelection: true) { result in
                 guard let manifest = importManifest else { return }
@@ -194,6 +192,10 @@ struct ModelBrowserView: View {
                         Text("Resumed \(bytes(progress.resumedBytes))")
                             .font(.caption).foregroundStyle(.secondary)
                             .accessibilityIdentifier("models.download.resumed")
+                    }
+                    if controller.isDownloading {
+                        Button("Pause download") { controller.cancelDownload() }
+                            .frame(minHeight: 44)
                     }
                 }
                 .padding(.vertical, 6)
@@ -289,7 +291,12 @@ struct ModelBrowserView: View {
     private func repositorySection(_ repository: HuggingFaceModelRepository) -> some View {
         Section("Repository details") {
             Text(verbatim: repository.id.rawValue).font(.headline).textSelection(.enabled)
+            if controller.usingPackDescriptor {
+                Text("Details from the model pack. Files will be verified against its checksums when installed.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
             LabeledContent("License", value: repository.licenseIdentifier ?? "Unknown — review required")
+            DisclosureGroup("Source details") {
             LabeledContent("Task", value: repository.pipelineTag ?? "Unknown")
             LabeledContent("Architecture", value: repository.modelType
                 ?? (repository.architectures.isEmpty ? "Unknown" : repository.architectures.joined(separator: ", ")))
@@ -303,6 +310,7 @@ struct ModelBrowserView: View {
             if repository.cardMarkdown == nil {
                 Text("No public model card was available at this revision.")
                     .font(.caption).foregroundStyle(.secondary)
+            }
             }
         }
     }
@@ -326,12 +334,14 @@ struct ModelBrowserView: View {
                     }
                 }
                 if !result.selectedFiles.isEmpty {
+                    DisclosureGroup("\(result.selectedFiles.count) model files") {
                     ForEach(result.selectedFiles, id: \.fileName) { file in
                         VStack(alignment: .leading, spacing: 3) {
                             Text(verbatim: file.fileName).font(.caption).textSelection(.enabled)
                             Text("\(bytes(file.byteCount)) · \(file.sha256 == nil ? "SHA-256 unavailable" : "Expected SHA-256 available")")
                                 .font(.caption).foregroundStyle(.secondary)
                         }
+                    }
                     }
                 }
             }
@@ -357,39 +367,49 @@ struct ModelBrowserView: View {
     }
 
     private var deviceResourcesSection: some View {
-        Section("This iPhone now") {
+        Section {
             LabeledContent("Free storage", value: bytes(controller.resources.freeDiskBytes))
             LabeledContent("Total RAM", value: bytes(controller.resources.totalMemoryBytes, memory: true))
-            LabeledContent("Available to this app", value: bytes(controller.resources.availableAppMemoryBytes, memory: true))
+            LabeledContent("Available to this app") {
+                Text(bytes(controller.resources.availableAppMemoryBytes, memory: true))
+                    .accessibilityIdentifier("models.device.availableMemory")
+            }
             Text("Available memory changes as the phone runs. Model estimates are guidance; actual use can be higher.")
                 .font(.caption).foregroundStyle(.secondary)
+        } header: {
+            Text("This iPhone").accessibilityIdentifier("models.device.heading")
         }
     }
 
     private var installedSection: some View {
         let installed = controller.installed.filter { $0.purpose == controller.purpose }
-        return Section(controller.purpose == .speechRecognition ? "Installed speech models" : "Installed summary models") {
-            if installed.isEmpty {
+        return Section(controller.purpose == .speechRecognition ? "Installed speech models" : "Summary models") {
+            if controller.purpose == .summary { appleSummaryRow }
+            if installed.isEmpty && controller.purpose == .speechRecognition {
                 Text("No verified model installed for this purpose.").foregroundStyle(.secondary)
             }
             ForEach(installed.map { InstalledModelRow(manifest: $0) }) { entry in
                 let manifest = entry.manifest
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(verbatim: manifest.upstreamRepository.path.trimmingCharacters(in: CharacterSet(charactersIn: "/")))
-                        .font(.headline).textSelection(.enabled)
-                    ForEach(manifest.artifacts, id: \.fileName) { artifact in
-                        Text(verbatim: "\(artifact.fileName) · \(bytes(artifact.byteCount))")
-                            .font(.caption).foregroundStyle(.secondary)
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(installedTitle(manifest)).font(.headline)
+                        Spacer(minLength: 8)
+                        if controller.isEquipped(manifest) {
+                            Image(systemName: "checkmark").foregroundStyle(.blue)
+                                .accessibilityLabel("Equipped")
+                        }
                     }
-                    Text("\(bytes(installedBytes(manifest))) · \(manifest.runtimeVersion)")
-                        .font(.caption).foregroundStyle(.secondary)
+                    Text(verbatim: manifest.upstreamRepository.path.trimmingCharacters(in: CharacterSet(charactersIn: "/")))
+                        .font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
+                    Text("\(bytes(installedBytes(manifest))) · \(installedEngine(manifest))")
+                        .font(.subheadline).foregroundStyle(.secondary)
                     HStack {
                         if controller.isEquipped(manifest) {
-                            Label("Equipped", systemImage: "checkmark.circle.fill")
-                                .font(.callout).foregroundStyle(.green)
+                            Text("Equipped").font(.subheadline).foregroundStyle(.secondary)
                         } else {
                             Button("Equip") { Task { await controller.equip(manifest) } }
-                                .buttonStyle(.bordered)
+                                .buttonStyle(.borderless)
+                                .frame(minWidth: 44, minHeight: 44)
                                 .accessibilityLabel("Equip \(modelActionIdentity(manifest))")
                                 .disabled(controller.isWorking || controller.isInspecting)
                         }
@@ -397,13 +417,68 @@ struct ModelBrowserView: View {
                         Button("Remove", role: .destructive) {
                             pendingRemoval = manifest; showingRemoval = true
                         }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(.borderless)
+                        .frame(minWidth: 44, minHeight: 44)
                         .accessibilityLabel("Remove \(modelActionIdentity(manifest))")
                         .disabled(controller.isWorking || controller.isInspecting)
                     }
+                    DisclosureGroup("Model details") {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(verbatim: manifest.runtimeVersion).font(.caption)
+                            Text(verbatim: manifest.revision).font(.caption.monospaced())
+                                .textSelection(.enabled)
+                            Text("\(manifest.artifacts.count) verified files · \(manifest.licenseIdentifier)")
+                                .font(.caption).foregroundStyle(.secondary)
+                            ForEach(manifest.artifacts, id: \.fileName) { artifact in
+                                Text(verbatim: "\(artifact.fileName) · \(bytes(artifact.byteCount))")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                        }.padding(.top, 6)
+                    }.font(.subheadline)
                 }
-                .padding(.vertical, 4)
+                .padding(.vertical, 6)
             }
+        }
+    }
+
+    private var appleSummaryRow: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Apple Intelligence").font(.headline)
+                    .accessibilityIdentifier("models.apple.title")
+                Spacer(minLength: 8)
+                if controller.appleEquipped {
+                    Image(systemName: "checkmark").foregroundStyle(.blue).accessibilityLabel("Equipped")
+                }
+            }
+            Text("Built into iPhone · Managed by iOS").font(.subheadline).foregroundStyle(.secondary)
+            Text(controller.appleAvailability.explanation).font(.footnote).foregroundStyle(.secondary)
+                .accessibilityIdentifier("models.apple.availability")
+            Button(controller.appleEquipped ? "Equipped" : "Equip") {
+                Task { await controller.equipAppleIntelligence() }
+            }
+            .buttonStyle(.borderless).frame(minWidth: 44, minHeight: 44)
+            .accessibilityIdentifier("models.apple.equip")
+            .disabled(controller.appleEquipped || controller.appleAvailability != .available
+                      || controller.isWorking || controller.isInspecting)
+        }.padding(.vertical, 6)
+    }
+
+    private func installedTitle(_ manifest: ModelManifest) -> String {
+        if let pack = try? ParakeetModelPack.configuration(for: manifest) {
+            return pack.decoderContract == "parakeet-tdt-v3" ? "Parakeet TDT v3" : "Parakeet TDT v2"
+        }
+        return manifest.upstreamRepository.lastPathComponent
+            .replacingOccurrences(of: "-", with: " ")
+    }
+
+    private func installedEngine(_ manifest: ModelManifest) -> String {
+        switch manifest.runtimeVersion {
+        case ParakeetCoreMLModel.runtimeVersion, ParakeetModelPack.runtimeVersion: "Core ML"
+        case "whisper.cpp-1.7.5": "Whisper"
+        case "sherpa-onnx-1.13.8": "ONNX"
+        case "llama.cpp-b5046": "GGUF"
+        default: manifest.runtimeVersion
         }
     }
 
@@ -451,7 +526,7 @@ struct ModelBrowserView: View {
 
     private func profileTitle(_ profile: HuggingFaceRuntimeProfile) -> String {
         switch profile {
-        case .parakeetTDTCoreML: "Core ML + Swift TDT · Parakeet v2"
+        case .parakeetTDTCoreML: "Core ML · Parakeet TDT"
         case .streamingZipformerONNX: "sherpa-onnx · streaming Zipformer"
         case .whisperGGML: "whisper.cpp · Whisper GGML"
         case .llamaGGUF: "llama.cpp · GGUF"

@@ -1,20 +1,8 @@
 # Verification index
 
-## Active T26/T27 evidence — 25 October 2026
+## T26/T27 implementation checkpoint
 
-- [T26 record](evidence/T26_MODEL_ADAPTERS_TRANSFERS.md): initial source 20da4e8 /
-  run 40209885118, 115 executed, 113 passed, two failed, six assertions, zero skips.
-  512 MiB file caused 1,615,675,392 bytes of peak-memory growth; HTTP emitted no progress.
-- Source 32f00ba / run 40210819975: compile failure in a new test initializer,
-  not behavioral RED and not GREEN. Corrected rootURL label retains all assertions.
-- [UI/Apple record](evidence/T27_MODELS_UI_APPLE.md): source 32f00ba /
-  run 40211090733, two UI cases failed with four assertions, zero skips, 63.143 seconds.
-- Windows script checks: 61 passed, one failed because Windows denied creation
-  of a symlink; the unchanged suite will also run on hosted macOS. No skip/weakening.
-- Figcraft MCP created and exported the revised iPhone design; preview data are
-  illustrative. No app build, real Apple inference or physical-phone PASS follows
-  from the design. Next: corrected tests-first batch, then genuine RED/GREEN.
-
+Latest exact source fe7aa94 / run 40215222725: 123 model tests, 122 passed, one new generic-discovery case failed (three assertions), zero skips. Raw/aggregate progress, Apple selection, pack install/equip and the 512 MiB regression passed; peak growth was 69,632 bytes. The new discovery assertion precedes its implementation. Real v2/v3 adapter, Apple composition/startup and iPhone UI verification remain pending. No new IPA or physical inference result is claimed. Next: focused native model-upgrades tests and startup binding after its behavioral RED. See T26/T27 evidence.
 
 ## Model format source review — 25 October 2026
 

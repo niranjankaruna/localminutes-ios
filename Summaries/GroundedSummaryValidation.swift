@@ -1,4 +1,7 @@
 import Foundation
+#if SWIFT_PACKAGE
+import LocalMinutesModels
+#endif
 
 struct GroundedEvidenceKey: Hashable {
     let sourceID: Data
@@ -77,9 +80,11 @@ struct GroundedSummaryValidation {
 
     func provenance(_ value: SummaryGenerationProvenance) throws {
         let revision = value.modelRevision.utf8
-        guard revision.count == 40, revision.allSatisfy({
+        let pinned = revision.count == 40 && revision.allSatisfy({
             ($0 >= 48 && $0 <= 57) || ($0 >= 97 && $0 <= 102)
-        }), !value.promptVersion.isEmpty, value.promptVersion.utf8.count <= 256, value.mapIndex >= 0 else {
+        })
+        guard pinned || AppleSummaryModel.isSystemRevision(value.modelRevision),
+              !value.promptVersion.isEmpty, value.promptVersion.utf8.count <= 256, value.mapIndex >= 0 else {
             throw GroundedSummaryError.invalidProvenance
         }
     }

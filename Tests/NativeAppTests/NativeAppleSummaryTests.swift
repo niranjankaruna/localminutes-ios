@@ -1,5 +1,8 @@
 #if os(iOS)
 import Foundation
+#if canImport(FoundationModels)
+import FoundationModels
+#endif
 import XCTest
 @testable import LocalMinutes
 
@@ -7,6 +10,37 @@ import XCTest
 /// boundary supplies fixed synthetic JSON; this does not claim Apple inference.
 @MainActor
 final class NativeAppleSummaryTests: XCTestCase {
+    func testPersistedAppleSelectionBindsSystemSessionOnFreshStartupWithoutDefaultWeights() async throws {
+        let parent = FileManager.default.temporaryDirectory.resolvingSymlinksInPath()
+        let root = parent.appendingPathComponent("localminutes-apple-startup-\(UUID().uuidString)", isDirectory: true)
+        let original = try LocalMinutesServices(rootURL: root)
+        try await original.modelSelections.selectAppleIntelligence(available: true)
+        try await original.store.close()
+        let reopened = try LocalMinutesServices(rootURL: root)
+        await reopened.initialize()
+        do {
+            let session = try XCTUnwrap(reopened.intelligence, "Persisted system selection must bind a real system session")
+            let fields = Mirror(reflecting: session).children
+            XCTAssertNil(fields.first(where: { $0.label == "manifest" })?.value as? ModelManifest,
+                "System selection must never restore the default downloaded model")
+            XCTAssertEqual(fields.first(where: { $0.label == "systemModelRevision" })?.value as? String,
+                AppleSummaryModel.currentSystemRevision)
+            XCTAssertEqual(reopened.summaryInstalled, AppleFoundationRuntime.availability() == .available)
+        } catch { XCTFail("System startup composition failed: \(error)") }
+        try await reopened.store.close()
+        guard root.deletingLastPathComponent() == parent, root.resolvingSymlinksInPath() == root else {
+            XCTFail("Refuse cleanup outside the owned fixture"); return
+        }
+        try FileManager.default.removeItem(at: root)
+    }
+
+    func testBundledV3DescriptorUsesTheSameValidatedPackAsNativeAdapterTests() throws {
+        let pack = try XCTUnwrap(BundledParakeetPacks.manifests.first, "The actual app must include its browseable v3 model descriptor")
+        XCTAssertEqual(try ParakeetModelPack.configuration(for: pack).decoderContract, "parakeet-tdt-v3")
+        XCTAssertEqual(pack.artifacts.count, 21)
+        XCTAssertEqual(pack.revision, "7dd20fe6b1797d35f5e3307e8b1732d9a178edfe")
+    }
+
     func testAppleSummaryCompositionSavesWithExplicitSystemProvenanceAndNoInstalledWeights() async throws {
         let root = FileManager.default.temporaryDirectory.resolvingSymlinksInPath()
             .appendingPathComponent("localminutes-apple-summary-\(UUID().uuidString)", isDirectory: true)
@@ -51,6 +85,14 @@ private actor AppleSummaryBoundaryRuntime: IntelligenceRuntime {
     init(meetingID: UUID, sourceID: UUID) { self.meetingID = meetingID; self.sourceID = sourceID }
     func promptTokenCount(prompt: String) async throws -> Int { max(1, prompt.utf8.count / 4) }
     func generateJSON(prompt: String, schema: StructuredJSONSchema, maximumTokens: Int) async throws -> String {
+#if canImport(FoundationModels)
+        if #available(iOS 26.0, *) {
+            // Exercise actual framework schema construction using the pipeline's
+            // real nested schema; only model generation remains a boundary double.
+            var compiler = AppleGenerationSchemaCompiler()
+            _ = try GenerationSchema(root: compiler.object(schema.fields), dependencies: [])
+        }
+#endif
         let object: [String: Any] = ["meeting_id": meetingID.uuidString,
             "summary_points": [["text": "The team approved the launch.", "evidence": [[
                 "source_id": sourceID.uuidString, "start_sample": 0, "end_sample": 16_000,

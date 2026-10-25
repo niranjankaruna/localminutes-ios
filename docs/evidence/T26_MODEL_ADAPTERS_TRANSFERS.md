@@ -65,3 +65,9 @@ Fixtures use generated non-sensitive bytes. No weights, device logs, meeting
 content or credentials may enter the repository. Phone download reproduction,
 locked live transcription, two-hour runs, signing and renewal remain pending.
 Next: push these tests, observe genuine hosted RED, then implement T26.1/T26.2.
+
+## Intermediate exact-source results
+
+At source `fe7aa94f6cd85aeb95644a32789b5f2972167a05`, [run 40215222725](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40215222725) executed 123 model tests: 122 passed, one new publisher-independent pack discovery case failed three assertions, zero skipped, 31.706 seconds. Pack installation/equip, legacy compatibility, raw/aggregate HTTP progress and Apple selection all passed. The unchanged 512 MiB memory regression measured 40,759,296 bytes before and 40,828,928 after: 69,632 bytes additional peak, below 67,108,864. The failing discovery test was committed before implementing the generic repository route.
+
+The native v2/v3 runtime and final UI/Apple checks are still pending at the new implementation.

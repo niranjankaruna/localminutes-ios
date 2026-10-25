@@ -121,14 +121,15 @@ public final class IntelligenceSession {
         self.systemModelRevision = nil; self.systemRuntimeLoader = nil
     }
 
-    // Test-first composition interface: no Apple behavior before hosted RED.
     public init(store: SQLiteMeetingStore, models: ModelInstallationManager, admission: HeavyModelAdmission,
                 appleSystemRevision: String,
-                systemRuntimeLoader: @escaping @Sendable () async throws -> any IntelligenceRuntime) {
+                systemRuntimeLoader: @escaping @Sendable () async throws -> any IntelligenceRuntime = {
+                    try await AppleFoundationRuntime.makeRuntime()
+                }) {
         self.store = store; self.models = models; self.admission = admission
         self.manifest = nil; self.systemModelRevision = appleSystemRevision
         self.systemRuntimeLoader = systemRuntimeLoader; self.summaryCheckpoints = nil
-        self.runtimeLoader = { _ in throw IntelligenceSessionError.notImplemented }
+        self.runtimeLoader = { model in try await IntelligenceSession.loadPinnedRuntime(model) }
     }
 
     /// Validate the reviewed local artifact, then construct the CPU runtime
@@ -285,7 +286,6 @@ public final class IntelligenceSession {
 
     private func generate(_ use: Use) async throws -> StoredGeneratedDocument {
         try check(use)
-        guard let manifest else { throw IntelligenceSessionError.notImplemented }
         let request = use.request
         guard request.createdAt.timeIntervalSince1970.isFinite else { throw GeneratedDocumentStoreError.invalidInput }
         guard let meeting = try await store.meeting(id: request.meetingID) else { throw IntelligenceSessionError.meetingMissing }
@@ -295,12 +295,22 @@ public final class IntelligenceSession {
         try check(use)
         let note = try await store.manualNote(meetingID: request.meetingID)
         try check(use)
-        let lease = try await models.acquire(modelID: manifest.modelID)
-        use.modelLease = lease
-        try check(use)
-        guard lease.model.manifest == manifest, manifest.purpose == .summary,
-              lease.model.files[.summary] != nil else { throw IntelligenceSessionError.invalidModel }
-        let runtime = try await runtimeLoader(lease.model)
+        let runtime: any IntelligenceRuntime
+        let modelRevision: String
+        if let manifest {
+            let lease = try await models.acquire(modelID: manifest.modelID)
+            use.modelLease = lease
+            try check(use)
+            guard lease.model.manifest == manifest, manifest.purpose == .summary,
+                  lease.model.files[.summary] != nil else { throw IntelligenceSessionError.invalidModel }
+            runtime = try await runtimeLoader(lease.model)
+            modelRevision = manifest.revision
+        } else {
+            guard let systemModelRevision, AppleSummaryModel.isSystemRevision(systemModelRevision),
+                  let systemRuntimeLoader else { throw IntelligenceSessionError.invalidModel }
+            runtime = try await systemRuntimeLoader()
+            modelRevision = systemModelRevision
+        }
         use.runtime = runtime
         try check(use)
         project(use, phase: .generating)
@@ -310,7 +320,7 @@ public final class IntelligenceSession {
                 segments: segments.map { .init(id: $0.id.uuidString, startSample: $0.startSample,
                     endSample: $0.endSample, text: $0.text) }, originalManualNotes: note?.text ?? "")
             let resume: SummaryPipelineResumeConfiguration?
-            if let summaryCheckpoints {
+            if let manifest, let summaryCheckpoints {
                 guard let artifact = manifest.artifacts.first(where: { $0.role == .summary }) else {
                     throw IntelligenceSessionError.invalidModel
                 }
@@ -318,16 +328,16 @@ public final class IntelligenceSession {
                     modelSHA256: artifact.sha256, runtimeVersion: manifest.runtimeVersion,
                     checkpoints: summaryCheckpoints)
             } else { resume = nil }
-            let pipeline = SummaryPipeline(modelRevision: manifest.revision,
+            let pipeline = SummaryPipeline(modelRevision: modelRevision,
                 tokenizer: { try await runtime.promptTokenCount(prompt: $0) },
                 generator: { prompt, schema, maximum in
                     try await runtime.generateJSON(prompt: prompt, schema: schema, maximumTokens: maximum)
                 }, resume: resume)
             let summary = try await pipeline.summarize(selectedMeetingID: request.meetingID, source: source)
             try check(use)
-            return try Self.document(summary: summary, request: request, revision: manifest.revision)
+            return try Self.document(summary: summary, request: request, revision: modelRevision)
         case .question(let question):
-            let answerer = MeetingQuestionAnswerer(store: store, modelRevision: manifest.revision,
+            let answerer = MeetingQuestionAnswerer(store: store, modelRevision: modelRevision,
                 tokenCounter: { try await runtime.promptTokenCount(prompt: $0) },
                 generator: { try await runtime.generateJSON(prompt: $0.prompt, schema: $0.schema,
                                                             maximumTokens: $0.maximumOutputTokens) })

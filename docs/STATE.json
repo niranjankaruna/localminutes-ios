@@ -196,10 +196,10 @@
     "scope": "Third consecutive phone-only condition after final delivery. No new owner observation, active build or concrete independent development task; prior follow-up produced no application progress. Full goal remains unachieved. Goal blocked audit satisfied; resume when owner supplies phone evidence or reports a reproducible defect.",
     "lastRevalidatedAt": "2026-10-25T12:56:17.577Z"
   },
-  "lastUpdated": "2026-10-25T16:42:14.129Z",
+  "lastUpdated": "2026-10-25T17:24:56.141Z",
   "currentBranch": "codex/parakeet-downloads",
-  "currentTask": "T26/T27: tests-first model packs, bounded transfers, native iPhone UI and Apple summaries",
-  "nextAction": "Push the corrected compileable pack/aggregate/Apple/layout/native-v3 tests; observe portable RED, then native model-upgrades RED before each implementation.",
+  "currentTask": "T26/T27: final native model/UI/Apple implementation and exact-source verification",
+  "nextAction": "Run the focused model package, then native model-upgrades tests. Observe the added Apple fresh-startup assertion before service binding. Preserve all physical-phone gates as NOT_RUN.",
   "activeCIRun": null,
   "repositoryHeadScope": "Read actual local/remote HEAD; latest application CI source remains separately identified.",
   "completedThisInvocation": [],
@@ -277,6 +277,17 @@
       "run": 40210819975,
       "source": "32f00ba277474307b95a30811615c26339d4ef6a",
       "result": "compile failure in new test rootURL label; not RED or GREEN; test corrected without changing assertions"
+    },
+    "latestPortable": {
+      "sourceCommit": "fe7aa94f6cd85aeb95644a32789b5f2972167a05",
+      "runId": 40215222725,
+      "status": "completed",
+      "conclusion": "failure",
+      "executed": 123,
+      "passed": 122,
+      "failed": 1,
+      "skipped": 0,
+      "memoryAdditionalPeakBytes": 69632
     }
   },
   "modelsUIWork": {

@@ -157,7 +157,26 @@ public struct HuggingFaceModelRepository: Equatable, Sendable {
         let type = modelType?.lowercased()
         var candidates: [HuggingFaceModelFile] = []
         var profile: HuggingFaceRuntimeProfile
-        if purpose == .speechRecognition,
+        if purpose == .speechRecognition, let pack = parakeetManifest {
+            guard (try? ParakeetModelPack.configuration(for: pack)) != nil,
+                  pack.upstreamRepository.path.trimmingCharacters(in: CharacterSet(charactersIn: "/")).lowercased() == id.rawValue.lowercased(),
+                  pack.revision == revision else {
+                return result(.unsupported, "The Parakeet descriptor must match this repository and immutable revision.")
+            }
+            if let fileName, !pack.artifacts.contains(where: { $0.fileName == fileName }) {
+                return result(.unsupported, "Choose the complete Parakeet model pack.")
+            }
+            for artifact in pack.artifacts {
+                guard let found = files.first(where: { $0.fileName == artifact.fileName }),
+                      found.byteCount == artifact.byteCount,
+                      found.sha256 == artifact.sha256 || (found.sha256 == nil && artifact.digestProvenance == .independentlyDownloaded) else {
+                    return result(.unverified, "Every declared Parakeet component must match its pinned file size and checksum.")
+                }
+                candidates.append(.init(fileName: artifact.fileName, byteCount: artifact.byteCount,
+                    sha256: artifact.sha256, downloadURL: artifact.downloadURL))
+            }
+            profile = .parakeetTDTCoreML
+        } else if purpose == .speechRecognition,
            id.rawValue.lowercased() == ParakeetCoreMLModel.repositoryID.lowercased() {
             let reviewed = ParakeetCoreMLModel.manifest
             guard revision == reviewed.revision else {
@@ -248,7 +267,7 @@ public struct HuggingFaceModelRepository: Equatable, Sendable {
             }
         }
         if profile == .parakeetTDTCoreML {
-            return result(.supported, "Native Core ML + Swift TDT supports this complete v2 bundle. Speech is decoded in bounded chunks; phone speed and locked-screen use require measurement.", profile, candidates, total)
+            return result(.supported, "Native Core ML + Swift TDT supports this model pack's declared decoder contract. Speech is decoded in bounded chunks; phone speed and locked-screen use require measurement.", profile, candidates, total)
         }
         return result(profile == .whisperGGML ? .plannedRuntime : .supported,
             profile == .whisperGGML ? "Whisper GGML format identified; its runtime must pass native validation before recording can use it."
@@ -275,8 +294,12 @@ public struct HuggingFaceModelRepository: Equatable, Sendable {
             basis = .upstreamWhisperReference
             notes.append("Approximate upstream unquantized Whisper reference with additional planning headroom; not this quantization's measured peak, a strict bound, or a phone measurement.")
         } else if chosen.profile == .parakeetTDTCoreML {
-            lower = 800_000_000; upper = 1_200_000_000; basis = .upstreamCoreMLReference
-            notes.append("Planning estimate from the conversion publisher's roughly800MB desktop peak plus headroom. This is not an iPhone measurement or a guarantee; only the equipped speech model is loaded.")
+            if parakeetManifest == nil {
+                lower = 800_000_000; upper = 1_200_000_000; basis = .upstreamCoreMLReference
+                notes.append("Planning estimate from the conversion publisher's roughly800MB desktop peak plus headroom. This is not an iPhone measurement or a guarantee; only the equipped speech model is loaded.")
+            } else {
+                notes.append("Phone memory use for this model pack has not been measured; download size is not a RAM measurement.")
+            }
             notes.append("Native Core ML with Swift TDT decoding; bounded audio chunks, no text context requirement and no GPU configuration.")
         } else if chosen.profile == .llamaGGUF, let disk, contextTokens > 0,
                   let c = contextConfiguration, let hidden = c.hiddenSize, let layers = c.layerCount,
