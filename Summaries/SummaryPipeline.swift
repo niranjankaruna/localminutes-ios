@@ -237,12 +237,52 @@ public actor SummaryPipeline {
             .init(name: "task", type: extractiveText), .init(name: "owner", type: .nullable(.string)),
             .init(name: "due", type: .nullable(.string))
         ])
-        return .init(fields: [
-            .init(name: "meeting_id", type: .stringEnumeration([meetingID.uuidString])),
-            .init(name: "summary_points", type: .array(element: point, maximumItems: maximumItems)),
-            .init(name: "decisions", type: .array(element: point, maximumItems: maximumItems)),
-            .init(name: "actions", type: .array(element: action, maximumItems: maximumItems))
-        ])
+        func schema(point: StructuredJSONType, action: StructuredJSONType) -> StructuredJSONSchema {
+            .init(fields: [
+                .init(name: "meeting_id", type: .stringEnumeration([meetingID.uuidString])),
+                .init(name: "summary_points", type: .array(element: point, maximumItems: maximumItems)),
+                .init(name: "decisions", type: .array(element: point, maximumItems: maximumItems)),
+                .init(name: "actions", type: .array(element: action, maximumItems: maximumItems))
+            ])
+        }
+        var pointChoices: [StructuredJSONType] = []
+        var actionChoices: [StructuredJSONType] = []
+        var complete = true
+        for segment in segments {
+            guard let sentences = sentenceVocabulary([segment.text]),
+                  pointChoices.count <= 256 - sentences.count else { complete = false; break }
+            for sentence in sentences {
+                let exactText = StructuredJSONType.stringEnumeration([sentence])
+                // The model chooses the natural-language quote first. Its
+                // source identity, range and claim then follow as one tuple.
+                let exactCitation = StructuredJSONType.object([
+                    .init(name: "quote", type: exactText),
+                    .init(name: "source_id", type: .stringEnumeration([segment.id])),
+                    .init(name: "start_sample", type: .integerEnumeration([segment.startSample])),
+                    .init(name: "end_sample", type: .integerEnumeration([segment.endSample]))
+                ])
+                let exactEvidence = StructuredJSONType.array(element: exactCitation, maximumItems: 1)
+                pointChoices.append(.object([
+                    .init(name: "evidence", type: exactEvidence), .init(name: "text", type: exactText)
+                ]))
+                actionChoices.append(.object([
+                    .init(name: "evidence", type: exactEvidence), .init(name: "task", type: exactText),
+                    .init(name: "owner", type: .nullable(.string)), .init(name: "due", type: .nullable(.string))
+                ]))
+            }
+        }
+        if complete, !pointChoices.isEmpty {
+            let correlated = schema(point: .alternatives(pointChoices), action: .alternatives(actionChoices))
+            do {
+                _ = try correlated.grammar()
+                return correlated
+            } catch StructuredJSONSchemaError.grammarTooLarge {
+                // Keep every source through the original validated fallback.
+            } catch StructuredJSONSchemaError.tooManyFields {
+                // Reaching a compiler allocation bound cannot truncate choices.
+            }
+        }
+        return schema(point: point, action: action)
     }
 
     private static func sentenceVocabulary(_ sourceTexts: [String]) -> [String]? {

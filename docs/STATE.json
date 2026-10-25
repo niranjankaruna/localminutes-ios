@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-25T08:28:22.393Z",
+  "lastUpdated": "2026-10-25T08:53:33.762Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -11,7 +11,7 @@
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "Finish active40175800050/866935cb for existing repairs/modelquality. Even ifPASS, holdMVP3completion: prove5newstartupselectiontests RED with mvp3-startup atcurrentcommittedtestfirstSHA, repair selectionbinding/controllerafterstartup, verifyGREEN+pertinentregressions+candidateIPAexactSHA. Reuse compatible modelquality observations honestly; avoid fullsuiteperedit. No hardrun cap, zero paidspend,1activebranchrun. PhysicalgatesNOT_RUN.",
+  "nextAction": "Observe focused40178158700: newcorrelatedgrammar unit/pipeline actualRED beforeimplementing compilerunion/cacheandtuples; newnative startupselection5actualRED beforebindfix; verifyold13native/UI7 andhistorycompilerrepair. Thenminimalrepairs,preservevalidators/oracles; finalmilestoneparallelPhi basic/representative, nativeall,core+package exactSHA/Windowschecksum. No realmodelrepeatsforthisfocusedstep, devicegatesNOT_RUN.",
   "pendingPushCommit": null,
   "remoteBranchHead": "14ff749a2bd8678b6523cf377b6695283513a76e",
   "localScriptGreen": {
@@ -36,7 +36,8 @@
     "newRunIds": [
       40172670154,
       40174152880,
-      40175800050
+      40175800050,
+      40178158700
     ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-25T07:26:02.293Z",
@@ -44,12 +45,11 @@
     "runLimitPolicy": "Owner explicitly removed six-run cap; batch checks, retain bounded retries and zero spend"
   },
   "latestCIRun": {
-    "runId": 40175800050,
-    "sourceCommit": "866935cb66445d485f35df9355c35945496b2b4f",
-    "mode": "mvp3-integration",
+    "runId": 40178158700,
+    "sourceCommit": "45c9f0f79b00382768435009e7667427cee028e8",
+    "mode": "mvp3-startup",
     "status": "in_progress",
-    "conclusion": null,
-    "retainMVP3": true
+    "conclusion": null
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -226,12 +226,11 @@
     "latestRunUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180"
   },
   "activeCIRun": {
-    "runId": 40175800050,
-    "sourceCommit": "866935cb66445d485f35df9355c35945496b2b4f",
-    "mode": "mvp3-integration",
+    "runId": 40178158700,
+    "sourceCommit": "45c9f0f79b00382768435009e7667427cee028e8",
+    "mode": "mvp3-startup",
     "status": "in_progress",
-    "conclusion": null,
-    "retainMVP3": true
+    "conclusion": null
   },
   "pendingPushScope": null,
   "repositoryVisibility": "PUBLIC",
@@ -2298,8 +2297,8 @@
       "runId": 40175800050,
       "sourceCommit": "866935cb66445d485f35df9355c35945496b2b4f",
       "mode": "mvp3-integration",
-      "status": "in_progress",
-      "conclusion": null,
+      "status": "completed",
+      "conclusion": "failure",
       "retainMVP3": true,
       "nativeCompile": {
         "status": "failure",
@@ -2322,6 +2321,22 @@
           "failed": 0,
           "skipped": 0
         }
+      },
+      "phi": {
+        "basic": {
+          "passed": true,
+          "seconds": 867.006
+        },
+        "representative": {
+          "passed": false,
+          "seconds": 456.684,
+          "error": "unsupportedClaim",
+          "detail": "Independentlyallowedquote/textandID/range canmismatch; strictvalidatorrejected. Correlatedtuplegrammarregressiontestsfirst."
+        },
+        "executed": 2,
+        "passed": 1,
+        "failed": 1,
+        "skipped": 0
       }
     },
     "startupSelectionReview": {

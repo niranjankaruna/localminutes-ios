@@ -49,10 +49,16 @@ concurrency:
 jobs:
   current-phi-integration:
     if: ${{ inputs.mode == 'mvp3-integration' }}
+    name: Current Phi (${{ matrix.flow }})
     runs-on: macos-15-intel
     timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        flow: [selected-service, representative]
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+      PHI_FLOW: ${{ matrix.flow }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -72,10 +78,20 @@ jobs:
           set -euo pipefail
           export LOCALMINUTES_PHI_MODEL_PATH="$LOCALMINUTES_CANDIDATE_MODEL_PATH"
           mkdir -p .build
-          swift test --skip-build --filter 'IntelligenceTests[.]ActualSelectedModelIntelligenceTests|QuestionAnsweringTests[.]Phi3CandidateComparisonTests/testActualPinnedPhi3RepresentativeMultiMapMergeAndUnknownDeadlineRefusal' 2>&1 | tee .build/current-phi-integration.log
-      - name: Require both actual model evaluations without skips
+          if [ "$PHI_FLOW" = selected-service ]; then
+            swift test --skip-build --filter 'IntelligenceTests[.]ActualSelectedModelIntelligenceTests' 2>&1 | tee .build/current-phi-integration.log
+          else
+            swift test --skip-build --filter 'QuestionAnsweringTests[.]Phi3CandidateComparisonTests/testActualPinnedPhi3RepresentativeMultiMapMergeAndUnknownDeadlineRefusal' 2>&1 | tee .build/current-phi-integration.log
+          fi
+      - name: Require the selected actual model evaluation without skips
         if: always()
-        run: node scripts/verify-test-log.mjs .build/current-phi-integration.log testActualSelectedPhiDefaultLoaderSavesSummaryAndGuideAnswerWithOriginalsPreserved testActualPinnedPhi3RepresentativeMultiMapMergeAndUnknownDeadlineRefusal
+        shell: bash
+        run: |
+          if [ "$PHI_FLOW" = selected-service ]; then
+            node scripts/verify-test-log.mjs .build/current-phi-integration.log testActualSelectedPhiDefaultLoaderSavesSummaryAndGuideAnswerWithOriginalsPreserved
+          else
+            node scripts/verify-test-log.mjs .build/current-phi-integration.log testActualPinnedPhi3RepresentativeMultiMapMergeAndUnknownDeadlineRefusal
+          fi
 
   library-ui-harness-red:
     if: ${{ inputs.mode == 'mvp3-integration' && inputs.proveLibraryBootstrap }}

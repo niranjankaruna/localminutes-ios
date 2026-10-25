@@ -164,3 +164,29 @@ GGUF bytes reject before inference, so these are routing checks only. Actual
 native RED is pending. Do not deliver this candidate as completed MVP3 even if
 the other model checks pass. Next: focused startup routing RED, smallest binding
 repair, relevant GREEN and exact-source verified IPA.
+
+## Correlated grammar regression RED
+
+The 866935cb Phi run finished: basic selected-service case passed867.006s;
+representative case failed456.684s on the first map. Quote selection was now
+sentence-sized, but text could choose a different sentence and an action could
+pair Leo's quote/range with Maya's source ID. The strict validator rejected these
+mismatches. No output rewriting or validator relaxation.
+
+Test-first source `45c9f0f79b00382768435009e7667427cee028e8`,
+[run40178158700](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40178158700),
+job121123256169: 25 executed,22 passed,3 failed,69 assertion failures,0 skips,
+1.270 seconds. New compiler union tests found missing alternatives/Unicode
+spelling and63 lost branches; the pipeline test failed all3 category assertions
+because independent field domains did not bind complete tuples. A clearly marked
+first-branch-only compileable stub supplied the necessary new type interface;
+production mapping was unchanged until this actual RED.
+
+Proper repair now prepares bounded whole-object alternatives and byte-exact
+type reuse. Quote is selected first; its source ID/range and matching text/task
+then follow as the same tuple. Nullable owner/due and every validator remain
+unchanged. Full choice sets exceeding grammar/compiler bounds retain the existing
+complete validated fallback, never a truncated subset. The earlier structural
+schema test now traverses alternatives while retaining all exact-sentence,
+Unicode, no-paragraph, nullable-attribute and source-preservation assertions.
+Hosted GREEN and unchanged real-model quality case remain pending.

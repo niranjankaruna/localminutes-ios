@@ -125,19 +125,34 @@ final class SummaryPipelineTests: XCTestCase {
         _ = try request.schema.grammar()
 
         func fields(inArray name: String, fields: [StructuredJSONField]) throws -> [StructuredJSONField] {
-            let field = try XCTUnwrap(fields.first { $0.name == name })
-            guard case .array(let element, let maximumItems) = field.type,
-                  case .object(let result) = element else {
-                XCTFail("Expected a bounded object array for \(name)")
-                return []
+            let matching = fields.filter { $0.name == name }
+            XCTAssertFalse(matching.isEmpty)
+            var result: [StructuredJSONField] = []
+            for field in matching {
+                guard case .array(let element, let maximumItems) = field.type else {
+                    XCTFail("Expected a bounded object array for \(name)"); continue
+                }
+                XCTAssertTrue((1...128).contains(maximumItems))
+                let objects: [StructuredJSONType]
+                if case .alternatives(let choices) = element { objects = choices } else { objects = [element] }
+                for object in objects {
+                    guard case .object(let itemFields) = object else {
+                        XCTFail("Every array choice must remain an object"); continue
+                    }
+                    result.append(contentsOf: itemFields)
+                }
             }
-            XCTAssertTrue((1...128).contains(maximumItems))
             return result
         }
         func exactChoices(_ name: String, fields: [StructuredJSONField]) throws {
-            let field = try XCTUnwrap(fields.first { $0.name == name })
-            guard case .stringEnumeration(let values) = field.type else {
-                return XCTFail("Short source sentences must retain a bounded extractive choice set")
+            let matching = fields.filter { $0.name == name }
+            XCTAssertFalse(matching.isEmpty)
+            var values: [String] = []
+            for field in matching {
+                guard case .stringEnumeration(let choices) = field.type else {
+                    XCTFail("Short source sentences must retain a bounded extractive choice set"); continue
+                }
+                values.append(contentsOf: choices)
             }
             XCTAssertEqual(values.map { Data($0.utf8) }, sentences.map { Data($0.utf8) },
                 "The grammar must offer every exact sentence instead of forcing the full paragraph")
@@ -157,9 +172,12 @@ final class SummaryPipelineTests: XCTestCase {
             try exactChoices("text", fields: points)
         }
         for name in ["owner", "due"] {
-            let field = try XCTUnwrap(actions.first { $0.name == name })
-            XCTAssertEqual(field.type, .nullable(.string),
-                "The grammar must leave model-selected attributes unknown or independently validated")
+            let attributes = actions.filter { $0.name == name }
+            XCTAssertFalse(attributes.isEmpty)
+            for field in attributes {
+                XCTAssertEqual(field.type, .nullable(.string),
+                    "The grammar must leave model-selected attributes unknown or independently validated")
+            }
         }
         XCTAssertEqual(output.actions.first?.task, sentences[0])
         XCTAssertEqual(output.actions.first?.owner, "Ari")
@@ -193,7 +211,10 @@ final class SummaryPipelineTests: XCTestCase {
             XCTAssertEqual(request.schema.fields.map(\.name), ["meeting_id", "summary_points", "decisions", "actions"])
             guard let actionField = request.schema.fields.first(where: { $0.name == "actions" }),
                   case .array(let actionType, let count) = actionField.type,
-                  case .object(let fields) = actionType else { return XCTFail("Missing bounded nested action schema") }
+                  case .alternatives(let choices) = actionType,
+                  choices.count == 1, case .object(let fields) = choices[0] else {
+                return XCTFail("Missing bounded correlated action schema")
+            }
             XCTAssertTrue((1...128).contains(count))
             guard let owner = fields.first(where: { $0.name == "owner" }),
                   case .nullable(.string) = owner.type else { return XCTFail("Unknown owner must permit actual JSON null") }

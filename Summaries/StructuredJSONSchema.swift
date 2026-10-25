@@ -62,6 +62,8 @@ public struct StructuredJSONSchema: Equatable, Sendable {
         var rules: [String] = []
         private var emittedBytes = StructuredJSONSchema.sharedRules.utf8.count
         private var fieldCount = 0
+        private var compiledTypes: [Data: String] = [:]
+        private var cachedKeyBytes = 0
 
         init(maximumBytes: Int) { self.maximumBytes = maximumBytes }
 
@@ -88,6 +90,11 @@ public struct StructuredJSONSchema: Equatable, Sendable {
 
         mutating func type(_ value: StructuredJSONType, name: String, depth: Int) throws {
             guard depth <= 8 else { throw StructuredJSONSchemaError.invalidBounds }
+            let key = typeKey(value, depth: depth)
+            if let key, let existing = compiledTypes[key] {
+                try append(name, existing)
+                return
+            }
             switch value {
             case .string: try append(name, "string")
             case .boolean: try append(name, "boolean")
@@ -108,10 +115,14 @@ public struct StructuredJSONSchema: Equatable, Sendable {
                 let body = try object(fields, path: name, depth: depth)
                 try append(name, body)
             case .alternatives(let values):
-                // Test-first compileable stub: intentionally retains only the
-                // first branch until hosted tests prove the missing alternatives.
                 guard (1...256).contains(values.count) else { throw StructuredJSONSchemaError.invalidBounds }
-                try type(values[0], name: name, depth: depth + 1)
+                var branches: [String] = []
+                for (index, value) in values.enumerated() {
+                    let branch = "\(name)-choice-\(index)"
+                    try type(value, name: branch, depth: depth + 1)
+                    branches.append(branch)
+                }
+                try append(name, "(\(branches.joined(separator: " | "))) ws")
             case .array(let element, let maximumItems):
                 guard (1...128).contains(maximumItems) else { throw StructuredJSONSchemaError.invalidBounds }
                 let item = name + "-item"
@@ -140,6 +151,54 @@ public struct StructuredJSONSchema: Equatable, Sendable {
                 }
                 try append(name, "(\(literals.joined(separator: " | "))) ws")
             }
+            if let key, cachedKeyBytes <= maximumBytes - key.count {
+                compiledTypes[key] = name
+                cachedKeyBytes += key.count
+            }
+        }
+
+        /// Cache only bounded, byte-identical type descriptions. A failed key
+        /// budget disables reuse, never validation or any grammar size guard.
+        private func typeKey(_ value: StructuredJSONType, depth: Int) -> Data? {
+            var bytes = Data()
+            let budget = min(maximumBytes, 4_096)
+            func atom(_ text: String) -> Bool {
+                let count = text.utf8.count
+                guard count <= budget else { return false }
+                let prefix = "\(count):"
+                guard prefix.utf8.count <= budget - bytes.count,
+                      count <= budget - bytes.count - prefix.utf8.count else { return false }
+                bytes.append(contentsOf: prefix.utf8)
+                bytes.append(contentsOf: text.utf8)
+                return true
+            }
+            func visit(_ type: StructuredJSONType, at level: Int) -> Bool {
+                guard level <= 8 else { return false }
+                switch type {
+                case .string: return atom("string")
+                case .boolean: return atom("boolean")
+                case .stringEnumeration(let values), .stringArray(let values):
+                    guard values.count <= 256 else { return false }
+                    let tag: String
+                    if case .stringEnumeration = type { tag = "enum" } else { tag = "stringArray" }
+                    guard atom(tag), atom(String(values.count)) else { return false }
+                    return values.allSatisfy { $0.utf8.count <= 1_024 && atom($0) }
+                case .integerEnumeration(let values):
+                    guard values.count <= 256, atom("integers"), atom(String(values.count)) else { return false }
+                    return values.allSatisfy { atom(String($0)) }
+                case .object(let fields):
+                    guard fields.count <= 64, atom("object"), atom(String(fields.count)) else { return false }
+                    return fields.allSatisfy { $0.name.utf8.count <= 64 && atom($0.name) && visit($0.type, at: level + 1) }
+                case .alternatives(let values):
+                    guard (1...256).contains(values.count), atom("alternatives"), atom(String(values.count)) else { return false }
+                    return values.allSatisfy { visit($0, at: level + 1) }
+                case .array(let element, let maximumItems):
+                    return atom("array") && atom(String(maximumItems)) && visit(element, at: level + 1)
+                case .nullable(let element):
+                    return atom("nullable") && visit(element, at: level + 1)
+                }
+            }
+            return visit(value, at: depth) ? bytes : nil
         }
 
         private mutating func append(_ name: String, _ body: String) throws {
