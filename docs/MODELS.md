@@ -1,8 +1,9 @@
 # Models
 
-The model upgrades on `codex/parakeet-downloads` are being verified. The previously
-delivered build 6 still has the original v2-only adapter and expanded file list.
-Consult `STATE.json` for the exact tested source and latest delivered package.
+The model upgrades are delivered in [build 7](MODEL_UPGRADE_BUILD7.md), source
+`6c02ccdd911017a613de2052e5fee1e611b953f7`. Hosted functional checks pass; physical
+phone validation remains pending. Previously delivered build 6 has the original
+v2-only adapter and expanded file list.
 
 Open **Models**, choose **Speech** or **Summary**, paste a public Hugging Face
 repository or URL, and select **Look up repository**. Review the full model card,
@@ -101,5 +102,5 @@ speed or ETA. Network and file operations use bounded chunks. The 512 MiB Darwin
 regression is evidence about transfer memory, not a phone termination diagnosis
 or model inference memory measurement. See the [T26 record](evidence/T26_MODEL_ADAPTERS_TRANSFERS.md).
 
-See [dependency pins and licenses](DEPENDENCIES.md), the [current build guide](MVP4_GUIDE.md),
+See [dependency pins and licenses](DEPENDENCIES.md), the [current build guide](MODEL_UPGRADE_BUILD7.md),
 and [phone checklist](MVP4_DEVICE_CHECKLIST.md). Keep downloaded weights out of Git.

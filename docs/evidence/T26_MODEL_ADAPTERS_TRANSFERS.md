@@ -56,15 +56,15 @@ cases passed; three v3 cases failed (two unexpected errors), zero skips,
 v3 live/replay failed `invalidManifest`. These are model-contract RED, not
 missing fixtures or compilation failures. v3 functionality has no quality-score gate.
 
-Implementation, exact final source, full GREEN and delivery: PENDING.
-No new iOS artifact or device result is claimed.
+That intermediate checkpoint preceded the final GREEN and delivered build recorded below.
+No physical-device result is claimed.
 
 ## Review and continuation
 
 Fixtures use generated non-sensitive bytes. No weights, device logs, meeting
 content or credentials may enter the repository. Phone download reproduction,
 locked live transcription, two-hour runs, signing and renewal remain pending.
-Next: push these tests, observe genuine hosted RED, then implement T26.1/T26.2.
+Current next action: owner validates delivered build 7 using the model and phone checklists.
 
 ## Intermediate exact-source results
 
@@ -79,3 +79,11 @@ At 7cb82d436adfbc9e20ec7006bd020538dfadd354, run 40216369493 passed all 123 mode
 ## Actual v2/v3 functional GREEN
 
 Source 6d95c74975ee5584c421c057604cc2c04652f73b, native job 121241866043 in run 40217546023: all 12 actual v2/v3 recognition, selection, captured-pin/live and replay tests passed. The aggregate intentionally remains FAILURE because two new Apple JSON bridge cases failed four assertions (15 total executed, 13 passed, two failed, zero skips, 90.513 seconds). Direct v3 recognition passed in 7.485 seconds, selected live capture in 16.199 seconds and captured-pin replay in 15.540 seconds. These are actual licensed-speech functionality checks, with no automated quality threshold. The independent Core/Persistence/Summary/Intelligence/Q&A regression step passed 195 tests, zero failures/skips, 3.686 seconds. Final exact-source/package verification is still pending.
+
+## Final exact-source GREEN and delivery
+
+App source `6c02ccdd911017a613de2052e5fee1e611b953f7`, version 1.0/build 7. [Run 40220017845](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40220017845) passed all 123 model tests and 67 script tests, zero failures/skips. The unchanged 536,870,912-byte regression measured peak before 40,697,856 and after 40,738,816: additional peak 40,960 bytes, below 67,108,864. Original RED was 1,615,675,392 bytes additional peak at the same file size. This verifies bounded Darwin transfer/verification memory, not the unobserved phone termination reason.
+
+[Native run 40220308515](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40220308515), attempt 2, concludes SUCCESS. Its original app/UI/package jobs passed; the model job's initial DNS failure occurred before testing and remains preserved. One bounded retry at the identical SHA passed 15 actual v2/v3/Apple-JSON cases, zero failures/skips, 103.848 seconds, and 195 Core/storage/summary/coordinator regressions, zero failures/skips, 3.617 seconds. V3 CPU recognition/live captured pin/replay passed in 10.215/15.928/14.090 seconds respectively. Test commands and required named assertions are preserved in .github/workflows/core-tests.yml. No model-quality benchmark was run.
+
+Unsigned IPA: 15,088,983 bytes; SHA-256 `4adfea3a38463b69423d58e4d8f1b2434f65ceeb2483e091eb26a0987ec0f967`. The app and Live Activity share build 7/source SHA and retain their bundle IDs. Package CRC, dependency receipt, v3 descriptor and absence of weights/meeting files were checked on the downloaded bytes. All three native-hygiene cases passed on hosted macOS and Windows/Python 3.12.14. See [build 7](../MODEL_UPGRADE_BUILD7.md). T26 and children are CODE_COMPLETE_PENDING_DEVICE. Next: owner installs build 7 and completes the model and physical-phone checklists.

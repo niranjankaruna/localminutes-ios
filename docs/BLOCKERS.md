@@ -2,10 +2,10 @@
 
 ## OWNER_PHONE_VALIDATION_REQUIRED — BLOCKED_EXTERNAL
 
-MVP4 build 6 is delivered and `READY_FOR_DEVICE_VALIDATION`. Owner-reported phone:
+Model-upgrade build 7 is delivered and `READY_FOR_DEVICE_VALIDATION`. Owner-reported phone:
 iPhone 17 Pro, iOS 27.0.1. Exact installed build, extension behavior, and all
 physical acceptance results remain unreported. The main-app installation was
-owner-reported with iLoader on 24 October 2026; that is not evidence for build 6,
+owner-reported with iLoader on 24 October 2026; that is not evidence for build 7,
 the embedded extension, or renewal.
 
 Pending gates: free signing and embedded extension; Live Activity display/Stop;
@@ -14,7 +14,7 @@ chosen models offline; two 125-minute recordings with 120 locked minutes each;
 actual file protection/locked access; and in-place signing-renewal preservation.
 All device result fields remain `NOT_RUN`. Report any unlock requirement explicitly.
 
-Next: Owner validates delivered build 6 on iPhone 17 Pro / iOS 27.0.1: record installed version and a short recording saved by Live Activity Stop; then complete offline chosen-model use, Action Button warm/locked/cold-start, two 125-minute passes with at least 120 locked minutes each, storage protection, and in-place signing-renewal preservation. See docs/MVP4_DEVICE_CHECKLIST.md. Resume code work on a reproducible defect; do not rerun model-quality benchmarks.
+Next: Owner installs delivered build 7 with iLoader over the existing app and validates it on iPhone 17 Pro / iOS 27.0.1. Check model download/resume, retained v2 and chosen v3 offline capture, and Apple model availability/inference; then complete Live Activity Stop, Action Button warm/locked/cold-start, two 125-minute passes with at least 120 locked minutes each, storage protection and in-place signing renewal. See docs/MODEL_UPGRADE_DEVICE_CHECKLIST.md and docs/MVP4_DEVICE_CHECKLIST.md. Resume code work for an observed defect; do not run automated model-quality benchmarks.
 
 No additional build can supply physical-phone evidence. No account/billing change
 is needed for the existing unpublished-release delivery route. Actions-artifact

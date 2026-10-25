@@ -8,16 +8,17 @@ are a separate development step.
 **Installation update, 24 October 2026:** the owner reports successful installation
 with **iLoader**, now the selected Windows installer. The exact installed IPA and
 iLoader version remain unreported. The owner
-reports iPhone 17 Pro / iOS 27.0.1. The delivered build 6 candidate is listed in
+reports iPhone 17 Pro / iOS 27.0.1. The delivered build 7 candidate is listed in
 [STATE.json](STATE.json); full physical-device acceptance remains pending.
 Installation does not establish
 extension, locked-screen, offline or renewal results.
 
-**Current checkpoint, 25 October 2026:** MVP3 was delivered; build6 is the
-[delivered MVP4 development build](MVP4_GUIDE.md), with its focused screen retry
-passed. The owner reports iPhone17Pro/iOS27.0.1. Exact installed build, iLoader
-version and all phone acceptance observations remain unreported. Use the
-candidate guide/checksum and [build6 checklist](MVP4_DEVICE_CHECKLIST.md).
+**Current checkpoint, 25 October 2026:** [model-upgrade build 7](MODEL_UPGRADE_BUILD7.md)
+is delivered with passing focused native/model/UI/package checks. The owner
+reports iPhone 17 Pro / iOS 27.0.1. Exact installed build, iLoader version and all
+phone acceptance observations remain unreported. Use the candidate guide/checksum,
+[model-upgrade checks](MODEL_UPGRADE_DEVICE_CHECKLIST.md) and
+[physical-device checklist](MVP4_DEVICE_CHECKLIST.md).
 
 ## Before installing a candidate
 

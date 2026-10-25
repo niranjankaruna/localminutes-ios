@@ -1876,7 +1876,7 @@
       "priority": 1,
       "title": "Owner-requested upgradeable Parakeet adapter, bounded download memory and detailed progress",
       "kind": "feature-and-regression",
-      "status": "IN_PROGRESS",
+      "status": "CODE_COMPLETE_PENDING_DEVICE",
       "tddRequired": true,
       "dependsOn": [
         "T24",
@@ -1899,17 +1899,20 @@
         {
           "id": "T26.1",
           "title": "Bounded large-file transfer and verification memory",
-          "status": "IN_PROGRESS"
+          "status": "CODE_COMPLETE_PENDING_DEVICE",
+          "productionImplemented": true
         },
         {
           "id": "T26.2",
           "title": "Detailed transfer progress and responsive UI",
-          "status": "IN_PROGRESS"
+          "status": "CODE_COMPLETE_PENDING_DEVICE",
+          "productionImplemented": true
         },
         {
           "id": "T26.3",
           "title": "Versioned Parakeet TDT model-pack adapter",
-          "status": "IN_PROGRESS"
+          "status": "CODE_COMPLETE_PENDING_DEVICE",
+          "productionImplemented": true
         }
       ],
       "redEvidence": [
@@ -1931,18 +1934,35 @@
           "scope": "123 model-module and 62 script checks; native inference/UI pending",
           "failures": 0,
           "skips": 0
+        },
+        {
+          "sourceCommit": "6c02ccdd911017a613de2052e5fee1e611b953f7",
+          "runId": 40220308515,
+          "runAttempt": 2,
+          "modelRun": 40220017845,
+          "failed": 0,
+          "skipped": 0,
+          "scope": "123 model, 67 script, 12 actual v2/v3, 195 regressions; build 7 IPA verified"
         }
       ],
       "deviceEvidence": [],
       "evidence": [
         "docs/evidence/T26_MODEL_ADAPTERS_TRANSFERS.md"
-      ]
+      ],
+      "productionImplemented": true,
+      "artifact": {
+        "guide": "docs/MODEL_UPGRADE_BUILD7.md",
+        "sourceCommit": "6c02ccdd911017a613de2052e5fee1e611b953f7",
+        "sha256": "4adfea3a38463b69423d58e4d8f1b2434f65ceeb2483e091eb26a0987ec0f967",
+        "build": 7
+      },
+      "nextAction": "Owner installs build 7 over the existing app with iLoader, records its displayed version, checks retained v2/chosen v3 and Apple on-device inference offline, then completes Live Activity/Action Button/locked two-hour/file-protection/renewal gates using the device checklists."
     },
     {
       "id": "T27",
       "priority": 1,
       "title": "Native iPhone Models redesign with Figcraft MCP and built-in Apple on-device summaries",
-      "status": "IN_PROGRESS",
+      "status": "CODE_COMPLETE_PENDING_DEVICE",
       "tddRequired": true,
       "acceptance": [
         "Native iOS grouped rows; remove Privacy and renewal and Action Button sections; device information last; preserve accessible installed model actions.",
@@ -1972,12 +1992,29 @@
           "runId": 40217546023,
           "scope": "six native UI and actual schema/local summary composition; startup still RED",
           "skips": 0
+        },
+        {
+          "sourceCommit": "6c02ccdd911017a613de2052e5fee1e611b953f7",
+          "runId": 40220308515,
+          "runAttempt": 2,
+          "modelRun": 40220017845,
+          "failed": 0,
+          "skipped": 0,
+          "scope": "12 native app, six native UI, three Apple JSON boundary cases; actual phone inference pending"
         }
       ],
       "deviceEvidence": [],
       "evidence": [
         "docs/evidence/T27_MODELS_UI_APPLE.md"
-      ]
+      ],
+      "productionImplemented": true,
+      "artifact": {
+        "guide": "docs/MODEL_UPGRADE_BUILD7.md",
+        "sourceCommit": "6c02ccdd911017a613de2052e5fee1e611b953f7",
+        "sha256": "4adfea3a38463b69423d58e4d8f1b2434f65ceeb2483e091eb26a0987ec0f967",
+        "build": 7
+      },
+      "nextAction": "Owner installs build 7 over the existing app with iLoader, records its displayed version, checks retained v2/chosen v3 and Apple on-device inference offline, then completes Live Activity/Action Button/locked two-hour/file-protection/renewal gates using the device checklists."
     }
   ],
   "executionPausedByOwner": false,

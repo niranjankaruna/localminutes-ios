@@ -1,7 +1,7 @@
 # LocalMinutes
 ## Autonomous development specification
 
-**Version:** 1.0 | **Prepared:** 23 October 2026 | **Status:** requirements specification; build 6 delivered, physical-device validation pending. See `docs/STATE.json`.
+**Version:** 1.0 | **Prepared:** 23 October 2026 | **Status:** requirements specification; build 7 delivered, physical-device validation pending. See `docs/STATE.json`.
 
 **Owner objective:** Build an original, Granola-inspired native SwiftUI iPhone application that records meetings of at least two hours, transcribes speech locally in real time while the screen is locked, supports the Action Button through Shortcuts, and creates local summaries. Development is on Windows 11. Compilation and simulator tests run on GitHub-hosted macOS. Installation uses a free Apple Account with seven-day refreshes. No owned/rented Mac, paid Apple Developer membership, paid inference API, or required backend.
 

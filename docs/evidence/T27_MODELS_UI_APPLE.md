@@ -45,9 +45,8 @@ production system-summary or layout behavior. Native tests are
 `NativeAppleSummaryTests`. Compileable selection/session interfaces deliberately
 implement no system-model behavior until hosted RED is observed.
 
-GREEN, native availability, source SHA and device evidence: PENDING.
-Next: observe original progress UI RED, push the added contracts/fixture, then
-prove genuine Parakeet/Apple/layout failures before implementing those behaviors.
+The intermediate checks below precede the final exact-source GREEN and delivery.
+Real Apple inference and physical-phone acceptance remain NOT_RUN.
 
 Implementation checkpoint: compact native installed rows now collapse artifact details; Apple availability/selection, FoundationModels runtime composition and source validation are implemented locally. Additional fresh-startup binding and bundled descriptor tests are committed before implementing the service binding. These must produce actual hosted results; no simulator Apple inference is claimed.
 
@@ -68,3 +67,11 @@ At source 6d95c74975ee5584c421c057604cc2c04652f73b, run 40217546023 / job 121241
 Hosted verifier RED: source 29061c7444d51c822a86987944b6e5efe3cde13d, run 40219610954 / job 121248107756: all 123 model cases passed, while script suite executed 67, 63 passed, four failed, zero skips. The failures reproduce the same four local log-aggregation assertions. After implementation, the unchanged focused verifier suite passed 21/21 locally, zero failures/skips, 55.7697 ms. Applying it to actual sanitized XCTest lines from the original native logs correctly retains run 40213241251 as 16 executed / 11 passed / five failed / nine assertions, and run 40217546023 as 18 executed / 17 passed / one failed / two assertions, zero skips. No historical failure is converted into GREEN.
 
 Next: final exact-source tests and unsigned build 7. Native UI/schema/selection/storage validation does not pass real Apple inference or any physical-phone gate.
+
+## Final exact-source GREEN and owner handoff
+
+At `6c02ccdd911017a613de2052e5fee1e611b953f7`, [run 40220308515](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40220308515) passed 12 app-native cases (1.088 seconds) and six UI cases (75.619 seconds), zero failures/skips. The formerly failing Apple fresh-startup binding passed. Actual FoundationModels schema construction, boundary summary/SQLite storage, provider persistence, five existing downloaded-GGUF startup cases and four memory-warning cases pass; the actual screen verifies native grouped rows, detailed progress, removed sections, device information and accessible model actions. The retried model job additionally passed the unchanged three Apple JSON cases as part of 15 cases. Its 195 independent regressions also passed.
+
+The built-in provider uses real on-device FoundationModels in production. Its tests double the model-generation boundary only; no actual Apple model generation on the owner's phone is claimed. System provenance identifies the OS/provider, not an exact hidden model checksum. The pinned SDK uses a conservative UTF-8 input budget rather than claiming native token counts. Original quality failures and tests remain preserved.
+
+Build 7 is delivered; T27 is CODE_COMPLETE_PENDING_DEVICE. The owner requested screenshots, then cancelled them and requested deletion/focus on IPA. The temporary screen-gallery workflow/driver were deleted, the pre-existing Library UI test restored exactly, and no screenshot test or workflow was committed/run. Existing Figcraft design artifacts belong to the original requested UI work. No screenshot artifact was newly generated. Next: owner validates Apple availability and real offline inference, then all remaining device/signing/endurance/renewal gates.

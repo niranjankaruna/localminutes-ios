@@ -1,10 +1,12 @@
 # Progress
 
-## T26/T27 final verification checkpoint
+## T26/T27 delivered — build 7
 
-At 6d95c74 / run 40217546023, all 12 actual Parakeet v2/v3 functionality checks, 195 Core/storage/summary/coordinator regressions and six native iPhone UI checks passed. App-native tests passed 11/12; the newly committed Apple fresh-startup assertion failed two assertions before service binding. Actual FoundationModels schema construction and summary/storage composition passed; real Apple inference on a phone remains NOT_RUN.
+T26/T27 are CODE_COMPLETE_PENDING_DEVICE. Unsigned version 1.0/build 7, source `6c02ccdd911017a613de2052e5fee1e611b953f7`, is delivered locally in `.agent-local/delivery/build7-6c02ccd` and retained in an unpublished owner draft. Package: 15,088,983 bytes; SHA-256 `4adfea3a38463b69423d58e4d8f1b2434f65ceeb2483e091eb26a0987ec0f967`. [Build/installation details](MODEL_UPGRADE_BUILD7.md). Overall status is READY_FOR_DEVICE_VALIDATION, never VERIFIED_COMPLETE.
 
-At test-only 29061c7 / run 40219610954, all 123 model cases passed and four of 67 script cases provided hosted RED for the combined-app/UI log helper. Its implementation now passes the unchanged 21 focused cases locally and correctly retains both historical native failures. The final source, build-7 IPA and exact-source GREEN remain pending. All physical gates remain pending. Next: final focused checks and package, then owner phone validation. See the T26/T27 evidence.
+Exact-source model run 40220017845: 123 model and 67 script cases passed. Native run 40220308515, attempt 2: 15 actual v2/v3/Apple-JSON and 195 Core/storage/summary/coordinator cases passed; the original 12 app and six UI cases and the package jobs passed. All selected cases have zero failures/skips. Attempt 1's DNS setup failure remains recorded; only its failed model job was retried. The 512 MiB memory regression added 40,960 bytes of peak process memory. The actual downloaded IPA passed three native-hygiene checks on Windows, ZIP CRC, app/extension identity, v3 descriptor inclusion and receipt checks. Model weights and meeting files are absent.
+
+The owner cancelled screenshots. All screenshot-only files were deleted, the existing Library UI test was restored, and no screenshot workflow was committed or run. Native Apple schema/composition checks do not claim Apple model generation. Full model-quality benchmarks and physical-phone gates were not run. Next: Owner installs build 7 over the existing app with iLoader, records its displayed version, checks retained v2/chosen v3 and Apple on-device inference offline, then completes Live Activity/Action Button/locked two-hour/file-protection/renewal gates using the device checklists.
 
 ## Model format clarification — 25 October 2026
 

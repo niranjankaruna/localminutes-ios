@@ -1,18 +1,19 @@
 # Documentation
 
 Start with the [repository README](../README.md). The current delivery is
-**version 1.0, build 6**, awaiting physical-device validation.
+**version 1.0, build 7**, awaiting physical-device validation.
 
 ## Using LocalMinutes
 
 | Guide | Contents |
 | --- | --- |
-| [Current build](MVP4_GUIDE.md) | Delivered source, IPA checksum, features, and limitations |
+| [Current build](MODEL_UPGRADE_BUILD7.md) | Delivered source, IPA checksum, features, and limitations |
 | [Windows installation](WINDOWS_INSTALL.md) | iLoader, free signing, Action Button, and weekly renewal |
 | [Models](MODELS.md) | Supported formats, installation/import, and independent Equip choices |
 | [Meetings and data](LIBRARY.md) | History, playback, export, deletion, backup, and recovery |
 | [Summaries and questions](SUMMARIES_AND_QA.md) | Local generation, source links, editing, and cancellation |
 | [Device checklist](MVP4_DEVICE_CHECKLIST.md) | Outstanding installation, offline, locked-screen, endurance, and renewal checks |
+| [Model-upgrade checks](MODEL_UPGRADE_DEVICE_CHECKLIST.md) | Download/resume, Parakeet v2/v3 and Apple on-device model validation |
 
 ## Project contract and current state
 

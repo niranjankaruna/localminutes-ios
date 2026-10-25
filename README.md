@@ -4,17 +4,17 @@ A native iPhone app for recording meetings, transcribing speech locally, and
 creating summaries and answers from your own meeting notes. Models run on the
 phone; there is no required account, cloud inference service, or backend.
 
-**Current delivery: version 1.0, build 6 — READY_FOR_DEVICE_VALIDATION.**
+**Current delivery: version 1.0, build 7 — READY_FOR_DEVICE_VALIDATION.**
 The app and Live Activity extension have been built on hosted macOS. Functional
 and reliability evidence is recorded in the [verification index](docs/VERIFICATION.md).
 Physical iPhone acceptance is pending, so the full project remains
-`BLOCKED_EXTERNAL`. Locked live transcription, Action Button behavior, two-hour
+`READY_FOR_DEVICE_VALIDATION`. Locked live transcription, Action Button behavior, two-hour
 meetings, extension signing, offline phone use, and renewal persistence require
 actual device evidence. Model quality is assessed manually by the owner.
 
 ## Install and use
 
-1. Use the [current build guide](docs/MVP4_GUIDE.md) to identify the delivered IPA,
+1. Use the [current build guide](docs/MODEL_UPGRADE_BUILD7.md) to identify the delivered IPA,
    source commit, and SHA-256. Build artifacts are kept outside Git; the current
    delivery is an unpublished owner draft, not a public release.
 2. Follow [Windows installation and seven-day renewal](docs/WINDOWS_INSTALL.md).
