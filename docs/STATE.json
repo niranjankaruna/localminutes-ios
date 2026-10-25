@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-25T10:27:34.516Z",
+  "lastUpdated": "2026-10-25T10:35:17.664Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -58,7 +58,7 @@
     },
     "evidence": "docs/evidence/MVP3_DELIVERY_2026_10_25.md"
   },
-  "nextAction": "Commit/push storage-audit tests plus minimal seams, dispatch focused mvp4-storage on hosted macOS/iOS and record actual behavioral RED before implementing inspector/service/UI. MVP3 IPA remains delivered. No automated model-quality jobs; owner phone gates remain NOT_RUN.",
+  "nextAction": "Continue T12.1a: Core inspector implementation authorized by actual7-case RED (5 failures/28assertions) at e9b1701/run40184895367. Native7 and UI1 remain in hosted preparation; obtain actual native/UI behavioral RED before implementing their seams. Then one focused GREEN/package batch; no quality or repeated full-suite jobs. Delivered MVP3 stays at source880d3dc. Physical owner gates NOT_RUN.",
   "pendingPushCommit": null,
   "remoteBranchHead": "880d3dcd2e21f79e6435ec134279cad192e7435d",
   "localScriptGreen": {
@@ -86,10 +86,11 @@
       40175800050,
       40178158700,
       40180161772,
-      40181776855
+      40181776855,
+      40184895367
     ],
     "limitReached": false,
-    "costGuardObservedAt": "2026-10-25T07:26:02.293Z",
+    "costGuardObservedAt": "2026-10-25T10:31:04.335Z",
     "costGuardBasis": "Authenticated owner/admin, configured publication approval and actual public repository verified; standard macos-15 and macos-15-intel only, 45-minute jobs, one active branch run, no paid runners, billing changes, Actions cache/artifact storage or public release.",
     "runLimitPolicy": "Owner explicitly removed six-run cap; batch checks, retain bounded retries and zero spend"
   },
@@ -274,7 +275,13 @@
     "latestSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
     "latestRunUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180"
   },
-  "activeCIRun": null,
+  "activeCIRun": {
+    "runId": 40184895367,
+    "sourceCommit": "e9b1701cb81e0fb5f0a84f608f7c7598cd917449",
+    "mode": "mvp4-storage",
+    "phase": "tests-first RED",
+    "status": "in_progress"
+  },
   "pendingPushScope": null,
   "repositoryVisibility": "PUBLIC",
   "publication": {
@@ -2567,7 +2574,24 @@
         "native": 7,
         "ui": 1
       },
-      "scope": "Read actual OS metadata only; fixed aggregate roles/counts, no paths/content, no physical verdict. Existing seven physical XCTest cases unchanged and NOT_RUN."
+      "scope": "Read actual OS metadata only; fixed aggregate roles/counts, no paths/content, no physical verdict. Existing seven physical XCTest cases unchanged and NOT_RUN.",
+      "redRun": {
+        "runId": 40184895367,
+        "sourceCommit": "e9b1701cb81e0fb5f0a84f608f7c7598cd917449",
+        "mode": "mvp4-storage",
+        "phase": "tests-first RED",
+        "status": "in_progress"
+      },
+      "coreRed": {
+        "sourceCommit": "e9b1701cb81e0fb5f0a84f608f7c7598cd917449",
+        "runId": 40184895367,
+        "jobId": 121143513139,
+        "executed": 7,
+        "passed": 2,
+        "failed": 5,
+        "assertionFailures": 28,
+        "skipped": 0
+      }
     }
   }
 }

@@ -17,7 +17,13 @@ is implemented before hosted assertion RED.
 
 Command: workflow `core-tests.yml`, mode `mvp4-storage`; actual hosted
 `swift test --filter 'CoreTests[.]StorageAuditTests'` and selected iOS app/UI cases.
-Source/run/outcome: pending. Compile errors or zero executed tests are not RED.
+Source `e9b1701cb81e0fb5f0a84f608f7c7598cd917449`, pushed before implementation.
+Run40184895367, Core job121143513139: actual seven cases executed, two passed,
+five failed with28 assertion failures,0 skipped,3.135 seconds. The real39-item
+fixture received0 inspected items and `.notInspected` instead of `.complete`;
+roles, missing/unsafe roots and limits also failed. This is behavioral RED after
+successful compilation. Native/UI outcomes remain pending. Compile errors or
+zero executed tests are not RED.
 Only standard public macOS runners; no model weights/quality jobs.
 
 ## GREEN

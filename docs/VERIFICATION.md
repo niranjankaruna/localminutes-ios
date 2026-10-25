@@ -392,3 +392,5 @@ App screens/shared real-model wiring, durable edits/answers/citations/cancel/exp
 | MVP3 delivered functional gate | Models/recording/recovery/library/summary-QA/privacy/a11y/package | Auditable RED in MVP3 delivery evidence | run40181776855 SUCCESS:25Swift+46scripts+100native+10UI+13package+2contracts+2fixture+3hygiene;0fail/skip | 880d3dcd2e21f79e6435ec134279cad192e7435d | HostedmacOS/iOS26.2Simulator +independentWindowsIPA | READY_FOR_DEVICE_VALIDATION | IPA14855799B SHA256b0bc6e2d618f742ab257b85bc81765b25ca34b94b3c9d09fe33656b7aea1f5c9; ownerqualitymanual and allphysicalgatespending. |
 
 | MVP4 T12.1a prepared | Owner storage-metadata export | 15tests+minimal seams prepared; actual RED pending | NOT_RUN | Pending test-first commit | Hosted macOS/iOS required | IN_PROGRESS | No production inspector; no device or quality PASS. |
+
+| T12.1a Core actual RED | Bounded actual metadata/read-only privacy | e9b1701/run40184895367 job121143513139:7executed,2PASS5FAIL28assert0skip | Implementation pending GREEN | e9b1701cb81e0fb5f0a84f608f7c7598cd917449 | Hosted macOS | IN_PROGRESS | Native/UI RED pending; no physical claim. |
