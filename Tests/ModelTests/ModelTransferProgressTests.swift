@@ -39,15 +39,15 @@ final class ModelTransferProgressTests: XCTestCase {
         let repository = URL(string: "https://huggingface.co/example/progress")!
         let revision = String(repeating: "a", count: 40)
         let hash = SHA256.hash(data: ProgressHTTPProtocol.bytes).map { String(format: "%02x", $0) }.joined()
-        let roles: [(ModelFileRole, String)] = [(.encoder, "encoder.onnx"), (.decoder, "decoder.onnx"), (.joiner, "joiner.onnx"), (.tokens, "tokens.txt")]
+        let roles: [(ModelFileRole, String)] = [(.coreMLAsset, "encoder.bin"), (.coreMLAsset, "decoder.bin"), (.coreMLAsset, "joint.bin"), (.coreMLAsset, "vocabulary.json")]
         let artifacts: [ModelArtifact] = roles.map { role, name in
             .init(role: role, fileName: name, byteCount: Int64(ProgressHTTPProtocol.bytes.count), sha256: hash,
                 downloadURL: repository.appendingPathComponent("resolve/\(revision)/\(name)"), digestProvenance: .independentlyDownloaded)
         }
         let manifest = ModelManifest(modelID: "aggregate-progress", purpose: .speechRecognition,
             upstreamRepository: repository, revision: revision, licenseIdentifier: "CC0-1.0",
-            licenseNotice: "Synthetic progress bytes; not inference models.", runtimeVersion: "sherpa-onnx-1.13.8",
-            sampleRate: 16_000, featureDimension: 80, artifacts: artifacts)
+            licenseNotice: "Synthetic progress bytes; not inference models.", runtimeVersion: ParakeetCoreMLModel.runtimeVersion,
+            sampleRate: 16_000, featureDimension: 128, artifacts: artifacts)
         let log = TransferEvents()
         _ = try await manager.download(manifest, progress: { log.append($0) })
         let events = log.values

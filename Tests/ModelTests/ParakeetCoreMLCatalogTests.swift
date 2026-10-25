@@ -7,8 +7,7 @@ import XCTest
 final class ParakeetCoreMLCatalogTests: XCTestCase {
     private let profileName = "parakeetTDTCoreML"
     private var available: Set<HuggingFaceRuntimeProfile> {
-        Set([.streamingZipformerONNX, .whisperGGML, .llamaGGUF] +
-            [HuggingFaceRuntimeProfile(rawValue: profileName)].compactMap { $0 })
+        [.llamaGGUF, .parakeetTDTCoreML]
     }
 
     func testOriginalNvidiaNeMoModelExplainsNativeConversionAndSuggestsExactCoreMLFamily() throws {
@@ -54,7 +53,7 @@ final class ParakeetCoreMLCatalogTests: XCTestCase {
                           availableAppMemoryBytes: 4_000_000_000)).status, .insufficientStorage)
     }
 
-    func testMissingChangedUnreviewedOrGatedCoreMLAssetsCannotAdvertiseReadyAndONNXCannotUseNativeProfile() throws {
+    func testMissingChangedUnreviewedOrGatedCoreMLAssetsCannotAdvertiseReady() throws {
         let model = ParakeetCoreMLModel.manifest
         let files = model.artifacts.map { HuggingFaceModelFile(fileName: $0.fileName,
             byteCount: $0.byteCount, sha256: $0.sha256, downloadURL: $0.downloadURL) }
@@ -72,12 +71,6 @@ final class ParakeetCoreMLCatalogTests: XCTestCase {
             XCTAssertNotEqual(ModelRuntimeCompatibility.assess(repository: repo, format: format,
                 availableProfiles: available).status, .supported)
         }
-        let onnx = try repository(id: "unreviewed/parakeet", revision: model.revision,
-            files: [.init(fileName: "encoder.int8.onnx", byteCount: 100,
-                sha256: String(repeating: "a", count: 64), downloadURL: files[0].downloadURL)],
-            type: "fastconformer_tdt", library: "onnx")
-        XCTAssertNotEqual(onnx.assessment(for: .speechRecognition,
-            maximumDownloadBytes: Int64.max).profile?.rawValue, profileName)
         let good = try repository(id: "FluidInference/parakeet-tdt-0.6b-v2-coreml", revision: model.revision,
             files: files, type: "fastconformer_tdt", library: "coreml")
         let format = good.assessment(for: .speechRecognition, maximumDownloadBytes: Int64.max)

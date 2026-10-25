@@ -62,7 +62,7 @@ final class CoreMLParakeetRecognizerTests: XCTestCase {
         XCTAssertLessThan(fixture.samples.count, CoreMLParakeetRecognizer.stepSamples)
         let firstWindow = fixture.samples + Array(repeating: Float(0), count: CoreMLParakeetRecognizer.stepSamples - fixture.samples.count)
         let samples = firstWindow + fixture.samples
-        var finalized: [WhisperSpeechSegment] = []
+        var finalized: [SpeechSegment] = []
         var firstWindowWasVisible = false
         for offset in stride(from: 0, to: samples.count, by: 3_200) {
             let end = min(offset + 3_200, samples.count)
@@ -104,7 +104,7 @@ final class CoreMLParakeetRecognizerTests: XCTestCase {
         _ = try await recognizer.accept(Array(fixture.samples.prefix(3_200)), at: 0)
         await recognizer.cancel(epochID: old)
         do { _ = try await recognizer.accept([0], at: 3_200); XCTFail("Cancelled PCM reached a native stream") }
-        catch { XCTAssertEqual(error as? StreamingASRError, .cancelled) }
+        catch { XCTAssertEqual(error as? SpeechRecognitionError, .cancelled) }
         let fresh = UUID(); try await recognizer.start(epochID: fresh)
         await recognizer.cancel(epochID: old)
         _ = try await recognizer.accept(fixture.samples, at: 0)
@@ -129,10 +129,10 @@ final class CoreMLParakeetRecognizerTests: XCTestCase {
         let invalidInputs: [[Float]] = [[], [.nan], [.infinity], [1.01], Array(repeating: 0, count: 80_001)]
         for samples in invalidInputs {
             do { _ = try await recognizer.accept(samples, at: 0); XCTFail("Invalid PCM was accepted") }
-            catch { XCTAssertEqual(error as? StreamingASRError, .invalidSamples) }
+            catch { XCTAssertEqual(error as? SpeechRecognitionError, .invalidSamples) }
         }
         do { _ = try await recognizer.accept([0], at: 1); XCTFail("Source discontinuity silently collapsed") }
-        catch { XCTAssertEqual(error as? StreamingASRError, .discontinuity(expected: 0, actual: 1)) }
+        catch { XCTAssertEqual(error as? SpeechRecognitionError, .discontinuity(expected: 0, actual: 1)) }
         let state = await recognizer.snapshot()
         XCTAssertEqual(state.acceptedSampleCount, 0); XCTAssertEqual(state.bufferedSampleCount, 0)
         await recognizer.unload()
@@ -151,7 +151,7 @@ final class CoreMLParakeetRecognizerTests: XCTestCase {
             calls.append(op, main, worker, policy)
         }
         do { try await recognizer.load(); XCTFail("Tiny unverified bytes entered native Core ML loading") }
-        catch { XCTAssertEqual(error as? StreamingASRError, .invalidModel) }
+        catch { XCTAssertEqual(error as? SpeechRecognitionError, .invalidModel) }
         XCTAssertTrue(calls.read().isEmpty)
         let state = await recognizer.snapshot(); XCTAssertEqual(state.phase, .unloaded)
     }
@@ -172,6 +172,8 @@ private final class CoreMLParakeetExecutionRecords: @unchecked Sendable {
 
 @MainActor
 struct CoreMLParakeetFixture {
+    static let reference = "CONCORD RETURNED TO ITS PLACE AMIDST THE TENTS"
+    var windowSamples: [Float] { samples + [Float](repeating: 0, count: CoreMLParakeetRecognizer.stepSamples - samples.count) }
     let directory: URL
     let files: CoreMLParakeetModelFiles
     let samples: [Float]
@@ -187,20 +189,20 @@ struct CoreMLParakeetFixture {
             let size = (try FileManager.default.attributesOfItem(atPath: url.path)[.size] as? NSNumber)?.int64Value
             guard size == artifact.byteCount, try sha256(url) == artifact.sha256 else {
                 XCTFail("Actual Parakeet fixture integrity failed: \(artifact.fileName)")
-                throw StreamingASRError.invalidModel
+                throw SpeechRecognitionError.invalidModel
             }
         }
         let bytes = try Data(contentsOf: audioURL)
         guard bytes.count == 74_138, SHA256.hash(data: bytes).map({ String(format: "%02x", $0) }).joined()
             == "9ce35224156f071ab58eb7feb8a5ceae600f6f9f353da2a6cbf797b6b1ac8a23" else {
             XCTFail("Exact licensed LibriSpeech fixture missing or corrupt")
-            throw StreamingASRError.invalidSamples
+            throw SpeechRecognitionError.invalidSamples
         }
         let audio = try AVAudioFile(forReading: audioURL, commonFormat: .pcmFormatFloat32, interleaved: false)
         guard audio.processingFormat.sampleRate == 16_000, audio.processingFormat.channelCount == 1,
               audio.length > 0, audio.length < 80_000,
               let buffer = AVAudioPCMBuffer(pcmFormat: audio.processingFormat, frameCapacity: AVAudioFrameCount(audio.length)) else {
-            throw StreamingASRError.invalidSamples
+            throw SpeechRecognitionError.invalidSamples
         }
         try audio.read(into: buffer)
         XCTAssertEqual(Int64(buffer.frameLength), audio.length)
@@ -234,7 +236,7 @@ struct CoreMLParakeetFixture {
     static func remove(_ root: URL, suffix: String) throws {
         guard root.deletingLastPathComponent() == FileManager.default.temporaryDirectory.resolvingSymlinksInPath().standardizedFileURL,
               root.lastPathComponent.hasPrefix("localminutes-parakeet-\(suffix)-"), root.resolvingSymlinksInPath() == root else {
-            throw StreamingASRError.invalidModel
+            throw SpeechRecognitionError.invalidModel
         }
         try FileManager.default.removeItem(at: root)
     }

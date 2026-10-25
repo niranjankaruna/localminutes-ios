@@ -31,14 +31,14 @@ public struct CoreMLParakeetModelFiles: Equatable, Sendable {
 }
 
 public struct CoreMLParakeetSnapshot: Equatable, Sendable {
-    public let phase: StreamingASRPhase
+    public let phase: SpeechRecognitionPhase
     public let epochID: UUID?
     public let computePolicy: CoreMLParakeetComputePolicy?
     public let modelRevision: String?
     public let acceptedSampleCount: Int64
     public let bufferedSampleCount: Int
 
-    public init(phase: StreamingASRPhase, epochID: UUID?, computePolicy: CoreMLParakeetComputePolicy?,
+    public init(phase: SpeechRecognitionPhase, epochID: UUID?, computePolicy: CoreMLParakeetComputePolicy?,
                 modelRevision: String?, acceptedSampleCount: Int64, bufferedSampleCount: Int) {
         self.phase = phase; self.epochID = epochID; self.computePolicy = computePolicy
         self.modelRevision = modelRevision; self.acceptedSampleCount = acceptedSampleCount
@@ -50,9 +50,8 @@ enum CoreMLParakeetNativeOperation: Equatable, Sendable { case load, decode }
 typealias CoreMLParakeetExecutionObserver = @Sendable
     (CoreMLParakeetNativeOperation, Bool, Bool, CoreMLParakeetComputePolicy) -> Void
 
-/// Native v2 Core ML and FluidAudio's Swift TDT decoder. Disjoint five-second
-/// windows are finalized during capture; this offline family is not a native
-/// streaming model. No other speech engine is constructed by this adapter.
+/// Parakeet TDT v2/v3 Core ML inference with FluidAudio's Swift decoder.
+/// Disjoint five-second windows are finalized during capture.
 public actor CoreMLParakeetRecognizer {
     public static let sampleRate = 16_000
     public static let stepSamples = 80_000
@@ -65,7 +64,7 @@ public actor CoreMLParakeetRecognizer {
     private let computePolicy: CoreMLParakeetComputePolicy
     private let executionObserver: CoreMLParakeetExecutionObserver?
     private var manager: AsrManager?
-    private var phase: StreamingASRPhase = .unloaded
+    private var phase: SpeechRecognitionPhase = .unloaded
     private var epochID: UUID?
     private var cancellation = CoreMLParakeetCancellation()
     private var pcm: [Float] = []
@@ -86,7 +85,7 @@ public actor CoreMLParakeetRecognizer {
 
     public func load() async throws {
         worker.assertCurrent()
-        guard teardown == nil else { throw StreamingASRError.noActiveStream }
+        guard teardown == nil else { throw SpeechRecognitionError.noActiveStream }
         if manager != nil { return }
         let flag = CoreMLParakeetCancellation()
         cancellationRouter.select(nil, flag: flag)
@@ -114,8 +113,8 @@ public actor CoreMLParakeetRecognizer {
     public func start(epochID: UUID) throws {
         worker.assertCurrent()
         try Task.checkCancellation()
-        guard manager != nil, teardown == nil else { throw StreamingASRError.noActiveStream }
-        guard phase != .streaming, decodeTask == nil else { throw StreamingASRError.alreadyStarted }
+        guard manager != nil, teardown == nil else { throw SpeechRecognitionError.noActiveStream }
+        guard phase != .streaming, decodeTask == nil else { throw SpeechRecognitionError.alreadyStarted }
         self.epochID = epochID
         phase = .streaming
         acceptedSamples = 0; windowStart = 0
@@ -124,20 +123,20 @@ public actor CoreMLParakeetRecognizer {
         cancellationRouter.select(epochID, flag: cancellation)
     }
 
-    public func accept(_ samples: [Float], at globalSampleOffset: Int64) async throws -> WhisperSpeechUpdate {
+    public func accept(_ samples: [Float], at globalSampleOffset: Int64) async throws -> SpeechUpdate {
         worker.assertCurrent()
         let epoch = try activeEpoch()
         let flag = cancellation
         try checkCancellation(flag)
-        guard decodeTask == nil else { throw StreamingASRError.alreadyStarted }
+        guard decodeTask == nil else { throw SpeechRecognitionError.alreadyStarted }
         guard !samples.isEmpty, samples.count <= Self.stepSamples,
               samples.allSatisfy({ $0.isFinite && abs($0) <= 1 }),
-              acceptedSamples <= Int64.max - Int64(samples.count) else { throw StreamingASRError.invalidSamples }
+              acceptedSamples <= Int64.max - Int64(samples.count) else { throw SpeechRecognitionError.invalidSamples }
         guard globalSampleOffset == acceptedSamples else {
-            throw StreamingASRError.discontinuity(expected: acceptedSamples, actual: globalSampleOffset)
+            throw SpeechRecognitionError.discontinuity(expected: acceptedSamples, actual: globalSampleOffset)
         }
         var offset = 0
-        var finalized: [WhisperSpeechSegment] = []
+        var finalized: [SpeechSegment] = []
         while offset < samples.count {
             try checkCancellation(flag)
             let count = min(Self.stepSamples - pcm.count, samples.count - offset)
@@ -148,20 +147,20 @@ public actor CoreMLParakeetRecognizer {
             }
         }
         try checkCancellation(flag)
-        guard epochID == epoch, cancellation === flag, phase == .streaming else { throw StreamingASRError.cancelled }
+        guard epochID == epoch, cancellation === flag, phase == .streaming else { throw SpeechRecognitionError.cancelled }
         return .init(epochID: epoch, partial: "", finalized: finalized)
     }
 
-    public func finish() async throws -> WhisperSpeechUpdate {
+    public func finish() async throws -> SpeechUpdate {
         worker.assertCurrent()
         if phase == .finished, let epochID { return .init(epochID: epochID, partial: "", finalized: []) }
         let epoch = try activeEpoch()
         let flag = cancellation
-        guard decodeTask == nil else { throw StreamingASRError.alreadyStarted }
+        guard decodeTask == nil else { throw SpeechRecognitionError.alreadyStarted }
         let result = try await decode(epoch: epoch, flag: flag)
         try checkCancellation(flag)
         guard epochID == epoch, cancellation === flag, phase == .streaming, teardown == nil else {
-            throw StreamingASRError.cancelled
+            throw SpeechRecognitionError.cancelled
         }
         phase = .finished
         return .init(epochID: epoch, partial: "", finalized: result)
@@ -223,10 +222,10 @@ public actor CoreMLParakeetRecognizer {
     }
 
     private func activeEpoch() throws -> UUID {
-        if phase == .cancelled || cancellation.isCancelled { throw StreamingASRError.cancelled }
-        if phase == .finished { throw StreamingASRError.finished }
+        if phase == .cancelled || cancellation.isCancelled { throw SpeechRecognitionError.cancelled }
+        if phase == .finished { throw SpeechRecognitionError.finished }
         guard phase == .streaming, let epochID, manager != nil, teardown == nil else {
-            throw StreamingASRError.noActiveStream
+            throw SpeechRecognitionError.noActiveStream
         }
         return epochID
     }
@@ -235,18 +234,18 @@ public actor CoreMLParakeetRecognizer {
         if flag.isCancelled || Task.isCancelled { throw CancellationError() }
     }
 
-    private func decode(epoch: UUID, flag: CoreMLParakeetCancellation) async throws -> [WhisperSpeechSegment] {
+    private func decode(epoch: UUID, flag: CoreMLParakeetCancellation) async throws -> [SpeechSegment] {
         worker.assertCurrent()
         try checkCancellation(flag)
         guard !pcm.isEmpty else { return [] }
-        guard let manager, decodeTask == nil, teardown == nil else { throw StreamingASRError.noActiveStream }
+        guard let manager, decodeTask == nil, teardown == nil else { throw SpeechRecognitionError.noActiveStream }
         let start = windowStart
         let end = start + Int64(pcm.count)
         var input = pcm
         // FluidAudio rejects very short clips. Decoder padding never advances
         // source counters or the range of the resulting genuine audio segment.
         let minimum = ASRConstants.minimumRequiredSamples(forSampleRate: Self.sampleRate)
-        guard minimum > 0, minimum <= Self.maximumWindowSamples else { throw StreamingASRError.invalidSamples }
+        guard minimum > 0, minimum <= Self.maximumWindowSamples else { throw SpeechRecognitionError.invalidSamples }
         if input.count < minimum { input.append(contentsOf: repeatElement(Float(0), count: minimum - input.count)) }
         let samples = input
         let observer = executionObserver
@@ -270,7 +269,7 @@ public actor CoreMLParakeetRecognizer {
             if decodeID == operationID { decodeID = nil; decodeTask = nil }
             try checkCancellation(flag)
             guard epochID == epoch, cancellation === flag, phase == .streaming, teardown == nil else {
-                throw StreamingASRError.cancelled
+                throw SpeechRecognitionError.cancelled
             }
             pcm.removeAll(keepingCapacity: true); windowStart = end
             let text = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -292,15 +291,15 @@ public actor CoreMLParakeetRecognizer {
     private func validateModel(_ flag: CoreMLParakeetCancellation) throws {
         try checkCancellation(flag)
         let manifest = files.manifest
-        guard (try? ParakeetModelPack.configuration(for: manifest)) != nil else { throw StreamingASRError.invalidModel }
+        guard (try? ParakeetModelPack.configuration(for: manifest)) != nil else { throw SpeechRecognitionError.invalidModel }
         guard files.revision == manifest.revision, files.runtimeVersion == manifest.runtimeVersion,
-              files.directory.isFileURL else { throw StreamingASRError.invalidModel }
+              files.directory.isFileURL else { throw SpeechRecognitionError.invalidModel }
         let root = files.directory.standardizedFileURL
         let canonical = root.resolvingSymlinksInPath()
         let rootComponents = canonical.pathComponents
         do {
             let rootValues = try root.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
-            guard rootValues.isDirectory == true, rootValues.isSymbolicLink != true else { throw StreamingASRError.invalidModel }
+            guard rootValues.isDirectory == true, rootValues.isSymbolicLink != true else { throw SpeechRecognitionError.invalidModel }
             let expected = Set(manifest.artifacts.map(\.fileName))
             let allowedFiles = expected.union(["manifest.json"])
             let maximumDepth = manifest.artifacts.map { $0.fileName.split(separator: "/").count }.max() ?? 1
@@ -311,7 +310,7 @@ public actor CoreMLParakeetRecognizer {
             }
             guard let iterator = FileManager.default.enumerator(at: root,
                 includingPropertiesForKeys: [.isDirectoryKey, .isRegularFileKey, .isSymbolicLinkKey]) else {
-                throw StreamingASRError.invalidModel
+                throw SpeechRecognitionError.invalidModel
             }
             var observed: Set<String> = []
             var visited = 0
@@ -324,26 +323,26 @@ public actor CoreMLParakeetRecognizer {
                 guard visited <= allowedFiles.count + directories.count,
                       components.count > rootComponents.count,
                       components.starts(with: rootComponents),
-                      components.count - rootComponents.count <= maximumDepth else { throw StreamingASRError.invalidModel }
+                      components.count - rootComponents.count <= maximumDepth else { throw SpeechRecognitionError.invalidModel }
                 let name = components.dropFirst(rootComponents.count).joined(separator: "/")
                 let values = try url.resourceValues(forKeys: [.isDirectoryKey, .isRegularFileKey, .isSymbolicLinkKey])
-                guard values.isSymbolicLink != true else { throw StreamingASRError.invalidModel }
+                guard values.isSymbolicLink != true else { throw SpeechRecognitionError.invalidModel }
                 if values.isDirectory == true {
-                    guard directories.contains(name) else { throw StreamingASRError.invalidModel }
+                    guard directories.contains(name) else { throw SpeechRecognitionError.invalidModel }
                 } else if name == "manifest.json" {
-                    guard values.isRegularFile == true else { throw StreamingASRError.invalidModel }
+                    guard values.isRegularFile == true else { throw SpeechRecognitionError.invalidModel }
                     try validateInstallationManifest(url, expected: manifest, flag: flag)
                 } else {
-                    guard values.isRegularFile == true, expected.contains(name) else { throw StreamingASRError.invalidModel }
+                    guard values.isRegularFile == true, expected.contains(name) else { throw SpeechRecognitionError.invalidModel }
                     observed.insert(name)
                 }
             }
-            guard observed == expected else { throw StreamingASRError.invalidModel }
+            guard observed == expected else { throw SpeechRecognitionError.invalidModel }
             for artifact in manifest.artifacts {
                 try checkCancellation(flag)
                 let url = root.appendingPathComponent(artifact.fileName)
                 let size = (try FileManager.default.attributesOfItem(atPath: url.path)[.size] as? NSNumber)?.int64Value
-                guard size == artifact.byteCount else { throw StreamingASRError.invalidModel }
+                guard size == artifact.byteCount else { throw SpeechRecognitionError.invalidModel }
                 let handle = try FileHandle(forReadingFrom: url)
                 var hash = SHA256()
                 do {
@@ -354,10 +353,10 @@ public actor CoreMLParakeetRecognizer {
                     try handle.close()
                 } catch { try? handle.close(); throw error }
                 let actual = hash.finalize().map { String(format: "%02x", $0) }.joined()
-                guard actual == artifact.sha256 else { throw StreamingASRError.invalidModel }
+                guard actual == artifact.sha256 else { throw SpeechRecognitionError.invalidModel }
             }
         } catch is CancellationError { throw CancellationError() }
-        catch { throw StreamingASRError.invalidModel }
+        catch { throw SpeechRecognitionError.invalidModel }
     }
 
     /// Only the real installer's own bounded metadata is permitted beside the
@@ -366,26 +365,26 @@ public actor CoreMLParakeetRecognizer {
     private func validateInstallationManifest(_ url: URL, expected: ModelManifest,
                                               flag: CoreMLParakeetCancellation) throws {
         let descriptor = url.path.withCString { Darwin.open($0, O_RDONLY | O_NOFOLLOW) }
-        guard descriptor >= 0 else { throw StreamingASRError.invalidModel }
+        guard descriptor >= 0 else { throw SpeechRecognitionError.invalidModel }
         let handle = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
         defer { try? handle.close() }
         var info = stat()
         guard Darwin.fstat(descriptor, &info) == 0,
               UInt32(info.st_mode) & UInt32(S_IFMT) == UInt32(S_IFREG),
               info.st_nlink == 1, info.st_size > 0, info.st_size <= 65_536 else {
-            throw StreamingASRError.invalidModel
+            throw SpeechRecognitionError.invalidModel
         }
         var bytes = Data()
         while let next = try handle.read(upToCount: 4_096), !next.isEmpty {
             try checkCancellation(flag)
-            guard bytes.count <= 65_536 - next.count else { throw StreamingASRError.invalidModel }
+            guard bytes.count <= 65_536 - next.count else { throw SpeechRecognitionError.invalidModel }
             bytes.append(next)
         }
         guard bytes.count == Int(info.st_size),
               try JSONDecoder().decode(ModelManifest.self, from: bytes) == expected,
               let actualObject = try JSONSerialization.jsonObject(with: bytes) as? NSDictionary,
               let expectedObject = try JSONSerialization.jsonObject(with: JSONEncoder().encode(expected)) as? NSDictionary,
-              actualObject.isEqual(expectedObject) else { throw StreamingASRError.invalidModel }
+              actualObject.isEqual(expectedObject) else { throw SpeechRecognitionError.invalidModel }
     }
 }
 

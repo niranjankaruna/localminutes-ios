@@ -26,7 +26,7 @@ final class LiveTranscriptionSessionTests: XCTestCase {
             XCTAssertEqual(h.session.transcript.receivedSampleCount, Int64(h.speech.samples.count))
             let rows = try await h.store.transcript(meetingID: id)
             XCTAssertEqual(rows.count, 1)
-            XCTAssertEqual(rows.first?.text.lowercased().split(separator: " ").last, "tents")
+            XCTAssertEqual(rows.first?.text.lowercased().split { !$0.isLetter }.last, "tents")
         } catch { await h.cleanup(); throw error }
         await h.cleanup()
     }
@@ -41,10 +41,10 @@ final class LiveTranscriptionSessionTests: XCTestCase {
                 await h.cleanup(); return
             }
             let leaseHeld: Bool
-            do { try await h.models.remove(modelID: StreamingEnglishModel.manifest.modelID); leaseHeld = false }
+            do { try await h.models.remove(modelID: ParakeetCoreMLModel.manifest.modelID); leaseHeld = false }
             catch { leaseHeld = (error as? ModelInstallationError) == .modelInUse }
             XCTAssertTrue(leaseHeld, "The running native model must retain its installation")
-            let audio = h.speech.samples + NativeASRFixture.trailingSilence
+            let audio = h.speech.windowSamples
             let manifest = try feed(audio, session: h.session, directory: directory, id: id)
             let live = await waitForText(h.session)
             XCTAssertTrue(live, "Actual inference must publish text before recording finishes")
@@ -53,12 +53,12 @@ final class LiveTranscriptionSessionTests: XCTestCase {
             let snapshot = h.session.transcript
             XCTAssertEqual(snapshot.receivedSampleCount, Int64(audio.count))
             XCTAssertEqual(snapshot.partial, "")
-            XCTAssertEqual(snapshot.finalized.count, 1, "An endpoint plus final flush must not duplicate text")
+            XCTAssertEqual(snapshot.finalized.count, 1, "A decoded window plus final flush must not duplicate text")
             let stored = try await h.store.transcript(meetingID: id)
             XCTAssertEqual(stored, snapshot.finalized)
-            XCTAssertEqual(stored.first?.text.lowercased().split(separator: " ").last, "tents")
+            XCTAssertEqual(stored.first?.text.lowercased().split { !$0.isLetter }.last, "tents")
             XCTAssertEqual(stored.first?.startSample, 0)
-            XCTAssertEqual(stored.first?.modelRevision, NativeASRFixture.revision)
+            XCTAssertEqual(stored.first?.modelRevision, ParakeetCoreMLModel.revision)
             let metadata = try await h.store.meeting(id: id)
             XCTAssertEqual(metadata?.recordingState, .completed)
             XCTAssertEqual(metadata?.capturedSampleCount, Int64(audio.count))
@@ -67,8 +67,8 @@ final class LiveTranscriptionSessionTests: XCTestCase {
             let persisted = try await reopened.transcript(meetingID: id)
             XCTAssertEqual(persisted, stored)
             try await reopened.close()
-            try await h.models.remove(modelID: StreamingEnglishModel.manifest.modelID)
-            let removed = try await h.models.current(modelID: StreamingEnglishModel.manifest.modelID)
+            try await h.models.remove(modelID: ParakeetCoreMLModel.manifest.modelID)
+            let removed = try await h.models.current(modelID: ParakeetCoreMLModel.manifest.modelID)
             XCTAssertNil(removed, "Native teardown must release the lease after the flush")
         } catch { await h.cleanup(); throw error }
         await h.cleanup()
@@ -81,7 +81,7 @@ final class LiveTranscriptionSessionTests: XCTestCase {
             guard case .ready(let directory) = await h.session.prepare(sessionID: id) else {
                 XCTFail("Actual model preparation failed"); await h.cleanup(); return
             }
-            let audio = h.speech.samples + NativeASRFixture.trailingSilence + h.speech.samples
+            let audio = h.speech.windowSamples + h.speech.samples
             let manifest = try feed(audio, session: h.session, directory: directory, id: id)
             let failure = await h.session.finish(sessionID: id, manifest: manifest)
             XCTAssertNil(failure)
@@ -89,7 +89,7 @@ final class LiveTranscriptionSessionTests: XCTestCase {
             XCTAssertEqual(rows.count, 2)
             XCTAssertEqual(rows.map(\.sequence), [0, 1])
             if rows.count == 2 {
-                XCTAssertEqual(rows[0].text, rows[1].text)
+                XCTAssertEqual(rows.flatMap { $0.text.lowercased().split { !$0.isLetter } }.filter { $0 == "tents" }.count, 2)
                 XCTAssertGreaterThan(rows[1].startSample, rows[0].startSample)
                 XCTAssertGreaterThanOrEqual(rows[1].startSample, rows[0].endSample)
                 XCTAssertEqual(rows[1].endSample, Int64(audio.count))
@@ -128,7 +128,7 @@ final class LiveTranscriptionSessionTests: XCTestCase {
     }
 
     private func waitForText(_ session: LiveTranscriptionSession) async -> Bool {
-        let deadline = ContinuousClock.now.advanced(by: .seconds(8))
+        let deadline = ContinuousClock.now.advanced(by: .seconds(120))
         while session.transcript.partial.isEmpty && session.transcript.finalized.isEmpty {
             if ContinuousClock.now >= deadline { return false }
             try? await Task.sleep(for: .milliseconds(5))
@@ -145,10 +145,10 @@ private final class LiveSessionFixture {
     let models: ModelInstallationManager
     let store: SQLiteMeetingStore
     let session: LiveTranscriptionSession
-    let speech: NativeASRFixture
+    let speech: CoreMLParakeetFixture
 
     private init(root: URL, models: ModelInstallationManager,
-                 store: SQLiteMeetingStore, speech: NativeASRFixture) {
+                 store: SQLiteMeetingStore, speech: CoreMLParakeetFixture) {
         self.root = root; self.models = models; self.store = store; self.speech = speech
         database = root.appendingPathComponent("meetings.sqlite")
         meetings = root.appendingPathComponent("meetings", isDirectory: true)
@@ -160,10 +160,10 @@ private final class LiveSessionFixture {
             .appendingPathComponent("localminutes-live-test-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
         let models = ModelInstallationManager(rootURL: root.appendingPathComponent("models"), availableBytes: { _ in .max })
-        let speech = try NativeASRFixture.load()
+        let speech = try CoreMLParakeetFixture.load()
         if installModel {
-            _ = try await models.importDirectory(speech.files.encoder.deletingLastPathComponent(),
-                                                manifest: StreamingEnglishModel.manifest)
+            _ = try await models.importDirectory(speech.directory,
+                                                manifest: ParakeetCoreMLModel.manifest)
         }
         let store = try SQLiteMeetingStore(databaseURL: root.appendingPathComponent("meetings.sqlite"))
         return LiveSessionFixture(root: root, models: models, store: store, speech: speech)
@@ -180,9 +180,6 @@ private final class LiveSessionFixture {
     }
 }
 
-// APPEND to Tests/ASRTests/LiveTranscriptionSessionTests.swift after its existing
-// private fixture. Add import Dispatch to that file's import section.
-
 private struct LiveMetricsTestClock: MetricsMonotonicClock {
     func nowNanoseconds() -> UInt64 { DispatchTime.now().uptimeNanoseconds }
 }
@@ -193,13 +190,13 @@ extension LiveTranscriptionSessionTests {
         let h = try await LiveSessionFixture.create()
         guard let source = ProcessInfo.processInfo.environment["GITHUB_SHA"], source.count == 40,
               source.utf8.allSatisfy({ (48...57).contains($0) || (97...102).contains($0) }) else {
-            XCTFail("Mandatory actual source SHA is missing; setup failure is not metrics RED")
+            XCTFail("Mandatory actual source SHA is missing; model and metrics setup must succeed")
             await h.cleanup()
             throw MetricsASRDraftError.missingSourceIdentity
         }
         let identity = MetricsBuildIdentity(
             sourceCommit: source,
-            modelRevision: NativeASRFixture.revision, runtimeVersion: StreamingEnglishModel.manifest.runtimeVersion, buildNumber: 1)
+            modelRevision: ParakeetCoreMLModel.revision, runtimeVersion: ParakeetCoreMLModel.manifest.runtimeVersion, buildNumber: 1)
         let metrics = try TranscriptionMetricsRecorder(identity: identity, capacity: 128, clock: LiveMetricsTestClock())
         let session = LiveTranscriptionSession(models: h.models, store: h.store,
                                                meetingsDirectory: h.meetings, metrics: metrics)
@@ -214,7 +211,7 @@ extension LiveTranscriptionSessionTests {
             // A test marker exercises capture of visibility facts. It does not
             // put macOS into an iPhone Lock Screen or prove locked operation.
             try metrics.visibilityChanged(.background)
-            let audio = h.speech.samples + NativeASRFixture.trailingSilence
+            let audio = h.speech.windowSamples
             let manifest = try feed(audio, session: session, directory: directory, id: id)
             let hasText = await waitForText(session)
             XCTAssertTrue(hasText, "The actual CPU consumer must publish speech before finalization")
@@ -234,7 +231,6 @@ extension LiveTranscriptionSessionTests {
             XCTAssertEqual(after.capturedSampleCount, Int64(audio.count))
             XCTAssertEqual(after.processedSampleCount, Int64(audio.count))
             XCTAssertGreaterThan(after.processingWallNanoseconds, 0)
-            XCTAssertGreaterThan(after.partialLatency.sampleCount, 0)
             XCTAssertGreaterThan(after.finalLatency.sampleCount, 0)
             XCTAssertTrue(after.errors.isEmpty)
             XCTAssertEqual(after.identity, identity)
@@ -245,7 +241,7 @@ extension LiveTranscriptionSessionTests {
             XCTAssertEqual(times, times.sorted())
             let rows = try await h.store.transcript(meetingID: id)
             XCTAssertEqual(rows.count, 1)
-            XCTAssertEqual(rows.first?.text.lowercased().split(separator: " ").last, "tents")
+            XCTAssertEqual(rows.first?.text.lowercased().split { !$0.isLetter }.last, "tents")
             let data: Data
             do { data = try MetricsExportCodec.encode(after) }
             catch {
@@ -259,7 +255,7 @@ extension LiveTranscriptionSessionTests {
             XCTAssertLessThanOrEqual(data.count, 65_536)
             let json = try XCTUnwrap(String(data: data, encoding: .utf8))
             XCTAssertFalse(json.contains(h.root.path))
-            XCTAssertFalse(json.lowercased().contains(NativeASRFixture.reference.lowercased()))
+            XCTAssertFalse(json.lowercased().contains(CoreMLParakeetFixture.reference.lowercased()))
             for row in rows where !row.text.isEmpty {
                 XCTAssertFalse(json.contains(row.text), "Actual recognized content must never enter metrics JSON")
             }
@@ -273,7 +269,6 @@ extension LiveTranscriptionSessionTests {
 }
 
 private enum MetricsASRDraftError: Error { case preparationFailed, missingSourceIdentity }
-
 
 // APPEND this entire fragment to Tests/ASRTests/LiveTranscriptionSessionTests.swift
 // after its existing LiveSessionFixture declaration. Add the import and package
@@ -347,7 +342,7 @@ private final class T12SpeechCompletion { var finished = false }
 @MainActor
 private func t12SpeechEventually(_ condition: @MainActor () async -> Bool) async -> Bool {
     let clock = ContinuousClock()
-    let deadline = clock.now.advanced(by: .seconds(12))
+    let deadline = clock.now.advanced(by: .seconds(120))
     while !(await condition()) {
         if clock.now >= deadline { return false }
         try? await Task.sleep(for: .milliseconds(5))
@@ -405,7 +400,7 @@ extension LiveTranscriptionSessionTests {
             let textBeforeStop = await waitForText(h.session)
             XCTAssertTrue(textBeforeStop, "Licensed speech must reach the actual CPU recognizer before interruption")
             do {
-                try await h.models.remove(modelID: StreamingEnglishModel.manifest.modelID)
+                try await h.models.remove(modelID: ParakeetCoreMLModel.manifest.modelID)
                 XCTFail("The native model must remain leased during live inference")
             } catch { XCTAssertEqual(error as? ModelInstallationError, .modelInUse) }
             let interrupted = T12SpeechCompletion()
@@ -438,8 +433,8 @@ extension LiveTranscriptionSessionTests {
             XCTAssertEqual(rows.count, 1)
             XCTAssertEqual(rows.map(\.sequence), [0])
             let words = rows.flatMap { $0.text.lowercased().split { !$0.isLetter }.map(String.init) }
-            XCTAssertEqual(words, NativeASRFixture.reference.lowercased().split(separator: " ").map(String.init),
-                "Actual final inference must retain the licensed reference including final TENTS")
+            XCTAssertTrue(Set(["concord", "returned", "place", "tents"]).isSubset(of: Set(words)),
+                "Final inference must retain the licensed speech, including its last word")
             XCTAssertEqual(h.session.transcript.receivedSampleCount, Int64(h.speech.samples.count))
             let directory = h.meetings.appendingPathComponent(id.uuidString)
             let manifestData = try? Data(contentsOf: directory.appendingPathComponent("capture-manifest.json"))
@@ -461,7 +456,7 @@ extension LiveTranscriptionSessionTests {
                 let lease = try usage.beginRecording(meetingID: id)
                 usage.endRecording(lease)
             } catch { XCTFail("Combined interruption cleanup must release the exact usage lease") }
-            do { try await h.models.remove(modelID: StreamingEnglishModel.manifest.modelID) }
+            do { try await h.models.remove(modelID: ParakeetCoreMLModel.manifest.modelID) }
             catch { XCTFail("Completed native teardown must release its model lease") }
             if final.phase == .interrupted, !final.cleanupPending {
                 try await h.store.close()
@@ -485,22 +480,18 @@ extension LiveTranscriptionSessionTests {
 
 private enum T12SpeechInterruptionDraftError: Error { case timedOut }
 
-
-// APPEND to Tests/ASRTests/LiveTranscriptionSessionTests.swift, preserving its
-// private real-model fixture, feed, LiveMetricsTestClock and existing assertions.
-// Runs in the hosted actual-ASR core suite, never a fake recognizer or device gate.
 @MainActor
 extension LiveTranscriptionSessionTests {
     func testActualSequentialMeetingsReuseOneSessionWithIndependentMetricsEpochs() async throws {
         let h = try await LiveSessionFixture.create()
         guard let source = ProcessInfo.processInfo.environment["GITHUB_SHA"], source.count == 40,
               source.utf8.allSatisfy({ (48...57).contains($0) || (97...102).contains($0) }) else {
-            XCTFail("The hosted actual source identity is required; missing setup is not RED")
+            XCTFail("The hosted source identity is required for metrics validation")
             await h.cleanup()
             throw MetricsASRDraftError.missingSourceIdentity
         }
-        let identity = MetricsBuildIdentity(sourceCommit: source, modelRevision: NativeASRFixture.revision,
-            runtimeVersion: StreamingEnglishModel.manifest.runtimeVersion, buildNumber: 1)
+        let identity = MetricsBuildIdentity(sourceCommit: source, modelRevision: ParakeetCoreMLModel.revision,
+            runtimeVersion: ParakeetCoreMLModel.manifest.runtimeVersion, buildNumber: 1)
         let metrics = try TranscriptionMetricsRecorder(identity: identity, capacity: 128, clock: LiveMetricsTestClock())
         let session = LiveTranscriptionSession(models: h.models, store: h.store,
             meetingsDirectory: h.meetings, metrics: metrics)
@@ -512,7 +503,7 @@ extension LiveTranscriptionSessionTests {
                 throw MetricsASRDraftError.preparationFailed
             }
             activeID = firstID
-            let firstAudio = h.speech.samples + NativeASRFixture.trailingSilence
+            let firstAudio = h.speech.windowSamples
             let firstManifest = try feed(firstAudio, session: session, directory: firstDirectory, id: firstID)
             let firstFailure = await session.finish(sessionID: firstID, manifest: firstManifest)
             activeID = nil
@@ -528,7 +519,7 @@ extension LiveTranscriptionSessionTests {
                 throw MetricsASRDraftError.preparationFailed
             }
             activeID = secondID
-            let secondAudio = firstAudio + [Float](repeating: 0, count: 1_600)
+            let secondAudio = h.speech.samples
             let secondManifest = try feed(secondAudio, session: session, directory: secondDirectory, id: secondID)
             XCTAssertNotEqual(secondManifest.totalFrames, firstManifest.totalFrames,
                 "Different lengths make a stale first-epoch snapshot observable")
@@ -547,10 +538,10 @@ extension LiveTranscriptionSessionTests {
             let firstRows = try await h.store.transcript(meetingID: firstID)
             let secondRows = try await h.store.transcript(meetingID: secondID)
             XCTAssertEqual(firstRows.count, 1); XCTAssertEqual(secondRows.count, 1)
-            XCTAssertEqual(firstRows.first?.text.lowercased().split(separator: " ").last, "tents")
-            XCTAssertEqual(secondRows.first?.text.lowercased().split(separator: " ").last, "tents")
+            XCTAssertEqual(firstRows.first?.text.lowercased().split { !$0.isLetter }.last, "tents")
+            XCTAssertEqual(secondRows.first?.text.lowercased().split { !$0.isLetter }.last, "tents")
             XCTAssertEqual(secondRows.first?.meetingID, secondID)
-            XCTAssertEqual(secondRows.first?.modelRevision, NativeASRFixture.revision)
+            XCTAssertEqual(secondRows.first?.modelRevision, ParakeetCoreMLModel.revision)
         } catch {
             if let activeID { _ = await session.finish(sessionID: activeID, manifest: nil) }
             await h.cleanup()

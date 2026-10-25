@@ -30,20 +30,6 @@ public enum ModelRuntimeCompatibility {
                 return result(.unsupported, "The native Core ML adapter needs the complete resource set declared by this supported Parakeet model pack.")
             }
             return result(.supported, "Core ML decodes speech on CPU in short chunks. Memory use, live speed and locked-screen operation still need checks on this iPhone.")
-        case .streamingZipformerONNX:
-            let reviewed = StreamingEnglishModel.manifest
-            guard repository.revision == reviewed.revision,
-                  format.selectedFiles.count == reviewed.artifacts.count,
-                  Set(format.selectedFiles.map(\.fileName)).count == reviewed.artifacts.count,
-                  format.selectedFiles.allSatisfy({ file in
-                      reviewed.artifacts.contains { $0.fileName == file.fileName
-                          && $0.byteCount == file.byteCount && $0.sha256 == file.sha256 }
-                  }) else {
-                return result(.unsupported, "This build runs the reviewed Zipformer file set only. Other ONNX sets require a tested adapter. Whisper GGML variants can be selected independently.")
-            }
-            return result(.supported, "The exact reviewed Zipformer file set is supported by the CPU sherpa-onnx engine. Live speed on this iPhone still needs measurement.")
-        case .whisperGGML:
-            return result(.supported, "Whisper GGML format is supported by whisper.cpp on CPU. Accuracy and live speed on this iPhone still need measurement.")
         case .llamaGGUF:
             guard let architecture = repository.modelType?.lowercased() else {
                 return result(.unverified, "The repository does not identify its GGUF architecture. This build supports reviewed Qwen2 and Phi3 templates; compatibility cannot be confirmed from this metadata.")

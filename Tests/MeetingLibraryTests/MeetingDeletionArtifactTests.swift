@@ -170,8 +170,8 @@ private final class DeletionArtifactFixture {
                     startSample: 0, endSample: 320, text: "Artifact evidence quote.", modelRevision: "synthetic-asr")], to: id)
                 try await store.saveManualNote(.init(meetingID: id, text: "Original synthetic manual note", editRevision: 1,
                     modifiedAt: Date(timeIntervalSince1970: 1_000)))
-                try await store.saveSpeechModelPin(.init(meetingID: id, selection: .init(manifest: StreamingEnglishModel.manifest,
-                    profile: .streamingZipformerONNX, installationID: UUID())))
+                try await store.saveSpeechModelPin(.init(meetingID: id, selection: .init(manifest: ParakeetCoreMLModel.manifest,
+                    profile: .parakeetTDTCoreML, installationID: UUID())))
                 for kind in [GeneratedDocumentKind.summary, .questionAnswer] {
                     let documentID = UUID()
                     try await store.createGeneratedDocument(.init(id: documentID, meetingID: id, kind: kind,

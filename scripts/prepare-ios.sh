@@ -2,7 +2,6 @@
 set -euo pipefail
 
 test -f project.yml && test -f Package.swift
-python3 scripts/prepare_asr_only.py --platform ios
 python3 scripts/fixtures/prepare_native_summary.py --framework-only
 
 mkdir -p .agent-local/tools

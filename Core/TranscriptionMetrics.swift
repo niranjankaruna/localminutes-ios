@@ -393,19 +393,13 @@ public enum MetricsExportCodec {
     }
 
     private static func validRuntimeVersion(_ value: String) -> Bool {
-        // This reviewed Core ML decoder pin is longer than the legacy numeric
-        // labels. It is one exact identity, not permission for arbitrary text.
         if value == "coreml-parakeet-tdt-v2-fluid-c79c4106" || value == "coreml-parakeet-tdt-fluid-c79c4106" { return true }
         guard !value.isEmpty, value.utf8.count <= 32 else { return false }
         if value.hasPrefix("llama.cpp-b") {
             let build = value.dropFirst("llama.cpp-b".count)
             return !build.isEmpty && build.utf8.allSatisfy { (48...57).contains($0) }
         }
-        let numeric: Substring
-        if value.hasPrefix("sherpa-onnx-") { numeric = value.dropFirst("sherpa-onnx-".count) }
-        else if value.hasPrefix("whisper.cpp-") { numeric = value.dropFirst("whisper.cpp-".count) }
-        else { numeric = value[...] }
-        let parts = numeric.split(separator: ".", omittingEmptySubsequences: false)
+        let parts = value.split(separator: ".", omittingEmptySubsequences: false)
         return (1...4).contains(parts.count)
             && parts.allSatisfy { !$0.isEmpty && $0.utf8.allSatisfy { (48...57).contains($0) } }
     }

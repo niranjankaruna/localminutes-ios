@@ -45,6 +45,11 @@ public actor ModelInstallationManager {
         let installationID: UUID
     }
 
+    private struct RuntimeHeader: Decodable {
+        let purpose: ModelPurpose
+        let runtimeVersion: String
+    }
+
     private let rootURL: URL
     private let availableBytes: ModelAvailableBytes
     private let downloader: ModelArtifactDownloader?
@@ -208,7 +213,13 @@ public actor ModelInstallationManager {
             try PersistentFilePolicy.validateItem(metadata, within: rootURL)
             let manifest: ModelManifest
             do {
-                manifest = try JSONDecoder().decode(ModelManifest.self, from: readMetadata(metadata))
+                let data = try readMetadata(metadata)
+                let header = try JSONDecoder().decode(RuntimeHeader.self, from: data)
+                if header.purpose == .speechRecognition,
+                   ![ParakeetCoreMLModel.runtimeVersion, ParakeetModelPack.runtimeVersion].contains(header.runtimeVersion) {
+                    continue
+                }
+                manifest = try JSONDecoder().decode(ModelManifest.self, from: data)
                 try validate(manifest)
             } catch { throw ModelInstallationError.invalidInstallation }
             guard manifest.modelID == name, manifest.revision == selected.revision else {
@@ -389,16 +400,7 @@ public actor ModelInstallationManager {
         }
         switch manifest.purpose {
         case .speechRecognition:
-            if assets { break }
-            if roles == [.whisper] {
-                guard manifest.artifacts.count == 1, manifest.sampleRate == 16_000,
-                      manifest.featureDimension == nil, manifest.runtimeVersion == "whisper.cpp-1.7.5" else {
-                    throw ModelInstallationError.invalidManifest
-                }
-            } else {
-                guard roles == [.encoder, .decoder, .joiner, .tokens], manifest.sampleRate == 16_000,
-                      manifest.featureDimension == 80 else { throw ModelInstallationError.invalidManifest }
-            }
+            guard assets else { throw ModelInstallationError.invalidManifest }
         case .summary:
             guard roles == [.summary] else { throw ModelInstallationError.invalidManifest }
         }

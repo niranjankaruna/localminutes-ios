@@ -55,7 +55,7 @@ public final class MeetingTranscriptionReplayCoordinator {
         let meetingLease: MeetingRecordingLease
         var gateLease: HeavyModelUseLease?
         var modelLease: ModelLease?
-        var recognizer: ReplaySpeechRecognizer?
+        var recognizer: CoreMLParakeetRecognizer?
         var work: Task<TranscriptionReplayReport, Error>?
         var completion: Task<TranscriptionReplayReport, Error>?
         var resourcesReleased = false
@@ -87,8 +87,8 @@ public final class MeetingTranscriptionReplayCoordinator {
     private struct ReplaySource: Sendable {
         let manifest: ModelManifest
         let profile: HuggingFaceRuntimeProfile
-        let installationID: UUID?
-        let pinSHA256: String?
+        let installationID: UUID
+        let pinSHA256: String
     }
     private struct RowProof: Codable {
         let id: UUID, sequence: Int, start: Int64, end: Int64, text: String, revision: String
@@ -109,17 +109,14 @@ public final class MeetingTranscriptionReplayCoordinator {
     private let recordingsRoot: URL
     private let usage: MeetingUsageRegistry
     private let admission: HeavyModelAdmission
-    private let modelPolicy: MeetingReplayModelPolicy?
     private let afterClaim: (@Sendable () async -> Void)?
     private let afterCheckpoint: (@Sendable (TranscriptionReplayCheckpoint) async -> Void)?
     private var current: Use?
 
     public init(store: SQLiteMeetingStore, models: ModelInstallationManager,
-                recordingsRoot: URL, usage: MeetingUsageRegistry, admission: HeavyModelAdmission,
-                modelPolicy: MeetingReplayModelPolicy? = nil) {
+                recordingsRoot: URL, usage: MeetingUsageRegistry, admission: HeavyModelAdmission) {
         self.store = store; self.models = models; self.recordingsRoot = recordingsRoot.standardizedFileURL
         self.usage = usage; self.admission = admission; afterClaim = nil; afterCheckpoint = nil
-        self.modelPolicy = modelPolicy
     }
 
     // Scheduling boundaries only. Production uses the public initializer; these
@@ -131,7 +128,6 @@ public final class MeetingTranscriptionReplayCoordinator {
         self.store = store; self.models = models; self.recordingsRoot = recordingsRoot.standardizedFileURL
         self.usage = usage; self.admission = admission; self.afterClaim = afterClaim
         self.afterCheckpoint = afterCheckpoint
-        modelPolicy = nil
     }
 
     public func replay(meetingID: UUID) async throws -> TranscriptionReplayReport {
@@ -173,19 +169,12 @@ public final class MeetingTranscriptionReplayCoordinator {
         let directory = try checkedDirectory(use.id)
         let initialRows = try await store.transcript(meetingID: use.id)
         guard let meeting = try await store.meeting(id: use.id) else { throw TranscriptionReplayError.metadataFailure }
-        let pin = try await store.speechModelPin(meetingID: use.id)
-        let source: ReplaySource
-        if let pin {
-            let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
-            source = .init(manifest: pin.selection.manifest, profile: pin.selection.profile,
-                installationID: pin.selection.installationID, pinSHA256: Self.digest(try encoder.encode(pin)))
-        } else {
-            guard modelPolicy == nil else { throw MeetingSpeechModelPinError.missingPin }
-            // Explicit legacy entry point only; selected captures never infer
-            // an absent pin from whichever model is currently equipped.
-            source = .init(manifest: StreamingEnglishModel.manifest, profile: .streamingZipformerONNX,
-                installationID: nil, pinSHA256: nil)
+        guard let pin = try await store.speechModelPin(meetingID: use.id) else {
+            throw MeetingSpeechModelPinError.missingPin
         }
+        let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
+        let source = ReplaySource(manifest: pin.selection.manifest, profile: pin.selection.profile,
+            installationID: pin.selection.installationID, pinSHA256: Self.digest(try encoder.encode(pin)))
         let revision = source.manifest.revision
         try Task.checkCancellation()
         let reportURL = directory.appendingPathComponent("recovery-report.json")
@@ -245,96 +234,19 @@ public final class MeetingTranscriptionReplayCoordinator {
         catch { throw TranscriptionReplayError.modelUnavailable }
         use.modelLease = lease
         guard lease.model.manifest == source.manifest,
-              source.installationID == nil || source.installationID == lease.model.installationID else {
+              source.installationID == lease.model.installationID else {
             throw TranscriptionReplayError.modelUnavailable
         }
-        if source.profile == .whisperGGML || source.profile == .parakeetTDTCoreML {
-            let windowed: WindowedSpeechRecognizer
-            if source.profile == .parakeetTDTCoreML {
-                guard (try? ParakeetModelPack.configuration(for: source.manifest)) != nil else {
-                    throw TranscriptionReplayError.modelUnavailable
-                }
-                windowed = .parakeet(CoreMLParakeetRecognizer(files: .init(
-                    directory: lease.model.directoryURL, manifest: source.manifest)))
-            } else {
-                guard let file = lease.model.files[.whisper], source.manifest.artifacts.count == 1,
-                      source.manifest.runtimeVersion == "whisper.cpp-1.7.5" else { throw TranscriptionReplayError.modelUnavailable }
-                let artifact = source.manifest.artifacts[0]
-                windowed = .whisper(WhisperSpeechRecognizer(files: .init(model: file, revision: revision,
-                    byteCount: artifact.byteCount, sha256: artifact.sha256)))
-            }
-            use.recognizer = .windowed(windowed)
-            try await windowed.load()
-            return try await replayWindowed(use, recognizer: windowed, source: source, plan: plan,
-                directory: directory, rows: initialRows, remaining: remaining, resume: resume)
-        }
-        guard source.profile == .streamingZipformerONNX,
-              let encoder = lease.model.files[.encoder], let decoder = lease.model.files[.decoder],
-              let joiner = lease.model.files[.joiner], let tokens = lease.model.files[.tokens] else {
+        guard source.profile == .parakeetTDTCoreML,
+              (try? ParakeetModelPack.configuration(for: source.manifest)) != nil else {
             throw TranscriptionReplayError.modelUnavailable
         }
-        let recognizer = CPUStreamingRecognizer(files: .init(encoder: encoder, decoder: decoder,
-            joiner: joiner, tokens: tokens, revision: lease.model.manifest.revision,
-            runtimeVersion: lease.model.manifest.runtimeVersion))
-        use.recognizer = .streaming(recognizer)
+        let recognizer = CoreMLParakeetRecognizer(files: .init(
+            directory: lease.model.directoryURL, manifest: source.manifest))
+        use.recognizer = recognizer
         try await recognizer.load()
-        try Task.checkCancellation()
-        var rows = initialRows
-        var inserted: [UUID] = []
-        var replayed: Int64 = 0
-        var relative: Int64 = 0
-        var globalCursor = resume
-        var utteranceStart = resume
-        var streamActive = false
-        let reader = ReplayCAFReader()
-        do {
-            for segment in remaining {
-                try Task.checkCancellation()
-                let start = max(resume, segment.startFrame)
-                if streamActive && start != globalCursor {
-                    let ending = try await recognizer.finish()
-                    try await commit(ending.text, start: utteranceStart, end: globalCursor,
-                        rows: &rows, inserted: &inserted, plan: plan, directory: directory, id: use.id,
-                        revision: revision, modelPin: source.pinSHA256)
-                    streamActive = false
-                }
-                if !streamActive {
-                    try await recognizer.start(epochID: use.id)
-                    relative = 0; globalCursor = start; utteranceStart = start; streamActive = true
-                }
-                try await reader.open(directory.appendingPathComponent(segment.relativePath),
-                    expectedFrames: segment.frameCount, offset: start - segment.startFrame)
-                while let samples = try await reader.next() {
-                    try Task.checkCancellation()
-                    let output = try await recognizer.accept(samples: samples, sourceStartSample: relative)
-                    relative += Int64(samples.count); globalCursor += Int64(samples.count); replayed += Int64(samples.count)
-                    if output.isEndpoint {
-                        try await commit(output.text, start: utteranceStart, end: globalCursor,
-                            rows: &rows, inserted: &inserted, plan: plan, directory: directory, id: use.id,
-                            revision: revision, modelPin: source.pinSHA256)
-                        try await recognizer.resetAfterEndpoint()
-                        utteranceStart = globalCursor
-                    }
-                }
-                await reader.close()
-            }
-            if streamActive {
-                let ending = try await recognizer.finish()
-                try await commit(ending.text, start: utteranceStart, end: globalCursor,
-                    rows: &rows, inserted: &inserted, plan: plan, directory: directory, id: use.id,
-                    revision: revision, modelPin: source.pinSHA256)
-            }
-            try Task.checkCancellation()
-            try writeCheckpoint(id: use.id, next: plan.report.timelineEndSample, rows: rows, plan: plan,
-                directory: directory, revision: revision, modelPin: source.pinSHA256)
-            return .init(meetingID: use.id, durableFrameCount: plan.report.durableFrameCount,
-                replayedFrameCount: replayed, timelineEndSample: plan.report.timelineEndSample,
-                insertedSegmentIDs: inserted, gaps: plan.report.gaps)
-        } catch {
-            await reader.close()
-            await recognizer.cancel()
-            throw error
-        }
+        return try await replayAudio(use, recognizer: recognizer, source: source, plan: plan,
+            directory: directory, rows: initialRows, remaining: remaining, resume: resume)
     }
 
     private func commit(_ text: String, start: Int64, end: Int64,
@@ -358,7 +270,7 @@ public final class MeetingTranscriptionReplayCoordinator {
         await afterCheckpoint?(checkpoint)
     }
 
-    private func replayWindowed(_ use: Use, recognizer: WindowedSpeechRecognizer, source: ReplaySource,
+    private func replayAudio(_ use: Use, recognizer: CoreMLParakeetRecognizer, source: ReplaySource,
         plan: Plan, directory: URL, rows originalRows: [StoredTranscriptSegment],
         remaining: [StoredAudioSegment], resume: Int64) async throws -> TranscriptionReplayReport {
         try Task.checkCancellation()
@@ -376,7 +288,7 @@ public final class MeetingTranscriptionReplayCoordinator {
                 let start = max(resume, segment.startFrame)
                 if active && start != cursor {
                     let ending = try await recognizer.finish()
-                    try await commitWhisper(ending, base: base, through: relative, rows: &rows, inserted: &inserted,
+                    try await commitFinals(ending, base: base, through: relative, rows: &rows, inserted: &inserted,
                         plan: plan, directory: directory, id: use.id, source: source)
                     active = false
                 }
@@ -390,14 +302,14 @@ public final class MeetingTranscriptionReplayCoordinator {
                     try Task.checkCancellation()
                     let output = try await recognizer.accept(samples, at: relative)
                     relative += Int64(samples.count); cursor += Int64(samples.count); replayed += Int64(samples.count)
-                    try await commitWhisper(output, base: base, through: relative, rows: &rows, inserted: &inserted,
+                    try await commitFinals(output, base: base, through: relative, rows: &rows, inserted: &inserted,
                         plan: plan, directory: directory, id: use.id, source: source)
                 }
                 await reader.close()
             }
             if active {
                 let ending = try await recognizer.finish()
-                try await commitWhisper(ending, base: base, through: relative, rows: &rows, inserted: &inserted,
+                try await commitFinals(ending, base: base, through: relative, rows: &rows, inserted: &inserted,
                     plan: plan, directory: directory, id: use.id, source: source)
             }
             try Task.checkCancellation()
@@ -413,7 +325,7 @@ public final class MeetingTranscriptionReplayCoordinator {
         }
     }
 
-    private func commitWhisper(_ update: WhisperSpeechUpdate, base: Int64, through: Int64,
+    private func commitFinals(_ update: SpeechUpdate, base: Int64, through: Int64,
         rows: inout [StoredTranscriptSegment], inserted: inout [UUID], plan: Plan,
         directory: URL, id: UUID, source: ReplaySource) async throws {
         guard update.epochID == id else { throw TranscriptionReplayError.invalidAudio }
@@ -609,17 +521,6 @@ public final class MeetingTranscriptionReplayCoordinator {
     }
     private nonisolated static func digest(_ data: Data) -> String {
         SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
-    }
-}
-
-private enum ReplaySpeechRecognizer: Sendable {
-    case streaming(CPUStreamingRecognizer)
-    case windowed(WindowedSpeechRecognizer)
-    func unload() async {
-        switch self {
-        case .streaming(let value): await value.unload()
-        case .windowed(let value): await value.unload()
-        }
     }
 }
 

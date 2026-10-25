@@ -122,7 +122,7 @@ final class NativeStartupIntegrationTests: XCTestCase {
             let original = try await h.seedInterruptedMeeting(interrupted)
             XCTAssertTrue(h.application.services === h.services)
             XCTAssertEqual(h.services.startup.state, .notStarted)
-            let model = try await h.services.models.current(modelID: StreamingEnglishModel.manifest.modelID)
+            let model = try await h.services.models.current(modelID: ParakeetCoreMLModel.manifest.modelID)
             XCTAssertNil(model, "The actual default recognizer preflight must see a genuinely absent model")
             let requested = UUID()
             let outcome = try await self.performStart(h, id: requested)
@@ -177,7 +177,7 @@ final class NativeStartupIntegrationTests: XCTestCase {
         try await withFixture { h in
             let interrupted = UUID()
             let original = try await h.seedInterruptedMeeting(interrupted)
-            let model = try await h.services.models.current(modelID: StreamingEnglishModel.manifest.modelID)
+            let model = try await h.services.models.current(modelID: ParakeetCoreMLModel.manifest.modelID)
             XCTAssertNil(model)
             try await h.services.store.close()
             let outcome = try await self.performStart(h, id: UUID())
@@ -216,9 +216,6 @@ final class NativeStartupIntegrationTests: XCTestCase {
 }
 #endif
 
-
-// APPEND to Tests/NativeAppTests/NativeStartupIntegrationTests.swift to reuse its
-// private safe owned-root fixture, actual default Services/Application, and helpers.
 #if os(iOS)
 @MainActor
 extension NativeStartupIntegrationTests {

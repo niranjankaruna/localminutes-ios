@@ -114,8 +114,8 @@ final class ModelTransferIntegrationTests: XCTestCase {
             let importer = ModelFilesImporter(manager: manager, stagingRootURL: noHint)
             let access = FileScopeProbe()
             let before = try f.sourceSnapshot()
-            let model = try await importer.importFiles(f.files, manifest: f.speechManifest, access: access)
-            XCTAssertEqual(model.manifest, f.speechManifest)
+            let model = try await importer.importFiles(f.files, manifest: f.importManifest, access: access)
+            XCTAssertEqual(model.manifest, f.importManifest)
             XCTAssertEqual(try f.importOperations(), [], "Directory URL spelling cannot retain potentially multi-GB source copies")
             XCTAssertEqual(try f.sourceSnapshot(), before)
             assertBalanced(access)
@@ -250,16 +250,16 @@ final class ModelTransferIntegrationTests: XCTestCase {
             // not be copied by treating a selected file's parent as the import.
             let sibling = f.external.appendingPathComponent("README.txt")
             try Data("Original unselected public fixture".utf8).write(to: sibling)
-            let installed = try await importer.importFiles(f.files, manifest: f.speechManifest, access: access)
-            XCTAssertEqual(installed.manifest, f.speechManifest)
+            let installed = try await importer.importFiles(f.files, manifest: f.importManifest, access: access)
+            XCTAssertEqual(installed.manifest, f.importManifest)
             XCTAssertEqual(Set(access.begins), Set(f.files))
             XCTAssertEqual(access.begins.count, f.files.count)
             assertBalanced(access)
-            for artifact in f.speechManifest.artifacts {
+            for artifact in f.importManifest.artifacts {
                 let owned = try XCTUnwrap(installed.files[artifact.role])
                 XCTAssertEqual(transferDigest(try Data(contentsOf: owned)), artifact.sha256)
             }
-            let active = try await manager.current(modelID: f.speechManifest.modelID)
+            let active = try await manager.current(modelID: f.importManifest.modelID)
             XCTAssertEqual(active, installed)
             XCTAssertEqual(try f.sourceSnapshot(), before)
             XCTAssertEqual(try Data(contentsOf: sibling), Data("Original unselected public fixture".utf8))
@@ -271,7 +271,7 @@ final class ModelTransferIntegrationTests: XCTestCase {
         for fault in ["extra", "duplicate", "wrong", "corrupt"] {
             try await fixture { f in
                 let manager = f.factory().makeManager()
-                let original = try await manager.importDirectory(f.external, manifest: f.speechManifest)
+                let original = try await manager.importDirectory(f.external, manifest: f.importManifest)
                 let importer = ModelFilesImporter(manager: manager, stagingRootURL: f.app.appendingPathComponent("ModelImports"))
                 let access = FileScopeProbe()
                 var selected = f.files
@@ -283,9 +283,9 @@ final class ModelTransferIntegrationTests: XCTestCase {
                     let other = f.root.appendingPathComponent("OtherSelection", isDirectory: true)
                     try FileManager.default.createDirectory(at: other, withIntermediateDirectories: false)
                     let duplicate = other.appendingPathComponent(f.files[0].lastPathComponent)
-                    try FileManager.default.copyItem(at: f.files[0], to: duplicate); selected[1] = duplicate
+                    try FileManager.default.copyItem(at: f.files[0], to: duplicate); selected.append(duplicate)
                 case "wrong":
-                    let wrong = f.external.appendingPathComponent("wrong-encoder.onnx")
+                    let wrong = f.external.appendingPathComponent("wrong-model.gguf")
                     try FileManager.default.copyItem(at: f.files[0], to: wrong); selected[0] = wrong
                 default:
                     var corrupted = try Data(contentsOf: selected[0])
@@ -293,13 +293,13 @@ final class ModelTransferIntegrationTests: XCTestCase {
                     try corrupted.write(to: selected[0])
                 }
                 let before = try f.sourceSnapshot()
-                do { _ = try await importer.importFiles(selected, manifest: f.speechManifest, access: access); XCTFail("Invalid Files selection must not publish") }
+                do { _ = try await importer.importFiles(selected, manifest: f.importManifest, access: access); XCTFail("Invalid Files selection must not publish") }
                 catch {
                     if fault == "corrupt" { XCTAssertEqual(error as? ModelInstallationError, .checksumMismatch(f.files[0].lastPathComponent)) }
                     else { XCTAssertEqual(error as? ModelFileImportError, .invalidSelection) }
                 }
                 assertBalanced(access)
-                let retained = try await manager.current(modelID: f.speechManifest.modelID)
+                let retained = try await manager.current(modelID: f.importManifest.modelID)
                 XCTAssertEqual(retained, original)
                 XCTAssertEqual(try f.sourceSnapshot(), before)
                 XCTAssertEqual(try f.importOperations(), [])
@@ -307,26 +307,26 @@ final class ModelTransferIntegrationTests: XCTestCase {
         }
     }
 
-    func testDeniedOrCancelledSecurityAccessEndsEveryPriorGrantWithoutAnActiveInstall() async throws {
+    func testDeniedOrCancelledSecurityAccessBalancesGrantsWithoutAnActiveInstall() async throws {
         for cancel in [false, true] {
             try await fixture { f in
                 let manager = f.factory().makeManager()
                 let importer = ModelFilesImporter(manager: manager, stagingRootURL: f.app.appendingPathComponent("ModelImports"))
-                let access = FileScopeProbe(denied: cancel ? nil : f.files[1], cancelAfterFirstGrant: cancel)
+                let access = FileScopeProbe(denied: cancel ? nil : f.files[0], cancelAfterFirstGrant: cancel)
                 let before = try f.sourceSnapshot()
                 let pending = Task { @MainActor in
-                    try await importer.importFiles(f.files, manifest: f.speechManifest, access: access)
+                    try await importer.importFiles(f.files, manifest: f.importManifest, access: access)
                 }
                 do { _ = try await pending.value; XCTFail("Denied/cancelled Files access must not report installation") }
                 catch {
                     if cancel { XCTAssertTrue(error is CancellationError) }
                     else { XCTAssertEqual(error as? ModelFileImportError, .accessDenied) }
                 }
-                XCTAssertEqual(access.begins.count, 1)
+                XCTAssertEqual(access.begins.count, cancel ? 1 : 0)
                 assertBalanced(access)
                 if cancel { XCTAssertTrue(access.cancelledCurrentTask) }
-                else { XCTAssertEqual(access.attemptCount, 2) }
-                let active = try await manager.current(modelID: f.speechManifest.modelID)
+                else { XCTAssertEqual(access.attemptCount, 1) }
+                let active = try await manager.current(modelID: f.importManifest.modelID)
                 XCTAssertNil(active)
                 XCTAssertEqual(try f.sourceSnapshot(), before)
                 XCTAssertEqual(try f.importOperations(), [])
@@ -356,7 +356,7 @@ private final class TransferFixture {
     let root: URL
     let app: URL
     let external: URL
-    let names = ["encoder.onnx", "decoder.onnx", "joiner.onnx", "tokens.txt"]
+    let names = ["imported.gguf"]
     let downloadBytes = Data((0..<4_096).map { UInt8($0 % 251) })
     let revision = String(repeating: "a", count: 40)
     var files: [URL] { names.map { external.appendingPathComponent($0) } }
@@ -367,15 +367,14 @@ private final class TransferFixture {
             licenseIdentifier: "CC0-1.0", licenseNotice: "Original synthetic bytes; no inference claim.",
             runtimeVersion: "llama.cpp-b5046", artifacts: [artifact])
     }
-    var speechManifest: ModelManifest {
-        let roles: [ModelFileRole] = [.encoder, .decoder, .joiner, .tokens]
-        return ModelManifest(modelID: "files-import", purpose: .speechRecognition,
+    var importManifest: ModelManifest {
+        return ModelManifest(modelID: "files-import", purpose: .summary,
             upstreamRepository: URL(string: "https://huggingface.co/example/model")!, revision: revision,
             licenseIdentifier: "CC0-1.0", licenseNotice: "Original synthetic Files fixtures; installer integrity only.",
-            runtimeVersion: "sherpa-onnx-1.13.8", sampleRate: 16_000, featureDimension: 80,
-            artifacts: names.enumerated().map { index, name in
+            runtimeVersion: "llama.cpp-b5046",
+            artifacts: names.map { name in
                 let bytes = Data("Original \(name) fixture bytes".utf8)
-                return .init(role: roles[index], fileName: name, byteCount: Int64(bytes.count), sha256: transferDigest(bytes),
+                return .init(role: .summary, fileName: name, byteCount: Int64(bytes.count), sha256: transferDigest(bytes),
                     downloadURL: URL(string: "https://huggingface.co/example/model/resolve/\(revision)/\(name)")!,
                     digestProvenance: .independentlyDownloaded)
             })

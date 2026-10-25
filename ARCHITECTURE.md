@@ -17,7 +17,7 @@ flowchart TD
     App --> Intelligence[IntelligenceSession]
     Owner --> Capture[Audio capture worker]
     Capture --> CAF[Segmented CAF audio and manifest]
-    Capture --> ASR[LiveTranscriptionSession / selected recognizer]
+    Capture --> ASR[LiveTranscriptionSession / Parakeet Core ML]
     ASR --> Store[SQLiteMeetingStore]
     Library --> Store
     Library --> CAF
@@ -38,7 +38,7 @@ flowchart TD
 | [Models](./Models) | Immutable manifests, compatibility assessment, transfers, imports, installation leases, and selections |
 | [Persistence](./Persistence) | Actor-owned SQLite connection, schema migrations, notes, transcript rows, generated documents, model pins, and checkpoints |
 | [MeetingLibrary](./MeetingLibrary) | History, selection, edits, playback mapping, exports, startup reconciliation, recovery, deletion, and library replacement |
-| [Transcription](./Transcription) | Native speech adapters, live transcription, and checkpointed transcription replay |
+| [Transcription](./Transcription) | Parakeet TDT Core ML adapter, live transcription, and checkpointed transcription replay |
 | [Summaries](./Summaries) | Native local-language runtime, JSON schemas, token planning, evidence validation, summary maps, and deterministic merge |
 | [QuestionAnswering](./QuestionAnswering) | Selected-meeting evidence retrieval, bounded prompts, and exact-quote answers |
 | [Intelligence](./Intelligence) | Inference lifecycle, cancellation, commit admission, summary resume, and Apple Foundation Models adapter |
@@ -48,7 +48,7 @@ The extension presents recording state; it does not capture audio or load models
 
 ## Ownership and concurrency
 
-UI-facing controllers and application composition run on the main actor. SQLite and model installation each have actor isolation. Native recognizers and local-language generation serialize their work behind their adapters. The microphone callback communicates through bounded queues rather than starting asynchronous tasks.
+UI-facing controllers and application composition run on the main actor. SQLite and model installation each have actor isolation. Parakeet recognition and local-language generation serialize their work behind their adapters. The microphone callback communicates through bounded queues rather than starting asynchronous tasks.
 
 [HeavyModelAdmission](./Core/HeavyModelAdmission.swift) permits one heavy use at a time: live ASR, summary, question answering, or library maintenance. Its lifecycle is `idle → admitted → draining → idle`. A cleanup failure leaves it `cleanupBlocked`; a later retry completes the outstanding cleanup before allowing another use. Cancellation alone does not release the resource.
 
@@ -81,7 +81,6 @@ flowchart LR
     Writer --> Manifest[Atomic capture manifest]
     Convert --> LiveQueue[Bounded normalized PCM queue]
     LiveQueue --> Recognizer[Serial native recognizer]
-    Recognizer --> Partial[Transient partial text]
     Recognizer --> Final[Final transcript rows in SQLite]
 ```
 
@@ -91,7 +90,7 @@ flowchart LR
 
 [SegmentCAFWriter](./Recording/SegmentCAFWriter.swift) stores 16-bit mono PCM in CAF segments, normally up to 960,000 frames / 60 seconds each. A segment is closed and synchronized before an atomic manifest update publishes its relative path and sample range. The open tail is not treated as durable after a crash. Sample positions form one recording-wide timeline.
 
-[LiveTranscriptionSession](./Transcription/LiveTranscriptionSession.swift) consumes normalized PCM away from the capture callback. Partial recognition is transient. Finalized segments are written to SQLite before being presented as saved transcript. Bounded PCM queues do not imply constant memory for an entire meeting: accumulated transcript/UI data can grow with its duration.
+[LiveTranscriptionSession](./Transcription/LiveTranscriptionSession.swift) consumes normalized PCM away from the capture callback. Parakeet publishes finalized windows. These segments are written to SQLite before being presented as saved transcript. Bounded PCM queues do not imply constant memory for an entire meeting: accumulated transcript/UI data can grow with its duration.
 
 ### Stop and interruptions
 
@@ -99,21 +98,26 @@ Stop closes callback admission, waits for admitted callbacks, drains conversion 
 
 [IOSRecordingSignalMonitor](./App/IOSRecordingSignalMonitor.swift) scopes interruptions, route changes, media-service resets, thermal conditions, and storage signals to the current epoch. A late signal cannot stop a replacement session. Interruptions do not silently restart the microphone.
 
-### Speech adapters
+### Speech recognition
 
-| Adapter | Current behavior |
+[CoreMLParakeetRecognizer](./Transcription/CoreMLParakeetRecognizer.swift) is the speech adapter for live recording and replay. It uses FluidAudio's Swift TDT decoder with compiled Core ML models, 16 kHz mono PCM, and disjoint five-second windows. It publishes each window's finalized text during capture and flushes the remaining audio on stop. Segment times retain the source sample range; word alignment and speaker diarization are not provided.
+
+[SpeechRecognition](./Transcription/SpeechRecognition.swift) defines errors, lifecycle phases, and finalized segment updates. [ParakeetModelAdapter](./Transcription/ParakeetModelAdapter.swift) selects the decoder using the manifest's explicit contract and validates loaded Core ML input/output descriptions and decoder state shapes.
+
+| Decoder contract | Core ML pack support |
 | --- | --- |
-| [CPUStreamingRecognizer](./Transcription/CPUStreamingRecognizer.swift) | sherpa-onnx Zipformer, true streaming, pinned encoder/decoder/joiner/tokens set, 80 input features, two CPU threads |
-| [WhisperSpeechRecognizer](./Transcription/WhisperSpeechRecognizer.swift) | whisper.cpp CPU inference, up to 30-second rolling windows, decoding every five seconds, four threads |
-| [CoreMLParakeetRecognizer](./Transcription/CoreMLParakeetRecognizer.swift) | Reviewed TDT v2/v3 packs through FluidAudio, disjoint five-second finalization windows; CPU is the default policy |
+| `parakeet-tdt-v2` | int8 encoder; built-in pinned v2 conversion in [ParakeetCoreMLModel](./Models/ParakeetCoreMLModel.swift) or a valid versioned pack |
+| `parakeet-tdt-v3` | int8, int8-v2, or int4 encoder; bundled [v3 descriptor](./Resources/ModelPacks/Parakeet-v3.json) uses int8 |
 
-Parakeet's chunked interface wraps an offline model; it is not equivalent to Zipformer's streaming decoder. A CPU-and-Neural-Engine Parakeet policy exists but is not the default; GPU inference is not selected. Transcript timing is segment-level sample evidence, not a guarantee of word alignment or speaker diarization.
+[ParakeetModelPack](./Models/ParakeetModelPack.swift) validates the decoder contract, precision, component paths, immutable revision, sizes, digests, and attribution. It requires the encoder, decoder, preprocessor, matching joint-decision model, and vocabulary. Other decoder contracts are rejected until the app has a matching adapter; a model name alone cannot enable them.
+
+CPU-only is the production default. The adapter also exposes an explicit CPU-and-Neural-Engine policy; neither policy selects GPU inference. Native tests exercise both model versions on hosted macOS. Live speed, thermal endurance, and locked-screen operation on an iPhone remain device properties.
 
 ## Model lifecycle
 
 [ModelManifest](./Models/ModelManifest.swift) binds a model identity to an immutable revision, exact file sizes and SHA-256 hashes, license notice, runtime identity, and semantic file roles. Compatibility, resource estimates, byte verification, and successful native load are separate checks.
 
-[HuggingFaceRepository](./Models/HuggingFaceRepository.swift) inspects public repositories through bounded metadata requests. Model cards are displayed as inert text. The app supports specific reviewed runtime contracts: an arbitrary ONNX/Core ML/GGUF file does not become usable merely because its extension is recognized.
+[HuggingFaceRepository](./Models/HuggingFaceRepository.swift) inspects public repositories through bounded metadata requests. Model cards are displayed as inert text. The app supports specific reviewed runtime contracts: an arbitrary Core ML or GGUF file does not become usable merely because its extension is recognized.
 
 [ModelInstallationManager](./Models/ModelInstallationManager.swift) follows this lifecycle:
 
@@ -123,11 +127,13 @@ Parakeet's chunked interface wraps an offline model; it is not equivalent to Zip
 4. Atomically update that model's `current.json` pointer.
 5. Reverify bytes when acquiring a usage lease. Keep leased older installations alive across replacement; reject removal while in use.
 
+The model browser omits installed speech runtimes that this build cannot load. Their stored files are preserved. Equipping a supported Parakeet pack replaces the speech selection.
+
 [ModelFilesImporter](./Models/ModelFilesImporter.swift) copies selected Files-provider resources into protected staging. Core ML imports require the complete supported compiled-model tree. Source files are not used as mutable inference storage.
 
 [HTTPSModelTransport](./Models/HTTPSModelTransport.swift) uses HTTPS with an explicit distribution-host allowlist and no account credentials or cookies. [ResumableModelDownload](./Models/ResumableModelDownload.swift) keeps partial bytes and a checkpoint under a separate download root. Resume binds the exact artifact pin, strong ETag, and partial digest; it validates `206` ranges and restarts on a full `200` response.
 
-[ModelSelectionStore](./Models/ModelSelectionStore.swift) persists an exact verified installation and runtime profile per purpose. An explicit absent, invalid, removed, or incompatible selection does not silently fall back. For older libraries without selection records, the existing compatibility path resolves the built-in Zipformer and Phi-3 model IDs. Each new meeting stores the exact speech selection it used, including installation UUID.
+[ModelSelectionStore](./Models/ModelSelectionStore.swift) persists an exact verified installation and runtime profile per purpose. An explicit absent, invalid, removed, or incompatible selection does not silently fall back. Without a selection record, the app checks the built-in Parakeet v2 and Phi-3 model IDs. Each new meeting stores the exact speech selection it used, including installation UUID.
 
 Apple Foundation Models is a distinct system provider. It has no app-downloaded weights or weight hash and is usable only when the OS reports it available. Its provenance is tied to the system/runtime version.
 
@@ -182,7 +188,7 @@ History uses stable cursor pagination; transcript search and evidence retrieval 
 
 [MeetingRecoveryCoordinator](./MeetingLibrary/MeetingRecoveryCoordinator.swift) verifies the capture manifest and decodes closed CAF files. Missing or corrupt audio becomes explicit timeline gaps. Uncommitted or corrupt tails are quarantined; their positions are not guessed. Its durable journal allows retry after metadata failure.
 
-[MeetingTranscriptionReplayCoordinator](./Transcription/MeetingTranscriptionReplayCoordinator.swift) replays recovered audio using the meeting's captured model pin. A checkpoint binds the audio/recovery manifests, committed transcript rows, and model pin. Resume appends remaining finalized rows without duplicate output. Reinstalling identical weights under another installation UUID does not satisfy the original pin. Checkpoint hashes detect inconsistency; they are not cryptographic authentication against an attacker controlling the library.
+[MeetingTranscriptionReplayCoordinator](./Transcription/MeetingTranscriptionReplayCoordinator.swift) replays recovered audio using the meeting's captured Parakeet model pin. A missing, invalid, or unsupported pin refuses replay without altering the original audio or transcript. A checkpoint binds the audio/recovery manifests, committed transcript rows, and model pin. Resume appends remaining finalized rows without duplicate output. Reinstalling identical weights under another installation UUID does not satisfy the original pin. Checkpoint hashes detect inconsistency; they are not cryptographic authentication against an attacker controlling the library.
 
 [MeetingDeletionCoordinator](./MeetingLibrary/MeetingDeletionCoordinator.swift) checks usage, records a durable request, quarantines owned audio, deletes metadata with cascading rows, and completes filesystem cleanup. Startup can finish an interrupted deletion. Deleting a current meeting does not erase copies already exported or retained in previous library generations.
 
@@ -222,13 +228,8 @@ Network operations are model discovery/downloads, not meeting uploads. Text/Mark
 
 | Dependency | Pin and role |
 | --- | --- |
-| sherpa-onnx | 1.13.8, revision `11afbd009a7f8c08f4bcf2fc1b265d0df4670fbf`; CPU streaming ASR |
-| ONNX Runtime | 1.28.2, external Swift package through the [ASR wrapper](./Vendor/SherpaASROnly/Package.swift) |
 | FluidAudio | Revision `c79c4106b954f81205113c3343e5a7e59a1089b5`, optional traits disabled; Parakeet decoding |
-| whisper.cpp | 1.7.5, pinned framework prepared by [prepare_whisper_fixture.py](./scripts/fixtures/prepare_whisper_fixture.py) |
 | llama.cpp | b5046, pinned framework prepared by [prepare_native_summary.py](./scripts/fixtures/prepare_native_summary.py) |
 | Apple frameworks | SwiftUI, AVFoundation, ActivityKit, AppIntents, Core ML, and optionally Foundation Models |
 
-[prepare_asr_only.py](./scripts/prepare_asr_only.py) packages nine ASR archives into the local sherpa binary wrapper. iOS device/simulator slices are source-built with TTS and speaker diarization disabled. macOS uses the verified upstream universal2 no-TTS binary archive; its complete compiler/build-input provenance is not attested by the local receipt. ONNX Runtime stays external rather than being merged twice.
-
-The native build and IPA audits check expected ASR entry points and the absence of defined eSpeak/Piper implementation symbols. This is a packaging boundary check, not a complete license or reachability audit. [THIRD_PARTY_NOTICES.txt](./Resources/THIRD_PARTY_NOTICES.txt) remains the bundled legal resource. Native libraries, model weights, recordings, and generated projects are not committed.
+[package-ios.mjs](./scripts/package-ios.mjs) checks bundle/source identity, device architectures, unsigned state, and excluded private/model data. [THIRD_PARTY_NOTICES.txt](./Resources/THIRD_PARTY_NOTICES.txt) contains the retained dependencies' bundled legal notices. Native libraries, model weights, recordings, and generated projects are not committed.

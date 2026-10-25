@@ -269,41 +269,6 @@ final class HuggingFaceRepositoryTests: XCTestCase {
         XCTAssertEqual(HFProtocol.state.requests.count, 3)
     }
 
-    func testRawWhisperSafetensorsRequiresConversionAndSuggestsReviewedFormatRepository() async throws {
-        try setup(metadata(files: [file("model.safetensors")], pipeline: "automatic-speech-recognition", library: "transformers"),
-                  modelType: "whisper", architecture: "WhisperForConditionalGeneration")
-        let value = try await service().inspect("example/model")
-        let result = value.assessment(for: .speechRecognition, maximumDownloadBytes: 1_000)
-        XCTAssertEqual(result.status, .conversionRequired)
-        XCTAssertTrue(result.suggestedRepositories.contains("ggerganov/whisper.cpp"))
-        XCTAssertNil(result.profile); XCTAssertTrue(result.selectedFiles.isEmpty)
-    }
-
-    func testWhisperGGMLIsPlannedRuntimeRatherThanCurrentStreamingReadiness() async throws {
-        try setup(metadata(files: [file("ggml-small.en.bin")], pipeline: "automatic-speech-recognition", library: "whisper.cpp"),
-                  modelType: "whisper", architecture: "WhisperForConditionalGeneration")
-        let value = try await service().inspect("example/model")
-        let result = value.assessment(for: .speechRecognition, maximumDownloadBytes: 1_000)
-        XCTAssertEqual(result.status, .plannedRuntime); XCTAssertEqual(result.profile, .whisperGGML)
-        XCTAssertNotEqual(result.status, .supported)
-    }
-
-    func testStreamingZipformerRequiresCompleteMatchingHashedArtifactSet() async throws {
-        let names = ["encoder-epoch-99-avg-1-chunk-16-left-128.int8.onnx",
-            "decoder-epoch-99-avg-1-chunk-16-left-128.int8.onnx",
-            "joiner-epoch-99-avg-1-chunk-16-left-128.int8.onnx", "tokens.txt"]
-        try setup(metadata(files: names.map { file($0) }, pipeline: "automatic-speech-recognition", library: "sherpa-onnx"),
-                  modelType: "zipformer", architecture: "StreamingZipformer")
-        let complete = try await service().inspect("example/model")
-        let result = complete.assessment(for: .speechRecognition, maximumDownloadBytes: 1_000)
-        XCTAssertEqual(result.status, .supported); XCTAssertEqual(result.profile, .streamingZipformerONNX)
-        XCTAssertEqual(Set(result.selectedFiles.map(\.fileName)), Set(names)); XCTAssertEqual(result.totalBytes, 512)
-        try setup(metadata(files: names.dropLast().map { file($0) }, pipeline: "automatic-speech-recognition", library: "sherpa-onnx"),
-                  modelType: "zipformer", architecture: "StreamingZipformer")
-        let incomplete = try await service().inspect("example/model")
-        XCTAssertEqual(incomplete.assessment(for: .speechRecognition, maximumDownloadBytes: 1_000).status, .unsupported)
-    }
-
     func testSpeechAndSummaryPurposeCannotSelectTheOtherRuntime() async throws {
         try setup()
         let value = try await service().inspect("example/model")
@@ -324,23 +289,6 @@ final class HuggingFaceRepositoryTests: XCTestCase {
         let large = value.assessment(for: .summary, fileName: "model-f16.gguf", maximumDownloadBytes: 1_000)
         XCTAssertEqual(large.status, .tooLarge)
         XCTAssertEqual(large.totalBytes, 5_000)
-    }
-
-    func testTinyBaseAndQuantizedWhisperVariantsSelectOneFileWithoutRepositoryOwnerRules() async throws {
-        let names = ["ggml-tiny.en.bin", "ggml-base.en.bin", "ggml-small.en-q5_1.bin"]
-        try setup(metadata(files: names.enumerated().map { file($0.element, size: Int64(($0.offset + 1) * 100)) },
-                           pipeline: "automatic-speech-recognition", library: "whisper.cpp"),
-                  modelType: "whisper", architecture: "WhisperForConditionalGeneration")
-        let value = try await service().inspect("example/model")
-        XCTAssertEqual(value.assessment(for: .speechRecognition, maximumDownloadBytes: 1_000).status, .selectionRequired)
-        for (index, name) in names.enumerated() {
-            let selected = value.assessment(for: .speechRecognition, fileName: name, maximumDownloadBytes: 1_000)
-            XCTAssertEqual(selected.status, .plannedRuntime)
-            XCTAssertEqual(selected.profile, .whisperGGML)
-            XCTAssertEqual(selected.selectedFiles.map(\.fileName), [name])
-            XCTAssertEqual(selected.totalBytes, Int64((index + 1) * 100))
-        }
-        XCTAssertEqual(HFProtocol.state.requests.count, 3)
     }
 
     func testRequestedFileMustExistAndBelongToTheChosenPurpose() async throws {
@@ -373,37 +321,6 @@ final class HuggingFaceRepositoryTests: XCTestCase {
         XCTAssertNil(result.estimatedRAMLowerBoundBytes)
         XCTAssertNil(result.estimatedRAMUpperBoundBytes)
         XCTAssertEqual(result.estimateBasis, .unknown)
-        XCTAssertFalse(result.notes.isEmpty)
-    }
-
-    func testWhisperReferenceMemoryIsLabeledEstimateAndComparedWithAppAvailableMemory() async throws {
-        try setup(metadata(files: [file("ggml-tiny.en.bin", size: 75_000_000)],
-                           pipeline: "automatic-speech-recognition", library: "whisper.cpp"),
-                  modelType: "whisper", architecture: "WhisperForConditionalGeneration")
-        let value = try await service().inspect("example/model")
-        let result = value.resourceAssessment(for: .speechRecognition, fileName: "ggml-tiny.en.bin",
-            device: .init(freeDiskBytes: 1_000_000_000, totalMemoryBytes: 8_000_000_000,
-                          availableAppMemoryBytes: 100_000_000))
-        XCTAssertEqual(result.requiredDiskBytes, 75_000_000)
-        XCTAssertEqual(result.status, .insufficientMemory)
-        XCTAssertEqual(result.estimateBasis, .upstreamWhisperReference)
-        XCTAssertGreaterThan(try XCTUnwrap(result.estimatedRAMLowerBoundBytes), 100_000_000)
-        XCTAssertGreaterThanOrEqual(try XCTUnwrap(result.estimatedRAMUpperBoundBytes),
-                                    try XCTUnwrap(result.estimatedRAMLowerBoundBytes))
-        XCTAssertFalse(result.notes.isEmpty)
-    }
-
-    func testQuantizedWhisperReferenceRemainsCautionRatherThanMeasuredMemoryPromise() async throws {
-        try setup(metadata(files: [file("ggml-small.en-q5_1.bin", size: 180_000_000)],
-                           pipeline: "automatic-speech-recognition", library: "whisper.cpp"),
-                  modelType: "whisper", architecture: "WhisperForConditionalGeneration")
-        let value = try await service().inspect("example/model")
-        let result = value.resourceAssessment(for: .speechRecognition, fileName: "ggml-small.en-q5_1.bin",
-            device: .init(freeDiskBytes: 2_000_000_000, totalMemoryBytes: 8_000_000_000,
-                          availableAppMemoryBytes: 3_000_000_000))
-        XCTAssertEqual(result.status, .caution)
-        XCTAssertEqual(result.estimateBasis, .upstreamWhisperReference)
-        XCTAssertGreaterThan(try XCTUnwrap(result.estimatedRAMLowerBoundBytes), 0)
         XCTAssertFalse(result.notes.isEmpty)
     }
 

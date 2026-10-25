@@ -62,7 +62,7 @@ public struct HuggingFaceModelFile: Equatable, Sendable {
 }
 
 public enum HuggingFaceRuntimeProfile: String, Codable, Hashable, Sendable {
-    case streamingZipformerONNX, whisperGGML, llamaGGUF, parakeetTDTCoreML
+    case llamaGGUF, parakeetTDTCoreML
 }
 
 public enum HuggingFaceCompatibilityStatus: String, Equatable, Sendable {
@@ -96,7 +96,7 @@ public enum ModelResourceStatus: String, Equatable, Sendable {
 }
 
 public enum ModelMemoryEstimateBasis: String, Equatable, Sendable {
-    case unknown, upstreamWhisperReference, weightsAndContextEstimate, upstreamCoreMLReference
+    case unknown, weightsAndContextEstimate, upstreamCoreMLReference
 }
 
 public struct ModelResourceAssessment: Equatable, Sendable {
@@ -137,8 +137,6 @@ public struct HuggingFaceModelRepository: Equatable, Sendable {
     public var parakeetManifest: ModelManifest? = nil
 
     /// Format compatibility is not installed-model readiness or quality proof.
-    /// Whisper GGML is a planned backend; only reviewed Qwen2/Phi3 GGUF and
-    /// streaming Zipformer configurations can qualify for existing runtimes.
     public func assessment(for purpose: ModelPurpose, fileName: String? = nil,
                            maximumDownloadBytes: Int64) -> HuggingFaceCompatibilityAssessment {
         func result(_ status: HuggingFaceCompatibilityStatus, _ reason: String,
@@ -205,36 +203,9 @@ public struct HuggingFaceModelRepository: Equatable, Sendable {
                     && name.range(of: "-[0-9]{5}-of-[0-9]{5}\\.gguf$", options: .regularExpression) == nil
             }
         } else {
-            let whisper = files.filter { Self.whisperFamily($0.fileName) != nil }
-            if !whisper.isEmpty { profile = .whisperGGML; candidates = whisper }
-            else {
-                let isStreaming = architectures.contains { $0.lowercased().contains("streamingzipformer") }
-                    || files.contains { $0.fileName.contains("chunk-") && $0.fileName.hasSuffix(".onnx") }
-                guard isStreaming else {
-                    if type == "whisper", files.contains(where: { $0.fileName.hasSuffix(".safetensors") }) {
-                        return result(.conversionRequired, "Raw Whisper Transformers weights require conversion to a reviewed whisper.cpp GGML file; choose a converted variant from a publisher you review.", suggestions: ["ggerganov/whisper.cpp"])
-                    }
-                    return result(.unsupported, "No complete supported speech artifact format was found.")
-                }
-                profile = .streamingZipformerONNX
-                let encoder = files.filter { $0.fileName.hasPrefix("encoder-") && $0.fileName.hasSuffix(".onnx") }
-                let groups = encoder.compactMap { item -> [HuggingFaceModelFile]? in
-                    let suffix = String(item.fileName.dropFirst("encoder-".count))
-                    guard let decoder = files.first(where: { $0.fileName == "decoder-" + suffix }),
-                          let joiner = files.first(where: { $0.fileName == "joiner-" + suffix }),
-                          let tokens = files.first(where: { $0.fileName == "tokens.txt" }) else { return nil }
-                    return [item, decoder, joiner, tokens]
-                }
-                let selectedGroup = fileName.flatMap { requested in groups.first { $0.contains { $0.fileName == requested } } }
-                if fileName != nil, selectedGroup == nil { return result(.unsupported, "The requested file does not identify a complete streaming artifact set.") }
-                guard let group = selectedGroup ?? (groups.count == 1 ? groups.first : nil) else {
-                    return result(groups.count > 1 ? .selectionRequired : .unsupported,
-                        "Choose one complete matching encoder, decoder, joiner and tokens set.")
-                }
-                candidates = group
-            }
+            return result(.unsupported, "Speech recognition requires a complete supported Parakeet TDT Core ML model pack.")
         }
-        if profile != .streamingZipformerONNX && profile != .parakeetTDTCoreML {
+        if profile != .parakeetTDTCoreML {
             if let fileName {
                 guard let chosen = candidates.first(where: { $0.fileName == fileName }) else {
                     return result(.unsupported, "The requested file does not match this runtime and purpose.")
@@ -269,9 +240,7 @@ public struct HuggingFaceModelRepository: Equatable, Sendable {
         if profile == .parakeetTDTCoreML {
             return result(.supported, "Native Core ML + Swift TDT supports this model pack's declared decoder contract. Speech is decoded in bounded chunks; phone speed and locked-screen use require measurement.", profile, candidates, total)
         }
-        return result(profile == .whisperGGML ? .plannedRuntime : .supported,
-            profile == .whisperGGML ? "Whisper GGML format identified; its runtime must pass native validation before recording can use it."
-                : "Reviewed runtime format with pinned upstream metadata; actual bytes must still be verified and loaded.", profile, candidates, total)
+        return result(.supported, "Reviewed runtime format with pinned upstream metadata; actual bytes must still be verified and loaded.", profile, candidates, total)
     }
 
     /// Compare only the selected artifact/set against actual device facts.
@@ -286,14 +255,7 @@ public struct HuggingFaceModelRepository: Equatable, Sendable {
         var upper: Int64?
         var basis = ModelMemoryEstimateBasis.unknown
         var notes = ["Disk is selected artifact bytes only; installation also needs staging, filesystem overhead and the recording reserve."]
-        if chosen.profile == .whisperGGML, let name = chosen.selectedFiles.first?.fileName,
-           let family = Self.whisperFamily(name) {
-            let reference: [String: Int64] = ["tiny": 273_000_000, "base": 388_000_000,
-                "small": 852_000_000, "medium": 2_100_000_000, "large": 3_900_000_000]
-            lower = reference[family]; upper = lower.map { $0 + $0 / 2 }
-            basis = .upstreamWhisperReference
-            notes.append("Approximate upstream unquantized Whisper reference with additional planning headroom; not this quantization's measured peak, a strict bound, or a phone measurement.")
-        } else if chosen.profile == .parakeetTDTCoreML {
+        if chosen.profile == .parakeetTDTCoreML {
             if parakeetManifest == nil {
                 lower = 800_000_000; upper = 1_200_000_000; basis = .upstreamCoreMLReference
                 notes.append("Planning estimate from the conversion publisher's roughly800MB desktop peak plus headroom. This is not an iPhone measurement or a guarantee; only the equipped speech model is loaded.")
@@ -325,14 +287,6 @@ public struct HuggingFaceModelRepository: Equatable, Sendable {
             estimateBasis: basis, notes: notes)
     }
 
-    private static func whisperFamily(_ fileName: String) -> String? {
-        let name = URL(fileURLWithPath: fileName).lastPathComponent.lowercased()
-        guard name.hasPrefix("ggml-"), name.hasSuffix(".bin") else { return nil }
-        return ["tiny", "base", "small", "medium", "large"].first {
-            let tail = name.dropFirst("ggml-".count + $0.count)
-            return name.hasPrefix("ggml-" + $0) && (tail.hasPrefix(".") || tail.hasPrefix("-"))
-        }
-    }
     private static func checkedSum(_ values: [Int64]) -> Int64? {
         var result: Int64 = 0
         for value in values { let step = result.addingReportingOverflow(value); if step.overflow { return nil }; result = step.partialValue }

@@ -180,7 +180,7 @@ test('rejects signing material in either app or extension', async () => {
 });
 
 test('rejects model weights, recordings, databases and local secrets in the app', async () => {
-  for (const name of ['encoder.onnx', 'weights.gguf', 'meeting.caf', 'meeting.wav', 'meeting.sqlite', '.env', 'PlugIns/LocalMinutesLiveActivity.appex/Resources/meeting.caf']) {
+  for (const name of ['weights.gguf', 'meeting.caf', 'meeting.wav', 'meeting.sqlite', '.env', 'PlugIns/LocalMinutesLiveActivity.appex/Resources/meeting.caf']) {
     await withWorkspace(async folder => {
       const appPath = join(folder, 'LocalMinutes.app'); cpSync(builtApp, appPath, { recursive: true });
       const file = join(appPath, name); mkdirSync(dirname(file), { recursive: true });

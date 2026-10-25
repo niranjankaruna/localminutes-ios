@@ -16,7 +16,6 @@ LiveActivityExtension/Info.plist
 models-downloaded/
 Native/Artifacts/
 *.gguf
-*.onnx
 *.xcframework/
 *.framework/
 *.a

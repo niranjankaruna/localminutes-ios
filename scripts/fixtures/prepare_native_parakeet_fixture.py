@@ -9,8 +9,27 @@ import json
 import tarfile
 import time
 import urllib.request
-from prepare_native_fixture import (BoundedPrefix, ARCHIVE_URL, MEMBER,
-    TRANSCRIPT_MEMBER, UTTERANCE, REFERENCE, FLAC_SIZE, FLAC_SHA256)
+ARCHIVE_URL = "https://www.openslr.org/resources/12/test-clean.tar.gz"
+UTTERANCE = "6930-75918-0000"
+MEMBER = "LibriSpeech/test-clean/6930/75918/" + UTTERANCE + ".flac"
+TRANSCRIPT_MEMBER = "LibriSpeech/test-clean/6930/75918/6930-75918.trans.txt"
+REFERENCE = "CONCORD RETURNED TO ITS PLACE AMIDST THE TENTS"
+FLAC_SIZE = 74138
+FLAC_SHA256 = "9ce35224156f071ab58eb7feb8a5ceae600f6f9f353da2a6cbf797b6b1ac8a23"
+
+
+class BoundedPrefix:
+    def __init__(self, response):
+        self.response = response
+        self.total = 0
+        self.deadline = time.monotonic() + 120
+
+    def read(self, size=-1):
+        if size < 0 or self.total + size > 32 * 1024 * 1024 or time.monotonic() > self.deadline:
+            raise RuntimeError("Official archive prefix exceeded32MiB/120s fixture bound")
+        block = self.response.read(size)
+        self.total += len(block)
+        return block
 
 REPOSITORY = "FluidInference/parakeet-tdt-0.6b-v2-coreml"
 REVISION = "ee09c569f73759e6d44c9bd16766f477b2b36d39"

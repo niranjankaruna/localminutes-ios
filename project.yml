@@ -12,8 +12,6 @@ settings:
     TARGETED_DEVICE_FAMILY: '1'
     CODE_SIGNING_ALLOWED: 'NO'
 packages:
-  sherpa-onnx:
-    path: Vendor/SherpaASROnly
   FluidAudio:
     url: https://github.com/FluidInference/FluidAudio.git
     revision: c79c4106b954f81205113c3343e5a7e59a1089b5
@@ -58,11 +56,6 @@ targets:
       - framework: .agent-local/native-llm/llama.xcframework
         embed: true
         codeSign: false
-      - framework: .agent-local/whisper-fixtures/whisper.xcframework
-        embed: true
-        codeSign: false
-      - package: sherpa-onnx
-        product: sherpa-onnx
       - package: FluidAudio
         product: FluidAudio
       - sdk: libsqlite3.tbd

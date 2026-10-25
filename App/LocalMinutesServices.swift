@@ -171,14 +171,14 @@ final class LocalMinutesServices: PlaybackHardware {
               let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String,
               let number = Int(build) else { throw MetricsValidationError.invalidIdentity }
         let metrics = try TranscriptionMetricsRecorder(identity: .init(sourceCommit: source,
-            modelRevision: StreamingEnglishModel.manifest.revision,
-            runtimeVersion: StreamingEnglishModel.manifest.runtimeVersion, buildNumber: number),
+            modelRevision: ParakeetCoreMLModel.manifest.revision,
+            runtimeVersion: ParakeetCoreMLModel.manifest.runtimeVersion, buildNumber: number),
             clock: AppMetricsClock())
         self.metrics = metrics; diagnosticsDirectory = diagnostics
         endurance = try EnduranceMetricsRecorder(transcription: metrics, clock: AppMetricsClock())
         let admission = HeavyModelAdmission()
         let selections = ModelSelectionStore(rootURL: root.appendingPathComponent("ModelSelections", isDirectory: true),
-            models: manager, availableProfiles: [.streamingZipformerONNX, .whisperGGML, .llamaGGUF, .parakeetTDTCoreML],
+            models: manager, availableProfiles: [.llamaGGUF, .parakeetTDTCoreML],
             canChangeSelection: { admission.snapshot().phase == .idle })
         modelSelections = selections
         models = manager; store = database; meetingsDirectory = meetings
@@ -187,7 +187,7 @@ final class LocalMinutesServices: PlaybackHardware {
                 if try await selections.hasSelectionRecord(for: .speechRecognition) {
                     return try await selections.resolve(for: .speechRecognition)?.manifest
                 }
-                return StreamingEnglishModel.manifest
+                return ParakeetCoreMLModel.manifest
             })
         library = MeetingLibraryController(store: database)
         let usage = MeetingUsageRegistry(requiresStartup: true)
@@ -198,7 +198,7 @@ final class LocalMinutesServices: PlaybackHardware {
         deletion = MeetingDeletionCoordinator(store: database, recordingsRoot: meetings, usage: usage,
             summaryCheckpointRoot: checkpointRoot)
         replay = MeetingTranscriptionReplayCoordinator(store: database, models: manager, recordingsRoot: meetings,
-            usage: usage, admission: admission, modelPolicy: .capturedPinRequired)
+            usage: usage, admission: admission)
         heavyAdmission = admission
         recordingAdmission = RecordingHeavyModelAdmission(usageRegistry: usage, heavyAdmission: admission)
         intelligence = IntelligenceSession(store: database, models: manager, admission: admission,
@@ -413,7 +413,7 @@ final class LocalMinutesServices: PlaybackHardware {
             if try await modelSelections.hasSelectionRecord(for: .speechRecognition) {
                 speechInstalled = try await modelSelections.resolve(for: .speechRecognition) != nil
             } else {
-                speechInstalled = try await models.current(modelID: StreamingEnglishModel.manifest.modelID) != nil
+                speechInstalled = try await models.current(modelID: ParakeetCoreMLModel.manifest.modelID) != nil
             }
             if try modelSelections.isAppleIntelligenceSelected() {
                 summaryInstalled = AppleFoundationRuntime.availability() == .available

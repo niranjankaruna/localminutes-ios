@@ -70,9 +70,9 @@ final class HTTPSModelTransportTests: XCTestCase {
     private let fixture = Data("original model transport fixture".utf8)
 
     private func artifact(url: URL? = nil, byteCount: Int64? = nil) -> ModelArtifact {
-        ModelArtifact(role: .encoder, fileName: "encoder.onnx", byteCount: byteCount ?? Int64(fixture.count),
+        ModelArtifact(role: .coreMLAsset, fileName: "encoder.bin", byteCount: byteCount ?? Int64(fixture.count),
             sha256: SHA256.hash(data: fixture).map { String(format: "%02x", $0) }.joined(),
-            downloadURL: url ?? URL(string: "https://huggingface.co/example/model/resolve/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/encoder.onnx")!,
+            downloadURL: url ?? URL(string: "https://huggingface.co/example/model/resolve/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/encoder.bin")!,
             digestProvenance: .independentlyDownloaded)
     }
 
@@ -87,7 +87,7 @@ final class HTTPSModelTransportTests: XCTestCase {
         let staging = root.appendingPathComponent(".staging", isDirectory: true)
         let operation = staging.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: operation, withIntermediateDirectories: true)
-        return (root, staging, operation.appendingPathComponent("encoder.onnx"))
+        return (root, staging, operation.appendingPathComponent("encoder.bin"))
     }
 
     private func cleanup(_ root: URL) throws {
@@ -152,8 +152,8 @@ final class HTTPSModelTransportTests: XCTestCase {
         let h = try ownedDirectory(); defer { try? cleanup(h.root) }
         let transport = HTTPSModelTransport(stagingRootURL: h.staging,
             allowedHosts: ["huggingface.co"], configuration: configuration())
-        for (url, error) in [("http://huggingface.co/model.onnx", ModelTransportError.insecureURL),
-                             ("https://unreviewed.example/model.onnx", .unapprovedHost)] {
+        for (url, error) in [("http://huggingface.co/model.bin", ModelTransportError.insecureURL),
+                             ("https://unreviewed.example/model.bin", .unapprovedHost)] {
             HTTPFixtureProtocol.state.configure(HTTPFixtureResponse(bytes: fixture))
             await expect(error) {
                 try await transport.download(self.artifact(url: URL(string: url)!), to: h.output)
@@ -167,7 +167,7 @@ final class HTTPSModelTransportTests: XCTestCase {
         let transport = HTTPSModelTransport(stagingRootURL: h.staging,
             allowedHosts: ["huggingface.co"], configuration: configuration())
         HTTPFixtureProtocol.state.configure(HTTPFixtureResponse(bytes: fixture,
-            finalURL: URL(string: "https://unreviewed.example/model.onnx")))
+            finalURL: URL(string: "https://unreviewed.example/model.bin")))
         await expect(.unapprovedHost) { try await transport.download(self.artifact(), to: h.output) }
         XCTAssertFalse(FileManager.default.fileExists(atPath: h.output.path))
     }
@@ -177,14 +177,14 @@ final class HTTPSModelTransportTests: XCTestCase {
         HTTPFixtureProtocol.state.configure(HTTPFixtureResponse(bytes: fixture))
         let transport = HTTPSModelTransport(stagingRootURL: h.staging,
             allowedHosts: ["huggingface.co"], configuration: configuration())
-        let outside = h.root.appendingPathComponent("outside.onnx")
+        let outside = h.root.appendingPathComponent("outside.bin")
         await expect(.invalidDestination) { try await transport.download(self.artifact(), to: outside) }
         let outsideFolder = h.root.appendingPathComponent("outside", isDirectory: true)
         try FileManager.default.createDirectory(at: outsideFolder, withIntermediateDirectories: false)
         let linkedOperation = h.staging.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createSymbolicLink(at: linkedOperation, withDestinationURL: outsideFolder)
         await expect(.invalidDestination) {
-            try await transport.download(self.artifact(), to: linkedOperation.appendingPathComponent("encoder.onnx"))
+            try await transport.download(self.artifact(), to: linkedOperation.appendingPathComponent("encoder.bin"))
         }
         XCTAssertFalse(FileManager.default.fileExists(atPath: outside.path))
         XCTAssertTrue(try FileManager.default.contentsOfDirectory(atPath: outsideFolder.path).isEmpty)
@@ -232,10 +232,10 @@ final class HTTPSModelTransportTests: XCTestCase {
         let response = try XCTUnwrap(HTTPURLResponse(url: original, statusCode: 302,
             httpVersion: "HTTP/1.1", headerFields: nil))
         let policy = ModelDownloadRedirectPolicy(allowedHosts: ["huggingface.co", "cdn-lfs-us-1.hf.co"])
-        for (address, permitted) in [("https://cdn-lfs-us-1.hf.co/model.onnx", true),
-            ("http://cdn-lfs-us-1.hf.co/model.onnx", false),
-            ("https://cdn-lfs-us-1.hf.co.attacker.example/model.onnx", false),
-            ("https://unreviewed.example/model.onnx", false)] {
+        for (address, permitted) in [("https://cdn-lfs-us-1.hf.co/model.bin", true),
+            ("http://cdn-lfs-us-1.hf.co/model.bin", false),
+            ("https://cdn-lfs-us-1.hf.co.attacker.example/model.bin", false),
+            ("https://unreviewed.example/model.bin", false)] {
             let box = RedirectRequestBox()
             policy.urlSession(session, task: task, willPerformHTTPRedirection: response,
                 newRequest: URLRequest(url: URL(string: address)!)) { box.set($0) }

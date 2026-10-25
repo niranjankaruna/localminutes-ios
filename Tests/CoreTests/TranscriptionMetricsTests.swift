@@ -14,7 +14,7 @@ private final class MetricsTestClock: MetricsMonotonicClock, Sendable {
 
 final class TranscriptionMetricsTests: XCTestCase {
     private let identity = MetricsBuildIdentity(sourceCommit: String(repeating: "a", count: 40),
-        modelRevision: String(repeating: "b", count: 40), runtimeVersion: "1.13.8", buildNumber: 1)
+        modelRevision: String(repeating: "b", count: 40), runtimeVersion: "coreml-parakeet-tdt-v2-fluid-c79c4106", buildNumber: 1)
 
     func testMonotonicProcessingAndPublicationFactsUseNanosecondsAndCorrectPositiveRTF() throws {
         let clock = MetricsTestClock()
@@ -171,13 +171,13 @@ final class TranscriptionMetricsTests: XCTestCase {
         XCTAssertEqual(first.processedSampleCount, 1_600)
         XCTAssertFalse(first.errors.isEmpty)
 
-        let selectedRevision = "5359861c739e955e79d9a303bcbc70fb988958b1"
+        let selectedRevision = "7dd20fe6b1797d35f5e3307e8b1732d9a178edfe"
         let selectedIdentity = MetricsBuildIdentity(sourceCommit: identity.sourceCommit,
-            modelRevision: selectedRevision, runtimeVersion: "1.7.5", buildNumber: identity.buildNumber)
-        metrics.beginEpoch(modelRevision: selectedRevision, runtimeVersion: "1.7.5")
+            modelRevision: selectedRevision, runtimeVersion: "coreml-parakeet-tdt-fluid-c79c4106", buildNumber: identity.buildNumber)
+        metrics.beginEpoch(modelRevision: selectedRevision, runtimeVersion: "coreml-parakeet-tdt-fluid-c79c4106")
         let fresh = metrics.snapshot()
         XCTAssertEqual(fresh.identity, selectedIdentity,
-            "A Whisper meeting must never be exported with its predecessor's Zipformer model/runtime pins")
+            "A meeting must retain its selected model and runtime pins")
         XCTAssertEqual(fresh.identity.sourceCommit, identity.sourceCommit)
         XCTAssertEqual(fresh.identity.buildNumber, identity.buildNumber)
         XCTAssertEqual(fresh.capturedSampleCount, 0); XCTAssertEqual(fresh.processedSampleCount, 0)
@@ -214,9 +214,9 @@ final class TranscriptionMetricsTests: XCTestCase {
         let metrics = try TranscriptionMetricsRecorder(identity: identity, clock: clock)
         let selectedRevision = String(repeating: "e", count: 40)
         let selectedIdentity = MetricsBuildIdentity(sourceCommit: identity.sourceCommit,
-            modelRevision: selectedRevision, runtimeVersion: "1.7.5", buildNumber: identity.buildNumber)
+            modelRevision: selectedRevision, runtimeVersion: "coreml-parakeet-tdt-fluid-c79c4106", buildNumber: identity.buildNumber)
         try metrics.visibilityChanged(.foreground)
-        metrics.beginEpoch(modelRevision: selectedRevision, runtimeVersion: "1.7.5")
+        metrics.beginEpoch(modelRevision: selectedRevision, runtimeVersion: "coreml-parakeet-tdt-fluid-c79c4106")
         try metrics.audioQueued(startSample: 0, frameCount: 1_600, queueDepth: 1)
         let began = clock.nowNanoseconds()
         clock.advance(1_000_000)
@@ -242,7 +242,7 @@ final class TranscriptionMetricsTests: XCTestCase {
     }
 
     func testDiagnosticCodecAcceptsReviewedEngineVersionPinsAndRejectsPrivateOrMalformedLabels() throws {
-        for version in ["sherpa-onnx-1.13.8", "whisper.cpp-1.7.5", "llama.cpp-b5046"] {
+        for version in ["coreml-parakeet-tdt-v2-fluid-c79c4106", "coreml-parakeet-tdt-fluid-c79c4106", "llama.cpp-b5046"] {
             let expected = MetricsBuildIdentity(sourceCommit: identity.sourceCommit,
                 modelRevision: identity.modelRevision, runtimeVersion: version, buildNumber: identity.buildNumber)
             let metrics = try TranscriptionMetricsRecorder(identity: expected, clock: MetricsTestClock())
@@ -258,8 +258,7 @@ final class TranscriptionMetricsTests: XCTestCase {
                 XCTFail("Reviewed engine runtime pin must survive private diagnostics export: \(version)")
             }
         }
-        for version in ["sherpa-onnx-", "sherpa-onnx-1..13", "sherpa-onnx-1.13.8/private",
-                        "sherpa-onnx-1.13.8 secret", "whisper.cpp-v1.7.5", "whisper.cpp-1.7.5/token",
+        for version in ["coreml-parakeet-tdt-", "coreml-parakeet-tdt-fluid-c79c4106/private",
                         "llama.cpp-b", "llama.cpp-b5046-secret", "synthetic-password",
                         "/private/fixture/runtime", String(repeating: "1", count: 33)] {
             let restricted = MetricsBuildIdentity(sourceCommit: identity.sourceCommit,

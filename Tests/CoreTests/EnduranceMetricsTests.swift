@@ -12,7 +12,7 @@ private final class EnduranceTestClock: MetricsMonotonicClock, Sendable {
 
 final class EnduranceMetricsTests: XCTestCase {
     private let identity = MetricsBuildIdentity(sourceCommit: String(repeating: "a", count: 40),
-        modelRevision: String(repeating: "b", count: 40), runtimeVersion: "whisper.cpp-1.7.5", buildNumber: 7)
+        modelRevision: String(repeating: "b", count: 40), runtimeVersion: "coreml-parakeet-tdt-v2-fluid-c79c4106", buildNumber: 7)
     private let ordinary = EnduranceSystemFacts(residentMemoryBytes: 100_000_000,
         thermal: .nominal, batteryLevelPercent: 80, batteryState: .unplugged,
         route: .builtInMicrophone, visibility: .foreground)

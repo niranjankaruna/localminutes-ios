@@ -91,7 +91,7 @@ final class RecordingProgressPresenterTests: XCTestCase {
     private func metrics(captured: Int64, processed: Int64) -> TranscriptionMetricsSnapshot {
         let latency = MetricsLatencySummary(sampleCount: 0, p50Nanoseconds: nil, p95Nanoseconds: nil, maxNanoseconds: nil)
         return .init(schemaVersion: 1, identity: .init(sourceCommit: String(repeating: "a", count: 40),
-            modelRevision: String(repeating: "b", count: 40), runtimeVersion: "whisper.cpp-1.7.5", buildNumber: 3),
+            modelRevision: String(repeating: "b", count: 40), runtimeVersion: "coreml-parakeet-tdt-v2-fluid-c79c4106", buildNumber: 3),
             capturedSampleCount: captured, processedSampleCount: processed, processingWallNanoseconds: 0,
             realTimeFactor: nil, peakQueueDepth: 0, partialLatency: latency, finalLatency: latency,
             checkpoints: [], errors: [])

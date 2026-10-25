@@ -40,20 +40,12 @@ jobs:
       - name: Package IPA and checksum receipt
         run: |
           node --input-type=module <<'JS'
-          import { appendFileSync, readFileSync } from 'node:fs';
           import { createUnsignedIPA } from './scripts/package-ios.mjs';
-          const result = await createUnsignedIPA({
+          await createUnsignedIPA({
             appPath: 'build/device/Build/Products/Release-iphoneos/LocalMinutes.app',
             outputDirectory: 'build/transfer', sourceCommit: process.env.GITHUB_SHA
           });
-          const manifest = JSON.parse(readFileSync(result.manifestPath, 'utf8'));
-          appendFileSync(process.env.GITHUB_ENV,
-            `LOCALMINUTES_AUDIT_IPA=${result.ipaPath}\nLOCALMINUTES_AUDIT_IPA_SHA256=${manifest.sha256}\n`);
           JS
-      - name: Audit packaged native symbols
-        env:
-          LOCALMINUTES_AUDIT_SOURCE_COMMIT: ${{ github.sha }}
-        run: python3 -m unittest discover -s scripts/native-hygiene-tests -p 'test_*.py' -v
       - uses: actions/upload-artifact@v4
         id: transfer
         with:

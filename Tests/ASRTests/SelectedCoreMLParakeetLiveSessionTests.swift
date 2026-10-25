@@ -31,8 +31,6 @@ final class SelectedCoreMLParakeetLiveSessionTests: XCTestCase {
         let id = UUID()
         var capture: AudioCaptureManifest?
         do {
-            // Only this equipped Core ML family is installed. There is no
-            // Zipformer/Whisper fallback available to fabricate readiness.
             let installed = try await models.importDirectory(fixture.directory, manifest: manifest)
             let manifests = try await models.installedManifests()
             XCTAssertEqual(manifests, [manifest])

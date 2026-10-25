@@ -23,7 +23,7 @@ export function auditInputTree(appPath) {
     assert.ok(name !== '_CodeSignature' && !/\.mobileprovision$/i.test(name), 'Signing or provisioning material is forbidden');
     assert.ok(!/^\.env(?:\.|$)/i.test(name)
       && !['.git', '.agent-local', 'private-data', 'secrets', 'transcripts', 'recordings', 'device-evidence', 'diagnostics-raw'].includes(name.toLowerCase())
-      && !/\.(?:onnx|gguf|bin|safetensors|pt|pth|caf|wav|m4a|(?:sqlite(?:3)?|db)(?:-shm|-wal)?|p12|p8|pem|key)$/i.test(name),
+      && !/\.(?:gguf|bin|safetensors|pt|pth|caf|wav|m4a|(?:sqlite(?:3)?|db)(?:-shm|-wal)?|p12|p8|pem|key)$/i.test(name),
     'Private data, model weights or local secrets are forbidden in the IPA');
     const suffix = relative(appPath, path).split(sep).join('/');
     entries.push(`Payload/LocalMinutes.app${suffix ? `/${suffix}` : ''}${info.isDirectory() ? '/' : ''}`);

@@ -16,20 +16,16 @@ let package = Package(
         .library(name: "LocalMinutesIntelligence", targets: ["LocalMinutesIntelligence"])
     ],
     dependencies: [
-        .package(name: "sherpa-onnx", path: "Vendor/SherpaASROnly"),
         .package(url: "https://github.com/FluidInference/FluidAudio.git",
                  revision: "c79c4106b954f81205113c3343e5a7e59a1089b5", traits: [])
     ],
     targets: [
         .binaryTarget(name: "llama", path: ".agent-local/native-llm/llama.xcframework"),
-        .binaryTarget(name: "WhisperFramework", path: ".agent-local/whisper-fixtures/whisper.xcframework"),
         .target(name: "LocalMinutesCore", path: "Core"),
         .target(name: "LocalMinutesRecording", dependencies: ["LocalMinutesCore"], path: "Recording"),
         .target(name: "LocalMinutesModels", dependencies: ["LocalMinutesCore"], path: "Models"),
         .target(name: "LocalMinutesPersistence", dependencies: ["LocalMinutesCore", "LocalMinutesModels"], path: "Persistence", linkerSettings: [.linkedLibrary("sqlite3")]),
         .target(name: "LocalMinutesTranscription", dependencies: [
-            "WhisperFramework",
-            .product(name: "sherpa-onnx", package: "sherpa-onnx"),
             .product(name: "FluidAudio", package: "FluidAudio"),
             "LocalMinutesCore", "LocalMinutesRecording", "LocalMinutesModels", "LocalMinutesPersistence", "LocalMinutesMeetingLibrary"
         ], path: "Transcription"),

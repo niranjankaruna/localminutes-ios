@@ -163,7 +163,7 @@ public final class ModelSelectionStore {
     private func profileMatchesPurpose(_ profile: HuggingFaceRuntimeProfile, _ purpose: ModelPurpose) -> Bool {
         switch profile {
         case .llamaGGUF: purpose == .summary
-        case .streamingZipformerONNX, .whisperGGML, .parakeetTDTCoreML: purpose == .speechRecognition
+        case .parakeetTDTCoreML: purpose == .speechRecognition
         }
     }
 
@@ -176,14 +176,6 @@ public final class ModelSelectionStore {
         case .llamaGGUF:
             valid = manifest.purpose == .summary && manifest.artifacts.count == 1 && roles == [.summary]
                 && manifest.artifacts[0].fileName.lowercased().hasSuffix(".gguf")
-        case .streamingZipformerONNX:
-            valid = manifest.purpose == .speechRecognition && manifest.artifacts.count == 4
-                && roles == [.encoder, .decoder, .joiner, .tokens] && manifest.sampleRate == 16_000
-                && manifest.featureDimension == 80
-        case .whisperGGML:
-            valid = manifest.purpose == .speechRecognition && manifest.artifacts.count == 1 && roles == [.whisper]
-                && manifest.sampleRate == 16_000 && manifest.featureDimension == nil
-                && manifest.runtimeVersion == "whisper.cpp-1.7.5"
         }
         guard valid else { throw ModelSelectionError.invalidPurpose }
     }

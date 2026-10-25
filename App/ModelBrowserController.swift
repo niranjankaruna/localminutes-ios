@@ -82,7 +82,7 @@ final class ModelBrowserController {
         let result = repository.assessment(for: purpose, fileName: selectedFileName,
             maximumDownloadBytes: resources.freeDiskBytes ?? Int64.max)
         return ModelRuntimeCompatibility.assess(repository: repository, format: result,
-            availableProfiles: [.streamingZipformerONNX, .whisperGGML, .llamaGGUF, .parakeetTDTCoreML])
+            availableProfiles: [.llamaGGUF, .parakeetTDTCoreML])
     }
     var resourceAssessment: ModelResourceAssessment? {
         repository?.resourceAssessment(for: purpose, fileName: selectedFileName,
@@ -135,7 +135,7 @@ final class ModelBrowserController {
         if try await services.modelSelections.hasSelectionRecord(for: purpose) {
             return try await services.modelSelections.selected(for: purpose)?.manifest.modelID
         }
-        let legacy = purpose == .speechRecognition ? StreamingEnglishModel.manifest : LocalMinutesServices.summaryManifest
+        let legacy = purpose == .speechRecognition ? ParakeetCoreMLModel.manifest : LocalMinutesServices.summaryManifest
         return installed.contains(where: { $0 == legacy }) ? legacy.modelID : nil
     }
 
@@ -225,7 +225,7 @@ final class ModelBrowserController {
         guard !isWorking, !isPreparingStorageCheck, let repository else { return nil }
         let format = repository.assessment(for: purpose, fileName: selectedFileName, maximumDownloadBytes: .max)
         let assessment = ModelRuntimeCompatibility.assess(repository: repository, format: format,
-            availableProfiles: [.streamingZipformerONNX, .whisperGGML, .llamaGGUF, .parakeetTDTCoreML])
+            availableProfiles: [.llamaGGUF, .parakeetTDTCoreML])
         guard assessment.status == .supported else { return nil }
         return try? Self.manifest(repository, assessment: assessment, purpose: purpose)
     }
@@ -294,8 +294,6 @@ final class ModelBrowserController {
     private static func profile(_ manifest: ModelManifest) -> HuggingFaceRuntimeProfile? {
         switch manifest.runtimeVersion {
         case ParakeetCoreMLModel.runtimeVersion, ParakeetModelPack.runtimeVersion: return .parakeetTDTCoreML
-        case "whisper.cpp-1.7.5": return .whisperGGML
-        case "sherpa-onnx-1.13.8": return .streamingZipformerONNX
         case "llama.cpp-b5046": return .llamaGGUF
         default: return nil
         }
@@ -318,37 +316,17 @@ final class ModelBrowserController {
                 throw ModelInstallationError.invalidManifest
             }
             let name = URL(fileURLWithPath: file.fileName).lastPathComponent
-            let role: ModelFileRole
-            switch profile {
-            case .parakeetTDTCoreML: throw ModelInstallationError.invalidManifest
-            case .llamaGGUF: role = .summary
-            case .whisperGGML: role = .whisper
-            case .streamingZipformerONNX:
-                if name.hasPrefix("encoder-") { role = .encoder }
-                else if name.hasPrefix("decoder-") { role = .decoder }
-                else if name.hasPrefix("joiner-") { role = .joiner }
-                else if name == "tokens.txt" { role = .tokens }
-                else { throw ModelInstallationError.invalidManifest }
-            }
-            return ModelArtifact(role: role, fileName: name, byteCount: bytes, sha256: digest,
+            return ModelArtifact(role: .summary, fileName: name, byteCount: bytes, sha256: digest,
                 downloadURL: file.downloadURL, digestProvenance: .upstreamReported)
         }
         let identifier = ModelInstallationIdentity.make(repositoryID: repository.id.rawValue,
             revision: repository.revision, purpose: purpose,
             repositoryRelativeFiles: assessment.selectedFiles.map(\.fileName))
         let upstream = URL(string: "https://huggingface.co/" + repository.id.rawValue)!
-        let runtime: String
-        switch profile {
-        case .parakeetTDTCoreML: runtime = ParakeetCoreMLModel.runtimeVersion
-        case .llamaGGUF: runtime = "llama.cpp-b5046"
-        case .whisperGGML: runtime = "whisper.cpp-1.7.5"
-        case .streamingZipformerONNX: runtime = "sherpa-onnx-1.13.8"
-        }
         return ModelManifest(modelID: String(identifier), purpose: purpose, upstreamRepository: upstream,
             revision: repository.revision, licenseIdentifier: license,
             licenseNotice: "Publisher: \(repository.id.rawValue). Declared license: \(license). Preserve upstream attribution and terms from the pinned model card: https://huggingface.co/\(repository.id.rawValue)/blob/\(repository.revision)/README.md",
-            runtimeVersion: runtime, sampleRate: purpose == .speechRecognition ? 16_000 : nil,
-            featureDimension: profile == .streamingZipformerONNX ? 80 : nil, artifacts: artifacts)
+            runtimeVersion: "llama.cpp-b5046", artifacts: artifacts)
     }
 
     private static func describe(_ error: any Error) -> String {

@@ -1620,7 +1620,6 @@ extension RecordingSessionOwnerTests {
 }
 #endif
 
-
 // APPEND this entire fragment to the END of
 // Tests/RecordingTests/RecordingSessionOwnerTests.swift. It reuses private
 // helpers only in that same file; all existing assertions remain unchanged.
@@ -1740,9 +1739,6 @@ extension RecordingSessionOwnerTests {
 }
 #endif
 
-
-// APPEND to Tests/RecordingTests/RecordingSessionOwnerTests.swift after the final
-// #endif. Existing file-private real owner/CAF helpers remain unchanged.
 #if os(iOS)
 @MainActor
 extension RecordingSessionOwnerTests {
@@ -1892,7 +1888,6 @@ extension RecordingSessionOwnerTests {
 }
 #endif
 
-
 @MainActor
 extension RecordingSessionOwnerTests {
     func testInterruptionDuringHeldModelPreparationSettlesInterruptedAndAllowsReplacement() async throws {
@@ -1960,10 +1955,6 @@ extension RecordingSessionOwnerTests {
     }
 }
 
-
-// APPEND to Tests/RecordingTests/RecordingSessionOwnerTests.swift outside iOS-only
-// blocks. Add import LocalMinutesMeetingLibrary in the SWIFT_PACKAGE import branch.
-// See README for the narrow test-harness usageAdmission forwarding signatures.
 // Boundary resources below claim no actual inference; owner/queue/conversion/CAF/
 // usage registry and heavy gate are the actual implementations.
 @MainActor

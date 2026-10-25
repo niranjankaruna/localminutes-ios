@@ -287,7 +287,7 @@ private final class NativeLibraryFixture {
                 createdAt: Date(timeIntervalSince1970: 2_000), recordingState: .completed, capturedSampleCount: 320))
             try await store.appendFinalizedSegments([.init(id: UUID(), meetingID: id, sequence: 0,
                 startSample: 0, endSample: 320, text: "Original archived synthetic transcript.",
-                modelRevision: StreamingEnglishModel.manifest.revision)], to: id)
+                modelRevision: ParakeetCoreMLModel.manifest.revision)], to: id)
             try await store.saveManualNote(.init(meetingID: id, text: "Original café note — preserved 📝",
                 editRevision: 2, modifiedAt: Date(timeIntervalSince1970: 2_000)))
             try await store.close()

@@ -10,7 +10,7 @@ import LocalMinutesRecording
 import LocalMinutesMeetingLibrary
 @testable import LocalMinutesTranscription
 
-/// Recovery uses the captured Whisper model pin, actual audio, and on-disk data.
+/// Recovery uses the captured Parakeet model pin, actual audio, and on-disk data.
 /// There is no pin injection, inference replacement or current-default fallback.
 @MainActor
 final class SelectedModelRecoveryTests: XCTestCase {
@@ -57,15 +57,15 @@ final class SelectedModelRecoveryTests: XCTestCase {
         } catch { try? await reopened.close(); throw error }
     }
 
-    func testActualWhisperPreparationPersistsCoherentImmutableMeetingPinBeforeFirstAudioFrame() async throws {
+    func testActualParakeetPreparationPersistsCoherentImmutableMeetingPinBeforeFirstAudioFrame() async throws {
         let f = try await SelectedRecoveryFixture.create()
         do {
             guard case .ready(let directory) = await f.session.prepare(sessionID: f.id) else {
-                XCTFail("Actual selected Whisper must prepare before pin assertions"); await f.remove(); return
+                XCTFail("Actual selected Parakeet must prepare before pin assertions"); await f.remove(); return
             }
             let pin = try await f.store.speechModelPin(meetingID: f.id)
             XCTAssertEqual(pin, f.expectedPin)
-            XCTAssertEqual(pin?.selection.profile, .whisperGGML)
+            XCTAssertEqual(pin?.selection.profile, .parakeetTDTCoreML)
             let meeting = try await f.store.meeting(id: f.id)
             XCTAssertEqual(meeting?.recordingState, .recording)
             XCTAssertEqual(meeting?.capturedSampleCount, 0)
@@ -86,13 +86,13 @@ final class SelectedModelRecoveryTests: XCTestCase {
         await f.remove()
     }
 
-    func testReopenedRecoveryUsesCapturedWhisperPinAfterGlobalEquipChangesWithoutRelabelingOriginals() async throws {
+    func testReopenedRecoveryUsesCapturedParakeetPinAfterGlobalEquipChangesWithoutRelabelingOriginals() async throws {
         let f = try await SelectedRecoveryFixture.create()
         do {
             try await f.captureUntranscribedAudio(prepare: true)
             let pin = try await f.store.speechModelPin(meetingID: f.id)
             XCTAssertEqual(pin, f.expectedPin)
-            let selected = try await f.choices.select(manifest: f.alternative.manifest, profile: .whisperGGML, for: .speechRecognition)
+            let selected = try await f.choices.select(manifest: f.alternative.manifest, profile: .parakeetTDTCoreML, for: .speechRecognition)
             XCTAssertEqual(selected, f.alternativeSelection)
             let originalFiles = try f.sourceDigests()
             try await f.store.close()
@@ -102,7 +102,7 @@ final class SelectedModelRecoveryTests: XCTestCase {
                 do {
                     let report = try await replay.replay(meetingID: f.id)
                     XCTAssertGreaterThan(report.replayedFrameCount, 0)
-                } catch { XCTFail("Recovery must load this meeting's captured Whisper installation, not today's other choice: \(type(of: error))") }
+                } catch { XCTFail("Recovery must load this meeting's captured Parakeet installation, not today's other choice: \(type(of: error))") }
                 let rows = try await reopened.transcript(meetingID: f.id)
                 XCTAssertEqual(rows.first, f.original)
                 XCTAssertGreaterThan(rows.count, 1)
@@ -128,7 +128,7 @@ final class SelectedModelRecoveryTests: XCTestCase {
         let f = try await SelectedRecoveryFixture.create()
         do {
             try await f.captureUntranscribedAudio(prepare: false)
-            _ = try await f.choices.select(manifest: f.alternative.manifest, profile: .whisperGGML, for: .speechRecognition)
+            _ = try await f.choices.select(manifest: f.alternative.manifest, profile: .parakeetTDTCoreML, for: .speechRecognition)
             let before = try f.sourceDigests()
             try await f.store.close()
             let reopened = try SQLiteMeetingStore(databaseURL: f.database)
@@ -146,7 +146,7 @@ final class SelectedModelRecoveryTests: XCTestCase {
         await f.remove()
     }
 
-    func testCorruptPinAndRemovedCapturedInstallationCannotFallBackToAnEquippedWhisperAlternative() async throws {
+    func testCorruptPinAndRemovedCapturedInstallationCannotFallBackToAnEquippedParakeetAlternative() async throws {
         let f = try await SelectedRecoveryFixture.create()
         do {
             try await f.captureUntranscribedAudio(prepare: true)
@@ -154,7 +154,7 @@ final class SelectedModelRecoveryTests: XCTestCase {
                 XCTFail("Actual capture preparation must persist its genuine pin before a corruption fixture can mutate it")
                 await f.remove(); return
             }
-            _ = try await f.choices.select(manifest: f.alternative.manifest, profile: .whisperGGML, for: .speechRecognition)
+            _ = try await f.choices.select(manifest: f.alternative.manifest, profile: .parakeetTDTCoreML, for: .speechRecognition)
             let before = try f.sourceDigests()
             try await f.store.close()
             try f.replacePinJSON("{invalid pin json")
@@ -197,10 +197,10 @@ private final class SelectedRecoveryFixture {
     let prefixFrames: Int64 = 16_000
     var totalFrames: Int64 { prefixFrames + Int64(samples.count) + 48_000 }
     var expectedPin: StoredMeetingSpeechModelPin {
-        .init(meetingID: id, selection: .init(manifest: installed.manifest, profile: .whisperGGML, installationID: installed.installationID))
+        .init(meetingID: id, selection: .init(manifest: installed.manifest, profile: .parakeetTDTCoreML, installationID: installed.installationID))
     }
     var alternativeSelection: StoredModelSelection {
-        .init(manifest: alternative.manifest, profile: .whisperGGML, installationID: alternative.installationID)
+        .init(manifest: alternative.manifest, profile: .parakeetTDTCoreML, installationID: alternative.installationID)
     }
     var original: StoredTranscriptSegment {
         .init(id: UUID(uuidString: "77777777-0000-0000-0000-000000000001")!, meetingID: id, sequence: 0,
@@ -220,63 +220,29 @@ private final class SelectedRecoveryFixture {
         session = LiveTranscriptionSession(models: models, store: store, meetingsDirectory: recordings,
             selectedSpeechModel: { installed.manifest })
         choices = ModelSelectionStore(rootURL: root.appendingPathComponent("Choices"), models: models,
-            availableProfiles: [.whisperGGML], canChangeSelection: { true })
+            availableProfiles: [.parakeetTDTCoreML], canChangeSelection: { true })
     }
 
     static func create() async throws -> SelectedRecoveryFixture {
-        let environment = ProcessInfo.processInfo.environment
-        let model = URL(fileURLWithPath: try XCTUnwrap(environment["LOCALMINUTES_WHISPER_MODEL_PATH"]))
-        let audioURL = URL(fileURLWithPath: try XCTUnwrap(environment["LOCALMINUTES_WHISPER_FIXTURE_PATH"]))
+        let speech = try CoreMLParakeetFixture.load()
+        let other = try ParakeetV3Fixture.load()
         let root = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().standardizedFileURL
             .appendingPathComponent("localminutes-selected-recovery-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
         var store: SQLiteMeetingStore?
         do {
-            let audioData = try Data(contentsOf: audioURL)
-            XCTAssertEqual(audioData.count, 74_138)
-            let digest = SHA256.hash(data: audioData).map { String(format: "%02x", $0) }.joined()
-            XCTAssertEqual(digest, "9ce35224156f071ab58eb7feb8a5ceae600f6f9f353da2a6cbf797b6b1ac8a23")
-            guard audioData.count == 74_138, digest == "9ce35224156f071ab58eb7feb8a5ceae600f6f9f353da2a6cbf797b6b1ac8a23" else {
-                throw StreamingASRError.invalidSamples
-            }
-            // Existing LibriSpeech6930-75918-0000, CC-BY-4.0; Panayotov/Povey,
-            // LibriVox source. No new audio or network fixture is introduced.
-            let audio = try AVAudioFile(forReading: audioURL, commonFormat: .pcmFormatFloat32, interleaved: false)
-            guard audio.processingFormat.sampleRate == 16_000, audio.processingFormat.channelCount == 1,
-                  audio.length > 0, audio.length <= 480_000,
-                  let buffer = AVAudioPCMBuffer(pcmFormat: audio.processingFormat, frameCapacity: AVAudioFrameCount(audio.length)) else {
-                throw StreamingASRError.invalidSamples
-            }
-            try audio.read(into: buffer)
-            XCTAssertEqual(Int64(buffer.frameLength), audio.length)
-            let samples = Array(UnsafeBufferPointer(start: try XCTUnwrap(buffer.floatChannelData?.pointee), count: Int(buffer.frameLength)))
-            let source = root.appendingPathComponent("Import")
-            try FileManager.default.createDirectory(at: source, withIntermediateDirectories: false)
-            try FileManager.default.copyItem(at: model, to: source.appendingPathComponent("ggml-tiny.en.bin"))
             let models = ModelInstallationManager(rootURL: root.appendingPathComponent("Models"), availableBytes: { _ in .max })
-            let installed = try await models.importDirectory(source, manifest: manifest(modelID: "capture-whisper-tiny-en"))
-            let alternative = try await models.importDirectory(source, manifest: manifest(modelID: "other-equipped-whisper-tiny-en"))
+            let installed = try await models.importDirectory(speech.directory, manifest: ParakeetCoreMLModel.manifest)
+            let alternative = try await models.importDirectory(other.directory, manifest: other.manifest)
             let opened = try SQLiteMeetingStore(databaseURL: root.appendingPathComponent("meetings.sqlite"))
             store = opened
-            return .init(root: root, models: models, store: opened, installed: installed, alternative: alternative, samples: samples)
+            return .init(root: root, models: models, store: opened, installed: installed, alternative: alternative, samples: speech.samples)
         } catch { try? await store?.close(); try? FileManager.default.removeItem(at: root); throw error }
-    }
-
-    private static func manifest(modelID: String) -> ModelManifest {
-        let revision = "5359861c739e955e79d9a303bcbc70fb988958b1"
-        let repository = "https://huggingface.co/ggerganov/whisper.cpp"
-        return .init(modelID: modelID, purpose: .speechRecognition, upstreamRepository: URL(string: repository)!,
-            revision: revision, licenseIdentifier: "MIT", licenseNotice: "OpenAI Whisper, MIT; GGML conversion whisper.cpp. https://github.com/openai/whisper/blob/main/LICENSE",
-            runtimeVersion: "whisper.cpp-1.7.5", sampleRate: 16_000,
-            artifacts: [.init(role: .whisper, fileName: "ggml-tiny.en.bin", byteCount: 77_704_715,
-                sha256: "921e4cf8686fdd993dcd081a5da5b6c365bfde1162e72b08d75ac75289920b1f",
-                downloadURL: URL(string: repository + "/resolve/" + revision + "/ggml-tiny.en.bin")!,
-                digestProvenance: .independentlyDownloaded)])
     }
 
     func captureUntranscribedAudio(prepare: Bool) async throws {
         if prepare {
-            guard case .ready = await session.prepare(sessionID: id) else { throw StreamingASRError.invalidModel }
+            guard case .ready = await session.prepare(sessionID: id) else { throw SpeechRecognitionError.invalidModel }
         } else {
             try await store.createMeeting(.init(id: id, title: "Legacy meeting without model pin", createdAt: Date(timeIntervalSince1970: 1_000), recordingState: .recovered))
         }
@@ -301,8 +267,7 @@ private final class SelectedRecoveryFixture {
         try await store.updateRecordingState(id: id, state: .recovered, capturedSampleCount: totalFrames)
     }
     func replay(store: SQLiteMeetingStore) -> MeetingTranscriptionReplayCoordinator {
-        .init(store: store, models: models, recordingsRoot: recordings, usage: usage, admission: admission,
-            modelPolicy: .capturedPinRequired)
+        .init(store: store, models: models, recordingsRoot: recordings, usage: usage, admission: admission)
     }
     func sourceDigests() throws -> [String: String] {
         var result: [String: String] = [:]

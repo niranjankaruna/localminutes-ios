@@ -143,7 +143,7 @@ final class CoreMLModelInstallationTests: XCTestCase {
             }
             invalid.append(f.manifest(artifacts: base.artifacts + [first]))
             invalid.append(f.manifest(artifacts: [f.changed(first, path: "Encoder.mlmodelc")] + base.artifacts))
-            invalid.append(f.manifest(artifacts: [f.changed(first, role: .encoder)] + Array(base.artifacts.dropFirst())))
+            invalid.append(f.manifest(artifacts: [f.changed(first, role: .summary)] + Array(base.artifacts.dropFirst())))
             invalid.append(f.manifest(artifacts: (0...256).map { f.changed(first, path: "Encoder.mlmodelc/asset-\($0).bin") }))
             invalid.append(f.manifest(artifacts: [f.changed(first, size: Int64.max)] + Array(base.artifacts.dropFirst())))
             let before = try f.sourceSnapshot()

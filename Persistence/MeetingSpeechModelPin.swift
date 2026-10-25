@@ -40,27 +40,13 @@ extension StoredMeetingSpeechModelPin {
               selection.installationID.uuidString != "00000000-0000-0000-0000-000000000000" else {
             throw MeetingSpeechModelPinError.invalidPin
         }
-        let roles = Set(manifest.artifacts.map(\.role))
-        switch selection.profile {
-        case .streamingZipformerONNX:
-            guard roles == [.encoder, .decoder, .joiner, .tokens], manifest.artifacts.count == 4,
-                  manifest.featureDimension == 80, manifest.runtimeVersion == "sherpa-onnx-1.13.8" else {
-                throw MeetingSpeechModelPinError.invalidPin
-            }
-        case .whisperGGML:
-            guard roles == [.whisper], manifest.artifacts.count == 1, manifest.featureDimension == nil,
-                  manifest.runtimeVersion == "whisper.cpp-1.7.5" else { throw MeetingSpeechModelPinError.invalidPin }
-        case .parakeetTDTCoreML:
-            guard roles == [.coreMLAsset], (try? ParakeetModelPack.configuration(for: manifest)) != nil else {
-                throw MeetingSpeechModelPinError.invalidPin
-            }
-        case .llamaGGUF: throw MeetingSpeechModelPinError.invalidPin
+        guard selection.profile == .parakeetTDTCoreML,
+              (try? ParakeetModelPack.configuration(for: manifest)) != nil else {
+            throw MeetingSpeechModelPinError.invalidPin
         }
         var names: Set<String> = []
         for artifact in manifest.artifacts {
-            let safeName = selection.profile == .parakeetTDTCoreML
-                ? artifact.fileName.split(separator: "/", omittingEmptySubsequences: false).allSatisfy { component(String($0)) }
-                : component(artifact.fileName)
+            let safeName = ModelArtifactPath.components(artifact.fileName) != nil
             guard safeName, names.insert(artifact.fileName).inserted,
                   artifact.byteCount > 0, artifact.byteCount <= 4_000_000_000, hex(artifact.sha256, 64),
                   artifact.downloadURL.scheme == "https", artifact.downloadURL.host == manifest.upstreamRepository.host,

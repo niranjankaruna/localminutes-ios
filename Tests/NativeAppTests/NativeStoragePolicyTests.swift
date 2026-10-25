@@ -193,8 +193,8 @@ final class NativeStoragePolicyTests: XCTestCase {
                                                 attributes: [.posixPermissions: 0o750])
         try setBackupExcluded(false, on: source)
         let revision = String(repeating: "e", count: 40)
-        let names: [(ModelFileRole, String)] = [(.encoder, "encoder.onnx"), (.decoder, "decoder.onnx"),
-                                               (.joiner, "joiner.onnx"), (.tokens, "tokens.txt")]
+        let names: [(ModelFileRole, String)] = [(.coreMLAsset, "encoder.bin"), (.coreMLAsset, "decoder.bin"),
+                                               (.coreMLAsset, "joint.bin"), (.coreMLAsset, "vocabulary.json")]
         var originals: [String: Data] = [:]
         let artifacts = try names.map { role, name in
             // Original bytes validate copy/hash/metadata behavior only. They
@@ -214,7 +214,7 @@ final class NativeStoragePolicyTests: XCTestCase {
             upstreamRepository: URL(string: "https://huggingface.co/example/storage-fixture")!,
             revision: revision, licenseIdentifier: "CC0-1.0",
             licenseNotice: "Original LocalMinutes non-model storage-policy fixture, CC0-1.0.",
-            runtimeVersion: "fixture-only", sampleRate: 16_000, featureDimension: 80, artifacts: artifacts)
+            runtimeVersion: ParakeetCoreMLModel.runtimeVersion, sampleRate: 16_000, featureDimension: 128, artifacts: artifacts)
         return (source, manifest, originals)
     }
 
@@ -281,7 +281,7 @@ final class NativeStoragePolicyTests: XCTestCase {
             let persisted = try JSONDecoder().decode(ModelManifest.self, from: Data(contentsOf: metadata))
             XCTAssertEqual(persisted, manifest)
             for artifact in manifest.artifacts {
-                let copied = try XCTUnwrap(installed.files[artifact.role])
+                let copied = installed.directoryURL.appendingPathComponent(artifact.fileName)
                 let original = try XCTUnwrap(originals[artifact.fileName])
                 try assertPolicy(copied, within: models)
                 XCTAssertEqual(try Data(contentsOf: copied), original)

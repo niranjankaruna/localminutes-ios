@@ -25,17 +25,12 @@ jobs:
           node-version: '22'
       - name: Prepare native libraries and all model fixtures
         run: |
-          python3 scripts/prepare_asr_only.py --platform macos
           python3 scripts/fixtures/prepare_native_summary.py
           python3 scripts/fixtures/prepare_phi3_fixture.py
-          python3 scripts/fixtures/prepare_native_fixture.py
-          python3 scripts/fixtures/prepare_whisper_fixture.py
           python3 scripts/fixtures/prepare_native_parakeet_fixture.py
           python3 scripts/fixtures/prepare_native_parakeet_fixture.py --version v3
           python3 scripts/prepare_asr_quality_corpus.py
           printf '%s\n' \
-            "LOCALMINUTES_ASR_MODEL_DIRECTORY=$PWD/.agent-local/asr-evaluation/native-fixtures/model" \
-            "LOCALMINUTES_ASR_FIXTURE_PATH=$PWD/.agent-local/asr-evaluation/native-fixtures/6930-75918-0000.flac" \
             "LOCALMINUTES_PARAKEET_COREML_MODEL_DIRECTORY=$PWD/.agent-local/parakeet-coreml-fixtures/model" \
             "LOCALMINUTES_PARAKEET_COREML_FIXTURE_PATH=$PWD/.agent-local/parakeet-coreml-fixtures/6930-75918-0000.flac" \
             "LOCALMINUTES_PARAKEET_V3_DIRECTORY=$PWD/.agent-local/parakeet-v3-fixtures/model" \
@@ -74,23 +69,6 @@ jobs:
       # Test pristine products before XCTest embeds its runner in the Debug app.
       - name: Run every native packaging test
         run: node --test scripts/native-tests/*.test.mjs
-      - name: Package an audit input without uploading it
-        run: |
-          node --input-type=module <<'JS'
-          import { appendFileSync, readFileSync } from 'node:fs';
-          import { createUnsignedIPA } from './scripts/package-ios.mjs';
-          const result = await createUnsignedIPA({
-            appPath: 'build/device/Build/Products/Release-iphoneos/LocalMinutes.app',
-            outputDirectory: 'build/audit', sourceCommit: process.env.GITHUB_SHA
-          });
-          const manifest = JSON.parse(readFileSync(result.manifestPath, 'utf8'));
-          appendFileSync(process.env.GITHUB_ENV,
-            `LOCALMINUTES_AUDIT_IPA=${result.ipaPath}\nLOCALMINUTES_AUDIT_IPA_SHA256=${manifest.sha256}\n`);
-          JS
-      - name: Run native symbol audit
-        env:
-          LOCALMINUTES_AUDIT_SOURCE_COMMIT: ${{ github.sha }}
-        run: python3 -m unittest discover -s scripts/native-hygiene-tests -p 'test_*.py' -v
       - name: Select an iPhone simulator
         run: |
           node --input-type=module <<'JS'

@@ -99,12 +99,12 @@ final class NativeAppMetricsTests: XCTestCase {
             let snapshot = recorder.snapshot()
             XCTAssertEqual(snapshot.identity.sourceCommit, source)
             XCTAssertEqual(snapshot.identity.buildNumber, buildNumber)
-            XCTAssertEqual(snapshot.identity.modelRevision, StreamingEnglishModel.manifest.revision)
-            XCTAssertEqual(snapshot.identity.runtimeVersion, StreamingEnglishModel.manifest.runtimeVersion)
+            XCTAssertEqual(snapshot.identity.modelRevision, ParakeetCoreMLModel.manifest.revision)
+            XCTAssertEqual(snapshot.identity.runtimeVersion, ParakeetCoreMLModel.manifest.runtimeVersion)
             XCTAssertEqual(snapshot.capturedSampleCount, 0)
             XCTAssertEqual(snapshot.processedSampleCount, 0)
             XCTAssertTrue(snapshot.errors.isEmpty)
-            let installed = try await h.services.models.current(modelID: StreamingEnglishModel.manifest.modelID)
+            let installed = try await h.services.models.current(modelID: ParakeetCoreMLModel.manifest.modelID)
             XCTAssertNil(installed,
                 "Diagnostics initialization must not download, install or pretend to load a model")
         }
@@ -147,7 +147,7 @@ final class NativeAppMetricsTests: XCTestCase {
                 createdAt: Date(timeIntervalSince1970: 1_000), recordingState: .completed))
             try await h.services.store.appendFinalizedSegments([
                 .init(id: UUID(), meetingID: id, sequence: 0, startSample: 0, endSample: 1_600,
-                      text: sentinel, modelRevision: StreamingEnglishModel.manifest.revision)
+                      text: sentinel, modelRevision: ParakeetCoreMLModel.manifest.revision)
             ], to: id)
             try h.application.recordScenePhase(.active)
             let firstURL: URL

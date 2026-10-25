@@ -85,9 +85,9 @@ enum LibraryUITestFixture {
         let text = "\(name) shared-term original transcript."
         try await services.store.appendFinalizedSegments([
             .init(id: source, meetingID: id, sequence: 0, startSample: 0, endSample: 16_000,
-                  text: text, modelRevision: StreamingEnglishModel.manifest.revision),
+                  text: text, modelRevision: ParakeetCoreMLModel.manifest.revision),
             .init(id: UUID(), meetingID: id, sequence: 1, startSample: 16_000, endSample: 32_000,
-                  text: "\(name) separate-topic original transcript.", modelRevision: StreamingEnglishModel.manifest.revision)
+                  text: "\(name) separate-topic original transcript.", modelRevision: ParakeetCoreMLModel.manifest.revision)
         ], to: id)
         try await services.store.saveManualNote(.init(meetingID: id, text: "Original \(name) manual note.",
             editRevision: 0, modifiedAt: date))

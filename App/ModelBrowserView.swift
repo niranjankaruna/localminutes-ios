@@ -73,9 +73,7 @@ struct ModelBrowserView: View {
                                 }
                             }
                             .disabled(controller.isWorking || controller.isInspecting)
-                            Text(controller.purpose == .speechRecognition && variants.contains(where: { $0.fileName.hasSuffix(".onnx") })
-                                 ? "Choose an encoder to select its matching encoder, decoder, joiner and tokens set."
-                                 : "Only the selected file is downloaded; other variants stay on Hugging Face.")
+                            Text("Only the selected file is downloaded; other variants stay on Hugging Face.")
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                     }
@@ -97,7 +95,7 @@ struct ModelBrowserView: View {
                         }
                         Button("Remove unfinished download", role: .destructive) { controller.discardSelectedDownload() }
                             .disabled(controller.selectedImportManifest() == nil || controller.isWorking)
-                        Text("Import a Whisper or GGUF file, or the complete Parakeet folder. Downloads and imports are checked before installation.")
+                        Text("Import a complete Parakeet Core ML folder for speech, or a GGUF file for summaries. Downloads and imports are checked before installation.")
                             .font(.footnote).foregroundStyle(.secondary)
                     }
                 }
@@ -278,13 +276,11 @@ struct ModelBrowserView: View {
         guard let repository = controller.repository else { return [] }
         return repository.files.filter { file in
             let name = file.fileName.lowercased()
-            let basename = file.downloadURL.lastPathComponent.lowercased()
             if controller.purpose == .summary {
                 return name.hasSuffix(".gguf") && !name.contains("mmproj")
                     && name.range(of: "-[0-9]{5}-of-[0-9]{5}\\.gguf$", options: .regularExpression) == nil
             }
-            return (basename.hasPrefix("ggml-") && basename.hasSuffix(".bin"))
-                || (name.hasPrefix("encoder-") && name.hasSuffix(".onnx"))
+            return false
         }.sorted { $0.fileName.localizedStandardCompare($1.fileName) == .orderedAscending }
     }
 
@@ -475,8 +471,6 @@ struct ModelBrowserView: View {
     private func installedEngine(_ manifest: ModelManifest) -> String {
         switch manifest.runtimeVersion {
         case ParakeetCoreMLModel.runtimeVersion, ParakeetModelPack.runtimeVersion: "Core ML"
-        case "whisper.cpp-1.7.5": "Whisper"
-        case "sherpa-onnx-1.13.8": "ONNX"
         case "llama.cpp-b5046": "GGUF"
         default: manifest.runtimeVersion
         }
@@ -527,8 +521,6 @@ struct ModelBrowserView: View {
     private func profileTitle(_ profile: HuggingFaceRuntimeProfile) -> String {
         switch profile {
         case .parakeetTDTCoreML: "Core ML · Parakeet TDT"
-        case .streamingZipformerONNX: "sherpa-onnx · streaming Zipformer"
-        case .whisperGGML: "whisper.cpp · Whisper GGML"
         case .llamaGGUF: "llama.cpp · GGUF"
         }
     }

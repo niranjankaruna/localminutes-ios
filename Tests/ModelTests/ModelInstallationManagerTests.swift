@@ -4,7 +4,7 @@ import XCTest
 @testable import LocalMinutesModels
 
 // Nonsense fixture bytes test actual filesystem integrity only. These are not
-// ONNX/GGUF models, audio, transcripts, native loading, or inference evidence.
+// inference models, audio, transcripts, native loading, or inference evidence.
 private func modelTestDigest(_ data: Data) -> String {
     SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
 }
@@ -26,19 +26,19 @@ private final class ModelFixture {
         source = fixtureRoot.appendingPathComponent("import", isDirectory: true)
         storage = fixtureRoot.appendingPathComponent("persistent-models", isDirectory: true)
         let fixtureBytes = [
-            "encoder.onnx": Data("original fixture encoder \(suffix)".utf8),
-            "decoder.onnx": Data("original fixture decoder \(suffix)".utf8),
-            "joiner.onnx": Data("original fixture joiner \(suffix)".utf8),
-            "tokens.txt": Data("fixture-only tokens \(suffix)".utf8)
+            "encoder.bin": Data("original fixture encoder \(suffix)".utf8),
+            "decoder.bin": Data("original fixture decoder \(suffix)".utf8),
+            "joint.bin": Data("original fixture joint \(suffix)".utf8),
+            "vocabulary.json": Data("fixture-only tokens \(suffix)".utf8)
         ]
         bytes = fixtureBytes
-        let names: [(ModelFileRole, String)] = [(.encoder, "encoder.onnx"), (.decoder, "decoder.onnx"),
-                                               (.joiner, "joiner.onnx"), (.tokens, "tokens.txt")]
-        manifest = ModelManifest(modelID: "fixture-streaming", purpose: .speechRecognition,
+        let names: [(ModelFileRole, String)] = [(.coreMLAsset, "encoder.bin"), (.coreMLAsset, "decoder.bin"),
+                                               (.coreMLAsset, "joint.bin"), (.coreMLAsset, "vocabulary.json")]
+        manifest = ModelManifest(modelID: "fixture-coreml", purpose: .speechRecognition,
             upstreamRepository: URL(string: "https://huggingface.co/example/original-fixture")!,
             revision: revision, licenseIdentifier: "CC0-1.0",
             licenseNotice: "Original LocalMinutes non-model fixture bytes, dedicated to CC0-1.0.",
-            runtimeVersion: "fixture-runtime-1", sampleRate: 16_000, featureDimension: 80,
+            runtimeVersion: ParakeetCoreMLModel.runtimeVersion, sampleRate: 16_000, featureDimension: 128,
             artifacts: names.map { role, name in
                 let data = fixtureBytes[name]!
                 return ModelArtifact(role: role, fileName: name, byteCount: Int64(data.count),
@@ -91,14 +91,14 @@ private final class ModelFixture {
                          file: StaticString = #filePath, line: UInt = #line) throws {
         let expected = expected ?? manifest
         XCTAssertEqual(handle.manifest, expected, file: file, line: line)
-        XCTAssertEqual(handle.files.count, expected.artifacts.count, file: file, line: line)
+        XCTAssertTrue(handle.files.isEmpty, file: file, line: line)
         let expectedDirectory = storage.appendingPathComponent(expected.modelID, isDirectory: true)
             .appendingPathComponent(expected.revision, isDirectory: true)
             .appendingPathComponent(handle.installationID.uuidString, isDirectory: true)
         XCTAssertEqual(handle.directoryURL.standardizedFileURL, expectedDirectory.standardizedFileURL,
                        "Handle must refer to a persistent immutable installation", file: file, line: line)
         for artifact in expected.artifacts {
-            let url = try XCTUnwrap(handle.files[artifact.role], file: file, line: line)
+            let url = handle.directoryURL.appendingPathComponent(artifact.fileName)
             XCTAssertEqual(url.standardizedFileURL,
                 expectedDirectory.appendingPathComponent(artifact.fileName).standardizedFileURL, file: file, line: line)
             let actual = try Data(contentsOf: url)
@@ -173,41 +173,6 @@ final class ModelInstallationManagerTests: XCTestCase {
         return true
     }
 
-    func testPinnedSpeechManifestHasOneImmutableCompatibleSetAndHonestDigestProvenance() throws {
-        let manifest = StreamingEnglishModel.manifest
-        XCTAssertEqual(manifest.revision, "672fbf1b30579d6585301139bb363f42a0ad4a24")
-        XCTAssertEqual(manifest.purpose, .speechRecognition)
-        XCTAssertEqual(manifest.licenseIdentifier, "Apache-2.0")
-        XCTAssertTrue(manifest.licenseNotice.contains("Zengwei"))
-        XCTAssertTrue(manifest.licenseNotice.contains("https://www.apache.org/licenses/LICENSE-2.0"))
-        XCTAssertEqual(manifest.runtimeVersion, "sherpa-onnx-1.13.8")
-        XCTAssertEqual(manifest.sampleRate, 16_000)
-        XCTAssertEqual(manifest.featureDimension, 80)
-        let expected: [(ModelFileRole, String, Int64, String, ModelDigestProvenance)] = [
-            (.encoder, "encoder-epoch-99-avg-1-chunk-16-left-128.int8.onnx", 71_083_163,
-             "563fde436d16cf7607cf408cd6b30909819d03162652ef389c2450ced3f45ac1", .upstreamReported),
-            (.decoder, "decoder-epoch-99-avg-1-chunk-16-left-128.int8.onnx", 1_307_236,
-             "98da299f471e38bb4e1a8df579b8cc9122d6039576a77e357b3c60f17dd83b02", .upstreamReported),
-            (.joiner, "joiner-epoch-99-avg-1-chunk-16-left-128.int8.onnx", 259_335,
-             "d944208d660d67c8d72cd2acaeac971fa5ceb8c80e76c1968148846fedd6e297", .upstreamReported),
-            (.tokens, "tokens.txt", 5_048,
-             "49e3c2646595fd907228b3c6787069658f67b17377c60aeb8619c4551b2316fb", .independentlyDownloaded)
-        ]
-        XCTAssertEqual(manifest.artifacts.count, expected.count)
-        for (role, name, size, digest, provenance) in expected {
-            let artifact = try XCTUnwrap(manifest.artifacts.first { $0.role == role })
-            XCTAssertEqual(artifact.fileName, name)
-            XCTAssertEqual(artifact.byteCount, size)
-            XCTAssertEqual(artifact.sha256, digest)
-            XCTAssertEqual(artifact.digestProvenance, provenance)
-            XCTAssertEqual(artifact.downloadURL.scheme, "https")
-            XCTAssertEqual(artifact.downloadURL.host, "huggingface.co")
-            XCTAssertTrue(artifact.downloadURL.path.contains("/resolve/\(manifest.revision)/"))
-        }
-        let roundTrip = try JSONDecoder().decode(ModelManifest.self, from: JSONEncoder().encode(manifest))
-        XCTAssertEqual(roundTrip, manifest)
-    }
-
     func testValidLocalImportCopiesHashesAndPersistsLicenseWithoutChangingSource() async throws {
         let h = try ModelFixture(); defer { h.cleanup() }
         let installed = try await h.manager().importDirectory(h.source, manifest: h.manifest)
@@ -226,10 +191,30 @@ final class ModelInstallationManagerTests: XCTestCase {
         try h.assertInstalled(try XCTUnwrap(restored))
     }
 
+    func testUnsupportedSpeechInstallationDoesNotHideSupportedModelsOrDeleteStoredFiles() async throws {
+        let h = try ModelFixture(); defer { h.cleanup() }
+        let manager = h.manager()
+        let supported = try await manager.importDirectory(h.source, manifest: h.manifest)
+        let unsupported = try await manager.importDirectory(h.source,
+            manifest: h.replacing(modelID: "unsupported-speech"))
+        let metadata = unsupported.directoryURL.appendingPathComponent("manifest.json")
+        var object = try XCTUnwrap(try JSONSerialization.jsonObject(with: Data(contentsOf: metadata)) as? [String: Any])
+        object["runtimeVersion"] = "unsupported-speech-runtime"
+        let data = try JSONSerialization.data(withJSONObject: object)
+        try data.write(to: metadata)
+
+        let inventory = try await manager.installedManifests()
+        XCTAssertEqual(inventory, [supported.manifest])
+        XCTAssertEqual(try Data(contentsOf: metadata), data)
+        for (name, bytes) in h.bytes {
+            XCTAssertEqual(try Data(contentsOf: unsupported.directoryURL.appendingPathComponent(name)), bytes)
+        }
+    }
+
     func testMissingRequiredFileIsRejectedWithoutPublishingAPointer() async throws {
         let h = try ModelFixture(); defer { h.cleanup() }
-        try FileManager.default.removeItem(at: h.source.appendingPathComponent("encoder.onnx"))
-        await expectError(.missingFile("encoder.onnx")) {
+        try FileManager.default.removeItem(at: h.source.appendingPathComponent("encoder.bin"))
+        await expectError(.missingFile("encoder.bin")) {
             _ = try await h.manager().importDirectory(h.source, manifest: h.manifest)
         }
         XCTAssertFalse(FileManager.default.fileExists(atPath: h.pointerURL.path))
@@ -238,8 +223,8 @@ final class ModelInstallationManagerTests: XCTestCase {
 
     func testTruncatedRequiredFileIsRejectedBeforePublishing() async throws {
         let h = try ModelFixture(); defer { h.cleanup() }
-        try Data(h.bytes["decoder.onnx"]!.dropLast()).write(to: h.source.appendingPathComponent("decoder.onnx"))
-        await expectError(.sizeMismatch("decoder.onnx")) {
+        try Data(h.bytes["decoder.bin"]!.dropLast()).write(to: h.source.appendingPathComponent("decoder.bin"))
+        await expectError(.sizeMismatch("decoder.bin")) {
             _ = try await h.manager().importDirectory(h.source, manifest: h.manifest)
         }
         XCTAssertFalse(FileManager.default.fileExists(atPath: h.pointerURL.path))
@@ -248,12 +233,12 @@ final class ModelInstallationManagerTests: XCTestCase {
 
     func testSameSizeCorruptionFailsActualSHA256Verification() async throws {
         let h = try ModelFixture(); defer { h.cleanup() }
-        let original = h.bytes["joiner.onnx"]!
+        let original = h.bytes["joint.bin"]!
         let corrupt = Data(repeating: 0x78, count: original.count)
         XCTAssertEqual(corrupt.count, original.count)
         XCTAssertNotEqual(modelTestDigest(corrupt), modelTestDigest(original))
-        try corrupt.write(to: h.source.appendingPathComponent("joiner.onnx"))
-        await expectError(.checksumMismatch("joiner.onnx")) {
+        try corrupt.write(to: h.source.appendingPathComponent("joint.bin"))
+        await expectError(.checksumMismatch("joint.bin")) {
             _ = try await h.manager().importDirectory(h.source, manifest: h.manifest)
         }
         try h.assertNoStaging()
@@ -270,15 +255,15 @@ final class ModelInstallationManagerTests: XCTestCase {
 
     func testSymlinkedRequiredFileIsRejectedWithoutReadingOutsideImport() async throws {
         let h = try ModelFixture(); defer { h.cleanup() }
-        let outside = h.root.appendingPathComponent("outside.onnx")
-        try h.bytes["encoder.onnx"]!.write(to: outside)
-        let encoder = h.source.appendingPathComponent("encoder.onnx")
+        let outside = h.root.appendingPathComponent("outside.bin")
+        try h.bytes["encoder.bin"]!.write(to: outside)
+        let encoder = h.source.appendingPathComponent("encoder.bin")
         try FileManager.default.removeItem(at: encoder)
         try FileManager.default.createSymbolicLink(at: encoder, withDestinationURL: outside)
-        await expectError(.unsafeFile("encoder.onnx")) {
+        await expectError(.unsafeFile("encoder.bin")) {
             _ = try await h.manager().importDirectory(h.source, manifest: h.manifest)
         }
-        XCTAssertEqual(try Data(contentsOf: outside), h.bytes["encoder.onnx"])
+        XCTAssertEqual(try Data(contentsOf: outside), h.bytes["encoder.bin"])
         XCTAssertFalse(FileManager.default.fileExists(atPath: h.pointerURL.path))
     }
 
@@ -291,7 +276,7 @@ final class ModelInstallationManagerTests: XCTestCase {
             }
         }
         let valid = h.manifest.artifacts[0]
-        for unsafeName in ["../encoder.onnx", "/encoder.onnx", "nested/encoder.onnx", "nested\\encoder.onnx", "manifest.json"] {
+        for unsafeName in ["../encoder.bin", "/encoder.bin", "nested\\encoder.bin", "manifest.json"] {
             let invalid = ModelArtifact(role: valid.role, fileName: unsafeName, byteCount: valid.byteCount,
                 sha256: valid.sha256, downloadURL: valid.downloadURL, digestProvenance: valid.digestProvenance)
             let manifest = h.replacing(artifacts: [invalid] + Array(h.manifest.artifacts.dropFirst()))
@@ -318,14 +303,14 @@ final class ModelInstallationManagerTests: XCTestCase {
         }
     }
 
-    func testDuplicateRolesAndDuplicateNamesCannotCreateAmbiguousVerifiedHandle() async throws {
+    func testMixedRolesAndDuplicateNamesCannotCreateAmbiguousVerifiedHandle() async throws {
         let h = try ModelFixture(); defer { h.cleanup() }
         let first = h.manifest.artifacts[0]
-        let duplicateRole = ModelArtifact(role: first.role, fileName: "other.onnx", byteCount: first.byteCount,
+        let mixedRole = ModelArtifact(role: .summary, fileName: "other.bin", byteCount: first.byteCount,
             sha256: first.sha256, downloadURL: first.downloadURL, digestProvenance: first.digestProvenance)
-        let duplicateName = ModelArtifact(role: .summary, fileName: first.fileName, byteCount: first.byteCount,
+        let duplicateName = ModelArtifact(role: first.role, fileName: first.fileName, byteCount: first.byteCount,
             sha256: first.sha256, downloadURL: first.downloadURL, digestProvenance: first.digestProvenance)
-        for duplicate in [duplicateRole, duplicateName] {
+        for duplicate in [mixedRole, duplicateName] {
             await expectError(.invalidManifest) {
                 _ = try await h.manager().importDirectory(h.source,
                     manifest: h.replacing(artifacts: h.manifest.artifacts + [duplicate]))
@@ -364,7 +349,7 @@ final class ModelInstallationManagerTests: XCTestCase {
         let h = try ModelFixture(); defer { h.cleanup() }
         let first = try await h.manager().importDirectory(h.source, manifest: h.manifest)
         let previousPointer = try Data(contentsOf: h.pointerURL)
-        let source = FixtureDownloader(files: h.bytes, failureName: "joiner.onnx")
+        let source = FixtureDownloader(files: h.bytes, failureName: "joint.bin")
         let replacementManifest = h.replacing(revision: String(repeating: "b", count: 40))
         let manager = h.manager(downloader: { artifact, destination in
             try await source.download(artifact, to: destination)
@@ -381,7 +366,7 @@ final class ModelInstallationManagerTests: XCTestCase {
         let h = try ModelFixture(); defer { h.cleanup() }
         let first = try await h.manager().importDirectory(h.source, manifest: h.manifest)
         let pointerBefore = try Data(contentsOf: h.pointerURL)
-        let source = FixtureDownloader(files: h.bytes, heldName: "decoder.onnx")
+        let source = FixtureDownloader(files: h.bytes, heldName: "decoder.bin")
         let replacementManifest = h.replacing(revision: String(repeating: "b", count: 40))
         let manager = h.manager(downloader: { artifact, destination in
             try await source.download(artifact, to: destination)
@@ -405,7 +390,7 @@ final class ModelInstallationManagerTests: XCTestCase {
         let h = try ModelFixture(); defer { h.cleanup() }
         let first = try await h.manager().importDirectory(h.source, manifest: h.manifest)
         let replacementManifest = h.replacing(revision: String(repeating: "b", count: 40))
-        let source = FixtureDownloader(files: h.bytes, heldName: "tokens.txt")
+        let source = FixtureDownloader(files: h.bytes, heldName: "vocabulary.json")
         let manager = h.manager(downloader: { artifact, destination in
             try await source.download(artifact, to: destination)
         })
@@ -429,8 +414,8 @@ final class ModelInstallationManagerTests: XCTestCase {
         let manager = h.manager()
         let first = try await manager.importDirectory(h.source, manifest: h.manifest)
         let pointerBefore = try Data(contentsOf: h.pointerURL)
-        try Data("corrupt".utf8).write(to: h.source.appendingPathComponent("tokens.txt"))
-        await expectError(.sizeMismatch("tokens.txt")) {
+        try Data("corrupt".utf8).write(to: h.source.appendingPathComponent("vocabulary.json"))
+        await expectError(.sizeMismatch("vocabulary.json")) {
             _ = try await manager.importDirectory(h.source,
                 manifest: h.replacing(revision: String(repeating: "b", count: 40)))
         }
@@ -445,12 +430,12 @@ final class ModelInstallationManagerTests: XCTestCase {
         let h = try ModelFixture(); defer { h.cleanup() }
         let manager = h.manager()
         let installed = try await manager.importDirectory(h.source, manifest: h.manifest)
-        let encoder = try XCTUnwrap(installed.files[.encoder])
-        try Data(repeating: 0, count: h.bytes["encoder.onnx"]!.count).write(to: encoder)
-        await expectError(.checksumMismatch("encoder.onnx")) {
+        let encoder = installed.directoryURL.appendingPathComponent("encoder.bin")
+        try Data(repeating: 0, count: h.bytes["encoder.bin"]!.count).write(to: encoder)
+        await expectError(.checksumMismatch("encoder.bin")) {
             _ = try await manager.acquire(modelID: h.manifest.modelID)
         }
-        await expectError(.checksumMismatch("encoder.onnx")) {
+        await expectError(.checksumMismatch("encoder.bin")) {
             _ = try await manager.current(modelID: h.manifest.modelID)
         }
     }

@@ -9,24 +9,6 @@ import XCTest
 /// validation. Missing assets/models fail; no skip or fake generation exists.
 @MainActor
 final class ASRCorpusQualityTests: XCTestCase {
-    func testActualStarterZipformerCleanAnd15dBNoiseCorpusWordErrorRates() async throws {
-        let fixture = try NativeASRFixture.load() // Existing unchanged model-byte verification.
-        let recognizer = CPUStreamingRecognizer(files: fixture.files)
-        try await recognizer.load()
-        do {
-            try await evaluate(engine: "zipformer", modelRevision: fixture.files.revision,
-                               runtimeVersion: fixture.files.runtimeVersion) { samples in
-                try await recognizer.start(epochID: UUID())
-                for offset in stride(from: 0, to: samples.count, by: 3_200) {
-                    _ = try await recognizer.accept(samples: Array(samples[offset..<min(offset + 3_200, samples.count)]),
-                                                    sourceStartSample: Int64(offset))
-                }
-                return try await recognizer.finish().text
-            }
-            await recognizer.unload()
-        } catch { await recognizer.unload(); throw error }
-    }
-
     func testActualNativeParakeetCleanAnd15dBNoiseCorpusWordErrorRates() async throws {
         let fixture = try CoreMLParakeetFixture.load() // Existing exact native artifact hashes.
         let recognizer = CoreMLParakeetRecognizer(files: fixture.files, computePolicy: .cpuOnly)

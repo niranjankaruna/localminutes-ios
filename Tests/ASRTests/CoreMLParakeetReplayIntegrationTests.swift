@@ -60,7 +60,7 @@ final class CoreMLParakeetReplayIntegrationTests: XCTestCase {
             let usage = MeetingUsageRegistry()
             let admission = HeavyModelAdmission()
             let replay = MeetingTranscriptionReplayCoordinator(store: store, models: models,
-                recordingsRoot: recordings, usage: usage, admission: admission, modelPolicy: .capturedPinRequired)
+                recordingsRoot: recordings, usage: usage, admission: admission)
             var report: TranscriptionReplayReport?
             do { report = try await replay.replay(meetingID: id) }
             catch { XCTFail("Captured native Core ML recovery must use the actual TDT model: \(type(of: error))") }

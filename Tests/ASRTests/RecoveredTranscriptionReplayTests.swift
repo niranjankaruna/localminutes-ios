@@ -34,7 +34,7 @@ final class RecoveredTranscriptionReplayTests: XCTestCase {
                     "Native stream starts at zero; stored timestamps must retain the manifest's global offset")
                 XCTAssertGreaterThan(rows[1].endSample, f.prefixFrames)
                 XCTAssertLessThanOrEqual(rows[1].endSample, f.timelineEnd)
-                XCTAssertEqual(rows[1].modelRevision, NativeASRFixture.revision)
+                XCTAssertEqual(rows[1].modelRevision, ParakeetCoreMLModel.revision)
                 XCTAssertEqual(report.insertedSegmentIDs, [rows[1].id])
             }
             XCTAssertEqual(report.durableFrameCount, f.manifest.totalFrames)
@@ -44,7 +44,7 @@ final class RecoveredTranscriptionReplayTests: XCTestCase {
             let checkpoint = try await replay.checkpoint(meetingID: f.id)
             XCTAssertEqual(checkpoint?.meetingID, f.id)
             XCTAssertEqual(checkpoint?.manifestSHA256, replayDigest(originalManifest))
-            XCTAssertEqual(checkpoint?.modelRevision, NativeASRFixture.revision)
+            XCTAssertEqual(checkpoint?.modelRevision, ParakeetCoreMLModel.revision)
             XCTAssertEqual(checkpoint?.nextGlobalSample, f.timelineEnd)
             XCTAssertEqual(checkpoint?.committedSequence, 1)
             let metadata = try await f.store.meeting(id: f.id)
@@ -71,7 +71,7 @@ final class RecoveredTranscriptionReplayTests: XCTestCase {
                 XCTAssertEqual(retained, metadata)
                 try await reopened.close()
             } catch { try? await reopened.close(); throw error }
-            try await f.models.remove(modelID: StreamingEnglishModel.manifest.modelID)
+            try await f.models.remove(modelID: ParakeetCoreMLModel.manifest.modelID)
         } catch { await f.cleanup(); throw error }
         await f.cleanup()
     }
@@ -212,7 +212,7 @@ private final class ReplayFixture {
     }
 
     static func create(utterances: Int = 1, gapAndCorrupt: Bool = false) async throws -> ReplayFixture {
-        let speech = try NativeASRFixture.load()
+        let speech = try CoreMLParakeetFixture.load()
         let root = FileManager.default.temporaryDirectory.resolvingSymlinksInPath()
             .appendingPathComponent("localminutes-replay-test-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
@@ -222,9 +222,9 @@ private final class ReplayFixture {
         let models = ModelInstallationManager(rootURL: root.appendingPathComponent("Models"), availableBytes: { _ in .max })
         var store: SQLiteMeetingStore?
         do {
-            _ = try await models.importDirectory(speech.files.encoder.deletingLastPathComponent(), manifest: StreamingEnglishModel.manifest)
+            let installed = try await models.importDirectory(speech.directory, manifest: ParakeetCoreMLModel.manifest)
             var samples = [Float](repeating: 0, count: 16_000)
-            for _ in 0..<utterances { samples += speech.samples + NativeASRFixture.trailingSilence }
+            for _ in 0..<utterances { samples += speech.windowSamples }
             let writer = try SegmentCAFWriter(directory: directory, sessionID: id, maximumSegmentFrames: 16_000)
             let format = try XCTUnwrap(AVAudioFormat(standardFormatWithSampleRate: 16_000, channels: 1))
             for offset in stride(from: 0, to: samples.count, by: 3_200) {
@@ -252,6 +252,8 @@ private final class ReplayFixture {
             try await database.createMeeting(.init(id: id, title: "Original replay meeting",
                 createdAt: Date(timeIntervalSince1970: 1_000), recordingState: .recovered,
                 capturedSampleCount: manifest.totalFrames))
+            try await database.saveSpeechModelPin(.init(meetingID: id, selection: .init(
+                manifest: installed.manifest, profile: .parakeetTDTCoreML, installationID: installed.installationID)))
             try await database.appendFinalizedSegments([fixture.original], to: id)
             try await database.saveManualNote(.init(meetingID: id, text: "Original manual replay note.",
                 editRevision: 9, modifiedAt: Date(timeIntervalSince1970: 2_000)))
@@ -288,7 +290,7 @@ private func replayDigest(_ data: Data) -> String { SHA256.hash(data: data).map 
 
 @MainActor
 private func assertReplaySpeech(_ text: String, file: StaticString = #filePath, line: UInt = #line) {
-    let expected = NativeASRFixture.reference.lowercased().split { !$0.isLetter }.map(String.init)
+    let expected = CoreMLParakeetFixture.reference.lowercased().split { !$0.isLetter }.map(String.init)
     let actual = text.lowercased().split { !$0.isLetter }.map(String.init)
     XCTAssertFalse(actual.isEmpty, file: file, line: line)
     XCTAssertTrue(Set(["concord", "returned", "place", "tents"]).isSubset(of: Set(actual)), file: file, line: line)
@@ -391,7 +393,7 @@ final class TranscriptionReplayCheckpointIntegrityTests: XCTestCase {
         })
         let work = Task { try await replay.replay(meetingID: f.id) }
         do {
-            let deadline = ContinuousClock.now.advanced(by: .seconds(30))
+            let deadline = ContinuousClock.now.advanced(by: .seconds(120))
             while !(await pause.entered), ContinuousClock.now < deadline {
                 try await Task.sleep(for: .milliseconds(10))
             }

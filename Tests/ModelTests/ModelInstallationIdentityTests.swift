@@ -23,7 +23,7 @@ final class ModelInstallationIdentityTests: XCTestCase {
     }
 
     func testIdentityIsOrderIndependentAndSeparatesPurposeRevisionAndRepository() {
-        let files = ["stream/encoder.onnx", "stream/decoder.onnx", "stream/joiner.onnx", "tokens.txt"]
+        let files = ["stream/encoder.bin", "stream/decoder.bin", "stream/joint.bin", "vocabulary.json"]
         let original = identity(files, purpose: .speechRecognition)
         XCTAssertEqual(original, identity(Array(files.reversed()), purpose: .speechRecognition))
         XCTAssertNotEqual(original, identity(files, purpose: .summary))
@@ -40,6 +40,6 @@ final class ModelInstallationIdentityTests: XCTestCase {
         XCTAssertNotEqual(identity([composed]), identity([decomposed]))
         XCTAssertEqual(identity([composed, decomposed]), identity([decomposed, composed]),
                        "Sort canonical-equivalent paths by their exact UTF-8 bytes")
-        XCTAssertNotEqual(identity([composed, "tokens.txt"]), identity([decomposed, "tokens.txt"]))
+        XCTAssertNotEqual(identity([composed, "vocabulary.json"]), identity([decomposed, "vocabulary.json"]))
     }
 }

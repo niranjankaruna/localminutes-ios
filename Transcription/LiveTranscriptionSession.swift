@@ -48,7 +48,7 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
                     try ModelStoragePolicy.availableBytes(at: $0)
                 },
                 selectedSpeechModel: @escaping @MainActor () async throws -> ModelManifest? = {
-                    StreamingEnglishModel.manifest
+                    ParakeetCoreMLModel.manifest
                 }) {
         self.models = models
         self.store = store
@@ -101,7 +101,7 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
             }
             stageFailure = .modelUnavailable
             guard let selected = try await selectedSpeechModel(), selected.purpose == .speechRecognition else {
-                throw StreamingASRError.invalidModel
+                throw SpeechRecognitionError.invalidModel
             }
             epoch.selectedManifest = selected
             try Task.checkCancellation()
@@ -109,35 +109,12 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
             epoch.lease = lease
             let model = lease.model
             guard model.manifest == selected, model.manifest.sampleRate == 16_000 else {
-                throw StreamingASRError.invalidModel
+                throw SpeechRecognitionError.invalidModel
             }
             metrics?.beginEpoch(modelRevision: selected.revision, runtimeVersion: selected.runtimeVersion)
-            let recognizer: LiveSpeechRecognizer
-            let profile: HuggingFaceRuntimeProfile
-            if [ParakeetCoreMLModel.runtimeVersion, ParakeetModelPack.runtimeVersion].contains(selected.runtimeVersion) {
-                _ = try ParakeetModelPack.configuration(for: selected)
-                profile = .parakeetTDTCoreML
-                recognizer = .windowed(.parakeet(CoreMLParakeetRecognizer(files: .init(
-                    directory: model.directoryURL, manifest: selected))))
-            } else if let whisper = model.files[.whisper] {
-                guard model.files.count == 1, selected.artifacts.count == 1,
-                      selected.artifacts[0].role == .whisper, selected.featureDimension == nil,
-                      selected.runtimeVersion == "whisper.cpp-1.7.5" else { throw StreamingASRError.invalidModel }
-                let artifact = selected.artifacts[0]
-                profile = .whisperGGML
-                recognizer = .windowed(.whisper(WhisperSpeechRecognizer(files: .init(model: whisper,
-                    revision: selected.revision, byteCount: artifact.byteCount, sha256: artifact.sha256))))
-            } else {
-                guard model.files.count == 4, selected.featureDimension == 80,
-                      let encoder = model.files[.encoder], let decoder = model.files[.decoder],
-                      let joiner = model.files[.joiner], let tokens = model.files[.tokens] else {
-                    throw StreamingASRError.invalidModel
-                }
-                profile = .streamingZipformerONNX
-                recognizer = .streaming(CPUStreamingRecognizer(files: .init(encoder: encoder, decoder: decoder,
-                    joiner: joiner, tokens: tokens, revision: selected.revision,
-                    runtimeVersion: selected.runtimeVersion)))
-            }
+            _ = try ParakeetModelPack.configuration(for: selected)
+            let recognizer = CoreMLParakeetRecognizer(files: .init(
+                directory: model.directoryURL, manifest: selected))
             epoch.recognizer = recognizer
             try await recognizer.load()
             try Task.checkCancellation()
@@ -156,7 +133,7 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
                                                 recordingState: .recording))
             epoch.meetingCreated = true
             try await store.saveSpeechModelPin(.init(meetingID: epoch.id,
-                selection: .init(manifest: selected, profile: profile,
+                selection: .init(manifest: selected, profile: .parakeetTDTCoreML,
                     installationID: model.installationID)))
             try Task.checkCancellation()
             epoch.ingress = ingress
@@ -268,106 +245,7 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
     }
 
     private nonisolated static func consume(_ ingress: TranscriptIngress,
-        recognizer: LiveSpeechRecognizer, store: SQLiteMeetingStore, id: UUID, revision: String,
-        publish: @escaping @Sendable (LiveTranscriptSnapshot) async -> Void) async -> TranscriptDrain {
-        switch recognizer {
-        case .streaming(let streaming):
-            return await consumeStreaming(ingress, recognizer: streaming, store: store, id: id,
-                revision: revision, publish: publish)
-        case .windowed(let windowed):
-            return await consumeWindowed(ingress, recognizer: windowed, store: store, id: id,
-                revision: revision, publish: publish)
-        }
-    }
-
-    private nonisolated static func consumeStreaming(_ ingress: TranscriptIngress,
-        recognizer: CPUStreamingRecognizer, store: SQLiteMeetingStore, id: UUID, revision: String,
-        publish: @escaping @Sendable (LiveTranscriptSnapshot) async -> Void) async -> TranscriptDrain {
-        var scratch = [Float](repeating: 0, count: 3_200)
-        var cursor: Int64 = 0
-        var utteranceStart: Int64 = 0
-        var finalized: [StoredTranscriptSegment] = []
-        var partial = ""
-        var failure: RecordingFailure?
-        do {
-            var ended = false
-            while !ended {
-                let next = scratch.withUnsafeMutableBufferPointer { samples in
-                    var plane = samples.baseAddress!
-                    return withUnsafePointer(to: &plane) {
-                        ingress.dequeue(into: $0, frameCapacity: samples.count)
-                    }
-                }
-                switch next {
-                case .chunk(let metadata):
-                    guard metadata.precedingLoss == nil, metadata.sourceSampleTime == cursor else {
-                        throw StreamingASRError.invalidSamples
-                    }
-                    let workStarted = ingress.metrics?.nowNanoseconds()
-                    let result = try await recognizer.accept(samples: Array(scratch.prefix(metadata.frameCount)),
-                                                              sourceStartSample: cursor)
-                    if let metrics = ingress.metrics, let workStarted {
-                        do {
-                            try metrics.processed(startSample: cursor, frameCount: metadata.frameCount,
-                                                  workStartedAtNanoseconds: workStarted)
-                        } catch { metrics.recordError(.invalidTimestamp) }
-                    }
-                    cursor += Int64(metadata.frameCount)
-                    partial = result.text
-                    if result.isEndpoint {
-                        if !result.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                            let segment = StoredTranscriptSegment(id: UUID(), meetingID: id,
-                                sequence: finalized.count, startSample: utteranceStart, endSample: cursor,
-                                text: result.text, modelRevision: revision)
-                            try await store.appendFinalizedSegments([segment], to: id)
-                            finalized.append(segment)
-                        }
-                        try await recognizer.resetAfterEndpoint()
-                        utteranceStart = cursor
-                        partial = ""
-                    }
-                    await publish(.init(sessionID: id, partial: partial, finalized: finalized,
-                                        receivedSampleCount: cursor))
-                case .empty:
-                    try await Task.sleep(for: .milliseconds(5))
-                case .finished(let loss):
-                    guard loss == nil else { throw StreamingASRError.invalidSamples }
-                    ended = true
-                case .closed: ended = true
-                case .tooSmall: throw StreamingASRError.invalidSamples
-                }
-            }
-            guard !ingress.failed.load(ordering: .acquiring) else {
-                throw StreamingASRError.invalidSamples
-            }
-            let finalizationStarted = ingress.metrics?.nowNanoseconds()
-            let final = try await recognizer.finish()
-            if let metrics = ingress.metrics, let finalizationStarted {
-                do { try metrics.finalizationCompleted(workStartedAtNanoseconds: finalizationStarted) }
-                catch { metrics.recordError(.invalidTimestamp) }
-            }
-            if !final.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                let segment = StoredTranscriptSegment(id: UUID(), meetingID: id, sequence: finalized.count,
-                    startSample: utteranceStart, endSample: cursor, text: final.text, modelRevision: revision)
-                try await store.appendFinalizedSegments([segment], to: id)
-                finalized.append(segment)
-            }
-            partial = ""
-        } catch {
-            failure = error is MeetingStoreError ? .writeFailed : .captureUnavailable
-            ingress.metrics?.recordError(error is MeetingStoreError ? .writeFailed : .inferenceFailed)
-            ingress.failed.store(true, ordering: .releasing)
-            ingress.admission.close()
-            await recognizer.cancel()
-        }
-        let snapshot = LiveTranscriptSnapshot(sessionID: id, partial: partial,
-            finalized: finalized, receivedSampleCount: cursor, failure: failure)
-        await publish(snapshot)
-        return TranscriptDrain(snapshot: snapshot)
-    }
-
-    private nonisolated static func consumeWindowed(_ ingress: TranscriptIngress,
-        recognizer: WindowedSpeechRecognizer, store: SQLiteMeetingStore, id: UUID, revision: String,
+        recognizer: CoreMLParakeetRecognizer, store: SQLiteMeetingStore, id: UUID, revision: String,
         publish: @escaping @Sendable (LiveTranscriptSnapshot) async -> Void) async -> TranscriptDrain {
         var scratch = [Float](repeating: 0, count: 3_200)
         var cursor: Int64 = 0
@@ -386,38 +264,38 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
                 switch next {
                 case .chunk(let metadata):
                     guard metadata.precedingLoss == nil, metadata.sourceSampleTime == cursor else {
-                        throw StreamingASRError.invalidSamples
+                        throw SpeechRecognitionError.invalidSamples
                     }
                     let started = ingress.metrics?.nowNanoseconds()
                     let update = try await recognizer.accept(Array(scratch.prefix(metadata.frameCount)), at: cursor)
-                    guard update.epochID == id else { throw StreamingASRError.noActiveStream }
+                    guard update.epochID == id else { throw SpeechRecognitionError.noActiveStream }
                     if let metrics = ingress.metrics, let started {
                         do { try metrics.processed(startSample: cursor, frameCount: metadata.frameCount,
                             workStartedAtNanoseconds: started) }
                         catch { metrics.recordError(.invalidTimestamp) }
                     }
                     cursor += Int64(metadata.frameCount)
-                    finalized = try await persistWhisperFinals(update.finalized, previous: finalized,
+                    finalized = try await persistFinals(update.finalized, previous: finalized,
                         through: cursor, store: store, id: id, revision: revision)
                     partial = update.partial
                     await publish(.init(sessionID: id, partial: partial, finalized: finalized, receivedSampleCount: cursor))
                 case .empty: try await Task.sleep(for: .milliseconds(5))
                 case .finished(let loss):
-                    guard loss == nil else { throw StreamingASRError.invalidSamples }
+                    guard loss == nil else { throw SpeechRecognitionError.invalidSamples }
                     ended = true
                 case .closed: ended = true
-                case .tooSmall: throw StreamingASRError.invalidSamples
+                case .tooSmall: throw SpeechRecognitionError.invalidSamples
                 }
             }
-            guard !ingress.failed.load(ordering: .acquiring) else { throw StreamingASRError.invalidSamples }
+            guard !ingress.failed.load(ordering: .acquiring) else { throw SpeechRecognitionError.invalidSamples }
             let started = ingress.metrics?.nowNanoseconds()
             let ending = try await recognizer.finish()
-            guard ending.epochID == id else { throw StreamingASRError.noActiveStream }
+            guard ending.epochID == id else { throw SpeechRecognitionError.noActiveStream }
             if let metrics = ingress.metrics, let started {
                 do { try metrics.finalizationCompleted(workStartedAtNanoseconds: started) }
                 catch { metrics.recordError(.invalidTimestamp) }
             }
-            finalized = try await persistWhisperFinals(ending.finalized, previous: finalized,
+            finalized = try await persistFinals(ending.finalized, previous: finalized,
                 through: cursor, store: store, id: id, revision: revision)
             partial = ""
         } catch {
@@ -433,7 +311,7 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
         return TranscriptDrain(snapshot: snapshot)
     }
 
-    private nonisolated static func persistWhisperFinals(_ delta: [WhisperSpeechSegment],
+    private nonisolated static func persistFinals(_ delta: [SpeechSegment],
         previous: [StoredTranscriptSegment], through cursor: Int64, store: SQLiteMeetingStore,
         id: UUID, revision: String) async throws -> [StoredTranscriptSegment] {
         guard !delta.isEmpty else { return previous }
@@ -443,7 +321,7 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
         for source in delta {
             guard source.startSample >= end, source.endSample > source.startSample,
                   source.endSample <= cursor, !source.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                  ids.insert(source.id).inserted else { throw StreamingASRError.invalidSamples }
+                  ids.insert(source.id).inserted else { throw SpeechRecognitionError.invalidSamples }
             rows.append(.init(id: source.id, meetingID: id, sequence: previous.count + rows.count,
                 startSample: source.startSample, endSample: source.endSample, text: source.text, modelRevision: revision))
             end = source.endSample
@@ -453,39 +331,13 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
     }
 }
 
-/// Engine differences remain explicit: windowed engines supply final deltas;
-/// the online engine owns endpoint reset and utterance-relative token times.
-private enum LiveSpeechRecognizer: Sendable {
-    case streaming(CPUStreamingRecognizer)
-    case windowed(WindowedSpeechRecognizer)
-
-    func load() async throws {
-        switch self {
-        case .streaming(let value): try await value.load()
-        case .windowed(let value): try await value.load()
-        }
-    }
-    func start(epochID: UUID) async throws {
-        switch self {
-        case .streaming(let value): try await value.start(epochID: epochID)
-        case .windowed(let value): try await value.start(epochID: epochID)
-        }
-    }
-    func unload() async {
-        switch self {
-        case .streaming(let value): await value.unload()
-        case .windowed(let value): await value.unload()
-        }
-    }
-}
-
 @MainActor
 private final class LiveTranscriptEpoch {
     let id: UUID
     let token = UUID()
     var lease: ModelLease?
     var selectedManifest: ModelManifest?
-    var recognizer: LiveSpeechRecognizer?
+    var recognizer: CoreMLParakeetRecognizer?
     var ingress: TranscriptIngress?
     var directory: URL?
     var meetingCreated = false
