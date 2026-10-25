@@ -2015,6 +2015,39 @@
         "build": 7
       },
       "nextAction": "Owner installs build 7 over the existing app with iLoader, records its displayed version, checks retained v2/chosen v3 and Apple on-device inference offline, then completes Live Activity/Action Button/locked two-hour/file-protection/renewal gates using the device checklists."
+    },
+    {
+      "id": "BRANCH_CLEANUP_BUILD7",
+      "title": "Preserve build 7 work on main and delete every other branch",
+      "kind": "maintenance",
+      "status": "VERIFIED_COMPLETE",
+      "tddRequired": false,
+      "tddApplicability": "Git-reference consolidation and documentation only; no application or test behavior changes.",
+      "acceptance": [
+        "All existing local/remote branch tips remain ancestors of main.",
+        "Only main remains locally and on origin.",
+        "Delivered build 7, application sources, tests and phone gates remain unchanged."
+      ],
+      "evidence": [
+        "docs/evidence/MAIN_ONLY_BUILD7_2026_10_25.md"
+      ],
+      "completedAt": "2026-10-25T19:03:44.818Z",
+      "validation": {
+        "previousMain": "ac26bec9ed68503371cce061a6e9d4d615f4bae5",
+        "mergedTip": "170699886370fb28819d0d302a191519a7964de6",
+        "preservedCommits": 9,
+        "deletedLocalBranches": [
+          "codex/parakeet-downloads"
+        ],
+        "deletedRemoteBranches": [
+          "codex/parakeet-downloads"
+        ],
+        "sourceDiff": "ZERO from delivered app",
+        "newTests": 0,
+        "newCIRuns": 0,
+        "newIPABuilds": 0
+      },
+      "nextAction": "Owner installs and validates delivered build 7 on iPhone 17 Pro / iOS 27.0.1 using docs/MODEL_UPGRADE_DEVICE_CHECKLIST.md and docs/MVP4_DEVICE_CHECKLIST.md; all phone inference, signing, Lock Screen, endurance and renewal gates remain pending."
     }
   ],
   "executionPausedByOwner": false,
@@ -2042,30 +2075,17 @@
     "blocker": "OWNER_PHONE_VALIDATION_REQUIRED",
     "nextAction": "Owner validates delivered build 6 on iPhone 17 Pro / iOS 27.0.1: record installed version and a short recording saved by Live Activity Stop; then complete offline chosen-model use, Action Button warm/locked/cold-start, two 125-minute passes with at least 120 locked minutes each, storage protection, and in-place signing-renewal preservation. See docs/MVP4_DEVICE_CHECKLIST.md. Resume code work on a reproducible defect; do not rerun model-quality benchmarks."
   },
-  "lastUpdated": "2026-10-25T16:42:14.129Z",
+  "lastUpdated": "2026-10-25T19:03:44.818Z",
   "resumeAction": "Push the corrected compileable pack/aggregate/Apple/layout/native-v3 tests; observe portable RED, then native model-upgrades RED before each implementation.",
   "historicalCheckpoint": "https://github.com/niranjankaruna/localminutes-ios/blob/a314967626b01b0a3a071eb61eb02b2d5d2320e8/docs/BACKLOG.json",
   "evidencePolicy": "Per-task draft/checkpoint/model-decision entries are historical, scoped to recorded commits. Current delivered source and next action are in docs/STATE.json. Removed draft references use immutable Git permalinks.",
   "latestRepositoryVerification": {
-    "sourceCommit": "eeb9a5dc65a06ef11142c449e4a5e3170500eb69",
-    "platform": "Windows 11 / Node 24.21.0 / Python 3.12.14",
-    "command": "node --test scripts/tests/*.test.mjs",
-    "executed": 62,
-    "passed": 62,
-    "failed": 0,
-    "skipped": 0,
-    "repositoryAudit": {
-      "protectedFilesUnchanged": 219,
-      "filesUnderTestsUnchanged": 111,
-      "relocatedHelpersSyntaxAndImports": 5,
-      "relativeMarkdownLinksChecked": 163,
-      "historicalCheckoutRevisionsChecked": 3,
-      "backlogAcceptanceAndDeviceEvidenceUnchanged": true,
-      "workflowChanges": "Helper paths only; historical jobs select the tracked helper belonging to the checked-out revision.",
-      "errors": []
-    },
-    "newNativeCIRuns": 0,
-    "nativeBuildOrInferenceClaim": false,
-    "deviceClaim": false
+    "task": "BRANCH_CLEANUP_BUILD7",
+    "evidence": "docs/evidence/MAIN_ONLY_BUILD7_2026_10_25.md",
+    "observedMain": "170699886370fb28819d0d302a191519a7964de6",
+    "onlyLocalBranch": "main",
+    "onlyRemoteBranch": "main",
+    "preservedCommits": 9,
+    "applicationChanged": false
   }
 }

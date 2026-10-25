@@ -1,5 +1,11 @@
 # Verification index
 
+## Main-only branch cleanup after build 7 — 25 October 2026
+
+Completed BRANCH_CLEANUP_BUILD7: fast-forwarded main from ac26bec to 1706998, preserving all nine task-branch commits, then pushed main and deleted codex/parakeet-downloads locally and on origin. Fresh inventories show only main; the default branch is main. No force push, history rewrite, source/test change, rebuild or new CI run. Latest relevant native CI 40220308515 remains SUCCESS for delivered app source 6c02ccd. The build 7 IPA still matches SHA-256 4adfea3a38463b69423d58e4d8f1b2434f65ceeb2483e091eb26a0987ec0f967.
+
+[Maintenance evidence](evidence/MAIN_ONLY_BUILD7_2026_10_25.md). Overall application state remains READY_FOR_DEVICE_VALIDATION; all physical-phone gates remain NOT_RUN. Next: Owner installs and validates delivered build 7 on iPhone 17 Pro / iOS 27.0.1 using docs/MODEL_UPGRADE_DEVICE_CHECKLIST.md and docs/MVP4_DEVICE_CHECKLIST.md; all phone inference, signing, Lock Screen, endurance and renewal gates remain pending.
+
 ## T26/T27 delivered — build 7
 
 T26/T27 are CODE_COMPLETE_PENDING_DEVICE. Unsigned version 1.0/build 7, source `6c02ccdd911017a613de2052e5fee1e611b953f7`, is delivered locally in `.agent-local/delivery/build7-6c02ccd` and retained in an unpublished owner draft. Package: 15,088,983 bytes; SHA-256 `4adfea3a38463b69423d58e4d8f1b2434f65ceeb2483e091eb26a0987ec0f967`. [Build/installation details](MODEL_UPGRADE_BUILD7.md). Overall status is READY_FOR_DEVICE_VALIDATION, never VERIFIED_COMPLETE.

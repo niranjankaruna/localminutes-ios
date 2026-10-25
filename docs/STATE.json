@@ -210,15 +210,14 @@
     "scope": "Third consecutive phone-only condition after final delivery. No new owner observation, active build or concrete independent development task; prior follow-up produced no application progress. Full goal remains unachieved. Goal blocked audit satisfied; resume when owner supplies phone evidence or reports a reproducible defect.",
     "lastRevalidatedAt": "2026-10-25T12:56:17.577Z"
   },
-  "lastUpdated": "2026-10-25T18:49:16.979Z",
-  "currentBranch": "codex/parakeet-downloads",
-  "currentTask": "T26/T27 delivered in unsigned build 7; owner phone validation pending",
-  "nextAction": "Owner installs build 7 over the existing app with iLoader, records its displayed version, checks retained v2/chosen v3 and Apple on-device inference offline, then completes Live Activity/Action Button/locked two-hour/file-protection/renewal gates using the device checklists.",
+  "lastUpdated": "2026-10-25T19:03:44.818Z",
+  "currentBranch": "main",
+  "currentTask": "Build 7 branch consolidation complete; owner phone validation pending",
+  "nextAction": "Owner installs and validates delivered build 7 on iPhone 17 Pro / iOS 27.0.1 using docs/MODEL_UPGRADE_DEVICE_CHECKLIST.md and docs/MVP4_DEVICE_CHECKLIST.md; all phone inference, signing, Lock Screen, endurance and renewal gates remain pending.",
   "activeCIRun": null,
-  "repositoryHeadScope": "Delivered/tested app source is 6c02ccdd911017a613de2052e5fee1e611b953f7. The following checkpoint commit changes documentation only; verify zero production diff.",
+  "repositoryHeadScope": "Only main remains locally and on origin. All nine commits through 170699886370fb28819d0d302a191519a7964de6 are preserved; tested/delivered app source remains 6c02ccdd911017a613de2052e5fee1e611b953f7. This maintenance checkpoint changes documentation only.",
   "completedThisInvocation": [
-    "T26",
-    "T27"
+    "BRANCH_CLEANUP_BUILD7"
   ],
   "historicalCheckpoint": "https://github.com/niranjankaruna/localminutes-ios/blob/a314967626b01b0a3a071eb61eb02b2d5d2320e8/docs/STATE.json",
   "historyPolicy": "Current checkpoint only; dedicated TDD/quality/delivery evidence retained in docs/evidence and full prior snapshots in Git.",
@@ -455,5 +454,40 @@
       },
       "evidence": "docs/evidence/MVP4_REQUIREMENT_HANDOFF.md"
     }
-  ]
+  ],
+  "branchCleanupBuild7": {
+    "task": "BRANCH_CLEANUP_BUILD7",
+    "status": "VERIFIED_COMPLETE",
+    "completedAt": "2026-10-25T19:03:44.818Z",
+    "evidence": "docs/evidence/MAIN_ONLY_BUILD7_2026_10_25.md",
+    "previousMain": "ac26bec9ed68503371cce061a6e9d4d615f4bae5",
+    "mergedTip": "170699886370fb28819d0d302a191519a7964de6",
+    "preservedCommits": 9,
+    "mergeMethod": "fast-forward only; no rebase, squash or force push",
+    "deletedLocalBranches": [
+      "codex/parakeet-downloads"
+    ],
+    "deletedRemoteBranches": [
+      "codex/parakeet-downloads"
+    ],
+    "onlyLocalBranch": "main",
+    "onlyRemoteBranch": "main",
+    "defaultBranch": "main",
+    "mainLocalAndRemoteVerifiedAtMerge": "170699886370fb28819d0d302a191519a7964de6",
+    "verificationScope": "Verified before this documentation-only checkpoint; final checkpoint push is checked separately.",
+    "deliveredAppSource": "6c02ccdd911017a613de2052e5fee1e611b953f7",
+    "productionAndTestDiffFromDeliveredSource": "ZERO",
+    "workingTreeBeforeCheckpoint": "clean",
+    "latestRelevantCI": {
+      "runId": 40220308515,
+      "sourceCommit": "6c02ccdd911017a613de2052e5fee1e611b953f7",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    "newTests": 0,
+    "newCIRuns": 0,
+    "newIPABuilds": 0,
+    "artifactChanged": false,
+    "deviceGatesChanged": false
+  }
 }
