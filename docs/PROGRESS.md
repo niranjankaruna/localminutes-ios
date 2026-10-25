@@ -1,6 +1,6 @@
 # Progress
 
-## Current checkpoint — 25 October 2026
+## Current checkpoint â€” 25 October 2026
 
 MVP4 version 1.0, build 6 is delivered and `READY_FOR_DEVICE_VALIDATION`.
 Overall project execution is `BLOCKED_EXTERNAL` on
@@ -12,7 +12,7 @@ its passing functional groups combine with the unchanged-app, harness-only
 answer-editing UI case with zero failures/skips. The IPA and evidence are in the
 [build guide](MVP4_GUIDE.md) and [requirement handoff](evidence/MVP4_REQUIREMENT_HANDOFF.md).
 
-## Repository consolidation — 25 October 2026
+## Repository consolidation â€” 25 October 2026
 
 User requested preserving all branch work on main, deleting every other branch,
 adding a README, and removing stale material. All six local and six remote branch
@@ -28,9 +28,17 @@ uncompiled drafts are removed. All active tests, dedicated TDD/quality evidence,
 dependency receipts, and ignored local delivery files are preserved.
 
 Baseline before cleanup: Windows / Node 24.21.0, 62 script tests passed,
-zero failures/skips. Cleanup validation and remote deletion verification are
-recorded in [maintenance evidence](evidence/REPOSITORY_CLEANUP_2026_10_25.md).
-No iOS build, model-quality benchmark, or device test is implied by these checks.
+zero failures/skips. At cleanup commit `eeb9a5dc65a06ef11142c449e4a5e3170500eb69`, the post-cleanup script suite also
+passed all 62 cases with zero failures/skips. The repository audit passed:
+219 source/test files unchanged, all five helper imports valid, 163 documentation
+links resolved, historical checkout paths valid, and acceptance/device contracts
+unchanged. All five task branches were deleted locally and on origin after
+verified push and ancestry checks. Local and remote main matched; the tree was
+clean. `REPO_CLEANUP` is `VERIFIED_COMPLETE`. Details are recorded in [maintenance evidence](evidence/REPOSITORY_CLEANUP_2026_10_25.md).
+The existing ignored build 6 IPA still matches its recorded SHA-256.
+This follow-up checkpoint updates only documentation/status and Python line-ending
+hygiene. No new CI run, iOS build, model-quality benchmark, or device test is
+implied by these checks.
 
 ## Exact next action
 

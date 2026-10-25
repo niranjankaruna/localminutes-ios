@@ -179,16 +179,16 @@
   "completionAudit": {
     "at": "2026-10-25T12:52:18.363Z",
     "evidence": "docs/evidence/MVP4_REQUIREMENT_HANDOFF.md",
-    "requirements": "R01–R12 mapped to actual evidence/remaining acceptance",
+    "requirements": "R01â€“R12 mapped to actual evidence/remaining acceptance",
     "fullGoalAchieved": false,
     "remainingExternalBlocker": "OWNER_PHONE_VALIDATION_REQUIRED",
     "blockedAuditConsecutiveTurns": 3,
     "scope": "Third consecutive phone-only condition after final delivery. No new owner observation, active build or concrete independent development task; prior follow-up produced no application progress. Full goal remains unachieved. Goal blocked audit satisfied; resume when owner supplies phone evidence or reports a reproducible defect.",
     "lastRevalidatedAt": "2026-10-25T12:56:17.577Z"
   },
-  "lastUpdated": "2026-10-25T13:33:00Z",
+  "lastUpdated": "2026-10-25T13:44:29Z",
   "currentBranch": "main",
-  "currentTask": "Repository consolidation and documentation cleanup; T23 physical acceptance remains blocked",
+  "currentTask": "T23 physical-device acceptance remains blocked; REPO_CLEANUP VERIFIED_COMPLETE",
   "nextAction": "Owner validates delivered build 6 on iPhone 17 Pro / iOS 27.0.1: record installed version and a short recording saved by Live Activity Stop; then complete offline chosen-model use, Action Button warm/locked/cold-start, two 125-minute passes with at least 120 locked minutes each, storage protection, and in-place signing-renewal preservation. See docs/MVP4_DEVICE_CHECKLIST.md. Resume code work on a reproducible defect; do not rerun model-quality benchmarks.",
   "activeCIRun": null,
   "repositoryHeadScope": "Read actual local/remote HEAD; latest application CI source remains separately identified.",
@@ -198,10 +198,53 @@
   "historicalCheckpoint": "https://github.com/niranjankaruna/localminutes-ios/blob/a314967626b01b0a3a071eb61eb02b2d5d2320e8/docs/STATE.json",
   "historyPolicy": "Current checkpoint only; dedicated TDD/quality/delivery evidence retained in docs/evidence and full prior snapshots in Git.",
   "repositoryCleanup": {
-    "status": "IN_PROGRESS",
+    "status": "VERIFIED_COMPLETE",
     "evidence": "docs/evidence/REPOSITORY_CLEANUP_2026_10_25.md",
     "branchesContainedAtMerge": "a314967626b01b0a3a071eb61eb02b2d5d2320e8",
     "outstandingCommitsMerged": 75,
-    "validation": "Pending cleanup checks and remote verification."
+    "validation": {
+      "sourceCommit": "eeb9a5dc65a06ef11142c449e4a5e3170500eb69",
+      "platform": "Windows 11 / Node 24.21.0 / Python 3.12.14",
+      "command": "node --test scripts/tests/*.test.mjs",
+      "executed": 62,
+      "passed": 62,
+      "failed": 0,
+      "skipped": 0,
+      "repositoryAudit": {
+        "protectedFilesUnchanged": 219,
+        "filesUnderTestsUnchanged": 111,
+        "relocatedHelpersSyntaxAndImports": 5,
+        "relativeMarkdownLinksChecked": 163,
+        "historicalCheckoutRevisionsChecked": 3,
+        "backlogAcceptanceAndDeviceEvidenceUnchanged": true,
+        "workflowChanges": "Helper paths only; historical jobs select the tracked helper belonging to the checked-out revision.",
+        "errors": []
+      },
+      "newNativeCIRuns": 0,
+      "nativeBuildOrInferenceClaim": false,
+      "deviceClaim": false
+    },
+    "completedAt": "2026-10-25T13:44:29Z",
+    "cleanupCommit": "eeb9a5dc65a06ef11142c449e4a5e3170500eb69",
+    "deletedLocalBranches": [
+      "task/t02-harness",
+      "task/t03-recording-coordinator",
+      "task/t04-ios-build",
+      "task/t05-capture",
+      "task/t06-activity"
+    ],
+    "deletedRemoteBranches": [
+      "task/t02-harness",
+      "task/t03-recording-coordinator",
+      "task/t04-ios-build",
+      "task/t05-capture",
+      "task/t06-activity"
+    ],
+    "onlyLocalBranch": "main",
+    "onlyRemoteBranch": "main",
+    "remoteMainVerifiedAt": "2026-10-25T13:44:29Z",
+    "lastObservedRemoteHead": "eeb9a5dc65a06ef11142c449e4a5e3170500eb69",
+    "observationScope": "Verified cleanup commit on origin/main after deletion; this documentation-only checkpoint follows separately.",
+    "allOriginalBranchTipsAreAncestorsOfMain": true
   }
 }

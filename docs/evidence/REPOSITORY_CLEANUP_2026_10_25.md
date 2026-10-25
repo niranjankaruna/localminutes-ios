@@ -1,4 +1,4 @@
-# Repository consolidation — 25 October 2026
+# Repository consolidation â€” 25 October 2026
 
 Scope: owner requested merging all branch work into `main`, retaining only
 `main`, adding a README, and removing obsolete or unused repository material.
@@ -31,7 +31,15 @@ commit, including test-first history. `git merge-base --is-ancestor` succeeded
 for every fetched local/remote ref against consolidated main.
 No rebase, squash, force push, repository recreation, or visibility change.
 
-Remote push/deletion verification: pending final maintenance checkpoint.
+Remote verification completed at 2026-10-25T13:44:29Z. Cleanup commit
+`eeb9a5dc65a06ef11142c449e4a5e3170500eb69` was pushed normally to `main`. Remote main was independently
+verified at that exact SHA before deletion. Every advertised remote tip was
+again checked for ancestry before `git push origin --delete` removed all five
+task branches. All five merged local branches were removed with `git branch -d`.
+After fetch/prune, `git ls-remote --heads origin` returned only `refs/heads/main`,
+at the same SHA as local main; `git status --porcelain=v1` was empty.
+No unmerged commit was discarded. This separate documentation checkpoint
+records the completed operation; the current HEAD is available from Git.
 
 ## Cleanup
 
@@ -63,7 +71,21 @@ Node 24.21.0: **62 passed, 0 failed, 0 skipped**. A sandboxed attempt was denied
 temporary symlink creation; the normal-filesystem run passed. That permission
 failure is not a behavioral RED.
 
-Post-cleanup script regressions and repository audit: pending final checkpoint.
+Post-cleanup at commit `eeb9a5dc65a06ef11142c449e4a5e3170500eb69`:
+
+| Check | Actual result |
+| --- | --- |
+| `node --test scripts/tests/*.test.mjs` | 62 passed, 0 failed, 0 skipped; Windows 11 / Node 24.21.0 |
+| Protected source/test byte comparison | All 219 protected files unchanged, including all 111 files under Tests |
+| Relocated Python helpers | Five syntax-tree comparisons and imports passed on Python 3.12.14; no downloads invoked |
+| Workflow references | Current helper paths exist; historical helper selection resolves in all three pinned revisions |
+| Documentation and metadata | 163 relative Markdown links resolve; JSON parses; no whitespace errors |
+| Backlog and device contracts | Every prior task/status/acceptance/dependency/device-evidence field unchanged |
+| Branch ancestry | Every original local/remote tip reachable from main |
+| Existing ignored build 6 IPA | SHA-256 still matches `08c00c22c0edd446ec0656a5695d9b05e20b7d1cc497f9186f57ec99cf00f2e0` |
+
+The remaining checkpoint changes update documentation/status and pin Python
+source line endings to LF. They do not change the tested scripts or app sources.
 The maintenance audit compares all application/test bytes with the original
 snapshot, compares relocated Python syntax trees after path substitutions,
 imports the helpers without invoking downloads, checks every workflow helper,
@@ -79,7 +101,7 @@ an inference/quality result, or a physical-device validation.
 
 ## Remaining acceptance and next task
 
-Maintenance task: `REPO_CLEANUP`. Application task `T23` remains blocked on
+Maintenance task: `REPO_CLEANUP` is `VERIFIED_COMPLETE`. Application task `T23` remains blocked on
 `OWNER_PHONE_VALIDATION_REQUIRED`; no device result is changed from `NOT_RUN`.
 The delivered build remains `READY_FOR_DEVICE_VALIDATION`, and the full project
 remains `BLOCKED_EXTERNAL` with `verifiedComplete: false`.

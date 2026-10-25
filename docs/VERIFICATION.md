@@ -10,7 +10,7 @@ Status: `READY_FOR_DEVICE_VALIDATION`; overall `BLOCKED_EXTERNAL`.
 | --- | --- |
 | [MVP4 original batch](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40190643613) | FAILURE retained: 76 portable, 46 script, 116 native app, 7 UI, 3 actual-IPA hygiene, and 2 compiled-fixture checks passed; one answer UI case failed original-content assertions after test navigation. |
 | [Focused UI retry](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40193408469) | SUCCESS: one answer-edit/navigation/relaunch case, zero failures/skips, 190.795 seconds. Harness `81fbff3`, exact unchanged app `36bf6f4`, zero production diff. |
-| [Requirement handoff](evidence/MVP4_REQUIREMENT_HANDOFF.md) | R01–R12 mapping, composite evidence, original failures, and remaining physical gates. |
+| [Requirement handoff](evidence/MVP4_REQUIREMENT_HANDOFF.md) | R01â€“R12 mapping, composite evidence, original failures, and remaining physical gates. |
 | [Build and checksums](MVP4_GUIDE.md) | Version 1.0/build 6/schema 5; unsigned app plus extension; local IPA verification and retained owner draft. |
 | [Dependency receipt](evidence/MVP4_DEPENDENCY_RECEIPT_36bf6f4.json) | Exact recorded runtime sources and bundled notices for the delivered build. |
 | [Device checklist](MVP4_DEVICE_CHECKLIST.md) | All physical gates NOT_RUN. Simulator/native compilation does not pass locked iPhone behavior. |
@@ -22,8 +22,12 @@ quality tests remain preserved. No model-quality or phone PASS is inferred here.
 ## Repository maintenance
 
 [Repository cleanup evidence](evidence/REPOSITORY_CLEANUP_2026_10_25.md) records
-branch containment, file removals/relocations, portable regressions, and final
-remote verification. These checks do not create a new validated iOS artifact.
+the completed `REPO_CLEANUP`: all branch tips merged, only main retained locally
+and remotely, and cleanup commit `eeb9a5dc65a06ef11142c449e4a5e3170500eb69` verified on origin. The exact-source
+portable suite passed 62/62, zero failures/skips. The audit found 219 protected
+files unchanged, all five helper imports valid, and 163 relative documentation
+links resolved. Historical model results and all device gates remain unchanged.
+These checks do not create a new validated iOS artifact.
 
 ## Historical evidence catalog
 

@@ -1824,7 +1824,7 @@
       "id": "REPO_CLEANUP",
       "title": "Consolidate all branches into main and remove stale repository material",
       "kind": "maintenance",
-      "status": "IN_PROGRESS",
+      "status": "VERIFIED_COMPLETE",
       "tddRequired": false,
       "tddApplicability": "No application behavior change: mechanical helper relocation and documentation/hygiene only.",
       "acceptance": [
@@ -1835,7 +1835,31 @@
       ],
       "evidence": [
         "docs/evidence/REPOSITORY_CLEANUP_2026_10_25.md"
-      ]
+      ],
+      "completedAt": "2026-10-25T13:44:29Z",
+      "cleanupCommit": "eeb9a5dc65a06ef11142c449e4a5e3170500eb69",
+      "validation": {
+        "sourceCommit": "eeb9a5dc65a06ef11142c449e4a5e3170500eb69",
+        "platform": "Windows 11 / Node 24.21.0 / Python 3.12.14",
+        "command": "node --test scripts/tests/*.test.mjs",
+        "executed": 62,
+        "passed": 62,
+        "failed": 0,
+        "skipped": 0,
+        "repositoryAudit": {
+          "protectedFilesUnchanged": 219,
+          "filesUnderTestsUnchanged": 111,
+          "relocatedHelpersSyntaxAndImports": 5,
+          "relativeMarkdownLinksChecked": 163,
+          "historicalCheckoutRevisionsChecked": 3,
+          "backlogAcceptanceAndDeviceEvidenceUnchanged": true,
+          "workflowChanges": "Helper paths only; historical jobs select the tracked helper belonging to the checked-out revision.",
+          "errors": []
+        },
+        "newNativeCIRuns": 0,
+        "nativeBuildOrInferenceClaim": false,
+        "deviceClaim": false
+      }
     }
   ],
   "executionPausedByOwner": false,
@@ -1863,8 +1887,30 @@
     "blocker": "OWNER_PHONE_VALIDATION_REQUIRED",
     "nextAction": "Owner validates delivered build 6 on iPhone 17 Pro / iOS 27.0.1: record installed version and a short recording saved by Live Activity Stop; then complete offline chosen-model use, Action Button warm/locked/cold-start, two 125-minute passes with at least 120 locked minutes each, storage protection, and in-place signing-renewal preservation. See docs/MVP4_DEVICE_CHECKLIST.md. Resume code work on a reproducible defect; do not rerun model-quality benchmarks."
   },
-  "lastUpdated": "2026-10-25T13:33:00Z",
+  "lastUpdated": "2026-10-25T13:44:29Z",
   "resumeAction": "Owner validates delivered build 6 on iPhone 17 Pro / iOS 27.0.1: record installed version and a short recording saved by Live Activity Stop; then complete offline chosen-model use, Action Button warm/locked/cold-start, two 125-minute passes with at least 120 locked minutes each, storage protection, and in-place signing-renewal preservation. See docs/MVP4_DEVICE_CHECKLIST.md. Resume code work on a reproducible defect; do not rerun model-quality benchmarks.",
   "historicalCheckpoint": "https://github.com/niranjankaruna/localminutes-ios/blob/a314967626b01b0a3a071eb61eb02b2d5d2320e8/docs/BACKLOG.json",
-  "evidencePolicy": "Per-task draft/checkpoint/model-decision entries are historical, scoped to recorded commits. Current delivered source and next action are in docs/STATE.json. Removed draft references use immutable Git permalinks."
+  "evidencePolicy": "Per-task draft/checkpoint/model-decision entries are historical, scoped to recorded commits. Current delivered source and next action are in docs/STATE.json. Removed draft references use immutable Git permalinks.",
+  "latestRepositoryVerification": {
+    "sourceCommit": "eeb9a5dc65a06ef11142c449e4a5e3170500eb69",
+    "platform": "Windows 11 / Node 24.21.0 / Python 3.12.14",
+    "command": "node --test scripts/tests/*.test.mjs",
+    "executed": 62,
+    "passed": 62,
+    "failed": 0,
+    "skipped": 0,
+    "repositoryAudit": {
+      "protectedFilesUnchanged": 219,
+      "filesUnderTestsUnchanged": 111,
+      "relocatedHelpersSyntaxAndImports": 5,
+      "relativeMarkdownLinksChecked": 163,
+      "historicalCheckoutRevisionsChecked": 3,
+      "backlogAcceptanceAndDeviceEvidenceUnchanged": true,
+      "workflowChanges": "Helper paths only; historical jobs select the tracked helper belonging to the checked-out revision.",
+      "errors": []
+    },
+    "newNativeCIRuns": 0,
+    "nativeBuildOrInferenceClaim": false,
+    "deviceClaim": false
+  }
 }
