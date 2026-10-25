@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-25T08:53:33.762Z",
+  "lastUpdated": "2026-10-25T09:19:08.475Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -11,7 +11,7 @@
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "Observe focused40178158700: newcorrelatedgrammar unit/pipeline actualRED beforeimplementing compilerunion/cacheandtuples; newnative startupselection5actualRED beforebindfix; verifyold13native/UI7 andhistorycompilerrepair. Thenminimalrepairs,preservevalidators/oracles; finalmilestoneparallelPhi basic/representative, nativeall,core+package exactSHA/Windowschecksum. No realmodelrepeatsforthisfocusedstep, devicegatesNOT_RUN.",
+  "nextAction": "Commitreviewedstartup+UIhelperrepairs, prepareunpublishedowner draftatexactnewSHA, dispatchmvp3-integration retainMVP3=true withparallelbasic/representativePhi jobs. RequireallmandatoryGREEN (core/newtupleconstraints/native18includingstartup/UI/hygiene) andsamebuildIPAretention. DownloadandindependentlyverifySHA/bundles/source/notices/dependencyreceipt beforeMVP3delivery. PhysicalgatesNOT_RUN.",
   "pendingPushCommit": null,
   "remoteBranchHead": "14ff749a2bd8678b6523cf377b6695283513a76e",
   "localScriptGreen": {
@@ -47,9 +47,8 @@
   "latestCIRun": {
     "runId": 40178158700,
     "sourceCommit": "45c9f0f79b00382768435009e7667427cee028e8",
-    "mode": "mvp3-startup",
-    "status": "in_progress",
-    "conclusion": null
+    "status": "completed",
+    "conclusion": "failure"
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -225,13 +224,7 @@
     "latestSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
     "latestRunUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180"
   },
-  "activeCIRun": {
-    "runId": 40178158700,
-    "sourceCommit": "45c9f0f79b00382768435009e7667427cee028e8",
-    "mode": "mvp3-startup",
-    "status": "in_progress",
-    "conclusion": null
-  },
+  "activeCIRun": null,
   "pendingPushScope": null,
   "repositoryVisibility": "PUBLIC",
   "publication": {
@@ -2345,8 +2338,47 @@
       "testFirstSource": "7a7f58b",
       "testFile": "Tests/NativeAppTests/NativeSummarySelectionStartupTests.swift",
       "preparedTests": 5,
-      "actualRED": false,
-      "productionRepair": false
+      "actualRED": {
+        "runId": 40178158700,
+        "jobId": 121123256378,
+        "sourceCommit": "45c9f0f79b00382768435009e7667427cee028e8",
+        "newCases": 5,
+        "newPassed": 1,
+        "newFailed": 4,
+        "assertionFailures": 6,
+        "skipped": 0
+      },
+      "productionRepair": true
+    },
+    "correlatedGrammar": {
+      "actualRED": {
+        "runId": 40178158700,
+        "executed": 25,
+        "passed": 22,
+        "failed": 3,
+        "assertionFailures": 69,
+        "skipped": 0
+      },
+      "productionImplemented": true,
+      "green": false
+    },
+    "focusedProductGREEN": {
+      "runId": 40178158700,
+      "sourceCommit": "45c9f0f79b00382768435009e7667427cee028e8",
+      "nativeExisting": {
+        "executed": 13,
+        "passed": 13,
+        "failed": 0,
+        "skipped": 0
+      },
+      "ui": {
+        "executed": 7,
+        "passed": 5,
+        "failed": 2,
+        "assertionFailures": 3,
+        "skipped": 0
+      },
+      "remainingUI": "Focusednavigationhelpersrepaired; sameassertions requireactualGREEN"
     }
   }
 }

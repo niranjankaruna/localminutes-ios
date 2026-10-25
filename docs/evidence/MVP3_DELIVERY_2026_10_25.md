@@ -190,3 +190,32 @@ complete validated fallback, never a truncated subset. The earlier structural
 schema test now traverses alternatives while retaining all exact-sentence,
 Unicode, no-paragraph, nullable-attribute and source-preservation assertions.
 Hosted GREEN and unchanged real-model quality case remain pending.
+
+## Focused native startup RED and existing feature GREEN
+
+Same45c9f0f/run40178158700, job121123256378:18 executed,14 passed,4 failed,
+6 assertions,0 skips,1.797 seconds. All13 existing native product cases passed:
+privacy2, citations3, latest-meeting5, progress1, bundle identity1 and shortcut1.
+The five new startup cases included one legacy-default pass; four failed on
+persisted alternative/explicit unequip and both first-controller-request paths.
+The actual retained session was Phi instead of the verified selected artifact.
+Synthetic invalid GGUF was never used as successful inference evidence.
+
+Repair: one retained initialization task joins selection verification and binds
+the session before generation captures it. Explicit unequip remains nil, missing
+legacy selection retains the default missing-model flow, and busy restoration
+stays retryable. No model inference is performed at startup. Tests unchanged.
+
+UI job121123256440:7 executed,5 passed,2 failed,3 assertions,0 skips,273.641s.
+History/search and notes now passed, along with spoken labels and both required
+information cases. The remaining failures were navigation preconditions: QA
+text field at y51.3 under the navigation bar was considered hittable but did not
+receive keyboard focus, and partly visible AX5 buttons failed the full-frame
+assertions. Test helpers now require complete visibility below navigation and
+above tabs/keyboard and use bounded short real drags. No assertions, typing,
+fixtures, production behavior or required tests were removed or weakened.
+Actual harness GREEN remains required in the candidate run.
+
+The next candidate batches these fixes with correlated grammar. Basic Phi and
+representative Phi run as independent parallel45-minute jobs, keeping their
+unchanged cases/oracles while avoiding a combined runtime timeout.

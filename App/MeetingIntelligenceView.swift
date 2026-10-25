@@ -171,10 +171,6 @@ final class MeetingIntelligenceController {
 
     private func begin(_ kind: IntelligenceOperation) {
         guard request == nil, !isRunning, !cleanupPending, !isResetting, !services.maintainingLibrary else { return }
-        guard let intelligence = services.intelligence else {
-            errorMessage = "Local generation is unavailable. Reopen LocalMinutes and try again."
-            return
-        }
         let owned = IntelligenceRequest(meetingID: meetingID, operation: kind,
             createdAt: Date(timeIntervalSince1970: Date().timeIntervalSince1970))
         request = owned
@@ -192,6 +188,12 @@ final class MeetingIntelligenceController {
                 try Task.checkCancellation()
                 guard self.services.startup.state == .ready else {
                     self.errorMessage = "Saved meetings are not ready. Reopen LocalMinutes and try again."
+                    self.finish(owned)
+                    return
+                }
+                guard let intelligence = self.services.intelligence else {
+                    self.modelRequired = true
+                    self.message = nil
                     self.finish(owned)
                     return
                 }

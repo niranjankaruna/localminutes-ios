@@ -25,6 +25,8 @@ final class LocalMinutesServices: PlaybackHardware {
     let recordingAdmission: RecordingHeavyModelAdmission?
     private(set) var intelligence: IntelligenceSession?
     private var intelligenceManifest: ModelManifest?
+    @ObservationIgnored private var summaryStartupBinding: Task<Void, Never>?
+    @ObservationIgnored private var summaryStartupBound = false
     let modelSelections: ModelSelectionStore
     @ObservationIgnored lazy var modelBrowser = ModelBrowserController(services: self)
     let metrics: TranscriptionMetricsRecorder?
@@ -228,6 +230,7 @@ final class LocalMinutesServices: PlaybackHardware {
         do {
             let report = try await startup.run()
             guard startup.state == .ready else { return }
+            await restoreSummarySelectionForStartup()
             startupMessage = report.issues.isEmpty ? nil : "Some saved meetings need recovery review."
         } catch {
             // A waiter from a failed attempt must not overwrite a newer retry's
@@ -235,6 +238,57 @@ final class LocalMinutesServices: PlaybackHardware {
             guard startup.state == .failed else { return }
             startupMessage = "Saved meetings could not be prepared. Recording is paused. Reopen LocalMinutes and try again."
         }
+    }
+
+    /// Join one verification/binding operation per service lifetime. Constructing
+    /// a session retains only its manifest; no model runtime is loaded here.
+    /// A busy admission leaves restoration retryable, never a usable default.
+    private func restoreSummarySelectionForStartup() async {
+        guard !summaryStartupBound else { return }
+        if let binding = summaryStartupBinding {
+            await binding.value
+            return
+        }
+        let binding = Task { @MainActor in
+            guard self.heavyAdmission?.snapshot().phase == .idle else {
+                self.intelligence = nil
+                self.intelligenceManifest = nil
+                return
+            }
+            do {
+                let chosen: ModelManifest?
+                if try await self.modelSelections.hasSelectionRecord(for: .summary) {
+                    chosen = try await self.modelSelections.resolve(for: .summary)?.manifest
+                    self.summaryInstalled = chosen != nil
+                } else {
+                    // Missing legacy weights remain a truthful model-required
+                    // result when generation acquires this default manifest.
+                    chosen = Self.summaryManifest
+                }
+                guard self.heavyAdmission?.snapshot().phase == .idle else {
+                    self.intelligence = nil
+                    self.intelligenceManifest = nil
+                    return
+                }
+                if let chosen, let admission = self.heavyAdmission {
+                    self.intelligence = IntelligenceSession(store: self.store, models: self.models,
+                        admission: admission, manifest: chosen, summaryCheckpoints: self.summaryCheckpoints)
+                } else {
+                    self.intelligence = nil
+                }
+                self.intelligenceManifest = chosen
+                self.summaryStartupBound = true
+            } catch {
+                self.intelligence = nil
+                self.intelligenceManifest = nil
+                self.summaryInstalled = false
+                self.modelError = "An installed model did not pass verification. Download it again before use."
+                self.summaryStartupBound = true
+            }
+        }
+        summaryStartupBinding = binding
+        await binding.value
+        summaryStartupBinding = nil
     }
 
     var isChangingModels: Bool { operation != nil }

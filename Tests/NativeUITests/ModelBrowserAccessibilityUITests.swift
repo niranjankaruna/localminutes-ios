@@ -63,9 +63,52 @@ final class ModelBrowserAccessibilityUITests: XCTestCase {
     }
 
     private func reveal(_ element: XCUIElement, in app: XCUIApplication) {
-        for _ in 0..<12 {
-            if element.exists && element.isHittable { return }
-            app.swipeUp()
+        for _ in 0..<20 {
+            let window = app.frame
+            var top = window.minY + 8
+            var bottom = window.maxY - 8
+            for bar in app.navigationBars.allElementsBoundByIndex where bar.exists {
+                if bar.frame.intersects(window) { top = max(top, bar.frame.maxY + 8) }
+            }
+            for bar in app.tabBars.allElementsBoundByIndex where bar.exists {
+                if bar.frame.intersects(window) { bottom = min(bottom, bar.frame.minY - 8) }
+            }
+            let keyboard = app.keyboards.firstMatch
+            if keyboard.exists && keyboard.frame.intersects(window) {
+                bottom = min(bottom, keyboard.frame.minY - 8)
+            }
+            guard bottom > top else { return }
+            let viewport = CGRect(x: window.minX + 8, y: top,
+                                  width: max(0, window.width - 16), height: bottom - top)
+            // A large accessibility cell may exceed the entire screen. Reveal
+            // its heading for row lookup; individual controls still require
+            // their complete frames before the unchanged tap/assertions.
+            let target: XCUIElement
+            if element.exists && element.elementType == .cell && element.staticTexts.firstMatch.exists {
+                target = element.staticTexts.firstMatch
+            } else {
+                target = element
+            }
+            var upward = true
+            var distance = min(140, viewport.height * 0.4)
+            if target.exists && !target.frame.isEmpty {
+                let frame = target.frame
+                if viewport.contains(frame) && target.isHittable { return }
+                if frame.minY < viewport.minY {
+                    upward = false
+                    distance = min(distance, max(30, viewport.minY - frame.minY + 12))
+                } else if frame.maxY > viewport.maxY {
+                    distance = min(distance, max(30, frame.maxY - viewport.maxY + 12))
+                }
+            }
+            let startY = viewport.midY + (upward ? distance / 2 : -distance / 2)
+            let endY = startY + (upward ? -distance : distance)
+            let origin = app.coordinate(withNormalizedOffset: .zero)
+            // Drag along the list gutter rather than inside a note TextEditor.
+            let dragX = viewport.maxX - window.minX - 2
+            let start = origin.withOffset(CGVector(dx: dragX, dy: startY - window.minY))
+            let end = origin.withOffset(CGVector(dx: dragX, dy: endY - window.minY))
+            start.press(forDuration: 0.05, thenDragTo: end)
         }
     }
 }
