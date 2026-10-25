@@ -275,6 +275,7 @@ final class ResumableModelDownload: NSObject, URLSessionDataDelegate, @unchecked
                 try file.write(contentsOf: bytes)
                 digest.update(data: bytes)
                 received += Int64(count); responseBytes += Int64(count); offset += count
+                report(.downloading, bytes: received)
             }
             // First progress is immediately durable, then checkpoint at most
             // oneMiB apart. Error/cancel/completion always flush the remainder.
@@ -429,6 +430,7 @@ final class ResumableModelDownload: NSObject, URLSessionDataDelegate, @unchecked
             || cancellationLock.withLock({ cancellationRequested }) { normalized = CancellationError() }
         else if let error = error as? ModelTransportError { normalized = error }
         else { normalized = ModelTransportError.networkFailure }
+        report(normalized is CancellationError ? .paused : .failed, bytes: received, force: true)
         finish(.failure(normalized))
     }
     private func finish(_ result: Result<Void, Error>) {

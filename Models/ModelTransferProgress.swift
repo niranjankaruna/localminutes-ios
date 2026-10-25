@@ -19,6 +19,9 @@ public struct ModelTransferProgress: Equatable, Sendable {
     public var fractionCompleted: Double {
         totalBytes > 0 ? min(1, max(0, Double(completedBytes) / Double(totalBytes))) : 0
     }
+    public var overallFractionCompleted: Double {
+        overallTotalBytes > 0 ? min(1, max(0, Double(overallCompletedBytes) / Double(overallTotalBytes))) : 0
+    }
 
     public init(stage: ModelTransferStage, fileName: String, completedBytes: Int64,
                 totalBytes: Int64, bytesPerSecond: Double? = nil,
@@ -36,10 +39,57 @@ public struct ModelTransferProgress: Equatable, Sendable {
 
 public typealias ModelTransferProgressHandler = @Sendable (ModelTransferProgress) -> Void
 
-extension ModelInstallationManager {
-    // Test-first aggregate progress interface; behavior awaits hosted RED.
-    public func download(_ manifest: ModelManifest,
-                         progress: @escaping ModelTransferProgressHandler) async throws -> VerifiedModel {
-        try await download(manifest)
+final class ModelDownloadProgressReporter: @unchecked Sendable {
+    private let manifest: ModelManifest
+    private let handler: ModelTransferProgressHandler
+    private let total: Int64
+    private let offsets: [Int64]
+    private let lock = NSLock()
+    private var latest: ModelTransferProgress?
+
+    init(manifest: ModelManifest, handler: @escaping ModelTransferProgressHandler) {
+        self.manifest = manifest; self.handler = handler
+        var sum: Int64 = 0
+        var offsets: [Int64] = []
+        for artifact in manifest.artifacts { offsets.append(sum); sum += artifact.byteCount }
+        self.total = sum; self.offsets = offsets
+    }
+
+    func receive(_ value: ModelTransferProgress, index: Int) {
+        let asset = manifest.artifacts[index]
+        let stage = value.stage == .completed ? ModelTransferStage.verifying : value.stage
+        let overall = offsets[index] + (stage == .verifying ? asset.byteCount : value.completedBytes)
+        let remaining = value.bytesPerSecond.flatMap { speed -> Double? in
+            speed.isFinite && speed > 0 ? Double(max(0, total - overall)) / speed : nil
+        }
+        emit(.init(stage: stage, fileName: asset.fileName,
+            completedBytes: value.completedBytes, totalBytes: asset.byteCount,
+            bytesPerSecond: value.bytesPerSecond, remainingSeconds: remaining,
+            resumedBytes: value.resumedBytes, fileIndex: index + 1, fileCount: manifest.artifacts.count,
+            overallCompletedBytes: overall, overallTotalBytes: total))
+    }
+
+    func verifying(index: Int, bytes: Int64) {
+        let asset = manifest.artifacts[index]
+        emit(.init(stage: .verifying, fileName: asset.fileName,
+            completedBytes: bytes, totalBytes: asset.byteCount, fileIndex: index + 1,
+            fileCount: manifest.artifacts.count, overallCompletedBytes: total, overallTotalBytes: total))
+    }
+
+    func finish(_ stage: ModelTransferStage) {
+        let last = lock.withLock { latest }
+        let index = stage == .completed || stage == .installing ? manifest.artifacts.count - 1 : max(0, (last?.fileIndex ?? 1) - 1)
+        let asset = manifest.artifacts[index]
+        let complete = stage == .completed || stage == .installing
+        emit(.init(stage: stage, fileName: asset.fileName,
+            completedBytes: complete ? asset.byteCount : last?.completedBytes ?? 0,
+            totalBytes: asset.byteCount, resumedBytes: last?.resumedBytes ?? 0,
+            fileIndex: index + 1, fileCount: manifest.artifacts.count,
+            overallCompletedBytes: complete ? total : last?.overallCompletedBytes ?? 0, overallTotalBytes: total))
+    }
+
+    private func emit(_ value: ModelTransferProgress) {
+        lock.withLock { latest = value }
+        handler(value)
     }
 }

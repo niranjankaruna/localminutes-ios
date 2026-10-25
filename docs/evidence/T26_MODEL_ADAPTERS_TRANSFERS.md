@@ -37,7 +37,26 @@ establish the owner's unobserved iPhone termination reason.
 
 ## GREEN
 
-Implementation, source SHA, actual tests/counts, native integration and CI: PENDING.
+At `1d2f290032bdebcc497d2701eb456caef887124c`,
+[run 40212954360](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40212954360)
+executed 122 tests, with 12 assertion failures in seven cases (two unexpected
+stub errors), zero skips, 23.366 seconds. The unchanged 512 MiB memory test
+PASSED: peak before/after both 57,511,936 bytes, additional peak growth zero.
+The newly specified pack/Apple/aggregate cases provided behavioral RED. The raw
+HTTP case exposed coalesced callbacks: its intermediate-byte assertion remained
+RED and is addressed by reporting within the bounded chunk loop, not weakening
+the assertion. Full GREEN remains pending.
+
+At the same source,
+[native run 40213241251](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40213241251)
+verified actual pinned v3 assets (`7dd20fe6b1797d35f5e3307e8b1732d9a178edfe`,
+21 files / 483,105,645 bytes) and executed 12 native ASR cases: nine legacy v2
+cases passed; three v3 cases failed (two unexpected errors), zero skips,
+52.277 seconds. Direct v3 loading explicitly failed `invalidModel`; installed
+v3 live/replay failed `invalidManifest`. These are model-contract RED, not
+missing fixtures or compilation failures. v3 functionality has no quality-score gate.
+
+Implementation, exact final source, full GREEN and delivery: PENDING.
 No new iOS artifact or device result is claimed.
 
 ## Review and continuation

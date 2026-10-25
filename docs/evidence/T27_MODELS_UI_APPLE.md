@@ -30,7 +30,17 @@ results. Production uses SwiftUI system typography and controls.
 - Availability and native inference are distinct: simulator/unavailable-host
   checks cannot pass actual Apple model inference on the owner's phone.
 
-RED source/runs/assertions: PENDING. Native tests are
+RED source/runs/assertions: `1d2f290032bdebcc497d2701eb456caef887124c`,
+[run 40213241251](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40213241251).
+App-native: ten executed, nine passed, one failed assertion, zero skips,
+1.801 seconds. The Apple summary composition failed `notImplemented` while all
+five persisted-GGUF-startup and four memory-pressure cases passed. UI: six
+executed, two legacy accessibility cases passed, four new progress/layout/Apple
+cases failed with eight assertions, zero skips, 197.560 seconds. The missing
+system row, device fields and progress labels are explicit failures.
+The portable Apple-selection cases also failed their availability/admission
+assertions in run 40212954360. These are genuine behavioral failures before
+production system-summary or layout behavior. Native tests are
 `ModelDownloadProgressUITests`, `AppleSummarySelectionTests`, and
 `NativeAppleSummaryTests`. Compileable selection/session interfaces deliberately
 implement no system-model behavior until hosted RED is observed.

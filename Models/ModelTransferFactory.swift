@@ -26,9 +26,9 @@ public final class ModelTransferFactory: @unchecked Sendable {
                            "cdn-lfs-us-1.hf.co", "cas-bridge.xethub.hf.co"], configuration: configuration,
             resumeRootURL: appRootURL.appendingPathComponent("DownloadResume", isDirectory: true))
         return ModelInstallationManager(rootURL: models, availableBytes: availableBytes,
-            downloader: { [self] artifact, destination in
+            progressDownloader: { [self] artifact, destination, progress in
                 try await transport.downloadResumable(artifact, to: destination,
-                    checkpointDirectory: checkpointDirectory(for: artifact))
+                    checkpointDirectory: checkpointDirectory(for: artifact), progress: progress)
             })
     }
 

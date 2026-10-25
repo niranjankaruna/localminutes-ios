@@ -114,13 +114,11 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
             metrics?.beginEpoch(modelRevision: selected.revision, runtimeVersion: selected.runtimeVersion)
             let recognizer: LiveSpeechRecognizer
             let profile: HuggingFaceRuntimeProfile
-            if selected.runtimeVersion == ParakeetCoreMLModel.runtimeVersion {
-                guard selected.revision == ParakeetCoreMLModel.revision, selected.featureDimension == 128,
-                      selected.artifacts.count == ParakeetCoreMLModel.manifest.artifacts.count,
-                      selected.artifacts.allSatisfy({ $0.role == .coreMLAsset }) else { throw StreamingASRError.invalidModel }
+            if [ParakeetCoreMLModel.runtimeVersion, ParakeetModelPack.runtimeVersion].contains(selected.runtimeVersion) {
+                _ = try ParakeetModelPack.configuration(for: selected)
                 profile = .parakeetTDTCoreML
                 recognizer = .windowed(.parakeet(CoreMLParakeetRecognizer(files: .init(
-                    directory: model.directoryURL, revision: selected.revision, runtimeVersion: selected.runtimeVersion))))
+                    directory: model.directoryURL, manifest: selected))))
             } else if let whisper = model.files[.whisper] {
                 guard model.files.count == 1, selected.artifacts.count == 1,
                       selected.artifacts[0].role == .whisper, selected.featureDimension == nil,

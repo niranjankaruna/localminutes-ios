@@ -5,6 +5,22 @@ import XCTest
 
 @MainActor
 final class ParakeetModelPackTests: XCTestCase {
+    func testDeclaredCompatiblePackIsDiscoveredIndependentlyOfPublisherName() throws {
+        let manifest = pack(contract: "parakeet-tdt-v3")
+        var repo = HuggingFaceModelRepository(id: try HuggingFaceRepositoryID(input: "community/compatible-pack-0"),
+            revision: manifest.revision,
+            files: manifest.artifacts.map { .init(fileName: $0.fileName, byteCount: $0.byteCount,
+                sha256: $0.sha256, downloadURL: $0.downloadURL) }, licenseIdentifier: "CC0-1.0",
+            cardMarkdown: nil, pipelineTag: "automatic-speech-recognition", libraryName: "coreml",
+            modelType: "parakeet_tdt", architectures: ["FastConformerTDT"], isGated: false, contextConfiguration: nil)
+        repo.parakeetManifest = manifest
+        let format = repo.assessment(for: .speechRecognition, maximumDownloadBytes: Int64.max)
+        XCTAssertEqual(format.profile, .parakeetTDTCoreML)
+        XCTAssertEqual(format.selectedFiles.count, manifest.artifacts.count)
+        let runtime = ModelRuntimeCompatibility.assess(repository: repo, format: format, availableProfiles: [.parakeetTDTCoreML])
+        XCTAssertEqual(runtime.status, .supported, "Compatibility follows the declared supported contract and exact pack bytes")
+    }
+
     func testLegacyV2PinResolvesItsDecoderWithoutChangingItsManifest() throws {
         let legacy = ParakeetCoreMLModel.manifest
         XCTAssertNil(legacy.parakeetConfiguration)

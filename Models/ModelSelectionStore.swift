@@ -30,7 +30,12 @@ public final class ModelSelectionStore {
         let purpose: ModelPurpose
         let unequipped: Bool
     }
-    private enum Choice { case absent, unequipped, equipped(StoredModelSelection) }
+    private struct SystemSummary: Codable {
+        let schemaVersion: Int
+        let purpose: ModelPurpose
+        let provider: String
+    }
+    private enum Choice { case absent, unequipped, systemSummary, equipped(StoredModelSelection) }
     private let rootURL: URL
     private let models: ModelInstallationManager
     private let availableProfiles: Set<HuggingFaceRuntimeProfile>
@@ -100,6 +105,21 @@ public final class ModelSelectionStore {
         return true
     }
 
+    public func selectAppleIntelligence(available: Bool) async throws {
+        guard available else { throw ModelSelectionError.unavailableRuntime }
+        try beginChange()
+        defer { changing = false }
+        _ = try requireRoot(create: true)
+        let data = try JSONEncoder().encode(SystemSummary(schemaVersion: 1, purpose: .summary,
+            provider: AppleSummaryModel.identifier))
+        try publish(data, for: .summary)
+    }
+
+    public func isAppleIntelligenceSelected() throws -> Bool {
+        if case .systemSummary = try readChoice(for: .summary) { return true }
+        return false
+    }
+
     public func clear(for purpose: ModelPurpose) async throws {
         try beginChange()
         defer { changing = false }
@@ -152,7 +172,7 @@ public final class ModelSelectionStore {
         let valid: Bool
         switch profile {
         case .parakeetTDTCoreML:
-            valid = manifest == ParakeetCoreMLModel.manifest
+            valid = (try? ParakeetModelPack.configuration(for: manifest)) != nil
         case .llamaGGUF:
             valid = manifest.purpose == .summary && manifest.artifacts.count == 1 && roles == [.summary]
                 && manifest.artifacts[0].fileName.lowercased().hasSuffix(".gguf")
@@ -183,6 +203,15 @@ public final class ModelSelectionStore {
             throw ModelSelectionError.invalidSelection
         }
         let data = try Data(contentsOf: url)
+        if let system = try? JSONDecoder().decode(SystemSummary.self, from: data) {
+            guard system.schemaVersion == 1, purpose == .summary, system.purpose == .summary,
+                  system.provider == AppleSummaryModel.identifier,
+                  let object = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  Set(object.keys) == ["schemaVersion", "purpose", "provider"] else {
+                throw ModelSelectionError.invalidSelection
+            }
+            return .systemSummary
+        }
         if let none = try? JSONDecoder().decode(Unequipped.self, from: data) {
             guard none.schemaVersion == 1, none.purpose == purpose, none.unequipped else {
                 throw ModelSelectionError.invalidSelection

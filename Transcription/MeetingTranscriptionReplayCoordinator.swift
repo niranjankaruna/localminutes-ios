@@ -251,12 +251,11 @@ public final class MeetingTranscriptionReplayCoordinator {
         if source.profile == .whisperGGML || source.profile == .parakeetTDTCoreML {
             let windowed: WindowedSpeechRecognizer
             if source.profile == .parakeetTDTCoreML {
-                guard source.manifest.revision == ParakeetCoreMLModel.revision,
-                      source.manifest.runtimeVersion == ParakeetCoreMLModel.runtimeVersion,
-                      source.manifest.featureDimension == 128 else { throw TranscriptionReplayError.modelUnavailable }
+                guard (try? ParakeetModelPack.configuration(for: source.manifest)) != nil else {
+                    throw TranscriptionReplayError.modelUnavailable
+                }
                 windowed = .parakeet(CoreMLParakeetRecognizer(files: .init(
-                    directory: lease.model.directoryURL, revision: revision,
-                    runtimeVersion: source.manifest.runtimeVersion)))
+                    directory: lease.model.directoryURL, manifest: source.manifest)))
             } else {
                 guard let file = lease.model.files[.whisper], source.manifest.artifacts.count == 1,
                       source.manifest.runtimeVersion == "whisper.cpp-1.7.5" else { throw TranscriptionReplayError.modelUnavailable }

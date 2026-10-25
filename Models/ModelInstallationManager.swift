@@ -37,6 +37,7 @@ public struct ModelLease: Equatable, Sendable {
 
 public typealias ModelAvailableBytes = @Sendable (URL) throws -> Int64
 public typealias ModelArtifactDownloader = @Sendable (ModelArtifact, URL) async throws -> Void
+public typealias ModelProgressArtifactDownloader = @Sendable (ModelArtifact, URL, ModelTransferProgressHandler?) async throws -> Void
 
 public actor ModelInstallationManager {
     private struct Selection: Codable {
@@ -48,14 +49,17 @@ public actor ModelInstallationManager {
     private let rootURL: URL
     private let availableBytes: ModelAvailableBytes
     private let downloader: ModelArtifactDownloader?
+    private let progressDownloader: ModelProgressArtifactDownloader?
     private var leases: [UUID: VerifiedModel] = [:]
     private var installationsInProgress: Set<String> = []
 
     public init(rootURL: URL, availableBytes: @escaping ModelAvailableBytes,
-                downloader: ModelArtifactDownloader? = nil) {
+                downloader: ModelArtifactDownloader? = nil,
+                progressDownloader: ModelProgressArtifactDownloader? = nil) {
         self.rootURL = rootURL.standardizedFileURL
         self.availableBytes = availableBytes
         self.downloader = downloader
+        self.progressDownloader = progressDownloader
     }
 
     public func importDirectory(_ sourceURL: URL, manifest: ModelManifest) async throws -> VerifiedModel {
@@ -87,19 +91,28 @@ public actor ModelInstallationManager {
         return try publish(staging, manifest: manifest)
     }
 
-    public func download(_ manifest: ModelManifest) async throws -> VerifiedModel {
+    public func download(_ manifest: ModelManifest, progress: ModelTransferProgressHandler? = nil) async throws -> VerifiedModel {
         try validate(manifest)
         try Task.checkCancellation()
-        guard let downloader else { throw ModelInstallationError.downloadFailed }
+        guard downloader != nil || progressDownloader != nil else { throw ModelInstallationError.downloadFailed }
         try beginInstallation(manifest)
         defer { installationsInProgress.remove(manifest.modelID) }
         let staging = try makeStagingDirectory()
         defer { removeOwnedStaging(staging) }
-        for artifact in manifest.artifacts {
+        let reporter = progress.map { ModelDownloadProgressReporter(manifest: manifest, handler: $0) }
+        do {
+        for (index, artifact) in manifest.artifacts.enumerated() {
             try Task.checkCancellation()
             let destination = staging.appendingPathComponent(artifact.fileName)
             if artifact.role == .coreMLAsset { try createDirectory(destination.deletingLastPathComponent()) }
-            do { try await downloader(artifact, destination) }
+            do {
+                if let progressDownloader {
+                    let callback: ModelTransferProgressHandler? = reporter.map { reporter in
+                        { @Sendable event in reporter.receive(event, index: index) }
+                    }
+                    try await progressDownloader(artifact, destination, callback)
+                } else if let downloader { try await downloader(artifact, destination) }
+            }
             catch is CancellationError { throw CancellationError() }
             catch {
                 try Task.checkCancellation()
@@ -109,8 +122,15 @@ public actor ModelInstallationManager {
             try verifyFile(destination, artifact: artifact)
             try PersistentFilePolicy.protectItem(destination, within: rootURL)
         }
-        try validateFiles(in: staging, manifest: manifest, containsMetadata: false)
-        return try publish(staging, manifest: manifest)
+        try validateFiles(in: staging, manifest: manifest, containsMetadata: false, progress: reporter)
+        reporter?.finish(.installing)
+        let installed = try publish(staging, manifest: manifest)
+        reporter?.finish(.completed)
+        return installed
+        } catch {
+            reporter?.finish(error is CancellationError ? .paused : .failed)
+            throw error
+        }
     }
 
     public func current(modelID: String) throws -> VerifiedModel? {
@@ -335,8 +355,12 @@ public actor ModelInstallationManager {
         if assets {
             guard manifest.purpose == .speechRecognition, (1...256).contains(manifest.artifacts.count),
                   manifest.sampleRate == 16_000, manifest.featureDimension == 128,
-                  manifest.runtimeVersion == "coreml-parakeet-tdt-v2-fluid-c79c4106" else {
+                  [ParakeetCoreMLModel.runtimeVersion, ParakeetModelPack.runtimeVersion].contains(manifest.runtimeVersion) else {
                 throw ModelInstallationError.invalidManifest
+            }
+            if manifest.runtimeVersion == ParakeetModelPack.runtimeVersion {
+                do { _ = try ParakeetModelPack.configuration(for: manifest) }
+                catch { throw ModelInstallationError.invalidManifest }
             }
         }
         var assetBytes: Int64 = 0
@@ -445,11 +469,16 @@ public actor ModelInstallationManager {
         return try Data(contentsOf: url)
     }
 
-    private func validateFiles(in directory: URL, manifest: ModelManifest, containsMetadata: Bool) throws {
+    private func validateFiles(in directory: URL, manifest: ModelManifest, containsMetadata: Bool,
+                               progress: ModelDownloadProgressReporter? = nil) throws {
         try requireDirectory(directory)
         if manifest.artifacts.allSatisfy({ $0.role == .coreMLAsset }) {
             try validateAssetTree(in: directory, manifest: manifest, containsMetadata: containsMetadata)
-            for artifact in manifest.artifacts { try Task.checkCancellation(); try verifyFile(directory.appendingPathComponent(artifact.fileName), artifact: artifact) }
+            for (index, artifact) in manifest.artifacts.enumerated() {
+                try Task.checkCancellation()
+                try verifyFile(directory.appendingPathComponent(artifact.fileName), artifact: artifact,
+                    progress: progress.map { reporter in { reporter.verifying(index: index, bytes: $0) } })
+            }
             return
         }
         let present = Set(try FileManager.default.contentsOfDirectory(atPath: directory.path))
@@ -461,13 +490,14 @@ public actor ModelInstallationManager {
         if let unexpected = present.subtracting(allowed).sorted().first {
             throw ModelInstallationError.unexpectedFile(unexpected)
         }
-        for artifact in manifest.artifacts {
+        for (index, artifact) in manifest.artifacts.enumerated() {
             try Task.checkCancellation()
-            try verifyFile(directory.appendingPathComponent(artifact.fileName), artifact: artifact)
+            try verifyFile(directory.appendingPathComponent(artifact.fileName), artifact: artifact,
+                progress: progress.map { reporter in { reporter.verifying(index: index, bytes: $0) } })
         }
     }
 
-    private func verifyFile(_ url: URL, artifact: ModelArtifact) throws {
+    private func verifyFile(_ url: URL, artifact: ModelArtifact, progress: ((Int64) -> Void)? = nil) throws {
         guard FileManager.default.fileExists(atPath: url.path) else {
             throw ModelInstallationError.missingFile(artifact.fileName)
         }
@@ -478,11 +508,19 @@ public actor ModelInstallationManager {
         defer { try? input.close() }
         var hasher = SHA256()
         var consumed: Int64 = 0
+        var lastProgress: TimeInterval = 0
+        progress?(0)
         try ModelFileIO.forEachChunk(in: input) { data in
             try Task.checkCancellation()
             consumed += Int64(data.count)
             guard consumed <= artifact.byteCount else { throw ModelInstallationError.sizeMismatch(artifact.fileName) }
             hasher.update(data: data)
+            if let progress {
+                let now = ProcessInfo.processInfo.systemUptime
+                if consumed == artifact.byteCount || now - lastProgress >= 0.2 {
+                    progress(consumed); lastProgress = now
+                }
+            }
         }
         guard consumed == artifact.byteCount else { throw ModelInstallationError.sizeMismatch(artifact.fileName) }
         let digest = hasher.finalize().map { String(format: "%02x", $0) }.joined()

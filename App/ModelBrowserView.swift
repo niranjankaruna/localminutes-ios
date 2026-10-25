@@ -28,6 +28,8 @@ struct ModelBrowserView: View {
                     .disabled(controller.isWorking)
                 }
 
+                transferProgressSection
+
                 Section("Hugging Face repository") {
                     TextField("owner/repository or Hugging Face URL", text: $controller.repositoryInput)
                         .textInputAutocapitalization(.never)
@@ -152,6 +154,73 @@ struct ModelBrowserView: View {
                 Text("The model can be downloaded again. Your meetings remain stored separately.")
             }
         }
+    }
+
+    @ViewBuilder private var transferProgressSection: some View {
+        if let progress = controller.downloadProgress {
+            Section("Model download") {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text(transferStageTitle(progress.stage)).font(.headline)
+                            .accessibilityIdentifier("models.download.stage")
+                        Spacer()
+                        Text((progress.stage == .downloading ? progress.overallFractionCompleted : progress.fractionCompleted)
+                            .formatted(.percent.precision(.fractionLength(0))))
+                            .monospacedDigit().foregroundStyle(.secondary)
+                            .accessibilityIdentifier("models.download.percent")
+                    }
+                    ProgressView(value: progress.stage == .downloading ? progress.overallFractionCompleted : progress.fractionCompleted)
+                        .accessibilityIdentifier("models.download.progress")
+                    Text("\(bytes(progress.overallCompletedBytes)) of \(bytes(progress.overallTotalBytes))")
+                        .font(.subheadline).monospacedDigit()
+                        .accessibilityIdentifier("models.download.bytes")
+                    if progress.stage == .downloading {
+                        if let speed = progress.bytesPerSecond, speed.isFinite, speed > 0 {
+                            Text("\(bytes(Int64(min(speed, Double(Int64.max / 2)))))/s")
+                                .accessibilityIdentifier("models.download.speed")
+                        } else {
+                            Text("Measuring speed…").foregroundStyle(.secondary)
+                        }
+                        Text(transferTimeRemaining(progress.remainingSeconds))
+                            .accessibilityIdentifier("models.download.remaining")
+                    }
+                    Text("File \(progress.fileIndex) of \(progress.fileCount)")
+                        .font(.caption).foregroundStyle(.secondary)
+                        .accessibilityIdentifier("models.download.file")
+                    Text(verbatim: progress.fileName).font(.caption).foregroundStyle(.secondary)
+                        .lineLimit(2).truncationMode(.middle)
+                        .accessibilityIdentifier("models.download.filename")
+                    if progress.resumedBytes > 0 {
+                        Text("Resumed \(bytes(progress.resumedBytes))")
+                            .font(.caption).foregroundStyle(.secondary)
+                            .accessibilityIdentifier("models.download.resumed")
+                    }
+                }
+                .padding(.vertical, 6)
+                .accessibilityElement(children: .contain)
+            }
+        }
+    }
+
+    private func transferStageTitle(_ stage: ModelTransferStage) -> String {
+        switch stage {
+        case .preparing: "Preparing download"
+        case .downloading: "Downloading"
+        case .verifying: "Verifying files"
+        case .installing: "Installing"
+        case .completed: "Ready to use"
+        case .paused: "Download paused"
+        case .failed: "Download could not complete"
+        }
+    }
+
+    private func transferTimeRemaining(_ seconds: Double?) -> String {
+        guard let seconds, seconds.isFinite, seconds >= 0 else { return "Estimating time remaining…" }
+        let bounded = min(seconds, 86_400 * 365)
+        let formatter = DateComponentsFormatter()
+        formatter.allowedUnits = bounded >= 60 ? [.hour, .minute, .second] : [.second]
+        formatter.unitsStyle = .abbreviated; formatter.maximumUnitCount = 2
+        return "About \(formatter.string(from: max(1, bounded)) ?? "1s") remaining"
     }
 
     private var storageCheckSection: some View {

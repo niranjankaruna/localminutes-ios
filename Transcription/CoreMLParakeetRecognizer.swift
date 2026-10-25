@@ -103,8 +103,8 @@ public actor CoreMLParakeetRecognizer {
             AppLogger.minimumLevel = .fault
             AppLogger.mirrorsToConsole = false
             observe(.load)
-            let models = try AsrModels.loadLocal(from: files.directory, version: .v2,
-                                                configuration: configuration)
+            let models = try ParakeetModelAdapter.load(directory: files.directory,
+                manifest: files.manifest, configuration: configuration)
             try checkCancellation(flag)
             manager = AsrManager(config: ASRConfig(parallelChunkConcurrency: 1), models: models)
             phase = .ready
@@ -291,7 +291,8 @@ public actor CoreMLParakeetRecognizer {
 
     private func validateModel(_ flag: CoreMLParakeetCancellation) throws {
         try checkCancellation(flag)
-        let manifest = ParakeetCoreMLModel.manifest
+        let manifest = files.manifest
+        guard (try? ParakeetModelPack.configuration(for: manifest)) != nil else { throw StreamingASRError.invalidModel }
         guard files.revision == manifest.revision, files.runtimeVersion == manifest.runtimeVersion,
               files.directory.isFileURL else { throw StreamingASRError.invalidModel }
         let root = files.directory.standardizedFileURL

@@ -132,6 +132,9 @@ public struct HuggingFaceModelRepository: Equatable, Sendable {
     public let architectures: [String]
     public let isGated: Bool
     public let contextConfiguration: HuggingFaceContextConfiguration?
+    /// Optional owner/publisher model-pack metadata; this is never inferred
+    /// from a model name and cannot authorize files from another revision.
+    public var parakeetManifest: ModelManifest? = nil
 
     /// Format compatibility is not installed-model readiness or quality proof.
     /// Whisper GGML is a planned backend; only reviewed Qwen2/Phi3 GGUF and

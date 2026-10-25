@@ -28,8 +28,7 @@ final class ModelBrowserController {
     private(set) var message: String?
     private(set) var errorMessage: String?
     private(set) var downloadProgress: ModelTransferProgress?
-    // Test-first UI interface; behavior follows observed simulator RED.
-    func updateDownloadProgress(_ value: ModelTransferProgress) {}
+    func updateDownloadProgress(_ value: ModelTransferProgress) { downloadProgress = value }
     @ObservationIgnored private weak var services: LocalMinutesServices?
     @ObservationIgnored private let remote = HuggingFaceRepositoryService()
     @ObservationIgnored private var download: Task<Void, Never>?
@@ -137,14 +136,23 @@ final class ModelBrowserController {
             message = "This model is already downloaded. Tap Equip to use it."; return
         }
         isWorking = true; isDownloading = true; errorMessage = nil
+        downloadProgress = nil
         message = "Downloading selected model files, then verifying their size and checksum…"
         download = Task { [weak self] in
             guard let self else { return }
+            let updates = AsyncStream<ModelTransferProgress>.makeStream(bufferingPolicy: .bufferingNewest(1))
+            let consumer = Task { @MainActor [weak self] in
+                for await event in updates.stream { self?.updateDownloadProgress(event) }
+            }
             do {
-                _ = try await services.models.download(manifest)
+                _ = try await services.models.download(manifest, progress: { event in
+                    _ = updates.continuation.yield(event)
+                })
                 message = "Downloaded and verified. Tap Equip to use this model."
             } catch is CancellationError { message = "Download paused. Choose the same file and tap Download to resume its verified saved prefix." }
             catch { errorMessage = Self.describe(error) }
+            updates.continuation.finish()
+            await consumer.value
             isDownloading = false; isWorking = false; download = nil
             await services.refreshModels(); await refresh()
         }
