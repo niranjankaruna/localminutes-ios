@@ -3,11 +3,11 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-25T11:54:59.747Z",
+  "lastUpdated": "2026-10-25T12:38:02.774Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "T23 final MVP4 combined regression/package: T12.5/T15.2/T18.7 implemented after actual RED",
+  "currentTask": "T18.7 harness-only focused answer UI verification; build6 candidate packaged",
   "lastVerifiedCommit": "880d3dcd2e21f79e6435ec134279cad192e7435d",
   "lastVerifiedCIRun": 40181776855,
   "candidateArtifact": {
@@ -58,9 +58,9 @@
     },
     "evidence": "docs/evidence/MVP3_DELIVERY_2026_10_25.md"
   },
-  "nextAction": "Watch exact live finalGREEN/package run40190643613 source36bf6f4c8726fbc5d2efbfa4f740ef4031457233. StandardfreepublicmacOS5paralleljobs: relatedportable, app-hostedregression, UIhistory/info, UIanswers/library (UI-onlyscheme), ReleaseIPA/hygiene/receipt. CompiledfixtureRelease/Debugguards split acrossappropriatejobs; eachrequiredcaseactuallyruns, opposingcasefilterisintentional. No quality/fullsuitepereachchange. IfallGREEN downloadowner-onlydraftmvp-preview-36bf6f4c8726 toignoredfinaldeliveryfolder, verifyexactSHA/version6/IDs/arm64CRC/GitHubdigests/pins/notices/fixtureabsence, generateMVP4guide/checklist anddeliverdevelopmentIPA. Onactualfailurefixonlyitsrootcausewithboundedretries. Ownerphone17Pro/iOS27.0.1; actualdevicegatesNOT_RUN.",
+  "nextAction": "Observe existing focused run40193408469/job121169039791; verify APP_SOURCE36bf and TEST_HARNESS_SOURCE81fb with zero production differences, then the single answer-edit/navigation/relaunch UI case. No IPA rebuild, passed-suite rerun or model-quality benchmark. On PASS record composite evidence (original run40190643613 remains FAILURE), deliver build6 and updated guide/checklist. Owner iPhone17Pro/iOS27.0.1 facts are OWNER_REPORTED; actual phone gates NOT_RUN.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "880d3dcd2e21f79e6435ec134279cad192e7435d",
+  "remoteBranchHead": "81fbff3a1bdf4ed17b757dd96d97486d9485254f",
   "localScriptGreen": {
     "sourceCommit": "0181b311abedb3c32745b015be64d6e7c777032b",
     "platform": "Windows11/Node24.21.0",
@@ -90,7 +90,8 @@
       40184895367,
       40186443609,
       40188134859,
-      40190643613
+      40190643613,
+      40193408469
     ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-25T11:54:59.746Z",
@@ -98,12 +99,13 @@
     "runLimitPolicy": "Owner explicitly removed six-run cap; batch checks, retain bounded retries and zero spend"
   },
   "latestCIRun": {
-    "runId": 40188134859,
-    "sourceCommit": "3df777c9cc4beccf652294874e52f889bb9204c3",
-    "mode": "mvp4-final",
-    "status": "completed",
-    "conclusion": "failure",
-    "purpose": "actual tests-first RED"
+    "runId": 40193408469,
+    "sourceCommit": "81fbff3a1bdf4ed17b757dd96d97486d9485254f",
+    "appSourceCommit": "36bf6f4c8726fbc5d2efbfa4f740ef4031457233",
+    "mode": "mvp4-answer-ui",
+    "status": "in_progress",
+    "jobId": 121169039791,
+    "purpose": "One UI harness repair; no production changes"
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -2705,8 +2707,9 @@
         "runId": 40188134859,
         "sourceCommit": "3df777c9cc4beccf652294874e52f889bb9204c3",
         "mode": "mvp4-final",
-        "status": "in_progress",
-        "phase": "tests-first RED"
+        "status": "completed",
+        "phase": "tests-first RED",
+        "conclusion": "failure"
       },
       "greenVerified": false,
       "coreRed": {
@@ -2739,8 +2742,33 @@
         "runId": 40190643613,
         "sourceCommit": "36bf6f4c8726fbc5d2efbfa4f740ef4031457233",
         "mode": "mvp4-final",
+        "status": "completed",
+        "phase": "final GREEN and package",
+        "conclusion": "failure"
+      },
+      "finalBatchResults": {
+        "runId": 40190643613,
+        "sourceCommit": "36bf6f4c8726fbc5d2efbfa4f740ef4031457233",
+        "portablePassed": 76,
+        "scriptsPassed": 46,
+        "nativePassed": 116,
+        "uiPassed": 7,
+        "uiFailed": 1,
+        "uiAssertionFailures": 2,
+        "ipaHygienePassed": 3,
+        "compiledFixtureBoundaryPassed": 2,
+        "skipped": 0,
+        "package": "PASS",
+        "scope": "Answer UI notes/transcript navigation failed after answer edits/save/isolation/relaunch checks passed; original run remains FAILURE"
+      },
+      "focusedRetry": {
+        "runId": 40193408469,
+        "sourceCommit": "81fbff3a1bdf4ed17b757dd96d97486d9485254f",
+        "appSourceCommit": "36bf6f4c8726fbc5d2efbfa4f740ef4031457233",
+        "mode": "mvp4-answer-ui",
         "status": "in_progress",
-        "phase": "final GREEN and package"
+        "jobId": 121169039791,
+        "purpose": "One UI harness repair; no production changes"
       }
     },
     "phoneFactsSource": "OWNER_REPORTED_2026_10_25",
@@ -2752,7 +2780,13 @@
       "buildNumber": "6",
       "draftTag": "mvp-preview-36bf6f4c8726",
       "delivered": false,
-      "verified": false
+      "verified": false,
+      "sha256": "08c00c22c0edd446ec0656a5695d9b05e20b7d1cc497f9186f57ec99cf00f2e0",
+      "sizeBytes": 14982180,
+      "localDirectory": "build/delivery/MVP4-Final-40190643613",
+      "localByteVerification": "PASS: checksum/GitHub digests/CRC/source/build6/IDs/arm64/pins/notices/Release fixture absence",
+      "previewShared": true,
+      "functionalGate": "PENDING single UI retry"
     }
   }
 }

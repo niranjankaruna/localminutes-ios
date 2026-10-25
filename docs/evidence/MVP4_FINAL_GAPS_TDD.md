@@ -82,3 +82,8 @@ Do not call MVP4 development complete while the three missing behaviors remain.
 No full suite per edit or automated model-quality evaluation. Next: one focused
 tests-first batch, implement only after the corresponding behavioral failures,
 then a combined final regression/package batch and deliver the verified IPA.
+
+
+## MVP4 build6 focused UI retry — 25 October 2026
+
+Owner reports iPhone17Pro/iOS27.0.1; no installed-build or Live Activity Stop result. Build6 app source36bf6f4c8726fbc5d2efbfa4f740ef4031457233 has independently verified local IPA14982180B/SHA25608c00c22c0edd446ec0656a5695d9b05e20b7d1cc497f9186f57ec99cf00f2e0. R10/run40190643613 is terminal FAILURE:76portable+46scripts+116native+7UI+3hygiene+2compiledfixture checks passed, one answer UI case failed2 original notes/transcript assertions after wrong-way test navigation;0skip. Harness-only81fbff3 repair retains all assertions and adds a visible top-anchor precondition. Existing focused R11/run40193408469/job121169039791 is live: exact app checkout36bf, separate harness81fb, zero production diff guard, only one answer UI case. No new IPA, quality benchmark, model weights or passed-suite rerun. Next: Observe existing focused run40193408469/job121169039791; verify APP_SOURCE36bf and TEST_HARNESS_SOURCE81fb with zero production differences, then the single answer-edit/navigation/relaunch UI case. No IPA rebuild, passed-suite rerun or model-quality benchmark. On PASS record composite evidence (original run40190643613 remains FAILURE), deliver build6 and updated guide/checklist. Owner iPhone17Pro/iOS27.0.1 facts are OWNER_REPORTED; actual phone gates NOT_RUN.
