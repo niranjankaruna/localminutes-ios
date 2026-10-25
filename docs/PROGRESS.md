@@ -1,5 +1,20 @@
 # Progress
 
+## Model format clarification — 25 October 2026
+
+Source inspection at `ac26bec9ed68503371cce061a6e9d4d615f4bae5` confirms that
+the Core ML adapter requires the complete pinned Parakeet v2 `.mlmodelc` set.
+Direct `.mlpackage`/`.mlmodel` import and runtime compilation are not implemented.
+The other adapters support the reviewed Zipformer ONNX set, Whisper GGML, and
+compatible Qwen2/Phi3 GGUF. See [models](MODELS.md).
+Latest existing CI run `40193408469` was re-read through the GitHub connector:
+completed/success at `81fbff3a1bdf4ed17b757dd96d97486d9485254f`.
+CLI authentication could not be verified; connector read succeeded. No code task,
+test run, build, commit, artifact, or device result was added by this inquiry.
+All physical gates remain pending. Next: owner validates delivered build 6 using
+[the device checklist](MVP4_DEVICE_CHECKLIST.md); resume implementation for a
+reproducible defect or an explicit new feature.
+
 ## Current checkpoint â€” 25 October 2026
 
 MVP4 version 1.0, build 6 is delivered and `READY_FOR_DEVICE_VALIDATION`.

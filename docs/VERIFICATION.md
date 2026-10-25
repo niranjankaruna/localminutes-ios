@@ -1,5 +1,22 @@
 # Verification index
 
+## Model format source review — 25 October 2026
+
+Read-only application inspection at `ac26bec9ed68503371cce061a6e9d4d615f4bae5`:
+[the manifest](../Models/ParakeetCoreMLModel.swift) and
+[runtime compatibility](../Models/ModelRuntimeCompatibility.swift) require the
+complete reviewed Parakeet v2 `.mlmodelc` set; the
+[recognizer](../Transcription/CoreMLParakeetRecognizer.swift) validates its exact
+paths, sizes, and hashes before local loading. No `.mlpackage`/`.mlmodel` import
+or compilation path is implemented. Other supported adapters are in
+[the model guide](MODELS.md).
+Latest existing CI run `40193408469` was re-read through the GitHub connector:
+completed/success at `81fbff3a1bdf4ed17b757dd96d97486d9485254f`.
+CLI authentication could not be verified; connector read succeeded.
+No task completion, test execution, build, commit, artifact, or phone result is
+claimed by this review. Device gates remain pending; next action is the owner
+build 6 check in [the device checklist](MVP4_DEVICE_CHECKLIST.md).
+
 ## Current delivered application
 
 Build 6 app source: `36bf6f4c8726fbc5d2efbfa4f740ef4031457233`.

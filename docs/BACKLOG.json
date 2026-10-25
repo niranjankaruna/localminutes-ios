@@ -1,5 +1,15 @@
 {
   "schemaVersion": 1,
+  "latestReadOnlyReview": {
+    "at": "2026-10-25T14:58:56Z",
+    "subject": "Current model format support",
+    "sourceCommit": "ac26bec9ed68503371cce061a6e9d4d615f4bae5",
+    "result": "Core ML accepts only the complete pinned Parakeet v2 mlmodelc set; mlpackage/mlmodel import or runtime compilation is not implemented. Other adapters support the reviewed Zipformer ONNX set, Whisper GGML, and compatible Qwen2/Phi3 GGUF.",
+    "verification": "Source inspection only; latest existing CI run 40193408469 re-read through the GitHub connector: completed/success at 81fbff3a1bdf4ed17b757dd96d97486d9485254f. No new tests, CI, commit, artifact, or device result.",
+    "completedTaskIDs": [],
+    "blocker": "OWNER_PHONE_VALIDATION_REQUIRED; CLI authentication could not be verified, but connector read succeeded.",
+    "nextAction": "Owner validates delivered build 6 using docs/MVP4_DEVICE_CHECKLIST.md; resume implementation for a reproducible defect or an explicit new feature."
+  },
   "specVersion": "1.0",
   "policy": "Split broad tasks into small tests-first child slices. Keep stable IDs. Device-pending tasks do not block unrelated dependencies. Capture development depends on validated T04 build/package children, not separate artifact retention; T04's full delivery acceptance remains mandatory. Infrastructure scripts require their own validation tests; feature production behavior always requires recorded RED.",
   "tasks": [
@@ -1887,7 +1897,7 @@
     "blocker": "OWNER_PHONE_VALIDATION_REQUIRED",
     "nextAction": "Owner validates delivered build 6 on iPhone 17 Pro / iOS 27.0.1: record installed version and a short recording saved by Live Activity Stop; then complete offline chosen-model use, Action Button warm/locked/cold-start, two 125-minute passes with at least 120 locked minutes each, storage protection, and in-place signing-renewal preservation. See docs/MVP4_DEVICE_CHECKLIST.md. Resume code work on a reproducible defect; do not rerun model-quality benchmarks."
   },
-  "lastUpdated": "2026-10-25T13:44:29Z",
+  "lastUpdated": "2026-10-25T14:58:56Z",
   "resumeAction": "Owner validates delivered build 6 on iPhone 17 Pro / iOS 27.0.1: record installed version and a short recording saved by Live Activity Stop; then complete offline chosen-model use, Action Button warm/locked/cold-start, two 125-minute passes with at least 120 locked minutes each, storage protection, and in-place signing-renewal preservation. See docs/MVP4_DEVICE_CHECKLIST.md. Resume code work on a reproducible defect; do not rerun model-quality benchmarks.",
   "historicalCheckpoint": "https://github.com/niranjankaruna/localminutes-ios/blob/a314967626b01b0a3a071eb61eb02b2d5d2320e8/docs/BACKLOG.json",
   "evidencePolicy": "Per-task draft/checkpoint/model-decision entries are historical, scoped to recorded commits. Current delivered source and next action are in docs/STATE.json. Removed draft references use immutable Git permalinks.",
