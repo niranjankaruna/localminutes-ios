@@ -89,3 +89,39 @@ test('selected tests do not accept an inner suite in place of a truncated root',
 test('selected tests reject zero executed cases', () => {
   assert.throws(() => summarizeXCTestLog(selectedFixture({ count: 0 })), /zero|no.*cases/i);
 });
+
+// The app-unit and UI bundles in native run 40213241251 each print their own
+// Selected/All roots. Count every bundle and preserve an earlier bundle failure.
+function uiFixture(options = {}) {
+  return selectedFixture(options).replaceAll('HarnessTests.HarnessTests', 'ProductUITests.ModelScreenTests')
+    .replaceAll('testExample', 'testProductUI');
+}
+
+test('aggregates the independently completed app and UI bundles', () => {
+  assert.deepEqual(summarizeXCTestLog(fixture() + uiFixture(), ['testExample1', 'testProductUI1']),
+    { executed: 4, passed: 4, failed: 0, assertionFailures: 0, skipped: 0 });
+});
+
+test('an earlier failed app bundle cannot be hidden by a passing UI bundle', () => {
+  assert.deepEqual(summarizeXCTestLog(fixture({ failed: true }) + uiFixture(), ['testProductUI1']),
+    { executed: 4, passed: 2, failed: 2, assertionFailures: 3, skipped: 0 });
+});
+
+test('nested Selected and All roots do not double-count either native bundle', () => {
+  const duplicate = fixture().slice(fixture().indexOf("Test Suite 'All tests'"));
+  const log = selectedFixture() + duplicate + uiFixture() + duplicate;
+  assert.deepEqual(summarizeXCTestLog(log, ['testExample1', 'testProductUI1']),
+    { executed: 4, passed: 4, failed: 0, assertionFailures: 0, skipped: 0 });
+});
+
+test('contradictory duplicate root status remains a verification failure', () => {
+  const wrong = fixture().slice(fixture().indexOf("Test Suite 'All tests'"))
+    .replace("'All tests' passed", "'All tests' failed");
+  assert.throws(() => summarizeXCTestLog(fixture() + wrong + fixture().slice(fixture().indexOf("Test Suite 'All tests'"))),
+    /contradict|failure/i);
+});
+
+test('a truncated later UI bundle cannot reuse the earlier completed app root', () => {
+  const truncated = uiFixture().split("Test Suite 'Selected tests'")[0];
+  assert.throws(() => summarizeXCTestLog(fixture() + truncated), /count|mismatch|incomplete/i);
+});
