@@ -5,6 +5,85 @@ import XCTest
 
 @MainActor
 final class SummaryPipelineTests: XCTestCase {
+    func testMapGrammarBindsEachSourceRangeQuoteAndClaimAsOneCorrelatedChoice() async throws {
+        let meetingID = UUID(uuidString: "30000000-0000-0000-0000-000000000020")!
+        let segments = [
+            SummaryEvidenceSegment(id: "generic-source-first", startSample: 8_000, endSample: 24_000,
+                text: "The cafe\u{301} workshop keeps its original quote."),
+            SummaryEvidenceSegment(id: "generic-source-second", startSample: 32_000, endSample: 64_000,
+                text: "Ren: I will review the checklist by Friday.")
+        ]
+        let source = GroundedSummarySource(meetingID: meetingID, segments: segments, originalManualNotes: "Separate original note.")
+        func citation(_ segment: SummaryEvidenceSegment) -> [String: Any] {
+            ["source_id": segment.id, "start_sample": segment.startSample,
+             "end_sample": segment.endSample, "quote": segment.text]
+        }
+        let reply: [String: Any] = [
+            "meeting_id": meetingID.uuidString,
+            "summary_points": [["evidence": [citation(segments[0])], "text": segments[0].text]],
+            "decisions": [],
+            "actions": [["evidence": [citation(segments[1])], "task": segments[1].text,
+                         "owner": "Ren", "due": "Friday"]]
+        ]
+        let raw = String(decoding: try JSONSerialization.data(withJSONObject: reply), as: UTF8.self)
+        let boundary = PipelineGenerationBoundary(replies: [raw])
+        let pipeline = SummaryPipeline(modelRevision: String(repeating: "a", count: 40),
+            tokenizer: { _ in 10 }, generator: { prompt, schema, maximum in
+                try await boundary.generate(prompt, schema: schema, maximumTokens: maximum)
+            })
+        let result = try await pipeline.summarize(selectedMeetingID: meetingID, source: source)
+        let requests = await boundary.requests
+        let schema = try XCTUnwrap(requests.first?.schema)
+        _ = try schema.grammar()
+        for category in ["summary_points", "decisions", "actions"] {
+            let field = try XCTUnwrap(schema.fields.first { $0.name == category })
+            guard case .array(let element, let maximumItems) = field.type else {
+                XCTFail("The selected category must remain a bounded array"); continue
+            }
+            XCTAssertEqual(maximumItems, 2)
+            guard case .alternatives(let branches) = element else {
+                XCTFail("\(category) must choose an entire source/range/quote/claim tuple, not independent field enums")
+                continue
+            }
+            XCTAssertEqual(branches.count, segments.count, "Every source must remain a model-selectable branch")
+            var foundSources: Set<Data> = []
+            for branch in branches {
+                guard case .object(let itemFields) = branch else { XCTFail("Each tuple is one object"); continue }
+                let claim = try XCTUnwrap(itemFields.first { $0.name == (category == "actions" ? "task" : "text") })
+                guard case .stringEnumeration(let texts) = claim.type else { XCTFail("Claim must be an exact singleton"); continue }
+                XCTAssertEqual(texts.count, 1)
+                let text = try XCTUnwrap(texts.first)
+                let expected = try XCTUnwrap(segments.first { Data($0.text.utf8) == Data(text.utf8) })
+                foundSources.insert(Data(expected.id.utf8))
+                let evidence = try XCTUnwrap(itemFields.first { $0.name == "evidence" })
+                guard case .array(let citationType, let count) = evidence.type,
+                      case .object(let citationFields) = citationType else {
+                    XCTFail("Each item must bind one exact citation object"); continue
+                }
+                XCTAssertEqual(count, 1)
+                XCTAssertEqual(citationFields.first { $0.name == "source_id" }?.type, .stringEnumeration([expected.id]))
+                XCTAssertEqual(citationFields.first { $0.name == "start_sample" }?.type, .integerEnumeration([expected.startSample]))
+                XCTAssertEqual(citationFields.first { $0.name == "end_sample" }?.type, .integerEnumeration([expected.endSample]))
+                guard let quote = citationFields.first(where: { $0.name == "quote" }),
+                      case .stringEnumeration(let quotes) = quote.type else {
+                    XCTFail("Quote must be bound to the same exact claim"); continue
+                }
+                XCTAssertEqual(quotes.map { Data($0.utf8) }, [Data(text.utf8)],
+                    "A different allowed sentence cannot be paired with this claim")
+                if category == "actions" {
+                    for attribute in ["owner", "due"] {
+                        XCTAssertEqual(itemFields.first { $0.name == attribute }?.type, .nullable(.string),
+                            "Correlation must not hardcode assignments or infer unknown attributes")
+                    }
+                }
+            }
+            XCTAssertEqual(foundSources, Set(segments.map { Data($0.id.utf8) }))
+        }
+        XCTAssertEqual(result.actions.first?.evidence.first?.sourceID, segments[1].id)
+        XCTAssertEqual(result.actions.first?.evidence.first?.startSample, segments[1].startSample)
+        XCTAssertEqual(source.segments, segments)
+    }
+
     func testMultiSentenceSourceGrammarPermitsExactSentenceChoicesWithoutForcingParagraphOwnership() async throws {
         let meetingID = UUID(uuidString: "30000000-0000-0000-0000-000000000019")!
         let sentences = [

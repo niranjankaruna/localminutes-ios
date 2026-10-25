@@ -3,6 +3,57 @@ import XCTest
 @testable import LocalMinutesSummary
 
 final class StructuredJSONSchemaTests: XCTestCase {
+    func testRepeatedCorrelatedChoiceDomainsFitTheExistingGrammarBudgetWithoutLosingBranches() throws {
+        let branches: [StructuredJSONType] = (0..<64).map { index in
+            let text = "Exact source sentence \(index)."
+            return .object([
+                .init(name: "source_id", type: .stringEnumeration(["budget-source-\(index)"])),
+                .init(name: "quote", type: .stringEnumeration([text])),
+                .init(name: "text", type: .stringEnumeration([text]))
+            ])
+        }
+        let domain = StructuredJSONType.array(element: .alternatives(branches), maximumItems: 2)
+        let grammar = try StructuredJSONSchema(fields: [
+            .init(name: "summary_points", type: domain),
+            .init(name: "decisions", type: domain),
+            .init(name: "other_items", type: domain)
+        ]).grammar()
+        XCTAssertLessThanOrEqual(grammar.utf8.count, 65_536)
+        for index in 0..<64 {
+            XCTAssertNotNil(Data(grammar.utf8).range(of: Data(try literal(for: "budget-source-\(index)").utf8)),
+                "Budget handling must retain every branch, never silently keep only a prefix")
+        }
+    }
+
+    func testObjectAlternativesRetainEveryCorrelatedBranchWithoutWideningFields() throws {
+        let spellings = ["A cafe\u{301} quote.", "A café quote."]
+        let branches: [StructuredJSONType] = spellings.enumerated().map { index, spelling in
+            .object([
+                .init(name: "source_id", type: .stringEnumeration(["source-\(index)"])),
+                .init(name: "quote", type: .stringEnumeration([spelling])),
+                .init(name: "text", type: .stringEnumeration([spelling]))
+            ])
+        }
+        let schema = StructuredJSONSchema(fields: [.init(name: "item", type: .alternatives(branches))])
+        let grammar = try schema.grammar()
+        for index in spellings.indices {
+            XCTAssertNotNil(Data(grammar.utf8).range(of: Data(try literal(for: "source-\(index)").utf8)),
+                "Every branch must remain reachable; compiling only the first loses valid evidence")
+            XCTAssertNotNil(Data(grammar.utf8).range(of: Data(try literal(for: spellings[index]).utf8)),
+                "Alternative source spelling must preserve exact Unicode bytes")
+        }
+        XCTAssertTrue(grammar.split(separator: "\n").contains { $0.hasPrefix("field-0 ::=") && $0.contains(" | ") },
+            "The item rule must choose a complete branch rather than independent field values")
+        XCTAssertFalse(grammar.contains(" ::= string\n"), "Literal-only branches must not widen into arbitrary strings")
+        XCTAssertNotEqual(Data(spellings[0].utf8), Data(spellings[1].utf8))
+        let invalidChoices: [[StructuredJSONType]] = [[], Array(repeating: .string, count: 257)]
+        for choices in invalidChoices {
+            XCTAssertThrowsError(try StructuredJSONSchema(fields: [
+                .init(name: "item", type: .alternatives(choices))
+            ]).grammar()) { XCTAssertEqual($0 as? StructuredJSONSchemaError, .invalidBounds) }
+        }
+    }
+
     func testCompilerPreservesCallerFieldOrderAndRequestedJSONTypes() throws {
         let schema = StructuredJSONSchema(fields: [
             .init(name: "action_task", type: .string), .init(name: "action_owner", type: .string),

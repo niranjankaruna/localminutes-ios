@@ -6,6 +6,7 @@ public indirect enum StructuredJSONType: Equatable, Sendable {
     case stringEnumeration([String])
     case stringArray(allowedValues: [String])
     case object([StructuredJSONField])
+    case alternatives([StructuredJSONType])
     case array(element: StructuredJSONType, maximumItems: Int)
     case nullable(StructuredJSONType)
     case integerEnumeration([Int64])
@@ -106,6 +107,11 @@ public struct StructuredJSONSchema: Equatable, Sendable {
             case .object(let fields):
                 let body = try object(fields, path: name, depth: depth)
                 try append(name, body)
+            case .alternatives(let values):
+                // Test-first compileable stub: intentionally retains only the
+                // first branch until hosted tests prove the missing alternatives.
+                guard (1...256).contains(values.count) else { throw StructuredJSONSchemaError.invalidBounds }
+                try type(values[0], name: name, depth: depth + 1)
             case .array(let element, let maximumItems):
                 guard (1...128).contains(maximumItems) else { throw StructuredJSONSchemaError.invalidBounds }
                 let item = name + "-item"
