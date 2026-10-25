@@ -23,6 +23,7 @@ enum LibraryUITestFixture {
             .appendingPathComponent("LocalMinutesLibraryUIFixtures", isDirectory: true)
         let root = parent.appendingPathComponent(token.uuidString, isDirectory: true)
         let marker = root.appendingPathComponent("fixture-seeded.txt")
+        let pagination = ProcessInfo.processInfo.arguments.contains("--ui-test-library-pagination")
         let services = try LocalMinutesServices(rootURL: root)
         do {
             if FileManager.default.fileExists(atPath: marker.path) {
@@ -31,7 +32,7 @@ enum LibraryUITestFixture {
                 }
                 // Reopen the same token-owned database. Never replace edits or
                 // reseed a terminated app's existing fixture on a second launch.
-                guard try await services.store.history().count == 2 else {
+                guard try await services.store.history(limit: 104).count == (pagination ? 103 : 2) else {
                     throw LibraryUIFixtureError.invalidFixture
                 }
             } else {
@@ -40,6 +41,13 @@ enum LibraryUITestFixture {
                 }
                 try await seed("Alpha", in: services, at: Date(timeIntervalSince1970: 2_000))
                 try await seed("Beta", in: services, at: Date(timeIntervalSince1970: 1_000))
+                if pagination {
+                    for index in 0..<101 {
+                        try await services.store.createMeeting(.init(id: UUID(),
+                            title: index == 0 ? "UI Earlier Archive Target" : "UI Archive Meeting \(index)",
+                            createdAt: Date(timeIntervalSince1970: Double(index)), recordingState: .completed))
+                    }
+                }
                 try PersistentFilePolicy.writeAtomically(Data(token.uuidString.utf8), to: marker, within: root)
             }
             return RecordingApplication(services: services)

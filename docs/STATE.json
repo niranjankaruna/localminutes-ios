@@ -3,11 +3,11 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-25T10:49:41.423Z",
+  "lastUpdated": "2026-10-25T11:05:32.994Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "T12.1a: owner-accessible read-only storage metadata report for Windows/iLoader validation",
+  "currentTask": "T23 final functional closure: T12.5 memory pressure, T15.2 complete history/search/loading, T18.7 saved-answer editing",
   "lastVerifiedCommit": "880d3dcd2e21f79e6435ec134279cad192e7435d",
   "lastVerifiedCIRun": 40181776855,
   "candidateArtifact": {
@@ -58,7 +58,7 @@
     },
     "evidence": "docs/evidence/MVP3_DELIVERY_2026_10_25.md"
   },
-  "nextAction": "T12.1a implementation reviewed after actual Core/native/UI RED. Commit/push build5, create unpublished exact-SHA owner draft, dispatch one mvp4-storage focused GREEN plus actual iPhone package (legacy packageMVP2 input true). Verify exact source/run, download/checksum/device bundles/dependency pins, deliver MVP4 development IPA and guide. No automated model-quality/full-suite run. Owner phone gates remain NOT_RUN.",
+  "nextAction": "Finish observing live storage run40186443609 (no replacement while live). Commit/push prepared T12.5/T15.2/T18.7 tests and minimal seams; dispatch one mvp4-final RED batch with packageMVP2=false only after current run terminal. Obtain actual assertions before implementing each missing behavior; then one combined final regression/package build6. No model-quality jobs. MVP4 development delivery excludes owner phone verification but cannot ignore these concrete code gaps.",
   "pendingPushCommit": null,
   "remoteBranchHead": "880d3dcd2e21f79e6435ec134279cad192e7435d",
   "localScriptGreen": {
@@ -87,7 +87,8 @@
       40178158700,
       40180161772,
       40181776855,
-      40184895367
+      40184895367,
+      40186443609
     ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-25T10:31:04.335Z",
@@ -276,7 +277,12 @@
     "latestSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
     "latestRunUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180"
   },
-  "activeCIRun": null,
+  "activeCIRun": {
+    "runId": 40186443609,
+    "sourceCommit": "3273fb20401023fd8095d36c7007923aa42d7bca",
+    "mode": "mvp4-storage",
+    "status": "in_progress"
+  },
   "pendingPushScope": null,
   "repositoryVisibility": "PUBLIC",
   "publication": {
@@ -574,12 +580,13 @@
     }
   },
   "remainingBaseline": [
-    "T12.1a owner-accessible storage metadata report, focused RED/GREEN and updated IPA",
-    "MVP4 owner phone install/extension, offline chosen models and short functionality walkthrough",
-    "MVP4 owner Action Button/locked continuation/cold-start observations",
-    "T14 owner two separate125min physical locked recordings",
-    "T22 owner in-place free-signing renewal and preservation evidence",
-    "T23 final requirements/evidence audit; physical gates cannot be inferred from simulator"
+    "Finish storage report exact-source native/UI/package verification",
+    "T12.5 memory-warning intelligence cancellation/drain/unload",
+    "T15.2 complete paged history/title query, loading and transcript search pagination",
+    "T18.7 durable saved Q&A answer editing",
+    "MVP4 final combined regression/device IPA and byte-verified handoff",
+    "Owner actual phone signing/extension/offline/Lock Screen/Action Button/two125min/protection/renewal",
+    "T23 requirement-to-evidence final completion audit"
   ],
   "pendingIntegrationRegressions": {
     "status": "IN_PROGRESS",
@@ -2614,6 +2621,22 @@
         "ipaHygiene": 3,
         "qualityJobs": 0,
         "fullSuite": false
+      },
+      "coreGreen": {
+        "sourceCommit": "3273fb20401023fd8095d36c7007923aa42d7bca",
+        "runId": 40186443609,
+        "jobId": 121148120077,
+        "executed": 7,
+        "passed": 7,
+        "failed": 0,
+        "skipped": 0,
+        "durationSeconds": 0.422
+      },
+      "scriptGreen": {
+        "runId": 40186443609,
+        "executed": 46,
+        "passed": 46,
+        "failed": 0
       }
     },
     "partialAudit": {
@@ -2624,6 +2647,22 @@
       "scope": "T04,T08,T09,T10,T11 current code/evidence read-only audit; no additional concrete production gap found. Does not close physical gates or prove whole-baseline completion.",
       "evidence": "docs/evidence/MVP3_DELIVERY_2026_10_25.md",
       "artifactStorageBlocker": "Resolved for implemented unpublished-release delivery; Actions-artifact headroom remains unverified and unused."
+    },
+    "finalFunctionalGaps": {
+      "status": "IN_PROGRESS",
+      "taskIds": [
+        "T12.5",
+        "T15.2",
+        "T18.7"
+      ],
+      "testsFirstPrepared": {
+        "portable": 5,
+        "native": 9,
+        "ui": 3
+      },
+      "redVerified": false,
+      "productionImplemented": false,
+      "evidence": "docs/evidence/MVP4_FINAL_GAPS_TDD.md"
     }
   }
 }

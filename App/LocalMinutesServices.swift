@@ -25,6 +25,7 @@ final class LocalMinutesServices: PlaybackHardware {
     let recordingAdmission: RecordingHeavyModelAdmission?
     private(set) var intelligence: IntelligenceSession?
     private var intelligenceManifest: ModelManifest?
+    @ObservationIgnored private(set) var intelligenceMemoryPressureMonitor: IntelligenceMemoryPressureMonitor?
     @ObservationIgnored private var summaryStartupBinding: Task<Void, Never>?
     @ObservationIgnored private var summaryStartupBound = false
     let modelSelections: ModelSelectionStore

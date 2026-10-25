@@ -396,3 +396,7 @@ App screens/shared real-model wiring, durable edits/answers/citations/cancel/exp
 | T12.1a Core actual RED | Bounded actual metadata/read-only privacy | e9b1701/run40184895367 job121143513139:7executed,2PASS5FAIL28assert0skip | Implementation pending GREEN | e9b1701cb81e0fb5f0a84f608f7c7598cd917449 | Hosted macOS | IN_PROGRESS | Native/UI RED pending; no physical claim. |
 
 | T12.1a native/UI actual RED | Guarded owner metadata report and Prepare/Share screen | e9b1701/run40184895367: native7/2PASS5FAIL18fail(3unexpected), UI1FAIL1assert;0skip | Implementation reviewed; focused GREEN pending | e9b1701cb81e0fb5f0a84f608f7c7598cd917449 | Hosted iOS Simulator | IN_PROGRESS | Original phone protection tests NOT_RUN. Build5 metadata only; no model quality work. |
+
+| T12.1a Core GREEN | Actual bounded storage metadata | R7 7cases/5FAIL28assert | R8run40186443609 Core7PASS0fail/skip0.422s +46scriptsPASS | 3273fb20401023fd8095d36c7007923aa42d7bca | HostedmacOS | IN_PROGRESS | Native/UI/package still live; no physical claim. |
+
+| T12.5/T15.2/T18.7 prepared | Final functional gaps from audit | Tests5portable+9native+3UI prepared; actualRED pending | NOT_RUN | Pending test-firstcommit | HostedmacOS/iOS required | IN_PROGRESS | Emptyseams only, no new inference/modelquality. |

@@ -36,6 +36,10 @@ final class MeetingIntelligenceController {
     private(set) var isResetting = false
     private(set) var editConflict = false
     private(set) var citations: [UUID: [MeetingIntelligenceCitation]] = [:]
+    var answerDrafts: [UUID: String] = [:]
+    private(set) var savingAnswerIDs: Set<UUID> = []
+    private(set) var answerEditConflicts: Set<UUID> = []
+    private(set) var answerSaveErrors: [UUID: String] = [:]
     @ObservationIgnored private var sources: [UUID: StoredTranscriptSegment] = [:]
     @ObservationIgnored private var loadID: UUID?
     @ObservationIgnored private var request: IntelligenceRequest?
@@ -52,6 +56,12 @@ final class MeetingIntelligenceController {
 
     var busy: Bool { isRunning || cleanupPending || isResetting }
     var hasSummaryEdits: Bool { summary.map { summaryText != $0.editedText } ?? false }
+
+    // Minimal test-first seams. Hosted assertion RED must precede answer-save,
+    // reopen and navigation-flush behavior or its product editor controls.
+    func flushAnswerEdits(documentID: UUID) async -> Bool { false }
+    func flushAllAnswerEdits() async -> Bool { false }
+    func reopenSavedAnswer(documentID: UUID) async {}
 
     func load() async {
         let token = UUID()

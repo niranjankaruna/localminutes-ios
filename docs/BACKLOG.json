@@ -800,6 +800,20 @@
           "redRunId": 40184895367,
           "productionImplemented": true,
           "greenVerified": false
+        },
+        {
+          "id": "T12.5",
+          "title": "App-owned memory-pressure intelligence cleanup preserving capture",
+          "status": "IN_PROGRESS",
+          "tddRequired": true,
+          "redEvidence": [],
+          "greenEvidence": [],
+          "deviceEvidence": [],
+          "testsFirstPrepared": true,
+          "redVerified": false,
+          "productionImplemented": false,
+          "nextAction": "Finish observing live storage run40186443609 (no replacement while live). Commit/push prepared T12.5/T15.2/T18.7 tests and minimal seams; dispatch one mvp4-final RED batch with packageMVP2=false only after current run terminal. Obtain actual assertions before implementing each missing behavior; then one combined final regression/package build6. No model-quality jobs. MVP4 development delivery excludes owner phone verification but cannot ignore these concrete code gaps.",
+          "evidence": "docs/evidence/MVP4_FINAL_GAPS_TDD.md"
         }
       ],
       "redEvidence": [],
@@ -950,6 +964,20 @@
           "greenEvidence": [],
           "deviceEvidence": [],
           "scope": "Test-first minimal interfaces only; no implementation before compatible assertions. UI fixture RED is separate from product UI RED."
+        },
+        {
+          "id": "T15.2",
+          "title": "Complete paged history/title search/loading and transcript result access",
+          "status": "IN_PROGRESS",
+          "tddRequired": true,
+          "redEvidence": [],
+          "greenEvidence": [],
+          "deviceEvidence": [],
+          "testsFirstPrepared": true,
+          "redVerified": false,
+          "productionImplemented": false,
+          "nextAction": "Finish observing live storage run40186443609 (no replacement while live). Commit/push prepared T12.5/T15.2/T18.7 tests and minimal seams; dispatch one mvp4-final RED batch with packageMVP2=false only after current run terminal. Obtain actual assertions before implementing each missing behavior; then one combined final regression/package build6. No model-quality jobs. MVP4 development delivery excludes owner phone verification but cannot ignore these concrete code gaps.",
+          "evidence": "docs/evidence/MVP4_FINAL_GAPS_TDD.md"
         }
       ],
       "redEvidence": [
@@ -1247,6 +1275,20 @@
           "compileRunId": 40101392948,
           "modelQualityVerified": false,
           "scope": "Selected durable summary, serial CAS autosave, sources/playback and cancellation/export are implemented and packaged in MVP1 source4aec851/run40117673355. Actual selected Phi small-fixture service evidence supersedes the older default-Qwen failure as the current runtime result. Representative quality, full accessibility/privacy release validation and physical UI behavior remain pending; modelQualityVerified is not a whole-feature quality pass."
+        },
+        {
+          "id": "T18.7",
+          "title": "Durable editable saved answers with immutable evidence and conflict handling",
+          "status": "IN_PROGRESS",
+          "tddRequired": true,
+          "redEvidence": [],
+          "greenEvidence": [],
+          "deviceEvidence": [],
+          "testsFirstPrepared": true,
+          "redVerified": false,
+          "productionImplemented": false,
+          "nextAction": "Finish observing live storage run40186443609 (no replacement while live). Commit/push prepared T12.5/T15.2/T18.7 tests and minimal seams; dispatch one mvp4-final RED batch with packageMVP2=false only after current run terminal. Obtain actual assertions before implementing each missing behavior; then one combined final regression/package build6. No model-quality jobs. MVP4 development delivery excludes owner phone verification but cannot ignore these concrete code gaps.",
+          "evidence": "docs/evidence/MVP4_FINAL_GAPS_TDD.md"
         }
       ],
       "redEvidence": [],

@@ -5,6 +5,7 @@ import LocalMinutesPersistence
 #endif
 
 public enum MeetingLibraryError: Error, Equatable { case noSelection }
+enum MeetingLibraryReadOperation: Equatable, Sendable { case history, detail }
 
 /// Observable screen state backed by the one real meeting database.
 @MainActor @Observable
@@ -16,13 +17,19 @@ public final class MeetingLibraryController {
     public private(set) var note: StoredManualNote?
     public private(set) var matches: [StoredTranscriptSegment] = []
     public private(set) var errorMessage: String?
+    public private(set) var hasMoreMeetings = false
+    public private(set) var isLoadingHistory = false
+    public private(set) var isLoadingDetail = false
+    public private(set) var hasMoreTranscriptMatches = false
     @ObservationIgnored private let store: SQLiteMeetingStore
     @ObservationIgnored private var selectionRequest = UUID()
     @ObservationIgnored private let afterRenameRead: (@MainActor @Sendable (UUID) async -> Void)?
+    @ObservationIgnored private let afterRead: (@MainActor @Sendable (MeetingLibraryReadOperation) async -> Void)?
 
     public init(store: SQLiteMeetingStore) {
         self.store = store
         afterRenameRead = nil
+        afterRead = nil
     }
 
     /// Test scheduling only: real SQLite mutation/read still occur. Public
@@ -31,11 +38,24 @@ public final class MeetingLibraryController {
          afterRenameRead: @escaping @MainActor @Sendable (UUID) async -> Void) {
         self.store = store
         self.afterRenameRead = afterRenameRead
+        afterRead = nil
     }
+
+    /// Scheduling boundary only: SQLite reads still execute before observation.
+    init(store: SQLiteMeetingStore,
+         afterRead: @escaping @MainActor @Sendable (MeetingLibraryReadOperation) async -> Void) {
+        self.store = store; self.afterRead = afterRead; afterRenameRead = nil
+    }
+
+    // Test-first seams: hosted behavioral failures precede paging/search work.
+    public func loadMoreMeetings() async {}
+    public func searchHistory(_ query: String) async {}
+    public func loadMoreTranscriptMatches() async {}
 
     public func refresh() async {
         do {
             let history = try await store.history()
+            if let afterRead { await afterRead(.history) }
             var statuses: [UUID: MeetingContentStatus] = [:]
             for meeting in history {
                 statuses[meeting.id] = await store.contentStatus(meetingID: meeting.id)
@@ -57,6 +77,7 @@ public final class MeetingLibraryController {
             let meeting = try await store.meeting(id: id)
             let rows = try await store.transcript(meetingID: id)
             let manual = try await store.manualNote(meetingID: id)
+            if let afterRead { await afterRead(.detail) }
             guard selectionRequest == request else { return }
             selected = meeting; transcript = rows; note = manual
             errorMessage = meeting == nil ? "This meeting is no longer available." : nil
