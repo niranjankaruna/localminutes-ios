@@ -177,7 +177,7 @@ public final class IntelligenceSession {
                 defer { try? input.close() }
                 var hash = SHA256()
                 var readCount: Int64 = 0
-                while let bytes = try input.read(upToCount: 65_536), !bytes.isEmpty {
+                try ModelFileIO.forEachChunk(in: input) { bytes in
                     try Task.checkCancellation()
                     if readCount == 0, !bytes.starts(with: [0x47, 0x47, 0x55, 0x46]) {
                         throw IntelligenceSessionError.invalidModel

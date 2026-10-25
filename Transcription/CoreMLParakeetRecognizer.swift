@@ -19,8 +19,14 @@ public struct CoreMLParakeetModelFiles: Equatable, Sendable {
     public let directory: URL
     public let revision: String
     public let runtimeVersion: String
+    public let manifest: ModelManifest
     public init(directory: URL, revision: String, runtimeVersion: String) {
         self.directory = directory; self.revision = revision; self.runtimeVersion = runtimeVersion
+        self.manifest = ParakeetCoreMLModel.manifest
+    }
+    public init(directory: URL, manifest: ModelManifest) {
+        self.directory = directory; self.manifest = manifest
+        self.revision = manifest.revision; self.runtimeVersion = manifest.runtimeVersion
     }
 }
 
@@ -340,7 +346,7 @@ public actor CoreMLParakeetRecognizer {
                 let handle = try FileHandle(forReadingFrom: url)
                 var hash = SHA256()
                 do {
-                    while let bytes = try handle.read(upToCount: 65_536), !bytes.isEmpty {
+                    try ModelFileIO.forEachChunk(in: handle) { bytes in
                         try checkCancellation(flag)
                         hash.update(data: bytes)
                     }

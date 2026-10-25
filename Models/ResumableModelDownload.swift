@@ -40,6 +40,12 @@ final class ResumableModelDownload: NSObject, URLSessionDataDelegate, @unchecked
     private var durableBytes: Int64 = 0
     private var outputTemporary: URL?
     private var publishedOutput = false
+    private let progress: ModelTransferProgressHandler?
+    private var lastProgressStage: ModelTransferStage?
+    private var lastProgressTime: TimeInterval = 0
+    private var transferStarted: TimeInterval = 0
+    private var resumedBytes: Int64 = 0
+    private var lastProgressBytes: Int64 = 0
 #if DEBUG
     private var responseCallbacks = 0
     private var dataCallbacks = 0
@@ -48,11 +54,13 @@ final class ResumableModelDownload: NSObject, URLSessionDataDelegate, @unchecked
     private var checkpointURL: URL { directory.appendingPathComponent("checkpoint.json") }
 
     init(artifact: ModelArtifact, destination: URL, stagingRoot: URL, resumeRoot: URL,
-         directory: URL, allowedHosts: Set<String>, configuration: URLSessionConfiguration) {
+         directory: URL, allowedHosts: Set<String>, configuration: URLSessionConfiguration,
+         progress: ModelTransferProgressHandler? = nil) {
         self.artifact = artifact; self.destination = destination.standardizedFileURL
         self.stagingRoot = stagingRoot.standardizedFileURL
         self.resumeRoot = resumeRoot.standardizedFileURL; self.directory = directory.standardizedFileURL
         self.allowedHosts = allowedHosts
+        self.progress = progress
         let options = configuration.copy() as! URLSessionConfiguration
         options.httpShouldSetCookies = false; options.httpCookieStorage = nil
         options.urlCredentialStorage = nil; options.urlCache = nil; options.httpAdditionalHeaders = [:]
@@ -95,6 +103,7 @@ final class ResumableModelDownload: NSObject, URLSessionDataDelegate, @unchecked
 
     private func prepare() throws {
         try checkCancellation()
+        report(.preparing, bytes: 0, force: true)
         try validateRoute(artifact.downloadURL)
         let parts = artifact.downloadURL.path.split(separator: "/", omittingEmptySubsequences: true)
         guard artifact.downloadURL.query == nil, artifact.downloadURL.fragment == nil,
@@ -157,14 +166,14 @@ final class ResumableModelDownload: NSObject, URLSessionDataDelegate, @unchecked
                 }
                 try input.seek(toOffset: 0)
                 var count: Int64 = 0
-                while count < point.receivedByteCount {
+                try ModelFileIO.forEachChunk(in: input, maximumBytes: point.receivedByteCount) { bytes in
                     try checkCancellation()
-                    let bytes = try input.read(upToCount: Int(min(65_536, point.receivedByteCount - count))) ?? Data()
-                    guard !bytes.isEmpty else { throw ModelTransportError.invalidResumeState }
                     digest.update(data: bytes); count += Int64(bytes.count)
+                    report(.preparing, bytes: count)
                 }
-                guard Self.finalDigest(digest) == point.partialSHA256 else { throw ModelTransportError.invalidResumeState }
+                guard count == point.receivedByteCount, Self.finalDigest(digest) == point.partialSHA256 else { throw ModelTransportError.invalidResumeState }
                 checkpoint = point; received = count; durableBytes = count; validator = point.strongETag
+                resumedBytes = count
             } catch is CancellationError { throw CancellationError() }
             catch let error as ModelTransportError { throw error }
             catch { throw ModelTransportError.invalidResumeState }
@@ -237,6 +246,9 @@ final class ResumableModelDownload: NSObject, URLSessionDataDelegate, @unchecked
             try file?.seek(toOffset: UInt64(received))
             try PersistentFilePolicy.protectItem(partial, within: resumeRoot)
             accepted = true
+            resumedBytes = received
+            transferStarted = ProcessInfo.processInfo.systemUptime
+            report(.downloading, bytes: received, force: true)
             completionHandler(.allow)
         } catch {
             fail(error, preservingProgress: false)
@@ -267,6 +279,7 @@ final class ResumableModelDownload: NSObject, URLSessionDataDelegate, @unchecked
             // First progress is immediately durable, then checkpoint at most
             // oneMiB apart. Error/cancel/completion always flush the remainder.
             if durableBytes == 0 || received - durableBytes >= 1_048_576 { try persistProgress() }
+            report(.downloading, bytes: received)
         } catch { fail(error, preservingProgress: true) }
     }
 
@@ -327,10 +340,12 @@ final class ResumableModelDownload: NSObject, URLSessionDataDelegate, @unchecked
         try PersistentFilePolicy.protectItem(temporary, within: stagingRoot)
         var copied: Int64 = 0
         var copiedHash = SHA256()
-        while let bytes = try input.read(upToCount: 65_536), !bytes.isEmpty {
+        report(.verifying, bytes: 0, force: true)
+        try ModelFileIO.forEachChunk(in: input) { bytes in
             try checkCancellation()
             guard Int64(bytes.count) <= artifact.byteCount - copied else { throw ModelTransportError.sizeMismatch }
             try output.write(contentsOf: bytes); copiedHash.update(data: bytes); copied += Int64(bytes.count)
+            report(.verifying, bytes: copied)
         }
         guard copied == artifact.byteCount, Self.finalDigest(copiedHash) == Self.finalDigest(digest) else {
             throw ModelTransportError.invalidResumeState
@@ -347,6 +362,26 @@ final class ResumableModelDownload: NSObject, URLSessionDataDelegate, @unchecked
         // completed bytes can be safely reused if cleanup itself is interrupted.
         try? FileManager.default.removeItem(at: checkpointURL)
         try? FileManager.default.removeItem(at: partial)
+        report(.completed, bytes: artifact.byteCount, force: true)
+    }
+
+    private func report(_ stage: ModelTransferStage, bytes: Int64, force: Bool = false) {
+        guard let progress else { return }
+        let now = ProcessInfo.processInfo.systemUptime
+        // Bound producer work and the number of UI messages independently of
+        // network chunk sizes. The consumer also keeps only its newest event.
+        guard force || stage != lastProgressStage || now - lastProgressTime >= 0.2
+                || bytes == artifact.byteCount || (stage == .downloading && bytes > resumedBytes && lastProgressBytes == resumedBytes) else { return }
+        let elapsed = now - transferStarted
+        let transferred = max(0, received - resumedBytes)
+        let speed: Double? = stage == .downloading && elapsed > 0 && transferred > 0
+            ? Double(transferred) / elapsed : nil
+        let remaining = speed.map { Double(max(0, artifact.byteCount - received)) / $0 }
+        progress(.init(stage: stage, fileName: artifact.fileName,
+            completedBytes: max(0, min(bytes, artifact.byteCount)), totalBytes: artifact.byteCount,
+            bytesPerSecond: speed, remainingSeconds: remaining, resumedBytes: resumedBytes))
+        lastProgressStage = stage; lastProgressTime = now
+        lastProgressBytes = bytes
     }
 
     private func validateDestination() throws {

@@ -1870,6 +1870,54 @@
         "nativeBuildOrInferenceClaim": false,
         "deviceClaim": false
       }
+    },
+    {
+      "id": "T26",
+      "priority": 1,
+      "title": "Owner-requested upgradeable Parakeet adapter, bounded download memory and detailed progress",
+      "kind": "feature-and-regression",
+      "status": "IN_PROGRESS",
+      "tddRequired": true,
+      "dependsOn": [
+        "T24",
+        "T25"
+      ],
+      "requirements": [
+        "R02",
+        "R05",
+        "R07",
+        "R08",
+        "R09",
+        "R12"
+      ],
+      "acceptance": [
+        "Darwin large-file memory regression with preserved hash/cancellation/resume/atomic-install checks.",
+        "Observed byte/speed/ETA/file/stage progress through production downloads and accessible UI.",
+        "Versioned Parakeet packs with legacy v2 compatibility, explicit unknown-contract rejection and real native inference/live/replay validation."
+      ],
+      "childTasks": [
+        {
+          "id": "T26.1",
+          "title": "Bounded large-file transfer and verification memory",
+          "status": "IN_PROGRESS"
+        },
+        {
+          "id": "T26.2",
+          "title": "Detailed transfer progress and responsive UI",
+          "status": "IN_PROGRESS"
+        },
+        {
+          "id": "T26.3",
+          "title": "Versioned Parakeet TDT model-pack adapter",
+          "status": "NOT_STARTED"
+        }
+      ],
+      "redEvidence": [],
+      "greenEvidence": [],
+      "deviceEvidence": [],
+      "evidence": [
+        "docs/evidence/T26_MODEL_ADAPTERS_TRANSFERS.md"
+      ]
     }
   ],
   "executionPausedByOwner": false,
@@ -1897,8 +1945,8 @@
     "blocker": "OWNER_PHONE_VALIDATION_REQUIRED",
     "nextAction": "Owner validates delivered build 6 on iPhone 17 Pro / iOS 27.0.1: record installed version and a short recording saved by Live Activity Stop; then complete offline chosen-model use, Action Button warm/locked/cold-start, two 125-minute passes with at least 120 locked minutes each, storage protection, and in-place signing-renewal preservation. See docs/MVP4_DEVICE_CHECKLIST.md. Resume code work on a reproducible defect; do not rerun model-quality benchmarks."
   },
-  "lastUpdated": "2026-10-25T14:58:56Z",
-  "resumeAction": "Owner validates delivered build 6 on iPhone 17 Pro / iOS 27.0.1: record installed version and a short recording saved by Live Activity Stop; then complete offline chosen-model use, Action Button warm/locked/cold-start, two 125-minute passes with at least 120 locked minutes each, storage protection, and in-place signing-renewal preservation. See docs/MVP4_DEVICE_CHECKLIST.md. Resume code work on a reproducible defect; do not rerun model-quality benchmarks.",
+  "lastUpdated": "2026-10-25T16:05:55.375Z",
+  "resumeAction": "Observe hosted macOS behavioral RED at 20da4e8/run 40209885118 before implementing download memory/progress, then build the versioned Parakeet adapter.",
   "historicalCheckpoint": "https://github.com/niranjankaruna/localminutes-ios/blob/a314967626b01b0a3a071eb61eb02b2d5d2320e8/docs/BACKLOG.json",
   "evidencePolicy": "Per-task draft/checkpoint/model-decision entries are historical, scoped to recorded commits. Current delivered source and next action are in docs/STATE.json. Removed draft references use immutable Git permalinks.",
   "latestRepositoryVerification": {

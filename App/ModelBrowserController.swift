@@ -27,6 +27,9 @@ final class ModelBrowserController {
     private(set) var storageCheckError: String?
     private(set) var message: String?
     private(set) var errorMessage: String?
+    private(set) var downloadProgress: ModelTransferProgress?
+    // Test-first UI interface; behavior follows observed simulator RED.
+    func updateDownloadProgress(_ value: ModelTransferProgress) {}
     @ObservationIgnored private weak var services: LocalMinutesServices?
     @ObservationIgnored private let remote = HuggingFaceRepositoryService()
     @ObservationIgnored private var download: Task<Void, Never>?

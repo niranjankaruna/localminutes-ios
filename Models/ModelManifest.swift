@@ -38,11 +38,13 @@ public struct ModelManifest: Codable, Equatable, Sendable {
     public let sampleRate: Int?
     public let featureDimension: Int?
     public let artifacts: [ModelArtifact]
+    public let parakeetConfiguration: ParakeetModelConfiguration?
 
     public init(schemaVersion: Int = 1, modelID: String, purpose: ModelPurpose,
                 upstreamRepository: URL, revision: String, licenseIdentifier: String,
                 licenseNotice: String, runtimeVersion: String, sampleRate: Int? = nil,
-                featureDimension: Int? = nil, artifacts: [ModelArtifact]) {
+                featureDimension: Int? = nil, artifacts: [ModelArtifact],
+                parakeetConfiguration: ParakeetModelConfiguration? = nil) {
         self.schemaVersion = schemaVersion
         self.modelID = modelID
         self.purpose = purpose
@@ -54,6 +56,7 @@ public struct ModelManifest: Codable, Equatable, Sendable {
         self.sampleRate = sampleRate
         self.featureDimension = featureDimension
         self.artifacts = artifacts
+        self.parakeetConfiguration = parakeetConfiguration
     }
 }
 

@@ -12,7 +12,7 @@
   },
   "project": "LocalMinutes",
   "specVersion": "1.0",
-  "state": "BLOCKED_EXTERNAL",
+  "state": "IN_PROGRESS",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "repositoryVisibility": "PUBLIC",
@@ -196,10 +196,10 @@
     "scope": "Third consecutive phone-only condition after final delivery. No new owner observation, active build or concrete independent development task; prior follow-up produced no application progress. Full goal remains unachieved. Goal blocked audit satisfied; resume when owner supplies phone evidence or reports a reproducible defect.",
     "lastRevalidatedAt": "2026-10-25T12:56:17.577Z"
   },
-  "lastUpdated": "2026-10-25T14:58:56Z",
-  "currentBranch": "main",
-  "currentTask": "T23 physical-device acceptance remains blocked; REPO_CLEANUP VERIFIED_COMPLETE",
-  "nextAction": "Owner validates delivered build 6 on iPhone 17 Pro / iOS 27.0.1: record installed version and a short recording saved by Live Activity Stop; then complete offline chosen-model use, Action Button warm/locked/cold-start, two 125-minute passes with at least 120 locked minutes each, storage protection, and in-place signing-renewal preservation. See docs/MVP4_DEVICE_CHECKLIST.md. Resume code work on a reproducible defect; do not rerun model-quality benchmarks.",
+  "lastUpdated": "2026-10-25T16:05:55.375Z",
+  "currentBranch": "codex/parakeet-downloads",
+  "currentTask": "T26.1/T26.2 tests-first download memory and progress",
+  "nextAction": "Observe hosted macOS behavioral RED at 20da4e8/run 40209885118 before implementing download memory/progress, then build the versioned Parakeet adapter.",
   "activeCIRun": null,
   "repositoryHeadScope": "Read actual local/remote HEAD; latest application CI source remains separately identified.",
   "completedThisInvocation": [],
@@ -254,5 +254,15 @@
     "lastObservedRemoteHead": "eeb9a5dc65a06ef11142c449e4a5e3170500eb69",
     "observationScope": "Verified cleanup commit on origin/main after deletion; this documentation-only checkpoint follows separately.",
     "allOriginalBranchTipsAreAncestorsOfMain": true
+  },
+  "modelAdapterWork": {
+    "task": "T26",
+    "status": "IN_PROGRESS",
+    "evidence": "docs/evidence/T26_MODEL_ADAPTERS_TRANSFERS.md",
+    "reportedFailureStage": "download or verification",
+    "phoneTerminationCause": "UNCONFIRMED",
+    "redRun": 40209885118,
+    "redSource": "20da4e8e8e68ea9b7add81d1c6d4b18bdedb1ae1",
+    "costGuard": "Public repository and owner approval verified; standard macos-15-intel runner only; no artifact upload or billing changes."
   }
 }

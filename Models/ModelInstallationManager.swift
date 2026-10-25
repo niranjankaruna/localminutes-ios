@@ -478,9 +478,8 @@ public actor ModelInstallationManager {
         defer { try? input.close() }
         var hasher = SHA256()
         var consumed: Int64 = 0
-        while true {
+        try ModelFileIO.forEachChunk(in: input) { data in
             try Task.checkCancellation()
-            guard let data = try input.read(upToCount: 65_536), !data.isEmpty else { break }
             consumed += Int64(data.count)
             guard consumed <= artifact.byteCount else { throw ModelInstallationError.sizeMismatch(artifact.fileName) }
             hasher.update(data: data)
@@ -548,7 +547,7 @@ public actor ModelInstallationManager {
         defer { try? output.close() }
         try PersistentFilePolicy.protectItem(destination, within: rootURL)
         var copied: Int64 = 0
-        while let bytes = try input.read(upToCount: 65_536), !bytes.isEmpty {
+        try ModelFileIO.forEachChunk(in: input) { bytes in
             try Task.checkCancellation()
             guard Int64(bytes.count) <= artifact.byteCount - copied else { throw ModelInstallationError.sizeMismatch(artifact.fileName) }
             try output.write(contentsOf: bytes); copied += Int64(bytes.count)

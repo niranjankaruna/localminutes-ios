@@ -57,12 +57,13 @@ public final class HTTPSModelTransport: @unchecked Sendable {
     /// and the retained prefix digest; only a strong ETag authorizes If-Range.
     /// This method can publish only the operation staging file, never current.json.
     public func downloadResumable(_ artifact: ModelArtifact, to destination: URL,
-                                  checkpointDirectory: URL) async throws {
+                                  checkpointDirectory: URL,
+                                  progress: ModelTransferProgressHandler? = nil) async throws {
         try Task.checkCancellation()
         guard let resumeRootURL else { throw ModelTransportError.invalidDestination }
         let operation = ResumableModelDownload(artifact: artifact, destination: destination,
             stagingRoot: stagingRootURL, resumeRoot: resumeRootURL, directory: checkpointDirectory,
-            allowedHosts: allowedHosts, configuration: session.configuration)
+            allowedHosts: allowedHosts, configuration: session.configuration, progress: progress)
         try await operation.run()
     }
 

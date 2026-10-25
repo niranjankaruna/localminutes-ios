@@ -24,7 +24,16 @@ and `ModelTransferProgressTests.testActualHTTPTransferReportsByteProgressThenVer
 The progress overload is a compileable test-first interface which delegates to
 the existing transport and deliberately implements no progress reporting.
 Command: `swift test --package-path .agent-local/model-tests` on hosted macOS.
-Source SHA, CI URL, executed counts and observed assertions: PENDING.
+Source: `20da4e8e8e68ea9b7add81d1c6d4b18bdedb1ae1`, committed and pushed before behavior.
+[Run 40209885118](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40209885118)
+completed FAILURE: 115 tests executed, 113 passed, 2 failed with 6 assertion
+failures, zero skipped, 37.885 seconds. The memory assertion measured a
+536,870,912-byte file, peak before 40,591,360 bytes, peak after 1,656,266,752
+bytes: growth 1,615,675,392 bytes, exceeding the unchanged 67,108,864-byte bound.
+The real HTTP progress case verified output bytes but failed five progress
+assertions because no events were emitted. This is behavioral RED, not a
+compiler/tool failure. It reproduces a Darwin large-file risk; it does not
+establish the owner's unobserved iPhone termination reason.
 
 ## GREEN
 

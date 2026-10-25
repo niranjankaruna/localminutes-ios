@@ -38,6 +38,15 @@ enum ModelBrowserAccessibilityFixture {
         }
         services.modelBrowser.purpose = .summary
         await services.modelBrowser.refresh()
+        if let stage = ProcessInfo.processInfo.environment["LOCALMINUTES_UI_MODEL_PROGRESS"] {
+            services.modelBrowser.updateDownloadProgress(.init(
+                stage: stage == "verifying" ? .verifying : .downloading,
+                fileName: "Encoder.mlmodelc/weights/weight.bin", completedBytes: 104_857_600,
+                totalBytes: 209_715_200, bytesPerSecond: stage == "verifying" ? nil : 10_485_760,
+                remainingSeconds: stage == "verifying" ? nil : 10,
+                resumedBytes: 52_428_800, fileIndex: 2, fileCount: 5,
+                overallCompletedBytes: 209_715_200, overallTotalBytes: 419_430_400))
+        }
         return services
     }
 }
