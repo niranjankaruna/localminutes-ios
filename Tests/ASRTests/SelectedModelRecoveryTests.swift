@@ -10,7 +10,7 @@ import LocalMinutesRecording
 import LocalMinutesMeetingLibrary
 @testable import LocalMinutesTranscription
 
-/// Future MVP2 acceptance: actual reviewed Whisper bytes/audio and on-disk data.
+/// Recovery uses the captured Whisper model pin, actual audio, and on-disk data.
 /// There is no pin injection, inference replacement or current-default fallback.
 @MainActor
 final class SelectedModelRecoveryTests: XCTestCase {
@@ -33,7 +33,7 @@ final class SelectedModelRecoveryTests: XCTestCase {
         try await initial.close()
         var connection: OpaquePointer?
         guard sqlite3_open(database.path, &connection) == SQLITE_OK, let connection else { throw MeetingStoreError.databaseFailure }
-        // This owned fixture contains no pins. Removing the future table makes
+        // This owned fixture contains no pins. Removing the version-five table makes
         // a genuine fixed-v4 database even when the application later creates v5.
         let prepared = sqlite3_exec(connection, "DROP TABLE IF EXISTS meeting_speech_model_pins; PRAGMA user_version=4;", nil, nil, nil)
         sqlite3_close(connection)

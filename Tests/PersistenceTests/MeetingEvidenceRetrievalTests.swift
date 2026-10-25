@@ -7,8 +7,7 @@ import XCTest
 final class MeetingEvidenceRetrievalTests: XCTestCase {
     func testVersionTwoMigrationBuildsActualFTS5WithoutChangingOriginalMetadataNotesOrSource() async throws {
         try await withEvidenceDirectory { root in
-            // Prove that this actual native SQLite can execute FTS5; a missing
-            // native module must not be confused with app assertion RED.
+            // Check native FTS5 availability before testing the app migration.
             try withEvidenceSQLite(root.appendingPathComponent("probe.sqlite"), create: true) { db in
                 try evidenceSQL(db, "CREATE VIRTUAL TABLE probe USING fts5(text); INSERT INTO probe VALUES('synthetic probe');")
                 XCTAssertEqual(try evidenceScalar(db, "SELECT count(*) FROM probe WHERE probe MATCH 'probe'"), 1)

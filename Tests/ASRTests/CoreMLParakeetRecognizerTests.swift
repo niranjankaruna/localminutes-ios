@@ -6,7 +6,7 @@ import LocalMinutesModels
 @testable import LocalMinutesTranscription
 
 /// Actual pinned native Core ML inference and exact licensed speech. Missing model
-/// bytes or fixture setup is an error, never an optional skip or a valid RED.
+/// bytes or fixture setup fails the test rather than skipping inference.
 @MainActor
 final class CoreMLParakeetRecognizerTests: XCTestCase {
     func testActualParakeetProductionDefaultRequestsCPUOnlyWithoutAnExplicitOverride() async throws {

@@ -5,31 +5,12 @@ import LocalMinutesPersistence
 import LocalMinutesSummary
 import LocalMinutesQuestionAnswering
 
-/// An isolated candidate screen, never an application/default-model switch.
-/// All four observations use actual CPU inference and unchanged semantic oracles.
+/// Pinned Phi-3 integration tests use actual CPU inference and grounded evidence.
 @MainActor
-final class Phi3CandidateComparisonTests: XCTestCase {
-    func testActualPinnedPhi3ComparesTwoSummariesAndTwoSelectedMeetingQuestions() async throws {
-        try await runComparison(includeQuestions: true)
-    }
-
-    func testActualPinnedPhi3ComparesTwoSummariesWithReviewedRevision() async throws {
-        try await runComparison(includeQuestions: false)
-    }
-
-    func testActualPinnedPhi3PositiveSummaryWithReviewedRevision() async throws {
-        try await runComparison(includeQuestions: false, summaries: .positive)
-    }
-
-    func testActualPinnedPhi3UnknownSummaryWithReviewedRevision() async throws {
-        try await runComparison(includeQuestions: false, summaries: .unknown)
-    }
-
-    private enum SummarySelection { case both, positive, unknown }
-
-    private func runComparison(includeQuestions: Bool, summaries: SummarySelection = .both) async throws {
+final class Phi3IntegrationTests: XCTestCase {
+    func testActualPinnedPhi3SummariesAndSelectedMeetingQuestions() async throws {
         phi3Progress("setup", "begin")
-        let path = try XCTUnwrap(ProcessInfo.processInfo.environment["LOCALMINUTES_CANDIDATE_MODEL_PATH"])
+        let path = try XCTUnwrap(ProcessInfo.processInfo.environment["LOCALMINUTES_PHI_MODEL_PATH"])
         let url = URL(fileURLWithPath: path)
         let size = (try FileManager.default.attributesOfItem(atPath: path)[.size] as? NSNumber)?.int64Value
         XCTAssertEqual(size, 2_393_231_072)
@@ -49,7 +30,7 @@ final class Phi3CandidateComparisonTests: XCTestCase {
         phi3Progress("setup", "native_load_begin")
         let runtime = try LocalSummaryRuntime(modelURL: url, contextSize: 4_096, threads: 4, chatFormat: .phi3)
         phi3Progress("setup", "native_loaded")
-        let expectedCalls = (summaries == .both ? 2 : 1) + (includeQuestions ? 2 : 0)
+        let expectedCalls = 4
         let observations = Phi3ComparisonObservations(maximumCalls: expectedCalls)
         let revision = "a64113399c2f6b8ad3e11c394733a2ddadaa7f33"
         do {
@@ -61,7 +42,6 @@ final class Phi3CandidateComparisonTests: XCTestCase {
                       text: "Leo: I will write the guide by Thursday.")
             ], originalManualNotes: "Original manual note — Café 📝. Keep this separate from generated text.")
             let originalPositive = positive
-            if summaries != .unknown {
             await observe("summary_positive", observations: observations) {
                 let output = try await self.pipeline(runtime, observations, revision, stage: "summary_positive")
                     .summarize(selectedMeetingID: positiveID, source: positive)
@@ -75,13 +55,11 @@ final class Phi3CandidateComparisonTests: XCTestCase {
                 try self.validate(output, source: positive, revision: revision)
                 XCTAssertEqual(positive, originalPositive)
             }
-            }
             let unknownID = UUID(uuidString: "50000000-0000-0000-0000-000000000018")!
             let unknownSource = GroundedSummarySource(meetingID: unknownID, segments: [
                 .init(id: "unassigned-source", startSample: 0, endSample: 16_000,
                       text: "The checklist needs review. No owner or deadline was agreed.")
             ], originalManualNotes: "Original unknown-owner fixture note")
-            if summaries != .positive {
             await observe("summary_unknown", observations: observations) {
                 let output = try await self.pipeline(runtime, observations, revision, stage: "summary_unknown")
                     .summarize(selectedMeetingID: unknownID, source: unknownSource)
@@ -95,8 +73,6 @@ final class Phi3CandidateComparisonTests: XCTestCase {
                 XCTAssertTrue((output.summaryPoints.flatMap(\.evidence) + output.actions.flatMap(\.evidence))
                     .allSatisfy { $0.sourceID == "unassigned-source" })
             }
-            }
-            if includeQuestions {
             try await withQuestionFixture { fixture in
                 for (stage, question) in [("qa_positive", "What is the launch budget?"),
                                           ("qa_unknown", "Who owns the launch budget?")] {
@@ -163,7 +139,6 @@ final class Phi3CandidateComparisonTests: XCTestCase {
                     XCTAssertEqual(note, fixture.selectedNote); XCTAssertEqual(otherNote, fixture.otherNote)
                     try await reopened.close()
                 } catch { try? await reopened.close(); throw error }
-            }
             }
             let count = await observations.count
             XCTAssertEqual(count, expectedCalls,
@@ -313,7 +288,7 @@ extension Phi3CandidateComparisonTests {
     /// A fixed synthetic quality screen, not a claim of broad meeting accuracy.
     /// Every tokenizer/generator call delegates to the pinned native runtime.
     func testActualPinnedPhi3RepresentativeMultiMapMergeAndUnknownDeadlineRefusal() async throws {
-        let path = try XCTUnwrap(ProcessInfo.processInfo.environment["LOCALMINUTES_CANDIDATE_MODEL_PATH"])
+        let path = try XCTUnwrap(ProcessInfo.processInfo.environment["LOCALMINUTES_PHI_MODEL_PATH"])
         let url = URL(fileURLWithPath: path)
         let size = (try FileManager.default.attributesOfItem(atPath: path)[.size] as? NSNumber)?.int64Value
         XCTAssertEqual(size, 2_393_231_072)

@@ -1,8 +1,8 @@
-"""Hosted setup only: exact native Parakeet v2 Core ML assets and licensed audio.
+"""Prepare pinned Parakeet v2 or v3 Core ML assets and licensed audio.
 
-No inference. Weights/audio stay ignored. Setup failures are never behavioral RED.
-The downloaded subset is21 files, not the entire2.575GB repository.
+No inference. Weights and audio stay in ignored fixture directories.
 """
+import argparse
 from pathlib import Path
 import hashlib
 import json
@@ -99,20 +99,33 @@ def prepare_audio(output):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--version", choices=("v2", "v3"), default="v2")
+    arguments = parser.parse_args()
     workspace = Path.cwd().resolve()
-    if not (workspace / "project-config.json").is_file() or not (workspace / "AGENTS.md").is_file():
+    if not (workspace / "project.yml").is_file() or not (workspace / "Package.swift").is_file():
         raise RuntimeError("Run from the LocalMinutes repository root")
     ignored = workspace / ".agent-local"
     if ignored.is_symlink():
         raise RuntimeError("Ignored workspace root cannot be a symlink")
     ignored.mkdir(exist_ok=True)
-    output = ignored / "parakeet-coreml-fixtures"
+    repository, revision, artifacts = REPOSITORY, REVISION, ARTIFACTS
+    if arguments.version == "v3":
+        pack = json.loads((workspace / "Tests/Fixtures/Parakeet/parakeet-v3.modelpack.json").read_text(encoding="utf-8"))
+        repository = "FluidInference/parakeet-tdt-0.6b-v3-coreml"
+        revision = pack["revision"]
+        if pack["upstreamRepository"] != "https://huggingface.co/" + repository:
+            raise RuntimeError("Unexpected v3 fixture repository")
+        artifacts = [(item["fileName"], item["byteCount"], item["sha256"]) for item in pack["artifacts"]]
+    output = ignored / ("parakeet-coreml-fixtures" if arguments.version == "v2" else "parakeet-v3-fixtures")
     model = output / "model"
     owned_directory(output, ignored)
     owned_directory(model, ignored)
     started = time.monotonic()
     verified = []
-    for name, size, digest in ARTIFACTS:
+    for name, size, digest in artifacts:
+        if Path(name).is_absolute() or ".." in Path(name).parts or "\\" in name:
+            raise RuntimeError("Unsafe model artifact path")
         target = model / name
         parent = model
         for part in Path(name).parts[:-1]:
@@ -123,7 +136,7 @@ def main():
             if target.exists() or target.is_symlink():
                 raise RuntimeError("Existing model asset differs; refusing overwrite: " + name)
             partial = target.with_name(target.name + ".partial")
-            url = "https://huggingface.co/" + REPOSITORY + "/resolve/" + REVISION + "/" + name
+            url = "https://huggingface.co/" + repository + "/resolve/" + revision + "/" + name
             with urllib.request.urlopen(url, timeout=30) as response:
                 with partial.open("xb") as handle:
                     received = 0
@@ -139,15 +152,15 @@ def main():
                 raise RuntimeError("Exact native model asset failed SHA256 verification: " + name)
             partial.replace(target)
         verified.append({"path": name, "bytes": size, "sha256": digest})
-    expected = {name for name, _, _ in ARTIFACTS}
+    expected = {name for name, _, _ in artifacts}
     actual = {str(p.relative_to(model)).replace("\\", "/") for p in model.rglob("*") if p.is_file()}
     if actual != expected:
         raise RuntimeError("Native model directory contains unexpected files")
     fixture = prepare_audio(output)
-    receipt = {"repository": REPOSITORY, "modelRevision": REVISION,
-        "runtimeSourceCommit": SOURCE_COMMIT, "modelBytes": sum(a[1] for a in ARTIFACTS),
+    receipt = {"repository": repository, "modelRevision": revision,
+        "runtimeSourceCommit": SOURCE_COMMIT, "modelBytes": sum(a[1] for a in artifacts),
         "models": verified, "modelDirectory": str(model), "fixturePath": str(fixture),
-        "license": "CC-BY-4.0", "modelAttribution": "NVIDIA Parakeet TDT v2; Core ML conversion by FluidInference",
+        "license": "CC-BY-4.0", "modelAttribution": "NVIDIA Parakeet TDT " + arguments.version + "; Core ML conversion by FluidInference",
         "speechSource": ARCHIVE_URL, "speechUtterance": UTTERANCE,
         "speechAttribution": "LibriSpeech: Vassil Panayotov and Daniel Povey; LibriVox source",
         "speechReference": REFERENCE, "speechBytes": FLAC_SIZE, "speechSHA256": FLAC_SHA256,

@@ -7,7 +7,7 @@ import LocalMinutesCore
 #endif
 
 public enum MeetingRecoveryError: Error, Equatable, Sendable {
-    case notImplemented, unsafePath, invalidManifest, metadataFailure, meetingInUse, filesystemFailure
+    case unsafePath, invalidManifest, metadataFailure, meetingInUse, filesystemFailure
 }
 
 public enum AudioRecoveryGapReason: String, Codable, Sendable {

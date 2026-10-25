@@ -79,8 +79,7 @@ final class ActualResumedPhiIntelligenceTests: XCTestCase {
             XCTAssertEqual(firstCounts.generated[0, default: 0], 1)
             XCTAssertEqual(firstCounts.unloaded[0, default: 0], 1)
 
-            // The legacy ignored hook must prove its actual missing-behavior
-            // RED here. Do not spend another native generation on that failure.
+            // Resume requires a durable, validated map before another generation.
             guard let checkpoint else {
                 XCTFail("A validated actual-Phi map must be durable before final SQLite commit")
                 try await assertPhiOriginals(h, store: h.store)

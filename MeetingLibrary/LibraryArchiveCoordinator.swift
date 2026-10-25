@@ -14,7 +14,7 @@ public struct ActiveLibrarySelection: Codable, Equatable, Sendable {
 }
 
 public enum LibraryArchiveCoordinatorError: Error, Equatable, Sendable {
-    case notImplemented, busy, invalidActivePointer, invalidBackup, metadataFailure, filesystemFailure
+    case busy, invalidActivePointer, invalidBackup, metadataFailure, filesystemFailure
 }
 
 /// Models/ModelSelections/Diagnostics stay

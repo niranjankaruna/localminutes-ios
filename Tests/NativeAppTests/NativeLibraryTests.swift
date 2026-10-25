@@ -10,7 +10,7 @@ import XCTest
 /// Actual app services/SQLite/CAF/archive paths; no microphone permission or
 /// hardware capture is requested by a library replacement test.
 @MainActor
-final class NativeMVP2LibraryTests: XCTestCase {
+final class NativeLibraryTests: XCTestCase {
     func testDefaultAppManagerResumesPinnedDownloadThroughItsConfiguredTransportAndPublishesVerifiedInstallation() async throws {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [NativeResumeURLProtocol.self]

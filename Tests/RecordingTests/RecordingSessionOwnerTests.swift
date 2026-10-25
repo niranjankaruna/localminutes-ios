@@ -10,7 +10,7 @@ import LocalMinutesMeetingLibrary
 @testable import LocalMinutes
 #endif
 
-// Test-first composition contract. Only permission, hardware, ActivityKit and
+// Only permission, hardware, ActivityKit and
 // model-preparation boundaries are doubled. Synthetic PCM must flow through the
 // actual capture queue, native conversion and CAF writer after implementation.
 // A doubled preparation result is never real ASR/inference or device evidence.
@@ -870,14 +870,6 @@ final class RecordingSessionOwnerTests: XCTestCase {
     }
 }
 
-// TEST-FIRST DRAFT ONLY. Append this entire file to the existing
-// Tests/RecordingTests/RecordingSessionOwnerTests.swift before eventual RED.
-// Its private real-owner/PCM/CAF helpers are deliberately reused in that same
-// file. Do not activate this as a separate Swift source file.
-// Requires the documented no-op owner.stop(sessionID:) interface first.
-// These eleven tests are uncompiled and have no RED/GREEN evidence.
-// Also requires the documented activationFailures test-hardware boundary field.
-
 @MainActor
 private final class IntentTestOutcome {
     var value: RecordingIntentOutcome?
@@ -1203,11 +1195,7 @@ extension RecordingSessionOwnerTests {
 #if os(iOS) && !SWIFT_PACKAGE
 import AppIntents
 
-// Append to the SAME RecordingSessionOwnerTests.swift file so private helpers
-// are reused. Only native app-host tests compile this conditional extension.
-// Original ten native cases proved37-case RED at81960fd, then38-case GREEN
-// including the extra SDK probe at7c1ae7c. The preparing-toggle regression below
-// is newly test-first and has no executed RED yet.
+// App-hosted intent tests reuse the recording harness and compile only on iOS.
 
 @MainActor
 private final class NativeIntentCall {
@@ -1715,8 +1703,7 @@ extension RecordingSessionOwnerTests {
             try await complete { await starting.value }
             XCTAssertEqual(h.hardware.startCalls, 0, "The old permission grant cannot reactivate reset capture")
             XCTAssertFalse(h.hardware.sessionActive)
-            // Ensures a no-op RED stub also releases its real resources before
-            // the replacement portion; this never changes the assertions above.
+            // Drain the previous session before starting its replacement.
             try await complete { await h.owner.stop() }
 
             let replacementID = UUID()
@@ -1906,9 +1893,6 @@ extension RecordingSessionOwnerTests {
 #endif
 
 
-// APPEND to Tests/RecordingTests/RecordingSessionOwnerTests.swift outside any
-// #if os(iOS) block. Reuses the same-file actual owner/CAF harness in SPM/native.
-// No production change or new helper is required for behavioral RED.
 @MainActor
 extension RecordingSessionOwnerTests {
     func testInterruptionDuringHeldModelPreparationSettlesInterruptedAndAllowsReplacement() async throws {
@@ -2012,7 +1996,7 @@ extension RecordingSessionOwnerTests {
                     do { let check = try usage.beginRecording(meetingID: h.id); usage.endRecording(check) }
                     catch { XCTFail("Blocked start leaked the real meeting claim: \(error)") }
                     if !h.preparation.requests.isEmpty {
-                        // RED cleanup only, after all wrong-resource assertions.
+                        // Release the fixture after checking stale-resource behavior.
                         try await complete { await h.owner.stop() }
                     }
                     try await gate.cancelAndDrain(held)

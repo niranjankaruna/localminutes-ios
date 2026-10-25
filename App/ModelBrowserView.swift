@@ -543,7 +543,6 @@ struct ModelBrowserView: View {
         case .tooLarge: "Exceeds download limit"
         case .gated: "Public access unavailable"
         case .selectionRequired: "Choose one file variant"
-        case .notImplemented: "Assessment unavailable"
         }
     }
 
@@ -564,14 +563,13 @@ struct ModelBrowserView: View {
         case .caution: "Estimates fit; actual model performance still needs verification."
         case .unknown: "A resource requirement or device measurement is unknown."
         case .contextLimitExceeded: "Requested context exceeds the model limit."
-        case .notImplemented: "Resource comparison unavailable."
         }
     }
 
     private func resourceColor(_ status: ModelResourceStatus) -> Color {
         switch status {
         case .insufficientStorage, .insufficientMemory, .contextLimitExceeded: .red
-        case .caution, .unknown, .notImplemented: .secondary
+        case .caution, .unknown: .secondary
         case .sufficient: .primary
         }
     }

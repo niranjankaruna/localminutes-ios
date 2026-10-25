@@ -4,8 +4,6 @@ import SwiftUI
 import XCTest
 @testable import LocalMinutes
 
-// Active test-first cases. Native assertion RED is still pending after harness
-// failures; no app instrumentation, locked-device or two-hour pass is claimed.
 // The fixture opens real app services and SQLite in its generated owned root.
 @MainActor
 private final class NativeAppMetricsFixture {
@@ -87,7 +85,7 @@ final class NativeAppMetricsTests: XCTestCase {
         try await withFixture { h in
             let appBundle = Bundle(for: LocalMinutesServices.self)
             let source = try XCTUnwrap(appBundle.object(forInfoDictionaryKey: "LocalMinutesSourceCommit") as? String,
-                "Missing source stamping is a setup failure, not behavioral RED")
+                "Missing source stamping must fail setup before metrics are recorded")
             XCTAssertEqual(source.utf8.count, 40)
             XCTAssertTrue(source.utf8.allSatisfy { (48...57).contains($0) || (97...102).contains($0) })
             let build = try XCTUnwrap(appBundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String)

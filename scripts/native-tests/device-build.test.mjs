@@ -16,12 +16,16 @@ function builtBundles(configuration) {
 }
 
 function requireMatchingVersions(bundles) {
+  const version = bundles.app.info.CFBundleShortVersionString;
+  const build = bundles.app.info.CFBundleVersion;
+  assert.match(version, /^\d+\.\d+(?:\.\d+)?$/);
+  assert.match(build, /^\d+$/);
   for (const [bundle, identifier, executable, packageType] of [
     [bundles.app, 'com.niranjankaruna.localminutes', 'LocalMinutes', 'APPL'],
     [bundles.extension, 'com.niranjankaruna.localminutes.LiveActivity', 'LocalMinutesLiveActivity', 'XPC!']
   ]) {
-    assert.equal(bundle.info.CFBundleShortVersionString, '1.0');
-    assert.equal(bundle.info.CFBundleVersion, '6');
+    assert.equal(bundle.info.CFBundleShortVersionString, version);
+    assert.equal(bundle.info.CFBundleVersion, build);
     assert.equal(bundle.info.CFBundleIdentifier, identifier);
     assert.equal(bundle.info.CFBundleExecutable, executable);
     assert.equal(bundle.info.CFBundlePackageType, packageType);

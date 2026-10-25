@@ -24,7 +24,7 @@ public struct AudioCaptureManifest: Codable, Equatable, Sendable {
 
 /// Serial conversion-worker ownership. Capture never waits for file I/O.
 /// Only closed, synchronized segments are published in the atomic checkpoint.
-/// Reconciliation of incomplete files after termination belongs to T08 recovery.
+/// MeetingRecoveryCoordinator reconciles incomplete files after termination.
 public final class SegmentCAFWriter {
     private let directory: URL
     private let sessionID: UUID

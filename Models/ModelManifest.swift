@@ -1,6 +1,6 @@
 import Foundation
 
-// TEST-FIRST INTERFACE DRAFT. Immutable metadata only; no installer behavior.
+// Immutable model metadata; installation is owned by ModelInstallationManager.
 public enum ModelPurpose: String, Codable, Sendable { case speechRecognition, summary }
 public enum ModelFileRole: String, Codable, Sendable { case encoder, decoder, joiner, tokens, summary, whisper, coreMLAsset }
 public enum ModelDigestProvenance: String, Codable, Sendable {

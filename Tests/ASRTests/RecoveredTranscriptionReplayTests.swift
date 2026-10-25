@@ -303,8 +303,7 @@ private func assertReplaySpeech(_ text: String, file: StaticString = #filePath, 
     XCTAssertLessThanOrEqual(Double(previous[actual.count]) / Double(expected.count), 0.15, file: file, line: line)
 }
 
-/// Separate mandatory MVP2 negatives. The original three-case primitive filter
-/// deliberately does not establish checkpoint-integrity completion.
+/// Reject altered replay checkpoints without skipping or duplicating recorded speech.
 @MainActor
 final class TranscriptionReplayCheckpointIntegrityTests: XCTestCase {
     func testCursorOnlyJumpToTimelineEndCannotSkipRemainingActualSpeechAfterReopen() async throws {

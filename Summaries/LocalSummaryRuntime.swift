@@ -4,7 +4,7 @@ import llama
 // Foreground, post-recording CPU inference. Callers retain their verified model
 // lease until unload; installation alone never establishes runtime readiness.
 public enum LocalSummaryRuntimeError: Error, Equatable, Sendable {
-    case notImplemented, modelUnavailable, invalidModel, contextUnavailable, generationFailed
+    case modelUnavailable, invalidModel, contextUnavailable, generationFailed
 }
 
 private enum SummaryGenerationFailureStage: String {

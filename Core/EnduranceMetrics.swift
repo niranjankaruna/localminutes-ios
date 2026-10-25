@@ -80,7 +80,7 @@ public struct EnduranceMetricsSnapshot: Codable, Equatable, Sendable {
     public let samples: [EnduranceSystemCheckpoint]
 }
 public enum EnduranceMetricsError: Error, Equatable, Sendable {
-    case notImplemented, invalidConfiguration, invalidFacts, nonMonotonicTime
+    case invalidConfiguration, invalidFacts, nonMonotonicTime
     case restrictedPayload, oversizedExport
 }
 

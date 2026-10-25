@@ -1,7 +1,7 @@
 """Audit real unsigned IPA bytes; no synthetic binary establishes delivery proof.
 
 Required environment: LOCALMINUTES_AUDIT_IPA, LOCALMINUTES_AUDIT_SOURCE_COMMIT,
-LOCALMINUTES_AUDIT_IPA_SHA256. Missing/corrupt setup is not behavioral RED.
+LOCALMINUTES_AUDIT_IPA_SHA256. Missing or corrupt inputs fail setup.
 This test does not extract or modify the archive, strip code or change licenses.
 """
 import hashlib

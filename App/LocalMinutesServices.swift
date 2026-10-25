@@ -44,7 +44,7 @@ final class LocalMinutesServices: PlaybackHardware {
         currentLibraryRoot: libraryRoot, store: store, usage: usage, admission: heavyAdmission!,
         canMaintain: { [weak self] in
             guard let self else { return false }
-            return startup.state == .ready && !isChangingModels && !modelBrowser.isWorking
+            return startup.state == .ready && !modelBrowser.isWorking
                 && playback == nil && !ownsPlaybackSession && recoveringMeetingID == nil
         })
     private(set) var maintainingLibrary = false
@@ -118,12 +118,10 @@ final class LocalMinutesServices: PlaybackHardware {
     let startup: LibraryStartupCoordinator
     private(set) var speechInstalled = false
     private(set) var summaryInstalled = false
-    private(set) var operationMessage: String?
     private(set) var startupMessage: String?
     private(set) var modelError: String?
     private(set) var playback: AVAudioPlayer?
     @ObservationIgnored private var ownsPlaybackSession = false
-    @ObservationIgnored private var operation: Task<Void, Never>?
     @ObservationIgnored private var intelligenceCleanup: (id: UUID, task: Task<Void, Never>)?
 
     static let summaryManifest = ModelManifest(
@@ -317,8 +315,6 @@ final class LocalMinutesServices: PlaybackHardware {
         summaryInstalled = AppleFoundationRuntime.availability() == .available
     }
 
-    var isChangingModels: Bool { operation != nil }
-
     func deleteMeeting(id: UUID) async -> Bool {
         if let work = deletionWork[id] { return await work.value }
         guard !maintainingLibrary, playback == nil, !ownsPlaybackSession,
@@ -395,7 +391,7 @@ final class LocalMinutesServices: PlaybackHardware {
     /// tree or retain the shared audio session after its player has stopped.
     var canPrepareStoragePrivacyReport: Bool {
         startup.state == .ready && !maintainingLibrary && deletionWork.isEmpty
-            && !isChangingModels && !modelBrowser.isWorking && !modelBrowser.isInspecting
+            && !modelBrowser.isWorking && !modelBrowser.isInspecting
             && playback == nil && !ownsPlaybackSession && recoveringMeetingID == nil
     }
 
@@ -447,24 +443,6 @@ final class LocalMinutesServices: PlaybackHardware {
         }
     }
 
-    func download(_ manifest: ModelManifest) {
-        guard operation == nil else { return }
-        modelError = nil
-        operationMessage = manifest.purpose == .speechRecognition ?
-            "Downloading and verifying speech model…" :
-            "Downloading and verifying summary model…"
-        operation = Task {
-            do { _ = try await models.download(manifest) }
-            catch is CancellationError { modelError = "Download cancelled. The previous model was preserved." }
-            catch { modelError = "The model could not be installed. Check connection and free storage, then try again." }
-            await refreshModels()
-            operationMessage = nil
-            operation = nil
-        }
-    }
-
-    func cancelDownload() { operation?.cancel() }
-
     func startPlayback(at location: MeetingPlaybackLocation) throws {
         let session = AVAudioSession.sharedInstance()
         try session.setCategory(.playback, mode: .default)
@@ -485,14 +463,5 @@ final class LocalMinutesServices: PlaybackHardware {
         }
     }
 
-    func remove(_ manifest: ModelManifest) async {
-        guard operation == nil else { return }
-        do {
-            try transferFactory.discardProgress(for: manifest)
-            try await models.remove(modelID: manifest.modelID); modelError = nil
-        }
-        catch { modelError = "This model is in use or could not be removed. Stop recording and try again." }
-        await refreshModels()
-    }
 }
 #endif

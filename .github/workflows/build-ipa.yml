@@ -1,0 +1,101 @@
+name: Build IPA for local download
+run-name: IPA ${{ inputs.request_id }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      request_id:
+        description: Unique request ID supplied by scripts/download-ipa.mjs
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 90
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+    outputs:
+      artifact_id: ${{ steps.transfer.outputs.artifact-id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare and generate iOS project
+        run: bash scripts/prepare-ios.sh
+      - name: Build unsigned device app
+        run: |
+          xcodebuild -quiet -project LocalMinutes.xcodeproj -scheme LocalMinutes -configuration Release \
+            -destination 'generic/platform=iOS' -derivedDataPath build/device \
+            -clonedSourcePackagesDirPath .agent-local/source-packages \
+            CODE_SIGNING_ALLOWED=NO LOCALMINUTES_SOURCE_COMMIT="$GITHUB_SHA" build
+      - name: Package IPA and checksum receipt
+        run: |
+          node --input-type=module <<'JS'
+          import { appendFileSync, readFileSync } from 'node:fs';
+          import { createUnsignedIPA } from './scripts/package-ios.mjs';
+          const result = await createUnsignedIPA({
+            appPath: 'build/device/Build/Products/Release-iphoneos/LocalMinutes.app',
+            outputDirectory: 'build/transfer', sourceCommit: process.env.GITHUB_SHA
+          });
+          const manifest = JSON.parse(readFileSync(result.manifestPath, 'utf8'));
+          appendFileSync(process.env.GITHUB_ENV,
+            `LOCALMINUTES_AUDIT_IPA=${result.ipaPath}\nLOCALMINUTES_AUDIT_IPA_SHA256=${manifest.sha256}\n`);
+          JS
+      - name: Audit packaged native symbols
+        env:
+          LOCALMINUTES_AUDIT_SOURCE_COMMIT: ${{ github.sha }}
+        run: python3 -m unittest discover -s scripts/native-hygiene-tests -p 'test_*.py' -v
+      - uses: actions/upload-artifact@v4
+        id: transfer
+        with:
+          name: ipa-transfer
+          path: build/transfer/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
+
+  transfer:
+    name: Wait for local download and remove temporary artifact
+    if: ${{ always() && needs.build.outputs.artifact_id != '' }}
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      actions: write
+    steps:
+      - name: Wait up to 15 minutes for the download script
+        if: needs.build.result == 'success'
+        uses: actions/github-script@v7
+        env:
+          ARTIFACT_ID: ${{ needs.build.outputs.artifact_id }}
+        with:
+          script: |
+            const artifact_id = Number(process.env.ARTIFACT_ID);
+            if (!Number.isSafeInteger(artifact_id) || artifact_id <= 0) throw new Error('Missing transfer artifact');
+            const deadline = Date.now() + 15 * 60 * 1000;
+            while (Date.now() < deadline) {
+              try { await github.rest.actions.getArtifact({ ...context.repo, artifact_id }); }
+              catch (error) { if (error.status === 404) return; throw error; }
+              await new Promise(resolve => setTimeout(resolve, 10000));
+            }
+            core.setFailed('Local transfer timed out; the temporary IPA will be deleted.');
+      - name: Delete temporary artifact even if transfer fails
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          ARTIFACT_ID: ${{ needs.build.outputs.artifact_id }}
+        with:
+          script: |
+            const artifact_id = Number(process.env.ARTIFACT_ID);
+            if (!Number.isSafeInteger(artifact_id) || artifact_id <= 0) throw new Error('Missing transfer artifact');
+            try { await github.rest.actions.deleteArtifact({ ...context.repo, artifact_id }); }
+            catch (error) { if (error.status !== 404) throw error; }

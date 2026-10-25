@@ -1,0 +1,116 @@
+name: Run all tests
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+
+jobs:
+  swift:
+    name: Swift, native models, and script tests
+    runs-on: macos-15
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare native libraries and all model fixtures
+        run: |
+          python3 scripts/prepare_asr_only.py --platform macos
+          python3 scripts/fixtures/prepare_native_summary.py
+          python3 scripts/fixtures/prepare_phi3_fixture.py
+          python3 scripts/fixtures/prepare_native_fixture.py
+          python3 scripts/fixtures/prepare_whisper_fixture.py
+          python3 scripts/fixtures/prepare_native_parakeet_fixture.py
+          python3 scripts/fixtures/prepare_native_parakeet_fixture.py --version v3
+          python3 scripts/prepare_asr_quality_corpus.py
+          printf '%s\n' \
+            "LOCALMINUTES_ASR_MODEL_DIRECTORY=$PWD/.agent-local/asr-evaluation/native-fixtures/model" \
+            "LOCALMINUTES_ASR_FIXTURE_PATH=$PWD/.agent-local/asr-evaluation/native-fixtures/6930-75918-0000.flac" \
+            "LOCALMINUTES_PARAKEET_COREML_MODEL_DIRECTORY=$PWD/.agent-local/parakeet-coreml-fixtures/model" \
+            "LOCALMINUTES_PARAKEET_COREML_FIXTURE_PATH=$PWD/.agent-local/parakeet-coreml-fixtures/6930-75918-0000.flac" \
+            "LOCALMINUTES_PARAKEET_V3_DIRECTORY=$PWD/.agent-local/parakeet-v3-fixtures/model" \
+            "LOCALMINUTES_PARAKEET_V3_PACK=$PWD/Tests/Fixtures/Parakeet/parakeet-v3.modelpack.json" \
+            "LOCALMINUTES_ASR_CORPUS_DIRECTORY=$PWD/.agent-local/asr-quality-corpus" >> "$GITHUB_ENV"
+      - name: Run every SwiftPM test
+        run: |
+          mkdir -p .build
+          swift test 2>&1 | tee .build/tests.log
+          node scripts/verify-test-log.mjs .build/tests.log
+      - name: Run script tests
+        if: ${{ !cancelled() }}
+        run: node --test scripts/tests/*.test.mjs
+
+  ios:
+    name: iOS app, UI, and packaging tests
+    runs-on: macos-15
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare and generate iOS project
+        run: bash scripts/prepare-ios.sh
+      - name: Build device and simulator products
+        run: |
+          xcodebuild -quiet -project LocalMinutes.xcodeproj -scheme LocalMinutes -configuration Release \
+            -destination 'generic/platform=iOS' -derivedDataPath build/device \
+            -clonedSourcePackagesDirPath .agent-local/source-packages \
+            CODE_SIGNING_ALLOWED=NO LOCALMINUTES_SOURCE_COMMIT="$GITHUB_SHA" build
+          xcodebuild -quiet -project LocalMinutes.xcodeproj -scheme LocalMinutes -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' -derivedDataPath build/simulator \
+            -clonedSourcePackagesDirPath .agent-local/source-packages \
+            CODE_SIGNING_ALLOWED=NO LOCALMINUTES_SOURCE_COMMIT="$GITHUB_SHA" build
+      # Test pristine products before XCTest embeds its runner in the Debug app.
+      - name: Run every native packaging test
+        run: node --test scripts/native-tests/*.test.mjs
+      - name: Package an audit input without uploading it
+        run: |
+          node --input-type=module <<'JS'
+          import { appendFileSync, readFileSync } from 'node:fs';
+          import { createUnsignedIPA } from './scripts/package-ios.mjs';
+          const result = await createUnsignedIPA({
+            appPath: 'build/device/Build/Products/Release-iphoneos/LocalMinutes.app',
+            outputDirectory: 'build/audit', sourceCommit: process.env.GITHUB_SHA
+          });
+          const manifest = JSON.parse(readFileSync(result.manifestPath, 'utf8'));
+          appendFileSync(process.env.GITHUB_ENV,
+            `LOCALMINUTES_AUDIT_IPA=${result.ipaPath}\nLOCALMINUTES_AUDIT_IPA_SHA256=${manifest.sha256}\n`);
+          JS
+      - name: Run native symbol audit
+        env:
+          LOCALMINUTES_AUDIT_SOURCE_COMMIT: ${{ github.sha }}
+        run: python3 -m unittest discover -s scripts/native-hygiene-tests -p 'test_*.py' -v
+      - name: Select an iPhone simulator
+        run: |
+          node --input-type=module <<'JS'
+          import { execFileSync } from 'node:child_process';
+          import { appendFileSync } from 'node:fs';
+          const inventory = JSON.parse(execFileSync('xcrun', ['simctl', 'list', 'devices', 'available', '--json']));
+          const device = Object.entries(inventory.devices)
+            .filter(([runtime]) => runtime.includes('.iOS-26-'))
+            .flatMap(([, devices]) => devices)
+            .find(device => device.isAvailable && device.name.startsWith('iPhone'));
+          if (!device) throw new Error('An iOS 26 iPhone simulator is required');
+          appendFileSync(process.env.GITHUB_ENV, `LOCALMINUTES_TEST_SIMULATOR=${device.udid}\n`);
+          JS
+      - name: Run all app-hosted and UI tests
+        run: |
+          xcodebuild test -project LocalMinutes.xcodeproj -scheme LocalMinutes \
+            -configuration Debug -destination "platform=iOS Simulator,id=$LOCALMINUTES_TEST_SIMULATOR" \
+            -destination-timeout 120 -parallel-testing-enabled NO -collect-test-diagnostics never \
+            -derivedDataPath build/simulator -clonedSourcePackagesDirPath .agent-local/source-packages \
+            -resultBundlePath .agent-local/ios-tests.xcresult \
+            CODE_SIGNING_ALLOWED=NO LOCALMINUTES_SOURCE_COMMIT="$GITHUB_SHA" \
+            2>&1 | tee .agent-local/ios-tests.log
+          node scripts/verify-test-log.mjs .agent-local/ios-tests.log

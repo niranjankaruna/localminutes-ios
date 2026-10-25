@@ -6,7 +6,7 @@ import Synchronization
 import XCTest
 @testable import LocalMinutesRecording
 
-// UNCOMPILED TEST-FIRST DRAFT. Only permission and microphone hardware are
+// Only permission and microphone hardware are
 // doubles. Queue ownership, native conversion, CAF files and manifests are real.
 private final class RuntimeNormalizedSink: NormalizedCaptureSink {
     struct Facts: Sendable { var frames: Int64 = 0; var valid = true; var ranOnMain = false }

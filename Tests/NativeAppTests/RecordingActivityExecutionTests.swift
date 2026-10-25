@@ -2,7 +2,7 @@ import AppIntents
 import XCTest
 @testable import LocalMinutes
 
-/// Probe actual SDK defaults before changing the hidden Stop's execution mode.
+/// The scoped Stop intent stays hidden and permits background execution.
 /// Direct calls do not establish OS delivery or locked-device behavior.
 @MainActor
 final class RecordingActivityExecutionTests: XCTestCase {

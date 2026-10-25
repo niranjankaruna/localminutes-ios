@@ -143,7 +143,7 @@ private func createVersionOneNoteFixtureDatabase(_ url: URL) throws {
         throw NoteFixtureError.sqlite
     }
     defer { sqlite3_close(handle) }
-    // Original T08 version-one shape and fixed synthetic values only. This is
+    // Version-one schema and fixed synthetic values only. This is
     // not generated through a new-version adapter that could hide migration loss.
     let sql = """
         CREATE TABLE meetings(id TEXT NOT NULL PRIMARY KEY,title TEXT NOT NULL,

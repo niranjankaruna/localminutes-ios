@@ -1,7 +1,7 @@
 import Foundation
 
 public enum HuggingFaceRepositoryError: Error, Equatable, Sendable {
-    case notImplemented, invalidRepository, invalidResponse, invalidRevision, invalidFile
+    case invalidRepository, invalidResponse, invalidRevision, invalidFile
     case responseTooLarge, tooManyFiles, unapprovedResponseURL, invalidLimits
     case httpStatus(Int)
 }
@@ -66,7 +66,7 @@ public enum HuggingFaceRuntimeProfile: String, Codable, Hashable, Sendable {
 }
 
 public enum HuggingFaceCompatibilityStatus: String, Equatable, Sendable {
-    case notImplemented, supported, plannedRuntime, conversionRequired
+    case supported, plannedRuntime, conversionRequired
     case unsupported, unverified, tooLarge, gated, selectionRequired
 }
 
@@ -91,7 +91,7 @@ public struct DeviceModelResources: Equatable, Sendable {
 }
 
 public enum ModelResourceStatus: String, Equatable, Sendable {
-    case notImplemented, sufficient, insufficientStorage, insufficientMemory
+    case sufficient, insufficientStorage, insufficientMemory
     case caution, unknown, contextLimitExceeded
 }
 

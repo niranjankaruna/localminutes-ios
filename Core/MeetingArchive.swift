@@ -4,7 +4,7 @@ import CryptoKit
 import Darwin
 
 public enum MeetingArchiveError: Error, Equatable, Sendable {
-    case notImplemented, invalidLocation, destinationExists, unsafeItem, unexpectedFile
+    case invalidLocation, destinationExists, unsafeItem, unexpectedFile
     case snapshotNotClosed, unsupportedVersion, invalidManifest, integrityMismatch, limitExceeded
     case ioFailure
 }
@@ -56,8 +56,8 @@ public struct MeetingArchiveManifest: Codable, Equatable, Sendable {
 /// Export/restore validate all relative paths, regular-file ownership, exact
 /// byte counts and SHA-256s with bounded buffers before atomic publication.
 /// Destination must not exist. Restore never merges into or overwrites an
-/// existing application root. App swap/reopen/schema migration and Files UI
-/// remain separate integration contracts. No symlinks/hardlinks are followed.
+/// existing application root. LibraryArchiveCoordinator handles the active-library
+/// swap and schema validation. No symlinks/hardlinks are followed.
 public enum MeetingArchive {
     public static func export(snapshotRoot: URL, to archiveURL: URL,
                               limits: MeetingArchiveLimits = .init()) throws -> MeetingArchiveManifest {

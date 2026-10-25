@@ -2,7 +2,7 @@
 
 Run from repository root. All downloaded bytes remain in ignored .agent-local.
 No archive paths are extracted, no executable is downloaded, no voices installed.
-Missing/download/integrity errors are setup failures, never behavioral RED.
+Missing downloads or integrity mismatches fail setup.
 """
 from pathlib import Path
 import hashlib
@@ -60,7 +60,7 @@ class BoundedPrefix:
 
 def main():
     workspace = Path.cwd().resolve()
-    if not (workspace / "project-config.json").is_file() or not (workspace / "AGENTS.md").is_file():
+    if not (workspace / "project.yml").is_file() or not (workspace / "Package.swift").is_file():
         raise RuntimeError("Run fixture preparation from the LocalMinutes repository root")
     output = workspace / ".agent-local" / "asr-evaluation" / "native-fixtures"
     model = output / "model"

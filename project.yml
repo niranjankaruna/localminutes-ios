@@ -107,20 +107,6 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.niranjankaruna.localminutes.AppTests
         GENERATE_INFOPLIST_FILE: 'YES'
         CODE_SIGNING_ALLOWED: 'NO'
-  LocalMinutesPhysicalDeviceTests:
-    type: bundle.unit-test
-    platform: iOS
-    deploymentTarget: '18.0'
-    sources:
-      - Tests/PhysicalDeviceTests
-    dependencies:
-      - target: LocalMinutes
-      - sdk: libsqlite3.tbd
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.niranjankaruna.localminutes.PhysicalDeviceTests
-        GENERATE_INFOPLIST_FILE: 'YES'
-        CODE_SIGNING_ALLOWED: 'NO'
   LocalMinutesUITests:
     type: bundle.ui-testing
     platform: iOS
@@ -154,16 +140,6 @@ schemes:
       config: Debug
       targets:
         - name: LocalMinutesAppTests
-          parallelizable: false
-  LocalMinutesPhysicalDeviceValidation:
-    build:
-      targets:
-        LocalMinutes: all
-        LocalMinutesPhysicalDeviceTests: [test]
-    test:
-      config: Debug
-      targets:
-        - name: LocalMinutesPhysicalDeviceTests
           parallelizable: false
   LocalMinutes:
     build:

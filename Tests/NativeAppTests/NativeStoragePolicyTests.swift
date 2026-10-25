@@ -6,9 +6,8 @@ import SQLite3
 import XCTest
 @testable import LocalMinutes
 
-// Expanded coverage of existing policy behavior after its recorded RED. These
-// cases verify real Simulator-supported filesystem/SQLite/CAF operations. They
-// never stand in for the unchanged physical protection-class oracle.
+// These cases verify Simulator-supported filesystem, SQLite, and CAF operations.
+// Simulator checks do not establish physical lock-state protection.
 private enum StoragePolicySQLiteFixtureError: Error {
     case closed
     case nativeFailure(operation: String, code: Int32)

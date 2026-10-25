@@ -10,8 +10,7 @@ protocol RecordingForegroundContinuation: AnyObject {
     func requestContinuation(for failure: RecordingFailure) async throws
 }
 
-/// Until verified installation and the real CPU recognizer are integrated, a
-/// live start must reject rather than treating recording-only as readiness.
+/// Reject recording when the persistent services needed to load speech are unavailable.
 @MainActor
 private final class RequiredSpeechModelPreparation: RecordingPreparationSource {
     func prepare(sessionID: UUID) async -> RecordingPreparationResult {

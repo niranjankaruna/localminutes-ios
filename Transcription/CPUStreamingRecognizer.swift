@@ -27,7 +27,6 @@ public struct StreamingASRModelFiles: Equatable, Sendable {
 }
 
 public enum StreamingASRError: Error, Equatable, Sendable {
-    case notImplemented
     case invalidModel
     case nativeCreationFailed
     case noActiveStream

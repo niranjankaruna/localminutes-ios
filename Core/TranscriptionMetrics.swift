@@ -16,7 +16,7 @@ public enum MetricsErrorCategory: String, Codable, Equatable, Hashable, Sendable
 }
 
 public enum MetricsValidationError: Error, Equatable, Sendable {
-    case notImplemented, invalidConfiguration, invalidSampleRange, nonMonotonicTime
+    case invalidConfiguration, invalidSampleRange, nonMonotonicTime
     case invalidIdentity, restrictedPayload, oversizedExport, pendingOverflow
 }
 

@@ -9,7 +9,7 @@ public enum LibraryStartupState: String, Equatable, Sendable {
 }
 
 public enum LibraryStartupError: Error, Equatable, Sendable {
-    case notImplemented, metadataFailure, deletionReplayFailure
+    case metadataFailure, deletionReplayFailure
 }
 
 public struct LibraryStartupIssue: Equatable, Sendable {

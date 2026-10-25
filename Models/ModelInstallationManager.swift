@@ -8,7 +8,6 @@ import LocalMinutesCore
 // App-owned installation authority. A verified handle establishes integrity;
 // only a successful native recognizer load can establish inference readiness.
 public enum ModelInstallationError: Error, Equatable, Sendable {
-    case notImplemented
     case invalidManifest
     case missingFile(String)
     case unexpectedFile(String)

@@ -18,7 +18,7 @@ public struct FoundationModelFileSecurityScope: ModelFileSecurityScope {
 }
 
 public enum ModelFileImportError: Error, Equatable, Sendable {
-    case notImplemented, invalidSelection, accessDenied, unsafeSource, unsafeStaging
+    case invalidSelection, accessDenied, unsafeSource, unsafeStaging
 }
 
 /// Import exactly the selected expected basenames. Sources may be in different

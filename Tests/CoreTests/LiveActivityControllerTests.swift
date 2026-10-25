@@ -2,7 +2,7 @@ import Foundation
 import XCTest
 @testable import LocalMinutesCore
 
-// Test-first resource contracts. Only ActivityKit backend/handle calls are doubled.
+// Only ActivityKit backend/handle calls are doubled.
 // No recording state, SDK compilation, entitlement or device success is implied.
 private enum ActivityTestError: Error { case requestRejected, timedOut }
 

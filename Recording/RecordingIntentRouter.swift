@@ -3,7 +3,7 @@ import Foundation
 import LocalMinutesCore
 #endif
 
-/// Values shared by future app-owned Shortcuts/Live Activity adapters.
+/// Values shared by the app-owned Shortcuts and Live Activity adapters.
 /// A start/toggle UUID proposes a recording epoch, not a delivery identity.
 public enum RecordingIntentAction: Sendable, Equatable {
     case start(UUID)

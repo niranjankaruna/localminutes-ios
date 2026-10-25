@@ -12,11 +12,11 @@ protocol PlaybackHardware: AnyObject {
 }
 
 enum PlaybackOwnershipResult: Sendable, Equatable {
-    case notImplemented, playing, stopped, blockedByRecording, cleanupPending, unavailable
+    case playing, stopped, blockedByRecording, cleanupPending, unavailable
 }
 
 enum PlaybackRecordingAdmission: Sendable, Equatable {
-    case notImplemented, allowed, cleanupPending
+    case allowed, cleanupPending
 }
 
 /// One application-held admission point for the shared OS audio session. The

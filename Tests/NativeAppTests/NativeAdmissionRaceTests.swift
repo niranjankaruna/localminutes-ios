@@ -9,7 +9,7 @@ import XCTest
 /// playback and heavy-resource boundaries are observed without any inference
 /// substitution or claim of physical-device/Lock Screen evidence.
 @MainActor
-final class NativeMVP2AdmissionRaceTests: XCTestCase {
+final class NativeAdmissionRaceTests: XCTestCase {
     func testSecondMeetingEnduranceSamplingCannotRetainThePriorEpochOriginOrCountersDuringPreparation() async throws {
         try await fixture { f in
             let metrics = try XCTUnwrap(f.services.metrics)

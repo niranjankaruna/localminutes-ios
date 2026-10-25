@@ -246,7 +246,7 @@ private func generatedStorageScalar(_ database: OpaquePointer, _ sql: String) th
 private func createGeneratedStorageVersionThreeFixture(_ url: URL) throws {
     try withGeneratedStorageSQLite(url, create: true) { database in
         // This is a complete constant legacy v3 fixture. Do not create it using
-        // the future current store and then merely relabel user_version=3.
+        // the current store and then merely relabel user_version=3.
         let sql = """
         BEGIN;
         CREATE TABLE meetings(id TEXT NOT NULL PRIMARY KEY,title TEXT NOT NULL,created_at REAL NOT NULL,

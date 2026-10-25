@@ -4,11 +4,11 @@ import { execFileSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { resolve, join, dirname, basename } from 'node:path';
 import { createUnsignedIPA } from '../package-ios.mjs';
-import { sha256File, validateArchiveEntries, verifyFileSHA256 } from '../ios-artifacts.mjs';
+import { inspectNativeBundle, sha256File, validateArchiveEntries, verifyFileSHA256 } from '../ios-artifacts.mjs';
 
 const builtApp = resolve('build/device/Build/Products/Release-iphoneos/LocalMinutes.app');
 const simulatorApp = resolve('build/simulator/Build/Products/Debug-iphonesimulator/LocalMinutes.app');
-const sourceCommit = process.env.GITHUB_SHA;
+const sourceCommit = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 const root = resolve('.agent-local');
 
 async function withWorkspace(body) {
@@ -54,7 +54,8 @@ test('packages actual device binaries into an unsigned IPA with verified checksu
     for (const file of [result.ipaPath, result.checksumPath, result.manifestPath]) {
       assert.equal(dirname(file), value.outputDirectory, 'Outputs must stay inside the requested fresh directory');
     }
-    const expectedName = `LocalMinutes-1.0-${sourceCommit}-unsigned.ipa`;
+    const builtInfo = inspectNativeBundle(builtApp).info;
+    const expectedName = `LocalMinutes-${builtInfo.CFBundleShortVersionString}-${sourceCommit}-unsigned.ipa`;
     assert.equal(basename(result.ipaPath), expectedName);
     assert.ok(existsSync(result.ipaPath), 'A real IPA file must be written');
     const hash = await sha256File(result.ipaPath);
@@ -63,8 +64,8 @@ test('packages actual device binaries into an unsigned IPA with verified checksu
     const manifest = JSON.parse(readFileSync(result.manifestPath, 'utf8'));
     assert.equal(manifest.schemaVersion, 1);
     assert.equal(manifest.sourceCommit, sourceCommit);
-    assert.equal(manifest.appVersion, '1.0');
-    assert.equal(manifest.buildNumber, '6');
+    assert.equal(manifest.appVersion, builtInfo.CFBundleShortVersionString);
+    assert.equal(manifest.buildNumber, builtInfo.CFBundleVersion);
     assert.equal(manifest.artifact, expectedName);
     assert.equal(manifest.sha256, hash);
     assert.equal(manifest.sizeBytes, statSync(result.ipaPath).size);
@@ -73,7 +74,7 @@ test('packages actual device binaries into an unsigned IPA with verified checksu
     assert.equal(manifest.deviceValidation, 'NOT_RUN');
     assert.match(manifest.toolchain.xcode, /Xcode 26\.2/);
     assert.equal(manifest.toolchain.iosSDK, '26.2');
-    assert.equal(manifest.toolchain.runnerImage, process.env.ImageVersion);
+    assert.equal(manifest.toolchain.runnerImage, process.env.ImageVersion ?? null);
     assert.equal(manifest.bundles.extensionBundleIdentifier, 'com.niranjankaruna.localminutes.LiveActivity');
     const archive = inspectZIP(result.ipaPath);
     assert.equal(archive.crcFailure, null);

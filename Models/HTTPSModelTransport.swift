@@ -6,7 +6,7 @@ import LocalMinutesCore
 // The transfer owns only operation staging. Installation and inference readiness
 // remain the verified model manager's and native recognizer's responsibilities.
 public enum ModelTransportError: Error, Equatable, Sendable {
-    case notImplemented, insecureURL, unapprovedHost, invalidDestination
+    case insecureURL, unapprovedHost, invalidDestination
     case httpStatus(Int)
     case sizeMismatch, networkFailure, invalidResumeState, invalidRangeResponse
 }

@@ -49,7 +49,7 @@ public struct IntelligenceSnapshot: Equatable, Sendable {
 }
 
 public enum IntelligenceSessionError: Error, Equatable, Sendable {
-    case notImplemented, busy, staleRequest, meetingMissing, invalidModel
+    case busy, staleRequest, meetingMissing, invalidModel
 }
 
 private final class IntelligenceCancellation: @unchecked Sendable {

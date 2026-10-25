@@ -6,7 +6,7 @@ import LocalMinutesCore
 #endif
 
 public enum SQLiteSnapshotError: Error, Equatable, Sendable {
-    case notImplemented, invalidDestination, destinationExists, unsafeDestination, databaseFailure
+    case invalidDestination, destinationExists, unsafeDestination, databaseFailure
 }
 
 /// Snapshot contract for SQLiteMeetingStore.createSnapshot(at:):

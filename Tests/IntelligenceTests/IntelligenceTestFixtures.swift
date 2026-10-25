@@ -145,6 +145,10 @@ struct IntelligenceFixture {
     }
 }
 
+private enum IntelligenceFixtureError: Error {
+    case missingReply, missingRuntime
+}
+
 // Only the async inference/load boundaries are doubled. They do not release any
 // model/gate lease or save a document: the real service must perform that work.
 actor IntelligenceBoundaryRuntime: IntelligenceRuntime {
@@ -166,7 +170,7 @@ actor IntelligenceBoundaryRuntime: IntelligenceRuntime {
         defer { generating = false; events.append("work.drained") }
         while holdGeneration && !generationReleased { try await Task.sleep(for: .milliseconds(1)) }
         try Task.checkCancellation()
-        guard !replies.isEmpty else { throw IntelligenceSessionError.notImplemented }
+        guard !replies.isEmpty else { throw IntelligenceFixtureError.missingReply }
         return replies.removeFirst()
     }
     func unload() async {
@@ -184,7 +188,7 @@ actor IntelligenceBoundaryLoader {
     init(_ runtimes: [IntelligenceBoundaryRuntime]) { self.runtimes = runtimes }
     func load(_ model: VerifiedModel) throws -> any IntelligenceRuntime {
         loaded.append(model)
-        guard !runtimes.isEmpty else { throw IntelligenceSessionError.notImplemented }
+        guard !runtimes.isEmpty else { throw IntelligenceFixtureError.missingRuntime }
         return runtimes.removeFirst()
     }
 }
