@@ -250,3 +250,40 @@ app/UI/build/package/hygiene gates and retains a passing IPA. It does not run
 quality benchmarks or download their weights. Runtime/source/pin compatibility
 with the completed ceae957 core and actual-inference observations is checked
 explicitly; only test metadata, workflow scope and documentation changed.
+
+## Delivered MVP3 — exact functional gate GREEN
+
+Source `880d3dcd2e21f79e6435ec134279cad192e7435d`,
+[run40181776855](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40181776855),
+terminal SUCCESS. Focused Swift25PASS, script46PASS; native app100PASS and
+UI10PASS; device contracts2PASS, compiled fixture boundary2PASS, packaging13PASS,
+actual IPA hygiene3PASS. Every executed mandatory case had0 failures/skips.
+The7 physical file-protection cases compiled only; execution remains NOT_RUN.
+Native reliability includes all5 new summary-selection startup cases.
+
+Delivered locally: `build/delivery/MVP3-Functional-40181776855/`
+`LocalMinutes-1.0-880d3dcd2e21f79e6435ec134279cad192e7435d-unsigned.ipa`.
+Version1.0/build4, database schema5,14,855,799 bytes.
+SHA256 `b0bc6e2d618f742ab257b85bc81765b25ca34b94b3c9d09fe33656b7aea1f5c9`.
+Owner-only unpublished draft423297093, tag `mvp-preview-880d3dcd2e21`, target full
+sourceSHA; IPA asset674692932 reports the same GitHub SHA256 digest. No public
+release or paid infrastructure.
+
+Independent Windows verification: ZIP CRC and canonical entries, exact source
+stamps/version/identifiers, arm64 iPhoneOS main app plus Live Activity extension,
+absence of signing materials/model weights/meeting fixtures, and actual binary
+CPU ASR definitions without unused eSpeak/Piper all PASS. Actual IPA hygiene
+re-executed locally:3PASS,0 failures/skips,0.303s. Manifest/receipt downloaded
+bytes match GitHub asset digests; resolved FluidAudio/ORT revisions match their
+pins. Bundled notices match the committed435,955 bytes andSHA256
+`6c4f25557d7f53826afdf91a8aa348a680e819cf9aca2e910c9394b896e2551b`.
+`verification-summary.json`, manifest, dependency receipt and checksums accompany
+the IPA. Guides are copied alongside it.
+
+MVP3 is delivered under the owner-directed functional/reliability scope. Model
+quality is OWNER_MANUAL, not an automated PASS. Overall project state is
+READY_FOR_DEVICE_VALIDATION; signing/extension, Lock Screen, Action Button,
+offline phone use, two125-minute runs, file protection and renewal remain NOT_RUN.
+Next: [MVP4 phone checklist](../MVP4_DEVICE_CHECKLIST.md), collect owner phone/iOS
+and short Live Activity/Stop evidence, then the consolidated endurance/renewal
+reports. Do not set VERIFIED_COMPLETE from this delivery.

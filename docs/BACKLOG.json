@@ -377,14 +377,21 @@
         {
           "id": "T06.3",
           "title": "Authenticated foreground latest-meeting shortcut and retained navigation",
-          "status": "IN_PROGRESS",
+          "status": "CODE_COMPLETE_PENDING_DEVICE",
           "productionImplemented": true,
           "redEvidence": [
             "docs/evidence/MVP3_PRODUCT_GATES_2026_10_24.md"
           ],
-          "greenEvidence": [],
+          "greenEvidence": [
+            "docs/evidence/MVP3_DELIVERY_2026_10_25.md"
+          ],
           "deviceEvidence": [],
-          "preparedEvidence": "docs/evidence/MVP3_PRODUCT_GATES_2026_10_24.md"
+          "preparedEvidence": "docs/evidence/MVP3_PRODUCT_GATES_2026_10_24.md",
+          "latestVerification": {
+            "sourceCommit": "880d3dcd2e21f79e6435ec134279cad192e7435d",
+            "runId": 40181776855,
+            "scope": "Functional/native/UI gate PASS; physical pending"
+          }
         }
       ],
       "redEvidence": [
@@ -748,15 +755,22 @@
         {
           "id": "T12.4",
           "title": "Navigate cited evidence to its actual transcript row and validated audio time",
-          "status": "IN_PROGRESS",
+          "status": "CODE_COMPLETE_PENDING_DEVICE",
           "productionImplemented": true,
           "redEvidence": [
             "docs/evidence/MVP3_DELIVERY_2026_10_25.md"
           ],
-          "greenEvidence": [],
+          "greenEvidence": [
+            "docs/evidence/MVP3_DELIVERY_2026_10_25.md"
+          ],
           "deviceEvidence": [],
           "preparedEvidence": "docs/evidence/MVP3_PRODUCT_GATES_2026_10_24.md",
-          "nextAction": "Exact-candidate native/UI GREEN and delivery pending"
+          "nextAction": "Exact-candidate native/UI GREEN and delivery pending",
+          "latestVerification": {
+            "sourceCommit": "880d3dcd2e21f79e6435ec134279cad192e7435d",
+            "runId": 40181776855,
+            "scope": "Functional/native/UI gate PASS; physical pending"
+          }
         }
       ],
       "redEvidence": [],
@@ -826,10 +840,16 @@
           "productionImplemented": true,
           "redEvidence": [],
           "greenEvidence": [
-            "docs/evidence/MVP3_PRODUCT_GATES_2026_10_24.md"
+            "docs/evidence/MVP3_PRODUCT_GATES_2026_10_24.md",
+            "docs/evidence/MVP3_DELIVERY_2026_10_25.md"
           ],
           "deviceEvidence": [],
-          "preparedEvidence": "docs/evidence/MVP3_PRODUCT_GATES_2026_10_24.md"
+          "preparedEvidence": "docs/evidence/MVP3_PRODUCT_GATES_2026_10_24.md",
+          "latestVerification": {
+            "sourceCommit": "880d3dcd2e21f79e6435ec134279cad192e7435d",
+            "runId": 40181776855,
+            "scope": "Functional/native/UI gate PASS; physical pending"
+          }
         }
       ],
       "redEvidence": [],
@@ -1312,40 +1332,61 @@
         {
           "id": "T20.1",
           "title": "Scene-scoped opaque app-switcher privacy coverage",
-          "status": "IN_PROGRESS",
+          "status": "CODE_COMPLETE_PENDING_DEVICE",
           "productionImplemented": true,
           "redEvidence": [
             "docs/evidence/MVP3_PRODUCT_GATES_2026_10_24.md"
           ],
-          "greenEvidence": [],
+          "greenEvidence": [
+            "docs/evidence/MVP3_DELIVERY_2026_10_25.md"
+          ],
           "deviceEvidence": [],
-          "preparedEvidence": "docs/evidence/MVP3_PRODUCT_GATES_2026_10_24.md"
+          "preparedEvidence": "docs/evidence/MVP3_PRODUCT_GATES_2026_10_24.md",
+          "latestVerification": {
+            "sourceCommit": "880d3dcd2e21f79e6435ec134279cad192e7435d",
+            "runId": 40181776855,
+            "scope": "Functional/native/UI gate PASS; physical pending"
+          }
         },
         {
           "id": "T20.2",
           "title": "Distinct spoken model actions and large-text reachable touch targets",
-          "status": "IN_PROGRESS",
+          "status": "CODE_COMPLETE_PENDING_DEVICE",
           "productionImplemented": true,
           "redEvidence": [
             "docs/evidence/MVP3_DELIVERY_2026_10_25.md"
           ],
-          "greenEvidence": [],
+          "greenEvidence": [
+            "docs/evidence/MVP3_DELIVERY_2026_10_25.md"
+          ],
           "deviceEvidence": [],
           "preparedEvidence": "docs/evidence/MVP3_PRODUCT_GATES_2026_10_24.md",
-          "nextAction": "Exact-candidate native/UI GREEN and delivery pending"
+          "nextAction": "Exact-candidate native/UI GREEN and delivery pending",
+          "latestVerification": {
+            "sourceCommit": "880d3dcd2e21f79e6435ec134279cad192e7435d",
+            "runId": 40181776855,
+            "scope": "Functional/native/UI gate PASS; physical pending"
+          }
         },
         {
           "id": "T20.3",
           "title": "Required setup explanations build identity and per-meeting content status",
-          "status": "IN_PROGRESS",
+          "status": "CODE_COMPLETE_PENDING_DEVICE",
           "productionImplemented": true,
           "redEvidence": [
             "docs/evidence/MVP3_DELIVERY_2026_10_25.md"
           ],
-          "greenEvidence": [],
+          "greenEvidence": [
+            "docs/evidence/MVP3_DELIVERY_2026_10_25.md"
+          ],
           "deviceEvidence": [],
           "preparedEvidence": "docs/evidence/MVP3_PRODUCT_GATES_2026_10_24.md",
-          "nextAction": "Exact-candidate native/UI GREEN and delivery pending"
+          "nextAction": "Exact-candidate native/UI GREEN and delivery pending",
+          "latestVerification": {
+            "sourceCommit": "880d3dcd2e21f79e6435ec134279cad192e7435d",
+            "runId": 40181776855,
+            "scope": "Functional/native/UI gate PASS; physical pending"
+          }
         }
       ],
       "redEvidence": [],
@@ -1388,6 +1429,23 @@
           "deviceEvidence": [],
           "sourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
           "runId": 40092475736
+        },
+        {
+          "id": "T21.MVP3",
+          "title": "Delivered MVP3 functional/reliability candidate",
+          "status": "CODE_COMPLETE_PENDING_DEVICE",
+          "sourceCommit": "880d3dcd2e21f79e6435ec134279cad192e7435d",
+          "runId": 40181776855,
+          "greenEvidence": [
+            "docs/evidence/MVP3_DELIVERY_2026_10_25.md"
+          ],
+          "deviceEvidence": [],
+          "productionImplemented": true,
+          "latestVerification": {
+            "sourceCommit": "880d3dcd2e21f79e6435ec134279cad192e7435d",
+            "runId": 40181776855,
+            "scope": "Functional/native/UI gate PASS; physical pending"
+          }
         }
       ],
       "redEvidence": [],
@@ -1584,7 +1642,7 @@
   ],
   "executionPausedByOwner": false,
   "resumeAction": "NEXT legitimateboundedinvocation: retainthis6of6batch/evidence, recheckrepo/cost/auth andactualcurrentHEAD. Verify repaired6.2 localpackage and nativecompile first; thenrun mvp3-integration proveLibraryBootstrap=false (oldnilRED alreadycaptured), currentseededUI mustGREEN. Record actualnewcitation/screens/CPUdefault/a11y RED beforeimplementingthem; keep modeloracles andunknownquality. Finish fixes, focusedregressions+realmodelgate+unsignedIPAexactSHA/checksum; deliverMVP3onlyafterrequiredGREEN. Physicalsigning/LockScreen/ActionButton/2x125min/renewalNOT_RUN. AllsubagentsGPT6.1SolMedium; no seventhCI inoldinvocation.",
-  "lastUpdated": "2026-10-25T09:41:17.084Z",
+  "lastUpdated": "2026-10-25T10:11:34.454Z",
   "latestVerification": {
     "runId": 40138806203,
     "sourceCommit": "14ff749a2bd8678b6523cf377b6695283513a76e",
@@ -1679,12 +1737,15 @@
     {
       "id": "MVP3",
       "scope": "Release-candidate privacy/accessibility/offline integration/regression, package and guides",
-      "status": "IN_PROGRESS"
+      "status": "READY_FOR_DEVICE_VALIDATION",
+      "delivered": true,
+      "sourceCommit": "880d3dcd2e21f79e6435ec134279cad192e7435d"
     },
     {
       "id": "MVP4",
       "scope": "Owner phone acceptance: extension/Lock Screen/Action Button/two125min runs/offline/renewal preservation",
-      "status": "NOT_STARTED"
+      "status": "READY_FOR_DEVICE_VALIDATION",
+      "nextAction": "Owner phone checklist and sanitized evidence; all physical gates pending"
     }
   ],
   "ownerDeliveryDirection": {

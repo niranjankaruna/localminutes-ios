@@ -1,0 +1,300 @@
+{
+  "sourceCommit": "880d3dcd2e21f79e6435ec134279cad192e7435d",
+  "packageCheckouts": [
+    {
+      "package": "FluidAudio",
+      "revision": "c79c4106b954f81205113c3343e5a7e59a1089b5"
+    },
+    {
+      "package": "onnxruntime-libs",
+      "revision": "8ebc5ebf92190903c274a7621ba4c96a732335ec"
+    }
+  ],
+  "resolvedPackages": [
+    {
+      "path": "LocalMinutes.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
+      "contents": {
+        "originHash": "f7c613778b96cf72f290a6d922421a0ef240f52031856528d75f42312f17358a",
+        "pins": [
+          {
+            "identity": "fluidaudio",
+            "kind": "remoteSourceControl",
+            "location": "https://github.com/FluidInference/FluidAudio.git",
+            "state": {
+              "revision": "c79c4106b954f81205113c3343e5a7e59a1089b5"
+            }
+          },
+          {
+            "identity": "onnxruntime-libs",
+            "kind": "remoteSourceControl",
+            "location": "https://github.com/csukuangfj/onnxruntime-libs",
+            "state": {
+              "revision": "8ebc5ebf92190903c274a7621ba4c96a732335ec",
+              "version": "1.28.2"
+            }
+          }
+        ],
+        "version": 3
+      }
+    }
+  ],
+  "asrBuild": {
+    "schemaVersion": 1,
+    "sherpaVersion": "1.13.8",
+    "sourceRevision": "11afbd009a7f8c08f4bcf2fc1b265d0df4670fbf",
+    "sourceArchiveSHA256": "0a8db6c55dd318f4a688faba85f7760b99a6c92e8ef8864479d418531bee1ac2",
+    "onnxRuntimeVersion": "1.28.2",
+    "headerSHA256": "2a1b95084be8fd1deb3228fcad2fd3f7f0258b64582f7402281ec174c7b7f4ce",
+    "xcode": "Xcode 26.2\nBuild version 17C52",
+    "clang": "Apple clang version 17.0.0 (clang-1700.6.3.2)\nTarget: arm64-apple-darwin24.6.0\nThread model: posix\nInstalledDir: /Applications/Xcode_26.2.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin",
+    "platforms": {
+      "ios": {
+        "schemaVersion": 1,
+        "sherpaVersion": "1.13.8",
+        "sourceRevision": "11afbd009a7f8c08f4bcf2fc1b265d0df4670fbf",
+        "sourceArchiveSHA256": "0a8db6c55dd318f4a688faba85f7760b99a6c92e8ef8864479d418531bee1ac2",
+        "onnxRuntimeVersion": "1.28.2",
+        "headerSHA256": "2a1b95084be8fd1deb3228fcad2fd3f7f0258b64582f7402281ec174c7b7f4ce",
+        "xcode": "Xcode 26.2\nBuild version 17C52",
+        "clang": "Apple clang version 17.0.0 (clang-1700.6.3.2)\nTarget: arm64-apple-darwin24.6.0\nThread model: posix\nInstalledDir: /Applications/Xcode_26.2.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin",
+        "origin": "pinned source build",
+        "buildFlags": {
+          "BUILD_SHARED_LIBS": "OFF",
+          "SHERPA_ONNX_ENABLE_TTS": "OFF",
+          "SHERPA_ONNX_ENABLE_SPEAKER_DIARIZATION": "OFF",
+          "SHERPA_ONNX_ENABLE_C_API": "ON",
+          "SHERPA_ONNX_ENABLE_GPU": "OFF",
+          "SHERPA_ONNX_ENABLE_PYTHON": "OFF",
+          "SHERPA_ONNX_ENABLE_BINARY": "OFF",
+          "SHERPA_ONNX_BUILD_C_API_EXAMPLES": "OFF",
+          "SHERPA_ONNX_ENABLE_TESTS": "OFF",
+          "SHERPA_ONNX_ENABLE_CHECK": "OFF",
+          "SHERPA_ONNX_ENABLE_PORTAUDIO": "OFF",
+          "SHERPA_ONNX_ENABLE_JNI": "OFF",
+          "SHERPA_ONNX_ENABLE_WEBSOCKET": "OFF",
+          "BUILD_PIPER_PHONMIZE_EXE": "OFF",
+          "BUILD_PIPER_PHONMIZE_TESTS": "OFF",
+          "BUILD_ESPEAK_NG_EXE": "OFF",
+          "BUILD_ESPEAK_NG_TESTS": "OFF"
+        },
+        "ortArchiveSHA256": "2c2299acbb461d26d4bac4bc85985d40e7c7177ed6072703ae0846d88b0b4599",
+        "slices": {
+          "device": {
+            "mergedInputs": [
+              {
+                "name": "libkaldi-native-fbank-core.a",
+                "sha256": "b21c3c2295082e2b4117a3c5961df845b29c183810cac6f14f39064365425438"
+              },
+              {
+                "name": "libkissfft-float.a",
+                "sha256": "b70e3fc2ed01f5b224ab99953ce91cee16ae836d6709743f9d2b0f072c7f3e66"
+              },
+              {
+                "name": "libsherpa-onnx-c-api.a",
+                "sha256": "3a960310b8889543fb73fee4e6e42ba345dab6cddb0908b95f51fac8054e5ae0"
+              },
+              {
+                "name": "libsherpa-onnx-core.a",
+                "sha256": "a4f35fa221c57a1f250a97ba8c30c57e81e71221bb3c72cd32ae62300a0253db"
+              },
+              {
+                "name": "libsherpa-onnx-fst.a",
+                "sha256": "5b2599893fb6c034ae4e7234f3843b064fbd494ce238eafbff2b553db8585efe"
+              },
+              {
+                "name": "libsherpa-onnx-fstfar.a",
+                "sha256": "2b6249bc9c6a81ab349e35d905e34d952612b52893e0556926edc0fb4f113105"
+              },
+              {
+                "name": "libsherpa-onnx-kaldifst-core.a",
+                "sha256": "21bf58f26b439bb9b97449ac78a0354546e83e88f1dea7d361c860d26b313c2d"
+              },
+              {
+                "name": "libkaldi-decoder-core.a",
+                "sha256": "6b03e22e0a7b9433bb5b44d2f9ef09f5faed6ea4449574131971b56949b50341"
+              },
+              {
+                "name": "libssentencepiece_core.a",
+                "sha256": "ce66149279574d25fec712b96d4ec5b4dc53b0c61680ef5a05edf2c4df64bfc9"
+              }
+            ],
+            "binarySHA256": "cc763ee2573b101d04b8683c14fccf7ab6820dde6774e9ef4d348a20502a9798",
+            "symbolChecks": {
+              "arm64": {
+                "requiredCPUEntryPoints": [
+                  "_SherpaOnnxCreateOnlineRecognizer",
+                  "_SherpaOnnxDecodeOnlineStream",
+                  "_SherpaOnnxOnlineStreamAcceptWaveform",
+                  "_SherpaOnnxGetOnlineStreamResult",
+                  "_SherpaOnnxGetVersionStr"
+                ],
+                "forbiddenDefinitions": []
+              }
+            }
+          },
+          "simulator": {
+            "mergedInputs": [
+              {
+                "name": "libkaldi-native-fbank-core.a",
+                "sha256": "c1673fff5c454221d3cc9cc426f70f075193bed464548933c9881c3834b2e8c2"
+              },
+              {
+                "name": "libkissfft-float.a",
+                "sha256": "f816934a637f821374a53ec4bcb2602db86ccdc7e619a9eef4037c561296ccf0"
+              },
+              {
+                "name": "libsherpa-onnx-c-api.a",
+                "sha256": "b27763d43f0fc468bd868ded50d1687719abb77cb7d41750d7a1cfa6b2642485"
+              },
+              {
+                "name": "libsherpa-onnx-core.a",
+                "sha256": "3f075b38a0f53e0ee9aafe78fbae33017a01aa4a0f4fb41c076f9130cfe76a6d"
+              },
+              {
+                "name": "libsherpa-onnx-fst.a",
+                "sha256": "e6e4eac20a7285223bc6c71e09ca45f79849dae7ae9ae6b3ae48fa7bf3560223"
+              },
+              {
+                "name": "libsherpa-onnx-fstfar.a",
+                "sha256": "e9b24d009db7340cd13599942961e707ee373c9301df2b8a09ce5704e7b3112f"
+              },
+              {
+                "name": "libsherpa-onnx-kaldifst-core.a",
+                "sha256": "8608087ac836a0df40c9e72c49583b663f610b0b65527f937b4dba565324850f"
+              },
+              {
+                "name": "libkaldi-decoder-core.a",
+                "sha256": "52511efb7f67b4f2f7cced5dad6bc49d697c8fef71650eba7ba2f5f9588c86c1"
+              },
+              {
+                "name": "libssentencepiece_core.a",
+                "sha256": "b06ccf33d66ad833c4a948c1e4fc783ba8104088d28c17258fc953df07393281"
+              }
+            ],
+            "binarySHA256": "8e66ec1100ac034a92ca8fe04c141b57c8332c94859a6d0879f8615f20e9040f",
+            "symbolChecks": {
+              "arm64": {
+                "requiredCPUEntryPoints": [
+                  "_SherpaOnnxCreateOnlineRecognizer",
+                  "_SherpaOnnxDecodeOnlineStream",
+                  "_SherpaOnnxOnlineStreamAcceptWaveform",
+                  "_SherpaOnnxGetOnlineStreamResult",
+                  "_SherpaOnnxGetVersionStr"
+                ],
+                "forbiddenDefinitions": []
+              },
+              "x86_64": {
+                "requiredCPUEntryPoints": [
+                  "_SherpaOnnxCreateOnlineRecognizer",
+                  "_SherpaOnnxDecodeOnlineStream",
+                  "_SherpaOnnxOnlineStreamAcceptWaveform",
+                  "_SherpaOnnxGetOnlineStreamResult",
+                  "_SherpaOnnxGetVersionStr"
+                ],
+                "forbiddenDefinitions": []
+              }
+            }
+          }
+        },
+        "cmakeCaches": {
+          "os64": "e7736d17844f3930ce35e8a09a950be87e89281ff85c88763fec5a505d4880c4",
+          "simulator_arm64": "1c8b574d37ab6413e2a6bf61a09a74f45e4c2c01ad39968bdb720352f757125e",
+          "simulator_x86_64": "9ac68d703b556dccf47fa4c9eccff71522b4672fe711838214ded2d64f558502"
+        },
+        "dependencyCMakeFiles": {
+          "cmake/asio.cmake": "4261f9681bd5cb05570d276440d4658c62f752e8dc3c0ed7bf5b658eaea02dfa",
+          "cmake/cargs.cmake": "2deabf4fa3854380c486063d8dae96fa9693210e73f08fa0cf6eb3551391e5f3",
+          "cmake/eigen.cmake": "8239d74b44e37e1bb05be2e1c86f6b1e931f0daca93b325fb2e0b6d6e996b2ed",
+          "cmake/espeak-ng-for-piper.cmake": "d353f2becec6c8a2064e314b7d0d9c4e4388b48c7e5742a3ba8a62355952407c",
+          "cmake/googletest.cmake": "5c79ce6d923d2d2bcf15a7f02c2a9c99aca7638975b120bcf55e909b969c6cbe",
+          "cmake/hclust-cpp.cmake": "093ae7b3712119d140df2629b5d20b71bafb3d49ba0124dd7a391f278f4db357",
+          "cmake/json.cmake": "e318b4065954cb479318d191c91e32d5a0cae94a53fff70987791b6f9828b1de",
+          "cmake/kaldi-decoder.cmake": "af34b17974474a70b12978d49ac0831276839082924e5ac93bd9bb194a7fd310",
+          "cmake/kaldi-native-fbank.cmake": "619f0046f568e85790f4180899e666053f246f5c0fc36c951421441f3e992e38",
+          "cmake/onnxruntime-android-aarch64-static.cmake": "ef8981acd131d6705c6eb8f0adf0b95e14950c7ba82b05c4920c34b55966422f",
+          "cmake/onnxruntime-android-aarch64.cmake": "593cd72a365fb13f60858756fdb78925a20f6dcfa5343e1d4ed549f632cedeee",
+          "cmake/onnxruntime-android-arm-static.cmake": "85c148d057206511d9985217d1cd4083e9dd66e143b58077574ea9fe5edc2b6f",
+          "cmake/onnxruntime-android-arm.cmake": "bcc32545ac7b488a42adb03e3030af23de515d4fb400661521571513d20dd15b",
+          "cmake/onnxruntime-android-i686-static.cmake": "60caec23d028c20ea3cbc9d08f6818d14d2bca551d6979330412cb798911336a",
+          "cmake/onnxruntime-android-i686.cmake": "24a0434e7b787ccf28505ab380dc437f4c5b21b296fbf33f0acc55d064d43e15",
+          "cmake/onnxruntime-android-x86_64-static.cmake": "c6fa576e3184fb18f7535f45440fad725875abd7ae1b858845f5a567788ca4d2",
+          "cmake/onnxruntime-android-x86_64.cmake": "d1672295166f79a3105dcb454fee4486e6e9aeee24924016632896813fb7531a",
+          "cmake/onnxruntime-linux-aarch64-gpu.cmake": "81fa67b6dceb74b84a22f683065b5dc1bdf44d50a5f7618ed2360375646c4f27",
+          "cmake/onnxruntime-linux-aarch64-static.cmake": "b15cb97a06bafd5b1beb070aa5906785fb50a03e7d11e9e98dbdc9f539feedd3",
+          "cmake/onnxruntime-linux-aarch64.cmake": "4d3f67cab917d1c4bd5ce779b9e4adf2dceb622aae7bcc22a0fb7fc273e7e198",
+          "cmake/onnxruntime-linux-arm-static.cmake": "7f306ba3e05df7d2b69e44fc757fbd8b17a55a49e1a2c61ae1451163f43c075c",
+          "cmake/onnxruntime-linux-arm.cmake": "95aa42dd6a1f73ae7e484ff5567d7ae69cca50b75ab091b8bc788bea47331918",
+          "cmake/onnxruntime-linux-riscv64-spacemit.cmake": "610623f52f206b0a9ad45dbc33361592a7642050a4598686365dea0cabbd4ef3",
+          "cmake/onnxruntime-linux-riscv64-static.cmake": "68854547899f189dcde7d84cfc334f7426af70b271f4214ac25dc99b94b29f8c",
+          "cmake/onnxruntime-linux-riscv64.cmake": "667d94a8b445a3ef46822e42e3faeaed609941d2a5f85c901e29390cc0a5cafa",
+          "cmake/onnxruntime-linux-x86_64-gpu.cmake": "c34a98abe0cd9600e965fbe17d39e3832308aae9874adb92f0ae849281b14c6e",
+          "cmake/onnxruntime-linux-x86_64-static.cmake": "9b5a78b9f069e15f7e92bfb86dfba8d772492ecfafa0bffdfcdc6ae93b24faba",
+          "cmake/onnxruntime-linux-x86_64.cmake": "7c5c1eae26c3ebd12dc0b993dfae6708b309dbdd0f9da20bade239109df632f9",
+          "cmake/onnxruntime-osx-arm64-static.cmake": "c11ad61b6403167f866204fffe25b60691171604d10e558e26db268b1cf1e1ce",
+          "cmake/onnxruntime-osx-arm64.cmake": "ea220842a864c07766cb40523f7158f734309cd83cedf5234dcee83970faa704",
+          "cmake/onnxruntime-osx-universal-static.cmake": "31bbd390ac3e461efdd5ac9f12c01262b60d0f76bb836ff3ca4ec13660347559",
+          "cmake/onnxruntime-osx-universal.cmake": "71c75ee7ded7db760da1c7c954fb012b8b62c43ae449455b03a05d2d35340d34",
+          "cmake/onnxruntime-osx-x86_64-static.cmake": "edfe0baf497a2ebaad200bfe3470196fd54513a60ab897623bb57e299869c24f",
+          "cmake/onnxruntime-osx-x86_64.cmake": "1a5bb441586409f790ea913c86841d459ce666bf8b3b9f70645e62617529b13f",
+          "cmake/onnxruntime-wasm-simd.cmake": "56986d0da275ef018478b38d989773f0c1bbe18fdff54c4c9ef260edb3e311d9",
+          "cmake/onnxruntime-win-arm64-static.cmake": "86cfd243561be435bab7ebc1025914852e006be81ce426de98ec574ba30a29e9",
+          "cmake/onnxruntime-win-arm64.cmake": "d1f2ba4825d947c8e49e5aaa318869030929f2ea1ac479bb090a6fdead119800",
+          "cmake/onnxruntime-win-x64-directml.cmake": "3d0656d4e44b7930150d6cd229b9d9051fa844a5cbd35c7298f73e4a6433cf34",
+          "cmake/onnxruntime-win-x64-gpu.cmake": "72ac3665f2d9e47c0aaefadd558c742b652f67d6fac1d5860bc80271c63a1f4e",
+          "cmake/onnxruntime-win-x64-static.cmake": "b6e1cd22682f664cfaa99d21ab69e15266234ca6be820b32b54e85b093dcb9c0",
+          "cmake/onnxruntime-win-x64.cmake": "d80f82ef73673dd273533cd3ecb9b8844cbb6cbf20fa65012db17a3d96e2edc0",
+          "cmake/onnxruntime-win-x86-static.cmake": "e71519c212d1fce231549ffd23a054d68afde93475de969c5f86558ec375a4de",
+          "cmake/onnxruntime-win-x86.cmake": "ea959f6f723bdd028b7bf599ae04da10f5d1939da9ca8d825e8e1af6845b04e5",
+          "cmake/onnxruntime.cmake": "4dad1ee8f3e09d6270c5b752629f4ddbb3c8584a93a424d9aa8a4c4d66bf2fc5",
+          "cmake/openfst.cmake": "1658b8ba6bc449daef239cece7ebf6d0bef09665dd4a078ccf6cb66ec01e5d1f",
+          "cmake/piper-phonemize.cmake": "b062750c938e4f4e778b9c0605a250f4abebdf17656c0d654fbace43a800258b",
+          "cmake/portaudio.cmake": "36464f6598e96dd5dbfffbd25253bde4dceebea5492317886e0e1bacf960f79e",
+          "cmake/pybind11.cmake": "34ceb32bc2ecc8cc9763f8c360311a23778b10d024579d1e934640728dbe3a54",
+          "cmake/show-info.cmake": "42cebc6b12fe793e408a16423911d02bff3a0588504cd07023adfd60e9318cdc",
+          "cmake/simple-sentencepiece.cmake": "af791de58aa82fe575d709f773b526cd31a3a5b6b56397ea3da665eee12659ad",
+          "cmake/websocketpp.cmake": "b0d077245bf523723d5280bed1ebd1585ef8c625c5964952f3819c857f851101"
+        },
+        "dependencySourceFiles": {
+          "os64/_deps/eigen-src/CMakeLists.txt": "9e90f456acd7afba465dcba32a6ef61f76d41a98daa05ff399bcf2a480232990",
+          "os64/_deps/json-src/CMakeLists.txt": "b8e2b0eb6cefff4691460580650ba8506af8d7f8e991d9c18630ea15b959d1c0",
+          "os64/_deps/kaldi_decoder-src/CMakeLists.txt": "ef3b3d11ff29e21a23781d0569d33fa59e19dd11d63535caff2492384dd9a48f",
+          "os64/_deps/kaldi_native_fbank-src/CMakeLists.txt": "a2cceec93dabe0397af384eb2628e2dfded651c97042cd49b16fa442c2624b0d",
+          "os64/_deps/kaldifst-src/CMakeLists.txt": "8ddfc4e0fe120796bc788a100aeec712868b60fb3fb8dad873fb37d83974a521",
+          "os64/_deps/kissfft-src/CMakeLists.txt": "21a43a190bbf03b225bd877639828e61e192f3149ab20b8863e1aae48c14f8df",
+          "os64/_deps/openfst-src/CMakeLists.txt": "13b4faae50cd304b5cf463ad84d4f1b8fff613783d586bf120b6db2eb70c8e47",
+          "os64/_deps/simple-sentencepiece-src/CMakeLists.txt": "926695f5eb4692023960083d811428bd1486c4e7609666ee07e2b40a9102ac39",
+          "simulator_arm64/_deps/eigen-src/CMakeLists.txt": "9e90f456acd7afba465dcba32a6ef61f76d41a98daa05ff399bcf2a480232990",
+          "simulator_arm64/_deps/json-src/CMakeLists.txt": "b8e2b0eb6cefff4691460580650ba8506af8d7f8e991d9c18630ea15b959d1c0",
+          "simulator_arm64/_deps/kaldi_decoder-src/CMakeLists.txt": "ef3b3d11ff29e21a23781d0569d33fa59e19dd11d63535caff2492384dd9a48f",
+          "simulator_arm64/_deps/kaldi_native_fbank-src/CMakeLists.txt": "a2cceec93dabe0397af384eb2628e2dfded651c97042cd49b16fa442c2624b0d",
+          "simulator_arm64/_deps/kaldifst-src/CMakeLists.txt": "8ddfc4e0fe120796bc788a100aeec712868b60fb3fb8dad873fb37d83974a521",
+          "simulator_arm64/_deps/kissfft-src/CMakeLists.txt": "21a43a190bbf03b225bd877639828e61e192f3149ab20b8863e1aae48c14f8df",
+          "simulator_arm64/_deps/openfst-src/CMakeLists.txt": "13b4faae50cd304b5cf463ad84d4f1b8fff613783d586bf120b6db2eb70c8e47",
+          "simulator_arm64/_deps/simple-sentencepiece-src/CMakeLists.txt": "926695f5eb4692023960083d811428bd1486c4e7609666ee07e2b40a9102ac39",
+          "simulator_x86_64/_deps/eigen-src/CMakeLists.txt": "9e90f456acd7afba465dcba32a6ef61f76d41a98daa05ff399bcf2a480232990",
+          "simulator_x86_64/_deps/json-src/CMakeLists.txt": "b8e2b0eb6cefff4691460580650ba8506af8d7f8e991d9c18630ea15b959d1c0",
+          "simulator_x86_64/_deps/kaldi_decoder-src/CMakeLists.txt": "ef3b3d11ff29e21a23781d0569d33fa59e19dd11d63535caff2492384dd9a48f",
+          "simulator_x86_64/_deps/kaldi_native_fbank-src/CMakeLists.txt": "a2cceec93dabe0397af384eb2628e2dfded651c97042cd49b16fa442c2624b0d",
+          "simulator_x86_64/_deps/kaldifst-src/CMakeLists.txt": "8ddfc4e0fe120796bc788a100aeec712868b60fb3fb8dad873fb37d83974a521",
+          "simulator_x86_64/_deps/kissfft-src/CMakeLists.txt": "21a43a190bbf03b225bd877639828e61e192f3149ab20b8863e1aae48c14f8df",
+          "simulator_x86_64/_deps/openfst-src/CMakeLists.txt": "13b4faae50cd304b5cf463ad84d4f1b8fff613783d586bf120b6db2eb70c8e47",
+          "simulator_x86_64/_deps/simple-sentencepiece-src/CMakeLists.txt": "926695f5eb4692023960083d811428bd1486c4e7609666ee07e2b40a9102ac39"
+        }
+      }
+    },
+    "outputFiles": {
+      "Info.plist": "20ea0fb986bf86e750384324c3ff8006bef296b4fe04896e6714ba9bab218b84",
+      "ios-arm64/SherpaOnnxC.framework/Headers/sherpa-onnx/c-api/c-api.h": "2a1b95084be8fd1deb3228fcad2fd3f7f0258b64582f7402281ec174c7b7f4ce",
+      "ios-arm64/SherpaOnnxC.framework/Info.plist": "9c2aaa889f926ee38244dc7fc466d4c23eeef6e61cc01637127eb0399e4882e7",
+      "ios-arm64/SherpaOnnxC.framework/Modules/module.modulemap": "5ee2441c89a3eaafbd53f7afd2cf1e765c97b80b6fc834d85d9dfcde1be898c0",
+      "ios-arm64/SherpaOnnxC.framework/SherpaOnnxC": "cc763ee2573b101d04b8683c14fccf7ab6820dde6774e9ef4d348a20502a9798",
+      "ios-arm64_x86_64-simulator/SherpaOnnxC.framework/Headers/sherpa-onnx/c-api/c-api.h": "2a1b95084be8fd1deb3228fcad2fd3f7f0258b64582f7402281ec174c7b7f4ce",
+      "ios-arm64_x86_64-simulator/SherpaOnnxC.framework/Info.plist": "559cd0bac83abade1ec2c1905fd8381e2c5bcc9e1582a2b94805df485dabebe3",
+      "ios-arm64_x86_64-simulator/SherpaOnnxC.framework/Modules/module.modulemap": "5ee2441c89a3eaafbd53f7afd2cf1e765c97b80b6fc834d85d9dfcde1be898c0",
+      "ios-arm64_x86_64-simulator/SherpaOnnxC.framework/SherpaOnnxC": "8e66ec1100ac034a92ca8fe04c141b57c8332c94859a6d0879f8615f20e9040f"
+    },
+    "swiftPackageManifestSHA256": "21c165ac7dabf46a2f140a6ae5e190a8a89b23149b42cff4521faa0abfb36945",
+    "swiftPackageManifestValidated": true
+  },
+  "bundledNoticesSHA256": "6c4f25557d7f53826afdf91a8aa348a680e819cf9aca2e910c9394b896e2551b"
+}

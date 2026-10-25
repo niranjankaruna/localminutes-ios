@@ -2,18 +2,65 @@
   "schemaVersion": 1,
   "project": "LocalMinutes",
   "specVersion": "1.0",
-  "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-25T09:41:17.084Z",
+  "state": "READY_FOR_DEVICE_VALIDATION",
+  "lastUpdated": "2026-10-25T10:11:34.454Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "MVP3: verify committed build repair, obtain remaining prepared behavioral RED, implement and deliver exact-source IPA",
-  "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
-  "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
-  "candidateArtifact": null,
-  "nextAction": "Deliver via owner-requested mvp3-functional gate: focusedreliabilityunits +fullnativeApp/UI/devicepackaging/fixture/nativehygiene, no automatedmodelqualityjobs. Correctedlaststalepackagingbuildassert4; verifyproductiondirs/pinsunchangedfromceae sourcewhosecore464/62script/88TSan andactualinferencePASS are retained. ExactnewSHAgreenIPA, download/WindowsSHA+bundles+notices+dependencyreceipt beforeMVP3delivery. OwnerchoosesGGUFmodelmanually; allphysicalgatesNOT_RUN.",
+  "currentTask": "MVP4: owner phone acceptance and final evidence audit",
+  "lastVerifiedCommit": "880d3dcd2e21f79e6435ec134279cad192e7435d",
+  "lastVerifiedCIRun": 40181776855,
+  "candidateArtifact": {
+    "stage": "MVP3",
+    "status": "READY_FOR_DEVICE_VALIDATION",
+    "delivered": true,
+    "sourceCommit": "880d3dcd2e21f79e6435ec134279cad192e7435d",
+    "runId": 40181776855,
+    "runUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40181776855",
+    "artifact": "LocalMinutes-1.0-880d3dcd2e21f79e6435ec134279cad192e7435d-unsigned.ipa",
+    "sha256": "b0bc6e2d618f742ab257b85bc81765b25ca34b94b3c9d09fe33656b7aea1f5c9",
+    "sizeBytes": 14855799,
+    "appVersion": "1.0",
+    "buildNumber": "4",
+    "schemaVersion": 5,
+    "signing": "unsigned; owner iLoader signing required",
+    "localDirectory": "build/delivery/MVP3-Functional-40181776855",
+    "guide": "docs/MVP3_GUIDE.md",
+    "draftReleaseId": 423297093,
+    "draftReleaseTag": "mvp-preview-880d3dcd2e21",
+    "published": false,
+    "retained": true,
+    "checksumMatched": true,
+    "zipCRC": "PASS",
+    "deviceBundles": "arm64 iPhoneOS app + Live Activity",
+    "bundledNotices": "Exact source bytes verified",
+    "automatedModelQuality": "OWNER_MANUAL_NOT_A_DELIVERY_GATE",
+    "deviceValidation": "NOT_RUN",
+    "deliveredAt": "2026-10-25T10:11:34.452Z",
+    "functionalGate": {
+      "swift": 25,
+      "scripts": 46,
+      "nativeApp": 100,
+      "nativeUI": 10,
+      "deviceContracts": 2,
+      "fixtureBoundary": 2,
+      "package": 13,
+      "ipaHygiene": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    "localIPAReview": {
+      "executed": 3,
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "durationSeconds": 0.303
+    },
+    "evidence": "docs/evidence/MVP3_DELIVERY_2026_10_25.md"
+  },
+  "nextAction": "MVP3 delivered and byte-verified. Continue MVP4 with owner phone/iOS/build facts and short recording/LiveActivityStop report; then ActionButton warm/locked continuation/cold-start, offline chosen models, two separate125min locked runs and in-place renewal. Use docs/MVP4_DEVICE_CHECKLIST.md and separate sanitized reports. Do not run model-quality benchmarks or mark VERIFIED_COMPLETE without required physical evidence. No further CI is needed unless a real functional failure or code change invalidates its relevant gate.",
   "pendingPushCommit": null,
-  "remoteBranchHead": "14ff749a2bd8678b6523cf377b6695283513a76e",
+  "remoteBranchHead": "880d3dcd2e21f79e6435ec134279cad192e7435d",
   "localScriptGreen": {
     "sourceCommit": "0181b311abedb3c32745b015be64d6e7c777032b",
     "platform": "Windows11/Node24.21.0",
@@ -24,8 +71,8 @@
     "nativePackagingVerified": false,
     "scope": "Portable script regression only, no Swift/iOS/native/inference/device claim."
   },
-  "lastVerifiedNativeBuildCommit": "35c7cefb946af188f5cc09858dca4ab180d72eab",
-  "lastVerifiedNativeBuildCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40132528745",
+  "lastVerifiedNativeBuildCommit": "880d3dcd2e21f79e6435ec134279cad192e7435d",
+  "lastVerifiedNativeBuildCIRun": 40181776855,
   "blockedItems": [
     "ARTIFACT_STORAGE_HEADROOM_UNVERIFIED"
   ],
@@ -38,7 +85,8 @@
       40174152880,
       40175800050,
       40178158700,
-      40180161772
+      40180161772,
+      40181776855
     ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-25T07:26:02.293Z",
@@ -46,10 +94,11 @@
     "runLimitPolicy": "Owner explicitly removed six-run cap; batch checks, retain bounded retries and zero spend"
   },
   "latestCIRun": {
-    "runId": 40180161772,
-    "sourceCommit": "ceae957642ba20c6a9447ca314339e346f3f2aee",
+    "runId": 40181776855,
+    "sourceCommit": "880d3dcd2e21f79e6435ec134279cad192e7435d",
     "status": "completed",
-    "conclusion": "cancelled"
+    "conclusion": "success",
+    "mode": "mvp3-functional"
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -124,7 +173,7 @@
     "T08.4",
     "T08.5"
   ],
-  "remoteBranchHeadScope": "Code candidate verified local=HTTPS remote; later checkpoint-only metadata may advance HEAD without behavior changes. Next CI/package must use actual current HEAD and stamp that exactSHA.",
+  "remoteBranchHeadScope": "Verified delivered feature source; documentation-only checkpoint commit follows. Recheck actual Git HEAD for repository operations.",
   "nativeCompileRepair": {
     "status": "CODE_COMPLETE_PENDING_DEVICE",
     "candidatePath": "docs/drafts/T06.1/ActivityKitOperations.swift.pending",
@@ -1596,13 +1645,14 @@
     {
       "id": 3,
       "title": "MVP3 release candidate",
-      "status": "IN_PROGRESS",
-      "delivered": false
+      "status": "READY_FOR_DEVICE_VALIDATION",
+      "delivered": true,
+      "sourceCommit": "880d3dcd2e21f79e6435ec134279cad192e7435d"
     },
     {
       "id": 4,
       "title": "Final phone acceptance",
-      "status": "NOT_STARTED",
+      "status": "READY_FOR_DEVICE_VALIDATION",
       "delivered": false
     }
   ],
@@ -1704,8 +1754,8 @@
     "meetingDeletion": "Owner requests complete deletion; real SQLite/CAF/cache tests3 and actual app service test1 prepared before behavior",
     "endurance": "Bounded recorder5 and actual OS/service test1 prepared before behavior; physical125min remains owner-run"
   },
-  "lastVerifiedFeatureCommit": "35c7cefb946af188f5cc09858dca4ab180d72eab",
-  "lastVerifiedFeatureScope": "MVP2 focused309 checks PASS + arm64 app/extension package; baseline/representativequality/device gates pending",
+  "lastVerifiedFeatureCommit": "880d3dcd2e21f79e6435ec134279cad192e7435d",
+  "lastVerifiedFeatureScope": "Owner-requested MVP3 functionality/reliability; quality owner-manual; device gates pending",
   "mvp1Artifact": {
     "status": "CODE_COMPLETE_PENDING_DEVICE",
     "sourceCommit": "4aec851bb1c83ec1a9acb8f48074db79dcdd8a23",
@@ -2170,7 +2220,7 @@
       "CPUOnlyParakeetDefault",
       "modelControlAccessibility"
     ],
-    "delivered": false,
+    "delivered": true,
     "conclusion": "failure",
     "currentExecuted": 460,
     "failure": "Prepared CPUdefault and database content-status cases have actual RED; smallest fixes implemented, GREEN pending. Native/UI and Phi remain active.",
@@ -2417,7 +2467,28 @@
       },
       "selectedServiceActual": "PASS; previousrealinferencefunctionalityproof retained",
       "representative": "CANCELLED at owner request; not PASS"
-    }
+    },
+    "functionalCandidate": {
+      "runId": 40181776855,
+      "sourceCommit": "880d3dcd2e21f79e6435ec134279cad192e7435d",
+      "status": "completed",
+      "conclusion": "success",
+      "mode": "mvp3-functional",
+      "artifactRetained": true,
+      "localVerification": "PASS"
+    },
+    "compatibleProductionEvidence": {
+      "sourceCommit": "ceae957642ba20c6a9447ca314339e346f3f2aee",
+      "runId": 40180161772,
+      "verification": "git diff --exit-code App/Core/Recording/Models/Persistence/Transcription/MeetingLibrary/Summaries/QuestionAnswering/Intelligence/Shared/Resources/Vendor/Package.swift/project.yml returned0; production/runtimepins unchanged",
+      "corePassed": 464,
+      "scriptPassed": 62,
+      "tsanPassed": 88,
+      "realSelectedServicePassed": 1,
+      "realSelectedServiceSeconds": 466.002,
+      "qualityScope": "Owner-manual; no automatedqualityPASS claimed"
+    },
+    "qualityPolicy": "Owner chooses models and quality manually; historical failed/cancelled tests preserved, not PASS"
   },
   "ownerAcceptanceOverrides": [
     {
@@ -2426,5 +2497,73 @@
       "scope": "Automated model quality is no longer an MVP3 delivery gate. Preserve tests/results. Real engines, functionality/reliability and physical gates retained.",
       "recordedAt": "2026-10-25T09:41:17.083Z"
     }
-  ]
+  ],
+  "mvp3Artifact": {
+    "stage": "MVP3",
+    "status": "READY_FOR_DEVICE_VALIDATION",
+    "delivered": true,
+    "sourceCommit": "880d3dcd2e21f79e6435ec134279cad192e7435d",
+    "runId": 40181776855,
+    "runUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40181776855",
+    "artifact": "LocalMinutes-1.0-880d3dcd2e21f79e6435ec134279cad192e7435d-unsigned.ipa",
+    "sha256": "b0bc6e2d618f742ab257b85bc81765b25ca34b94b3c9d09fe33656b7aea1f5c9",
+    "sizeBytes": 14855799,
+    "appVersion": "1.0",
+    "buildNumber": "4",
+    "schemaVersion": 5,
+    "signing": "unsigned; owner iLoader signing required",
+    "localDirectory": "build/delivery/MVP3-Functional-40181776855",
+    "guide": "docs/MVP3_GUIDE.md",
+    "draftReleaseId": 423297093,
+    "draftReleaseTag": "mvp-preview-880d3dcd2e21",
+    "published": false,
+    "retained": true,
+    "checksumMatched": true,
+    "zipCRC": "PASS",
+    "deviceBundles": "arm64 iPhoneOS app + Live Activity",
+    "bundledNotices": "Exact source bytes verified",
+    "automatedModelQuality": "OWNER_MANUAL_NOT_A_DELIVERY_GATE",
+    "deviceValidation": "NOT_RUN",
+    "deliveredAt": "2026-10-25T10:11:34.452Z",
+    "functionalGate": {
+      "swift": 25,
+      "scripts": 46,
+      "nativeApp": 100,
+      "nativeUI": 10,
+      "deviceContracts": 2,
+      "fixtureBoundary": 2,
+      "package": 13,
+      "ipaHygiene": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    "localIPAReview": {
+      "executed": 3,
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "durationSeconds": 0.303
+    },
+    "evidence": "docs/evidence/MVP3_DELIVERY_2026_10_25.md"
+  },
+  "completedCodeTasksThisInvocation": [
+    "T06.3",
+    "T12.4",
+    "T13.3",
+    "T20.1",
+    "T20.2",
+    "T20.3",
+    "T21.MVP3"
+  ],
+  "mvp4": {
+    "status": "READY_FOR_DEVICE_VALIDATION",
+    "checklist": "docs/MVP4_DEVICE_CHECKLIST.md",
+    "exactArtifactSource": "880d3dcd2e21f79e6435ec134279cad192e7435d",
+    "phoneModel": null,
+    "iOSVersion": null,
+    "ownerPerformsEndurance": true,
+    "allDeviceChecks": "NOT_RUN",
+    "nextInput": "Phone/iOS facts and short Live Activity/Stop observation",
+    "blocker": "OWNER_PHONE_VALIDATION_REQUIRED: agent has no physical iPhone access; installation/signing, extension/Action Button/locked live capture, two125min, offline use, file protection and renewal need owner evidence."
+  }
 }
