@@ -214,12 +214,14 @@ public actor SummaryPipeline {
         // This pipeline is deliberately extractive: the current chunk is the
         // vocabulary, not a fixture answer. The model still chooses categories,
         // source IDs, ownership and deadlines; all resulting links are validated.
-        // Keep the unconstrained path for larger source strings rather than
-        // excluding their evidence or exceeding the compiler's literal bound.
+        // Offer exact sentences: forcing a whole paragraph into an action would
+        // conflict with the validator's single-commitment ownership boundary.
+        // Keep the unconstrained path when the complete vocabulary exceeds the
+        // existing literal/count bounds; never truncate the source choices.
         var seen: Set<Data> = []
         let sourceTexts = segments.map(\.text).filter { seen.insert(Data($0.utf8)).inserted }
-        let extractiveText: StructuredJSONType = sourceTexts.allSatisfy({ $0.utf8.count <= 1_024 })
-            ? .stringEnumeration(sourceTexts) : .string
+        let extractiveText: StructuredJSONType = sentenceVocabulary(sourceTexts)
+            .map { .stringEnumeration($0) } ?? .string
         let citation: StructuredJSONType = .object([
             .init(name: "source_id", type: .stringEnumeration(segments.map(\.id))),
             .init(name: "start_sample", type: .integerEnumeration(Array(Set(segments.map(\.startSample))).sorted())),
@@ -241,6 +243,37 @@ public actor SummaryPipeline {
             .init(name: "decisions", type: .array(element: point, maximumItems: maximumItems)),
             .init(name: "actions", type: .array(element: action, maximumItems: maximumItems))
         ])
+    }
+
+    private static func sentenceVocabulary(_ sourceTexts: [String]) -> [String]? {
+        guard sourceTexts.allSatisfy({ $0.utf8.count <= 1_024 }) else { return nil }
+        var choices: [String] = []
+        var seen: Set<Data> = []
+        func append(_ bytes: Data.SubSequence) -> Bool {
+            // Only trim boundary whitespace. Decoding complete UTF-8 spans does
+            // not normalize their original Unicode spelling or punctuation.
+            let sentence = String(decoding: bytes, as: UTF8.self)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !sentence.isEmpty else { return true }
+            if seen.insert(Data(sentence.utf8)).inserted { choices.append(sentence) }
+            return choices.count <= 256
+        }
+        for text in sourceTexts {
+            let bytes = Data(text.utf8)
+            var start = bytes.startIndex
+            // Match the validator's conservative ASCII sentence boundaries.
+            // Every candidate remains a verbatim substring of its source.
+            for index in bytes.indices {
+                let byte = bytes[index]
+                if byte == 46 || byte == 33 || byte == 63 || byte == 10 || byte == 13 {
+                    let end = index + 1
+                    guard append(bytes[start..<end]) else { return nil }
+                    start = end
+                }
+            }
+            if start < bytes.endIndex, !append(bytes[start..<bytes.endIndex]) { return nil }
+        }
+        return choices.isEmpty ? nil : choices
     }
 
     private static let mapInstructions = """

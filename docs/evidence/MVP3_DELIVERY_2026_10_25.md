@@ -81,3 +81,24 @@ inference is not repeated during this focused test-first step.
 
 Next run targets the pending native product/UI cases plus the schema regression
 and existing status/progress tests. It does not repeat the real model suite.
+
+## Focused summary regression RED and content-status GREEN
+
+Test-first source `a1308e9283be1d89aa3025ca88fb8a0a43c7974d`,
+[run40174152880](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40174152880),
+portable job121111124093. `swift test --filter` selected the committed
+RecordingProgressPresenter, TranscriptionMetrics, MeetingContentStatus and
+SummaryPipeline cases. Actual result: 16 executed, 15 passed, 1 failed,
+8 assertion failures, 0 skips, 0.857 seconds.
+
+`testMultiSentenceSourceGrammarPermitsExactSentenceChoicesWithoutForcingParagraphOwnership`
+failed 8 assertions in 0.798 seconds: four generated schema fields each offered
+one whole 146-byte paragraph instead of the three exact 53/51/40-byte sentences,
+and retained the paragraph. This is an actual assertion RED after successful
+compilation, before the generation-schema repair. Unicode/source and nullable
+attribute checks are retained. A supplied generation boundary exercises schema
+construction and real decoding here; it does not substitute for the unchanged
+mandatory real-Phi quality case.
+
+The actual SQLite content-status regression now passes. Native product/UI lanes
+are still active. No full model suite was repeated for this focused step.

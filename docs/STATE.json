@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-25T07:46:54.649Z",
+  "lastUpdated": "2026-10-25T07:52:08.170Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -11,7 +11,7 @@
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "Prepare deterministic sentence-schema regression test, push testfirst; dispatch focused mvp3 for meaningful schema/native/UI RED without repeating realmodel inference. Implement those proven behaviors, verifyfocusedGREEN, then final model/native/package milestone and checksumdelivery.",
+  "nextAction": "Observe focused40174152880. Require actual deterministic summary-schema/native citations/buildidentity/accessibility/screen RED before those repairs. Content status and CPU default fixes alreadyfollowactualRED. Batchminimalbehaviorfixes,focusedGREEN,onefinalreal-model/native/packagegate with retainedIPA and independentchecksum. No hardCIcountcap; bounded retries/zero spend remain.",
   "pendingPushCommit": null,
   "remoteBranchHead": "14ff749a2bd8678b6523cf377b6695283513a76e",
   "localScriptGreen": {
@@ -34,7 +34,8 @@
     "startedAt": "2026-10-25T07:26:02.293Z",
     "maxNewRuns": null,
     "newRunIds": [
-      40172670154
+      40172670154,
+      40174152880
     ],
     "limitReached": false,
     "costGuardObservedAt": "2026-10-25T07:26:02.293Z",
@@ -42,10 +43,11 @@
     "runLimitPolicy": "Owner explicitly removed six-run cap; batch checks, retain bounded retries and zero spend"
   },
   "latestCIRun": {
-    "runId": 40172670154,
-    "sourceCommit": "b3f4e61181bdf81a0ab876e5defc3240513b7927",
-    "status": "completed",
-    "conclusion": "failure"
+    "runId": 40174152880,
+    "sourceCommit": "a1308e9283be1d89aa3025ca88fb8a0a43c7974d",
+    "status": "in_progress",
+    "conclusion": null,
+    "mode": "mvp3"
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -221,7 +223,13 @@
     "latestSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
     "latestRunUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180"
   },
-  "activeCIRun": null,
+  "activeCIRun": {
+    "runId": 40174152880,
+    "sourceCommit": "a1308e9283be1d89aa3025ca88fb8a0a43c7974d",
+    "status": "in_progress",
+    "conclusion": null,
+    "mode": "mvp3"
+  },
   "pendingPushScope": null,
   "repositoryVisibility": "PUBLIC",
   "publication": {
@@ -2240,6 +2248,21 @@
       "basicSeconds": 375.208,
       "representativeSeconds": 513.558,
       "cause": "Schema forces fullparagraph task but validator correctly rejects paragraph-wide ownership; repair generation constraints, preserve validator"
+    },
+    "focusedRun": {
+      "runId": 40174152880,
+      "sourceCommit": "a1308e9283be1d89aa3025ca88fb8a0a43c7974d",
+      "portable": {
+        "executed": 16,
+        "passed": 15,
+        "failed": 1,
+        "assertionFailures": 8,
+        "skipped": 0,
+        "durationSeconds": 0.857
+      },
+      "nativeStatus": "in_progress",
+      "summarySchemaRepair": "ActualRED verified; production repair now authorized",
+      "contentStatus": "GREEN"
     }
   }
 }
