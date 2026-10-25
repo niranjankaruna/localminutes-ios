@@ -10,6 +10,7 @@ public enum MeetingLibraryError: Error, Equatable { case noSelection }
 @MainActor @Observable
 public final class MeetingLibraryController {
     public private(set) var meetings: [MeetingRecord] = []
+    public private(set) var contentStatuses: [UUID: MeetingContentStatus] = [:]
     public private(set) var selected: MeetingRecord?
     public private(set) var transcript: [StoredTranscriptSegment] = []
     public private(set) var note: StoredManualNote?
@@ -33,8 +34,19 @@ public final class MeetingLibraryController {
     }
 
     public func refresh() async {
-        do { meetings = try await store.history(); errorMessage = nil }
-        catch { errorMessage = "Meetings could not be loaded." }
+        do {
+            let history = try await store.history()
+            var statuses: [UUID: MeetingContentStatus] = [:]
+            for meeting in history {
+                statuses[meeting.id] = await store.contentStatus(meetingID: meeting.id)
+            }
+            contentStatuses = statuses
+            meetings = history
+            errorMessage = nil
+        } catch {
+            contentStatuses = [:]
+            errorMessage = "Meetings could not be loaded."
+        }
     }
 
     public func open(id: UUID) async {

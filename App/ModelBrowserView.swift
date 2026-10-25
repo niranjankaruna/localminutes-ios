@@ -114,6 +114,15 @@ struct ModelBrowserView: View {
                     Text("Export important notes before renewal and verify your meetings and models afterward. Do not delete the app to refresh it.")
                     Text("Record meetings only with the participants’ consent.")
                 }
+                Section("About LocalMinutes") {
+                    if let identity = AppBuildIdentity.current() {
+                        Text(verbatim: "Version \(identity.version) (build \(identity.build))")
+                            .accessibilityIdentifier("settings.appBuildIdentity")
+                    } else {
+                        Text("Version and build information unavailable")
+                            .accessibilityIdentifier("settings.appBuildIdentity")
+                    }
+                }
             }
             .navigationTitle("Models")
             .task { await controller.refresh() }
@@ -264,6 +273,7 @@ struct ModelBrowserView: View {
                         } else {
                             Button("Equip") { Task { await controller.equip(manifest) } }
                                 .buttonStyle(.bordered)
+                                .accessibilityLabel("Equip \(modelActionIdentity(manifest))")
                                 .disabled(controller.isWorking || controller.isInspecting)
                         }
                         Spacer()
@@ -271,12 +281,19 @@ struct ModelBrowserView: View {
                             pendingRemoval = manifest; showingRemoval = true
                         }
                         .buttonStyle(.bordered)
+                        .accessibilityLabel("Remove \(modelActionIdentity(manifest))")
                         .disabled(controller.isWorking || controller.isInspecting)
                     }
                 }
                 .padding(.vertical, 4)
             }
         }
+    }
+
+    private func modelActionIdentity(_ manifest: ModelManifest) -> String {
+        let purpose = manifest.purpose == .speechRecognition ? "speech" : "summary"
+        let repository = manifest.upstreamRepository.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        return "\(purpose) model \(repository)"
     }
 
     private var modelCard: some View {

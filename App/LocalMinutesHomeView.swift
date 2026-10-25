@@ -116,6 +116,13 @@ private struct MeetingHistoryView: View {
                                 .font(.subheadline).foregroundStyle(.secondary)
                             Text("\(meeting.capturedSampleCount / 16_000 / 60) min · \(meeting.recordingState == .recording ? "Unfinished" : meeting.recordingState.rawValue.capitalized)")
                                 .font(.caption).foregroundStyle(.secondary)
+                            let content = services.library.contentStatuses[meeting.id] ?? .unknown
+                            Text(transcriptStatus(content.transcript))
+                                .font(.caption).foregroundStyle(.secondary)
+                                .accessibilityIdentifier("meeting.history.transcriptStatus")
+                            Text(summaryStatus(content.summary))
+                                .font(.caption).foregroundStyle(.secondary)
+                                .accessibilityIdentifier("meeting.history.summaryStatus")
                         }
                         .padding(.vertical, 5)
                     }
@@ -133,6 +140,9 @@ private struct MeetingHistoryView: View {
             .searchable(text: $query, prompt: "Search meeting titles")
             .refreshable { await services.library.refresh() }
             .task { await services.library.refresh() }
+            .onChange(of: path) { _, destinations in
+                if destinations.isEmpty { Task { await services.library.refresh() } }
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
@@ -186,6 +196,22 @@ private struct MeetingHistoryView: View {
         pendingDeletion = id; confirmingDeletion = true
     }
 
+    private func transcriptStatus(_ availability: MeetingContentAvailability) -> String {
+        switch availability {
+        case .available: "Transcript available"
+        case .absent: "No transcript"
+        case .unknown: "Transcript status unavailable"
+        }
+    }
+
+    private func summaryStatus(_ availability: MeetingContentAvailability) -> String {
+        switch availability {
+        case .available: "Summary available"
+        case .absent: "Summary not generated"
+        case .unknown: "Summary status unavailable"
+        }
+    }
+
     private func createBackup() {
         guard !unavailable else { return }
         working = true; actionMessage = nil
@@ -234,6 +260,8 @@ private struct MeetingDetailView: View {
     @State private var deleting = false
     @State private var deletionMessage: String?
     @State private var recoveredTranscript: [StoredTranscriptSegment]?
+    @State private var selectedTranscriptSegmentID: UUID?
+    @State private var citationNavigationRequestID: UUID?
 
     private var unavailable: Bool { deleting || services.maintainingLibrary || application.isRestoringLibrary }
 
@@ -244,6 +272,7 @@ private struct MeetingDetailView: View {
     }
 
     var body: some View {
+        ScrollViewReader { transcriptScroll in
         List {
             if let error = controller.errorMessage { Text(error).foregroundStyle(.red) }
             if let deletionMessage { Text(deletionMessage).foregroundStyle(.red) }
@@ -255,9 +284,6 @@ private struct MeetingDetailView: View {
             Section("Original notes") {
                 MeetingNotesEditor(controller: controller)
             }
-            MeetingIntelligenceView(controller: intelligenceController, playCitation: { sample in
-                await playSegment(at: sample)
-            })
             Section("Transcript") {
                 if services.recoveringMeetingID == id {
                     ProgressView("Resuming transcript from saved audio…")
@@ -286,12 +312,24 @@ private struct MeetingDetailView: View {
                         }
                     }
                     .padding(.vertical, 5)
+                    .id(segment.id)
+                    .listRowBackground(selectedTranscriptSegmentID == segment.id ? Color.accentColor.opacity(0.15) : Color.clear)
+                    .accessibilityIdentifier("meeting.transcript.segment.\(segment.id.uuidString)")
+                    .accessibilityAddTraits(selectedTranscriptSegmentID == segment.id ? .isSelected : [])
                 }
                 if let playbackMessage { Text(playbackMessage).font(.caption).foregroundStyle(.secondary) }
                 if services.playback != nil || application.playbackOwnership?.hasPlaybackOwnership == true {
                     Button("Stop playback") { stopPlayback() }
                 }
             }
+            MeetingIntelligenceView(controller: intelligenceController, playCitation: { target in
+                guard target.meetingID == id,
+                      (recoveredTranscript ?? controller.transcript).contains(where: { $0.id == target.segmentID && $0.meetingID == id }) else { return }
+                search = ""
+                selectedTranscriptSegmentID = target.segmentID
+                citationNavigationRequestID = UUID()
+                await playSegment(at: target.startSample)
+            })
             Section("Export") {
                 if let text = try? controller.export(markdown: false) {
                     ShareLink("Share text", item: text)
@@ -306,6 +344,13 @@ private struct MeetingDetailView: View {
                 Button("Delete meeting", role: .destructive) { confirmingDeletion = true }
                     .disabled(unavailable || intelligenceController.busy || services.recoveringMeetingID != nil)
             }
+        }
+        .onChange(of: citationNavigationRequestID) { _, _ in
+            // This runs after the cleared filter publishes the original row.
+            if let segmentID = selectedTranscriptSegmentID {
+                transcriptScroll.scrollTo(segmentID, anchor: .center)
+            }
+        }
         }
         .navigationTitle(controller.selected?.title ?? "Meeting")
         .navigationBarTitleDisplayMode(.inline)

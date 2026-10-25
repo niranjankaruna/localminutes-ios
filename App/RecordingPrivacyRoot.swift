@@ -67,7 +67,12 @@ final class RecordingPrivacyController {
             cover.autoresizingMask = [.flexibleWidth, .flexibleHeight]
             self.cover = cover
         }
-        for view in window.subviews where view !== cover {
+        // UIKit may place the hosting controller inside a transition container.
+        // Hide both that window container and the actual hosted content root;
+        // accessibilityElementsHidden is not inherited as a property value.
+        var contentViews = window.subviews
+        if let rootView = window.rootViewController?.viewIfLoaded { contentViews.append(rootView) }
+        for view in contentViews where view !== cover {
             if !hiddenContent.contains(where: { $0.0 === view }) {
                 hiddenContent.append((view, view.accessibilityElementsHidden))
             }

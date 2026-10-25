@@ -959,6 +959,15 @@ jobs:
           node scripts/verify-test-log.mjs .agent-local/native-app-tests.log testInterruptionDuringHeldModelPreparationSettlesInterruptedAndAllowsReplacement
           node scripts/verify-test-log.mjs .agent-local/native-app-tests.log testDefaultServicesRetainOneLiveRecorderWithActualBuildAndModelPins testAppScenePhaseControlRecordsTruthfulBoundedVisibilityCheckpoints testAppPersistsProtectedAtomicMetricsJSONAndExportsOnlyValidatedFacts
           node scripts/verify-test-log.mjs .agent-local/native-app-tests.log testHeldSummaryOrQAHeavyClaimBlocksActualOwnerBeforePreparationAndOSUse testActualASRReservationHoldsHeavyGateThroughPreparationTranscriptActivityAndAsyncFinish testDefaultServicesShareOneHeavyGateAcrossIntelligenceAndActualRecordingOwner
+          node scripts/verify-test-log.mjs .agent-local/native-app-tests.log \
+            testDisplayedBuildIdentityReadsTheActualHostedAppBundleVersionAndBuild \
+            testSummaryCitationRetainsMeetingAndExactSegmentIdentityAlongsideValidatedPlaybackOffset \
+            testAnswerCitationWithSameOffsetAsAnotherMeetingStillTargetsOnlySelectedTranscriptRow \
+            testForeignUnknownOutOfBoundsAndUnsupportedQuoteCitationsCannotCreateNavigationTargets \
+            testOwningSceneNotificationsOpaqueCoverTheHostedRootAndRestoreAccessibility \
+            testActualHomeRootPrivacyPreservesRunningOwnedCaptureAndRealCAFFlush \
+            testActualIntentPublishesNewestMeetingThroughTheRetainedApplicationRouterWithoutRecording \
+            testPresenterUsesActualDefaultServiceFirstPCMOriginAndMeasuredPendingSamples
       - name: Execute actual recording-control UI test
         id: native-ui
         if: ${{ !cancelled() && (steps.native-app.outcome == 'success' || steps.native-app.outcome == 'failure') }}
@@ -984,6 +993,11 @@ jobs:
             testStartExplainsMissingSpeechModelWithoutClaimingRecording \
             testSharedActivityStopControlDispatchesItsExactSessionToTheApplicationOwner \
             testSharedActivityTerminalTimerIsFixedAndStopIsDisabled
+          node scripts/verify-test-log.mjs .agent-local/native-ui-tests.log \
+            testInstalledModelSpokenActionsIncludePurposeAndDistinctModelIdentity \
+            testInstalledModelActionsRemainReachableWith44PointTargetsAtLargestAccessibilityText \
+            testActualRecordAndModelsScreensExplainMicrophoneLiveActivityAndDisplayVersionAndBuild \
+            testActualHistoryRowsReportOnlyTheirOwnPersistedTranscriptAndSummaryAvailability
       - name: Create and verify ephemeral unsigned package without uploading
         if: ${{ !cancelled() }}
         shell: bash
@@ -1022,8 +1036,27 @@ jobs:
           assert release['targetCommitish'] == os.environ['GITHUB_SHA']
           assert release['tagName'] == 'mvp-preview-' + os.environ['GITHUB_SHA'][:12]
           PY
+          python3 - <<'PY'
+          import hashlib, json, os, subprocess
+          from pathlib import Path
+          packages = []
+          for checkout in sorted(Path('.agent-local/source-packages/checkouts').iterdir()):
+              if checkout.is_dir():
+                  revision = subprocess.check_output(['git', '-C', str(checkout), 'rev-parse', 'HEAD'], text=True, timeout=10).strip()
+                  packages.append({'package': checkout.name, 'revision': revision})
+          resolved = []
+          for path in sorted(Path('LocalMinutes.xcodeproj').rglob('Package.resolved')):
+              resolved.append({'path': str(path), 'contents': json.loads(path.read_text())})
+          receipt = {'sourceCommit': os.environ['GITHUB_SHA'], 'packageCheckouts': packages,
+                     'resolvedPackages': resolved,
+                     'asrBuild': json.loads(Path('Vendor/SherpaASROnly/Artifacts/SherpaOnnxC.receipt.json').read_text()),
+                     'bundledNoticesSHA256': hashlib.sha256(Path('Resources/THIRD_PARTY_NOTICES.txt').read_bytes()).hexdigest()}
+          output = Path('build/package/dependency-receipt.json')
+          output.write_text(json.dumps(receipt, indent=2) + '\n')
+          Path(str(output) + '.sha256').write_text(hashlib.sha256(output.read_bytes()).hexdigest() + '  ' + output.name + '\n')
+          PY
           gh release upload "$MVP_TAG" --repo "$GITHUB_REPOSITORY" \
-            build/package/*.ipa build/package/*.sha256 build/package/build-manifest.json
+            build/package/*.ipa build/package/*.sha256 build/package/build-manifest.json build/package/dependency-receipt.json
 
   # Owner-requested MVP delivery: compile/package only, no test runner or model weights.
   # The workflow definition and the reviewed app source are recorded separately.

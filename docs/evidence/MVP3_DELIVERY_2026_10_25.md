@@ -102,3 +102,41 @@ mandatory real-Phi quality case.
 
 The actual SQLite content-status regression now passes. Native product/UI lanes
 are still active. No full model suite was repeated for this focused step.
+
+## Focused native behavior results
+
+Same a1308e9/run40174152880, job121111124337: 13 cases executed, 8 passed,
+5 failed, 5 assertion failures, 0 skips, 1.767 seconds. Build-identity reader
+returned nil (1 expected failure), citation target positives returned nil
+(2 expected failures; invalid-citation negative passed), and both privacy cases
+failed only their explicit hosting-root accessibility-hidden assertion. The
+opaque cover, scene filtering and retained capture/CAF assertions were preserved.
+All five latest-meeting cases, actual recording-progress composition, and the
+four-shortcut SDK assertion passed.
+
+Minimal implementations now prepared: real bundle metadata; validated complete
+citation target with transcript-row selection/scroll and owned playback; explicit
+hosting-root accessibility hiding alongside its UIKit window containers, with
+exact original-state restoration. Native GREEN and screen-lane result pending.
+
+## Actual screen RED and combined repair candidate
+
+Same a1308e9/run40174152880, job121111124406: 7 UI cases executed, 2 passed,
+5 failed, 20 assertion failures, 0 skips, 260.263 seconds. Real seeded library
+loaded: editable summary/QA/isolation flow passed (80.315 seconds). Model action
+reachability and 44-point targets at largest accessibility text passed (20.674
+seconds); only repeated bare spoken labels failed (11 assertions). Required
+recording explanations, build identity and history content labels failed their
+7 missing-element assertions. These are genuine product RED, not fixture failure.
+
+Two library-flow assertions failed because generated sections preceded the
+transcript in a virtualized List, leaving transcript search/rows below the
+initial viewport. Move existing generated sections after original transcript;
+retain all original tests, saved content and citation callbacks.
+
+Combined candidate implements only these gaps. Medium agents reviewed the final
+changes; no concrete compile/data-handling issue was found by inspection. The
+final milestone run will exercise actual models, native product and UI cases,
+release fixture exclusion, device build and IPA hygiene together. Passing native
+bytes are retained in an unpublished owner draft from that same build; delivery
+still requires all mandatory lanes and independent Windows byte verification.

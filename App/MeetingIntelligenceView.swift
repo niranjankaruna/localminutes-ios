@@ -327,7 +327,7 @@ final class MeetingIntelligenceController {
 @MainActor
 struct MeetingIntelligenceView: View {
     @Bindable var controller: MeetingIntelligenceController
-    let playCitation: @MainActor (Int64) async -> Void
+    let playCitation: @MainActor (MeetingCitationNavigationTarget) async -> Void
     @State private var confirmingFreshSummary = false
 
     var body: some View {
@@ -424,7 +424,8 @@ struct MeetingIntelligenceView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("“\(citation.quote)”").font(.callout).textSelection(.enabled)
                 Button("Play source at \(citation.time)") {
-                    Task { await playCitation(citation.startSample) }
+                    guard let target = controller.citationNavigationTarget(documentID: document.id, citationID: citation.id) else { return }
+                    Task { await playCitation(target) }
                 }.font(.caption)
                 Text("Transcript source \(citation.sourceID.uuidString)").font(.caption2).foregroundStyle(.secondary)
             }

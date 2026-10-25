@@ -11,11 +11,12 @@ struct MeetingCitationNavigationTarget: Equatable, Sendable {
 }
 
 extension MeetingIntelligenceController {
-    // Test-first seam. After hosted behavioral RED, citation buttons will pass
-    // this complete target to the actual detail transcript selection/scroll and
-    // existing request-owned audio playback, replacing the offset-only callback.
     func citationNavigationTarget(documentID: UUID, citationID: String) -> MeetingCitationNavigationTarget? {
-        nil
+        guard let citation = citations[documentID]?.first(where: { $0.id == citationID }) else { return nil }
+        // The controller builds this collection only from stored documents and
+        // exact quotes/ranges in this meeting's original transcript.
+        return MeetingCitationNavigationTarget(meetingID: meetingID, segmentID: citation.sourceID,
+            startSample: citation.startSample, endSample: citation.endSample)
     }
 }
 #endif

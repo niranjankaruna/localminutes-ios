@@ -749,11 +749,14 @@
           "id": "T12.4",
           "title": "Navigate cited evidence to its actual transcript row and validated audio time",
           "status": "IN_PROGRESS",
-          "productionImplemented": false,
-          "redEvidence": [],
+          "productionImplemented": true,
+          "redEvidence": [
+            "docs/evidence/MVP3_DELIVERY_2026_10_25.md"
+          ],
           "greenEvidence": [],
           "deviceEvidence": [],
-          "preparedEvidence": "docs/evidence/MVP3_PRODUCT_GATES_2026_10_24.md"
+          "preparedEvidence": "docs/evidence/MVP3_PRODUCT_GATES_2026_10_24.md",
+          "nextAction": "Exact-candidate native/UI GREEN and delivery pending"
         }
       ],
       "redEvidence": [],
@@ -1322,21 +1325,27 @@
           "id": "T20.2",
           "title": "Distinct spoken model actions and large-text reachable touch targets",
           "status": "IN_PROGRESS",
-          "productionImplemented": false,
-          "redEvidence": [],
+          "productionImplemented": true,
+          "redEvidence": [
+            "docs/evidence/MVP3_DELIVERY_2026_10_25.md"
+          ],
           "greenEvidence": [],
           "deviceEvidence": [],
-          "preparedEvidence": "docs/evidence/MVP3_PRODUCT_GATES_2026_10_24.md"
+          "preparedEvidence": "docs/evidence/MVP3_PRODUCT_GATES_2026_10_24.md",
+          "nextAction": "Exact-candidate native/UI GREEN and delivery pending"
         },
         {
           "id": "T20.3",
           "title": "Required setup explanations build identity and per-meeting content status",
           "status": "IN_PROGRESS",
-          "productionImplemented": false,
-          "redEvidence": [],
+          "productionImplemented": true,
+          "redEvidence": [
+            "docs/evidence/MVP3_DELIVERY_2026_10_25.md"
+          ],
           "greenEvidence": [],
           "deviceEvidence": [],
-          "preparedEvidence": "docs/evidence/MVP3_PRODUCT_GATES_2026_10_24.md"
+          "preparedEvidence": "docs/evidence/MVP3_PRODUCT_GATES_2026_10_24.md",
+          "nextAction": "Exact-candidate native/UI GREEN and delivery pending"
         }
       ],
       "redEvidence": [],
@@ -1575,7 +1584,7 @@
   ],
   "executionPausedByOwner": false,
   "resumeAction": "NEXT legitimateboundedinvocation: retainthis6of6batch/evidence, recheckrepo/cost/auth andactualcurrentHEAD. Verify repaired6.2 localpackage and nativecompile first; thenrun mvp3-integration proveLibraryBootstrap=false (oldnilRED alreadycaptured), currentseededUI mustGREEN. Record actualnewcitation/screens/CPUdefault/a11y RED beforeimplementingthem; keep modeloracles andunknownquality. Finish fixes, focusedregressions+realmodelgate+unsignedIPAexactSHA/checksum; deliverMVP3onlyafterrequiredGREEN. Physicalsigning/LockScreen/ActionButton/2x125min/renewalNOT_RUN. AllsubagentsGPT6.1SolMedium; no seventhCI inoldinvocation.",
-  "lastUpdated": "2026-10-25T07:34:33.110Z",
+  "lastUpdated": "2026-10-25T08:13:02.653Z",
   "latestVerification": {
     "runId": 40138806203,
     "sourceCommit": "14ff749a2bd8678b6523cf377b6695283513a76e",

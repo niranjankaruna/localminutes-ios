@@ -25,6 +25,12 @@ struct RecordingControlsView: View {
                 VStack(alignment: .leading, spacing: 24) {
                     Text("Your meetings stay on this iPhone.")
                         .font(.title2.weight(.semibold))
+                    Text("Microphone permission lets LocalMinutes record meetings you explicitly start. Allow access when prompted; you can change permission in iPhone Settings.")
+                        .font(.subheadline).foregroundStyle(.secondary)
+                        .accessibilityIdentifier("recording.microphoneExplanation")
+                    Text("A Live Activity shows recording status and a Stop control on the Lock Screen. Enable Live Activities for LocalMinutes in iPhone Settings if needed.")
+                        .font(.subheadline).foregroundStyle(.secondary)
+                        .accessibilityIdentifier("recording.liveActivityExplanation")
                     status
                         .frame(maxWidth: .infinity, alignment: .leading)
                     if snapshot?.phase == .recording {
