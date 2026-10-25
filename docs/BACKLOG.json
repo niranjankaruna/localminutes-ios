@@ -812,8 +812,10 @@
           "testsFirstPrepared": true,
           "redVerified": false,
           "productionImplemented": false,
-          "nextAction": "Finish observing live storage run40186443609 (no replacement while live). Commit/push prepared T12.5/T15.2/T18.7 tests and minimal seams; dispatch one mvp4-final RED batch with packageMVP2=false only after current run terminal. Obtain actual assertions before implementing each missing behavior; then one combined final regression/package build6. No model-quality jobs. MVP4 development delivery excludes owner phone verification but cannot ignore these concrete code gaps.",
-          "evidence": "docs/evidence/MVP4_FINAL_GAPS_TDD.md"
+          "nextAction": "Watch exact live storage UI job121148120197/run40186443609; other storage gates are actual GREEN(7Core/46scripts/15native/Release+3hygiene). No competing run. Once terminal, dispatch mvp4-final RED at pushed b05e7d9730ecefea1c5ba216183cad928861fc8f with packageMVP2=false; 5portable+9native+3UI. Empty seams only; no history/answer/memory behavior until each actualRED. Then implement parallel, one final combined app regression/package build6 and verified delivery. No quality benchmarks. Phone checks owner-only.",
+          "evidence": "docs/evidence/MVP4_FINAL_GAPS_TDD.md",
+          "testFirstSource": "b05e7d9730ecefea1c5ba216183cad928861fc8f",
+          "testFirstPushed": true
         }
       ],
       "redEvidence": [],
@@ -976,8 +978,10 @@
           "testsFirstPrepared": true,
           "redVerified": false,
           "productionImplemented": false,
-          "nextAction": "Finish observing live storage run40186443609 (no replacement while live). Commit/push prepared T12.5/T15.2/T18.7 tests and minimal seams; dispatch one mvp4-final RED batch with packageMVP2=false only after current run terminal. Obtain actual assertions before implementing each missing behavior; then one combined final regression/package build6. No model-quality jobs. MVP4 development delivery excludes owner phone verification but cannot ignore these concrete code gaps.",
-          "evidence": "docs/evidence/MVP4_FINAL_GAPS_TDD.md"
+          "nextAction": "Watch exact live storage UI job121148120197/run40186443609; other storage gates are actual GREEN(7Core/46scripts/15native/Release+3hygiene). No competing run. Once terminal, dispatch mvp4-final RED at pushed b05e7d9730ecefea1c5ba216183cad928861fc8f with packageMVP2=false; 5portable+9native+3UI. Empty seams only; no history/answer/memory behavior until each actualRED. Then implement parallel, one final combined app regression/package build6 and verified delivery. No quality benchmarks. Phone checks owner-only.",
+          "evidence": "docs/evidence/MVP4_FINAL_GAPS_TDD.md",
+          "testFirstSource": "b05e7d9730ecefea1c5ba216183cad928861fc8f",
+          "testFirstPushed": true
         }
       ],
       "redEvidence": [
@@ -1287,8 +1291,10 @@
           "testsFirstPrepared": true,
           "redVerified": false,
           "productionImplemented": false,
-          "nextAction": "Finish observing live storage run40186443609 (no replacement while live). Commit/push prepared T12.5/T15.2/T18.7 tests and minimal seams; dispatch one mvp4-final RED batch with packageMVP2=false only after current run terminal. Obtain actual assertions before implementing each missing behavior; then one combined final regression/package build6. No model-quality jobs. MVP4 development delivery excludes owner phone verification but cannot ignore these concrete code gaps.",
-          "evidence": "docs/evidence/MVP4_FINAL_GAPS_TDD.md"
+          "nextAction": "Watch exact live storage UI job121148120197/run40186443609; other storage gates are actual GREEN(7Core/46scripts/15native/Release+3hygiene). No competing run. Once terminal, dispatch mvp4-final RED at pushed b05e7d9730ecefea1c5ba216183cad928861fc8f with packageMVP2=false; 5portable+9native+3UI. Empty seams only; no history/answer/memory behavior until each actualRED. Then implement parallel, one final combined app regression/package build6 and verified delivery. No quality benchmarks. Phone checks owner-only.",
+          "evidence": "docs/evidence/MVP4_FINAL_GAPS_TDD.md",
+          "testFirstSource": "b05e7d9730ecefea1c5ba216183cad928861fc8f",
+          "testFirstPushed": true
         }
       ],
       "redEvidence": [],

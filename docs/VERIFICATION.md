@@ -400,3 +400,5 @@ App screens/shared real-model wiring, durable edits/answers/citations/cancel/exp
 | T12.1a Core GREEN | Actual bounded storage metadata | R7 7cases/5FAIL28assert | R8run40186443609 Core7PASS0fail/skip0.422s +46scriptsPASS | 3273fb20401023fd8095d36c7007923aa42d7bca | HostedmacOS | IN_PROGRESS | Native/UI/package still live; no physical claim. |
 
 | T12.5/T15.2/T18.7 prepared | Final functional gaps from audit | Tests5portable+9native+3UI prepared; actualRED pending | NOT_RUN | Pending test-firstcommit | HostedmacOS/iOS required | IN_PROGRESS | Emptyseams only, no new inference/modelquality. |
+
+| T12.1a native/package partialGREEN | Actual privacy report and guarded reads | R7actualRED retained | R8native15PASS0fail/skip1.280s; actualdevicebuild5 +3hygienePASS | 3273fb20401023fd8095d36c7007923aa42d7bca | Hosted iOS Simulator/devicecompilation | IN_PROGRESS | UIstilllive; localbytespending; finalMVP4gaps testsfirstb05e7d9pushed. |
