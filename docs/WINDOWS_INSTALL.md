@@ -6,10 +6,11 @@ owned Mac, local Xcode or paid Apple Developer membership. Hosted macOS builds
 are a separate development step.
 
 **Installation update, 24 October 2026:** the owner reports successful installation
-with **iLoader**, now the selected Windows installer. The exact installed IPA,
-phone/iOS and iLoader version have not yet been recorded. Existing MVP and
-feature-preview artifacts are listed in [STATE.json](STATE.json); the full
-release-candidate artifact remains pending. Installation does not establish
+with **iLoader**, now the selected Windows installer. The exact installed IPA and
+iLoader version remain unreported. The owner
+reports iPhone 17 Pro / iOS 27.0.1. The delivered build 6 candidate is listed in
+[STATE.json](STATE.json); full physical-device acceptance remains pending.
+Installation does not establish
 extension, locked-screen, offline or renewal results.
 
 **Current checkpoint, 25 October 2026:** MVP3 was delivered; build6 is the
@@ -82,9 +83,9 @@ available for any meeting whose unfinished transcript needs recovery.
 | Parakeet v2 | Reviewed FluidInference Core ML conversion, with all required bundles and vocabulary | Chunked local transcription; see the candidate's compute policy |
 | Summary model | Compatible Qwen2/Phi3-family GGUF with a supported template | Local summaries and selected-meeting questions after recording; owner chooses the model, Phi-3 is not required |
 
-Use the guide matching the installed candidate: [MVP2](MVP2_GUIDE.md),
-[delivered MVP3](MVP3_GUIDE.md), or [build6 MVP4](MVP4_GUIDE.md). MVP3 and build6
-use CPU-only Parakeet; evidence from an earlier CPU/Neural Engine configuration
+Use the [current build guide](MVP4_GUIDE.md), [model setup](MODELS.md), and
+[library/backup guide](LIBRARY.md). MVP3 and build6 use CPU-only Parakeet;
+evidence from an earlier CPU/Neural Engine configuration
 cannot validate that changed runtime. Fresh phone checks are required.
 
 Models are separate from the IPA. File verification checks integrity;

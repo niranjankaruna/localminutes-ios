@@ -1,21 +1,31 @@
 # Local summaries and questions
 
-**Current status: actual selected Phi summary/Q&A flows pass on hosted macOS. Model-choice MVP packaging is pending; representative meeting quality, long-meeting resume and physical-phone behavior remain unverified. Unsupported output is rejected.**
+Current build 6 includes local summaries, selected-meeting questions, source
+navigation, editable generated summaries, and saved-answer editing. Hosted
+functional evidence is in [VERIFICATION.md](VERIFICATION.md). Output quality is
+assessed manually by the owner; physical-phone operation remains unverified.
 
-This feature preview adds Summary and Ask sections to a saved meeting. It requires the separate local summary-model download.
+1. Install and **Equip** a compatible [summary model](MODELS.md). The owner chooses
+   the model; Phi-3 is not required. Keep model weights separate from the IPA.
+2. Stop recording, open a saved meeting, and choose **Generate summary**. Keep the
+   app in the foreground. Summary inference is admitted separately from live capture.
+3. Review source references and use **Play source** to inspect the matching
+   transcript/audio position. Edit the generated summary separately from original
+   notes. A save conflict preserves the draft instead of overwriting newer content.
+4. Enter a question under **Ask this meeting**, then choose **Ask**. Retrieval and
+   answers are restricted to that meeting. Insufficient evidence is an explicit
+   outcome; generated results must pass source/schema checks before saving.
+5. Edit a saved answer and tap **Save answer**. Leaving the meeting flushes edits;
+   a revision conflict preserves the draft. Copy it before choosing **Reopen saved
+   answer**. Edits do not change the original transcript, notes, or source evidence.
+6. **Cancel**, leaving the meeting, backgrounding, and memory warnings request
+   cancellation and model cleanup. Capture has priority. Durable summary
+   checkpoints support resume; bounded context and item limits may still reject
+   a long or unusually dense meeting without publishing a partial result.
+7. **Share generated notes and answers** exports the selected generated content,
+   questions, source quotes, and model/prompt provenance to your chosen destination.
 
-1. Install the new unsigned IPA over the existing app through iLoader using the same Apple Account and installed bundle-ID settings. Avoid uninstalling to preserve the existing container; actual renewal/data preservation remains unverified.
-2. Open **Models → Summary**, look up `microsoft/Phi-3-mini-4k-instruct-gguf`, select `Phi-3-mini-4k-instruct-q4.gguf` (about2.39GB), Download, then **Equip**. Compatible alternatives can also be installed and selected. Model setup needs internet; generation uses the equipped model locally. See [model choices](MVP1_MODELS.md).
-3. Stop recording, open **Meetings**, and select the meeting. Tap **Generate summary**. Keep the app in the foreground until generation finishes.
-4. Edit the generated summary separately from your original notes. Changes autosave; **Save summary** retries a failed save. A revision-conflict message protects a newer saved copy from being overwritten.
-5. Enter a question under **Ask this meeting**, then tap **Ask**. Saved answers and supporting original quotes appear only in the selected meeting. Use **Play source** to open the cited audio position.
-6. **Cancel**, leaving the meeting, or backgrounding the app cancels that request and releases its local model. Starting a recording gives capture priority and waits for model cleanup. Original notes/transcripts remain intact.
-7. Use **Share generated notes and answers** to export the selected generated copy, questions, source quotes and model/prompt provenance. Sharing sends that text to the destination you choose.
-
-Generated results must pass schema and selected-source quote checks before saving. Review them against their sources; an exact quote is not a general guarantee of factual entailment. Unsupported generation shows a recoverable error. Original manual notes are preserved and supplied as context, while citations currently refer to finalized transcript sources.
-
-The current implementation has explicit context, atomic-segment, map and total-item limits. A very long or unusually dense meeting may exceed them and fail without publishing a partial summary. Long-meeting summarization, notes-only citations, checkpoint resume, representative model quality and physical-phone behavior remain pending baseline work.
-
-The build/check results and exact downloadable IPA are recorded in the feature delivery handoff. Existing MVP files remain available separately.
-
-This preview adds generated-document schema4. The original schema3 MVP cannot reopen a database upgraded by this preview. Original rows are retained, but a downgrade to that old binary is not a supported rollback. Keep the original MVP for current use until you decide whether to try the feature preview.
+Exact quotes and valid JSON do not guarantee factual correctness. Review output
+against its sources and chosen model. Historical model failures and their tests
+remain available in [evidence](evidence/); they have not been relabeled as passes.
+See [meeting backup and recovery](LIBRARY.md) before updates or renewal.

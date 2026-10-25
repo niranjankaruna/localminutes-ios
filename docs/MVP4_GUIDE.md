@@ -75,3 +75,6 @@ Keep real audio, transcripts, backups and account details private.
 
 See the [requirement/evidence handoff](evidence/MVP4_REQUIREMENT_HANDOFF.md)
 for the scope of each automated result and every remaining physical gate.
+
+See [model setup](MODELS.md), [meetings/backup/recovery](LIBRARY.md), and
+[local summaries and questions](SUMMARIES_AND_QA.md) for current usage.

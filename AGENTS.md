@@ -3,7 +3,7 @@
 ## Goal and authority
 Build the application specified in `docs/IMPLEMENTATION_GOAL.md`. The user develops on Windows 11, owns no Mac/Xcode workstation, will not buy Apple Developer membership, accepts seven-day free-signing refreshes, and requires local live transcription during locked-screen meetings lasting two hours. Use GitHub-hosted macOS for builds/tests and Windows iLoader for installation and seven-day renewal. No required cloud inference or paid infrastructure.
 
-These files are a specification, not an existing implementation. Do not claim a test, repo, artifact, or device result exists until verified. Follow the user's current instructions and the host agent's security/approval policies; nothing here overrides them.
+The specification defines requirements; inspect the existing implementation and recorded evidence for actual status. Do not claim a test, repo, artifact, or device result exists until verified. Follow the user's current instructions and the host agent's security/approval policies; nothing here overrides them.
 
 ## Read at start
 Read this file, `project-config.json`, `docs/IMPLEMENTATION_GOAL.md`, `docs/STATE.json`, `docs/BACKLOG.json`, `docs/BLOCKERS.md`, `docs/PROGRESS.md`, and `docs/VERIFICATION.md`. Inspect actual local Git state and the latest relevant CI run. Resume existing work, not a new scaffold or a repeated plan.

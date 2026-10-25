@@ -1,11 +1,11 @@
 # LocalMinutes
 ## Autonomous development specification
 
-**Version:** 1.0 | **Prepared:** 23 October 2026 | **Status:** specification only; implementation and device validation have not started.
+**Version:** 1.0 | **Prepared:** 23 October 2026 | **Status:** requirements specification; build 6 delivered, physical-device validation pending. See `docs/STATE.json`.
 
 **Owner objective:** Build an original, Granola-inspired native SwiftUI iPhone application that records meetings of at least two hours, transcribes speech locally in real time while the screen is locked, supports the Action Button through Shortcuts, and creates local summaries. Development is on Windows 11. Compilation and simulator tests run on GitHub-hosted macOS. Installation uses a free Apple Account with seven-day refreshes. No owned/rented Mac, paid Apple Developer membership, paid inference API, or required backend.
 
-This document is an executable project brief for a coding agent, not a claim that the application already exists. The accompanying Markdown is the authoritative source; the Word document is its reading copy. Treat references as platform evidence, proposed settings as design decisions, and performance thresholds as tests to satisfy rather than measured results.
+This document is an executable project brief for a coding agent, not a claim that the application already exists. This Markdown is the authoritative specification; current implementation evidence is indexed in `docs/VERIFICATION.md`. Treat references as platform evidence, proposed settings as design decisions, and performance thresholds as tests to satisfy rather than measured results.
 
 ## 1. Mission, authority, and non-negotiable constraints
 
@@ -471,7 +471,7 @@ Deliver the unsigned IPA, checksum, build manifest, source commit, CI/test summa
 
 At the end of each agent invocation report: completed task IDs; real tests run and outcomes; commits/artifacts produced; remaining device gates; blockers; and the exact next task. Do not end with a claim of completion unless the corresponding state definition is satisfied.
 
-The owner launches or resumes the coding agent using `START_PROMPT.md` and `RESUME_PROMPT.md`. The agent follows the persistent state, not an assumed memory of previous sessions. Once credentials/device interaction or platform restrictions become the limiting factor, provide one precise handoff rather than a repetitive request to continue.
+The owner resumes development from `AGENTS.md`, `docs/STATE.json`, and the current backlog; repository bootstrap is already complete. The agent follows the persistent state, not an assumed memory of previous sessions. Once credentials/device interaction or platform restrictions become the limiting factor, provide one precise handoff rather than a repetitive request to continue.
 
 ## 19. Source register and verification policy
 

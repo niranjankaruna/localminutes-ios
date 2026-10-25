@@ -1,4 +1,9 @@
-# Summary starter-model decision, 24 October 2026
+# Historical summary starter-model decision, 24 October 2026
+
+Current policy, 25 October 2026: the owner chooses models manually and does not
+intend to use Phi-3 for summaries. Automated model-quality benchmarks are not an
+MVP3 delivery gate. The decision and actual results below are historical evidence,
+not a current recommendation. See [model setup](MODELS.md).
 
 The app's starter summary choice moves from Qwen2.5-1.5B Q4_K_M to Microsoft's
 Phi-3-mini-4k-instruct Q4. This is a model configuration change after actual

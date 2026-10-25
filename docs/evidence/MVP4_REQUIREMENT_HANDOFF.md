@@ -41,7 +41,7 @@ top-anchor precondition. Its terminal result is SUCCESS:1 actual case PASS/0fail
 
 [Build6 guide](../MVP4_GUIDE.md), [Windows installation/renewal and Action Button](../WINDOWS_INSTALL.md),
 [phone checklist](../MVP4_DEVICE_CHECKLIST.md), [device report template](../templates/DEVICE_TEST_REPORT.md),
-[models](../MVP1_MODELS.md), [backup/recovery](../MVP2_GUIDE.md),
+[models](../MODELS.md), [backup/recovery](../LIBRARY.md),
 [dependency inventory](../DEPENDENCIES.md) and [verification index](../VERIFICATION.md).
 The guide describes privacy limitations, ordinary deletion and owner-directed
 exports. The IPA directory contains the manifest, dependency receipt and checksums.
