@@ -1584,7 +1584,7 @@
   ],
   "executionPausedByOwner": false,
   "resumeAction": "NEXT legitimateboundedinvocation: retainthis6of6batch/evidence, recheckrepo/cost/auth andactualcurrentHEAD. Verify repaired6.2 localpackage and nativecompile first; thenrun mvp3-integration proveLibraryBootstrap=false (oldnilRED alreadycaptured), currentseededUI mustGREEN. Record actualnewcitation/screens/CPUdefault/a11y RED beforeimplementingthem; keep modeloracles andunknownquality. Finish fixes, focusedregressions+realmodelgate+unsignedIPAexactSHA/checksum; deliverMVP3onlyafterrequiredGREEN. Physicalsigning/LockScreen/ActionButton/2x125min/renewalNOT_RUN. AllsubagentsGPT6.1SolMedium; no seventhCI inoldinvocation.",
-  "lastUpdated": "2026-10-25T08:13:02.653Z",
+  "lastUpdated": "2026-10-25T09:41:17.084Z",
   "latestVerification": {
     "runId": 40138806203,
     "sourceCommit": "14ff749a2bd8678b6523cf377b6695283513a76e",
@@ -1749,5 +1749,6 @@
       "skipped": 0
     },
     "finalRepairCodeCommit": "5ac056f2e365233db655eae9e534e184b484d97c"
-  }
+  },
+  "ownerModelEvaluationPolicy": "Owner evaluates chosen models manually; automatedqualitybenchmarks notMVP3deliverygate asof25Oct2026. Preservehistoricaltests/results; nofalsePASS. Functionality/reliability/actualengines/devicechecksremain."
 }

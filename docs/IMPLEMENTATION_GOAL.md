@@ -453,6 +453,8 @@ Measure battery consumption rather than inventing a battery guarantee. Set an in
 
 ### 17.3 Accuracy and intelligence gates
 
+**Owner override, 25 October 2026:** automated model-quality benchmarks are not an MVP3 delivery gate. The owner will choose models and assess output manually and does not intend to use Phi-3 for summaries. Preserve the historical tests, results and targets below; do not call a cancelled, failed or unrun evaluation a pass. Functionality, reliability, real local inference (with compatible prior evidence where production code/pins are unchanged), data isolation and unsupported-output rejection remain required. Physical-device checks remain separate.
+
 Use a fixed licensed/non-sensitive evaluation set with clean speech, pauses, background noise, different accents including the owner's representative accent, and technical vocabulary. Maintain verified reference transcripts and report word error rate plus qualitative error categories. Initial targets are at most 15% WER on a clean set and at most 25% on the representative meeting set; these are product targets to validate, not claims about the proposed model. A missed target requires improvement or an explicit owner-approved scope change.
 
 For summaries, evaluate factual precision and evidence support on a fixed set. Critical decisions/actions must not be fabricated. Require valid source links and check missing-owner/due-date cases. A deterministic schema test plus a semantic evaluation is required; mock output alone is insufficient.

@@ -64,7 +64,7 @@ test('packages actual device binaries into an unsigned IPA with verified checksu
     assert.equal(manifest.schemaVersion, 1);
     assert.equal(manifest.sourceCommit, sourceCommit);
     assert.equal(manifest.appVersion, '1.0');
-    assert.equal(manifest.buildNumber, '1');
+    assert.equal(manifest.buildNumber, '4');
     assert.equal(manifest.artifact, expectedName);
     assert.equal(manifest.sha256, hash);
     assert.equal(manifest.sizeBytes, statSync(result.ipaPath).size);

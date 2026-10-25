@@ -219,3 +219,34 @@ Actual harness GREEN remains required in the candidate run.
 The next candidate batches these fixes with correlated grammar. Basic Phi and
 representative Phi run as independent parallel45-minute jobs, keeping their
 unchanged cases/oracles while avoiding a combined runtime timeout.
+
+## Owner-directed functional delivery gate
+
+On25October2026 at09:35UTC the owner explicitly requested functionality and
+reliability checks instead of automated model-quality benchmarks, will choose
+models and assess them manually, and will not use Phi-3 for summaries. This
+overrides the automated quality gate for MVP3; it does not turn failures or
+cancellations into passes or permit mock production inference. Existing quality
+tests and their historical results are preserved. Phone gates remain pending.
+
+Candidate `ceae957642ba20c6a9447ca314339e346f3f2aee` /
+[run40180161772](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40180161772)
+was cancelled at the owner's request while the representative quality job was
+still active. The completed core lane passed464 cases,62 script tests and88
+ThreadSanitizer cases,0 failures/skips. The real selected-service inference case
+passed before cancellation. Those are retained observations, not a pass for the
+cancelled representative case.
+
+Native Release/device and Debug/simulator compilation passed. Device metadata
+contracts2/2 and compiled release-fixture exclusion2/2 passed. Packaging13 cases:
+12 passed,1 failed on a second old build assertion (`1`, actual currentbuild4).
+The explicit expected value is corrected to4 without dropping any packaging
+assertion. A repository sweep found no further build/version assertions in the
+native/script tests. Real ephemeral IPA hygiene3/3 passed. Native app/UI cases
+were not reached in this run; they remain mandatory.
+
+Next `mvp3-functional` mode runs focused logic reliability plus the complete native
+app/UI/build/package/hygiene gates and retains a passing IPA. It does not run
+quality benchmarks or download their weights. Runtime/source/pin compatibility
+with the completed ceae957 core and actual-inference observations is checked
+explicitly; only test metadata, workflow scope and documentation changed.

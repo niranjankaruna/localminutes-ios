@@ -8,7 +8,7 @@ on:
         required: true
         type: choice
         default: mvp
-        options: [mvp, features, package, validation, candidate, candidate-summary, candidate-summary-parts, model-catalog, model-integration, model-repair, model-delivery, mvp2-red, mvp2, mvp2-integration, mvp2-parakeet, mvp3, mvp3-integration, mvp3-startup]
+        options: [mvp, features, package, validation, candidate, candidate-summary, candidate-summary-parts, model-catalog, model-integration, model-repair, model-delivery, mvp2-red, mvp2, mvp2-integration, mvp2-parakeet, mvp3, mvp3-integration, mvp3-startup, mvp3-functional]
       sourceCommit:
         description: Reviewed app source for the MVP package
         required: true
@@ -322,7 +322,7 @@ jobs:
         run: node scripts/verify-test-log.mjs .build/mvp2-recovery.log testCursorOnlyJumpToTimelineEndCannotSkipRemainingActualSpeechAfterReopen testActualWhisperPreparationPersistsCoherentImmutableMeetingPinBeforeFirstAudioFrame
 
   focused-portable:
-    if: ${{ inputs.mode == 'candidate-summary-parts' || inputs.mode == 'model-catalog' || inputs.mode == 'model-integration' || inputs.mode == 'model-repair' || inputs.mode == 'model-delivery' || inputs.mode == 'mvp3' || inputs.mode == 'mvp3-startup' }}
+    if: ${{ inputs.mode == 'candidate-summary-parts' || inputs.mode == 'model-catalog' || inputs.mode == 'model-integration' || inputs.mode == 'model-repair' || inputs.mode == 'model-delivery' || inputs.mode == 'mvp3' || inputs.mode == 'mvp3-startup' || inputs.mode == 'mvp3-functional' }}
     runs-on: macos-15-intel
     timeout-minutes: 12
     env:
@@ -346,7 +346,7 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           mkdir -p .build
-          if [[ "${{ inputs.mode }}" == mvp3 || "${{ inputs.mode }}" == mvp3-startup ]]; then
+          if [[ "${{ inputs.mode }}" == mvp3 || "${{ inputs.mode }}" == mvp3-startup || "${{ inputs.mode }}" == mvp3-functional ]]; then
             swift test --filter 'CoreTests[.](RecordingProgressPresenterTests|TranscriptionMetricsTests)|PersistenceTests[.]MeetingContentStatusTests|SummaryTests[.](SummaryPipelineTests|StructuredJSONSchemaTests)' 2>&1 | tee .build/focused-portable.log
           elif [[ "${{ inputs.mode }}" == model-integration || "${{ inputs.mode }}" == model-repair || "${{ inputs.mode }}" == model-delivery ]]; then
             swift test --filter 'ModelTests[.](HuggingFaceRepositoryTests|ModelSelectionTests|ModelDeviceResourceReaderTests|ModelInstallationIdentityTests|ModelRuntimeCompatibilityTests)|CoreTests[.]TranscriptionMetricsTests|PersistenceTests[.]SummaryCheckpointStoreTests|SummaryTests[.](SummaryPipelineTests|GroundedSummaryTests|NestedStructuredSchemaTests|StructuredJSONSchemaTests)' 2>&1 | tee .build/focused-portable.log
@@ -360,7 +360,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "${{ inputs.mode }}" == mvp3 || "${{ inputs.mode }}" == mvp3-startup ]]; then
+          if [[ "${{ inputs.mode }}" == mvp3 || "${{ inputs.mode }}" == mvp3-startup || "${{ inputs.mode }}" == mvp3-functional ]]; then
             node scripts/verify-test-log.mjs .build/focused-portable.log testFirstPCMElapsedSurvivesPresenterRecreationAndDoesNotUseTranscribedDuration testMeasuredBacklogWarnsStrictlyAboveFiveSecondsAndReportsRealCatchUp
             node scripts/verify-test-log.mjs .build/focused-portable.log testActualSQLiteStatusDistinguishesEachMeetingsTranscriptAndSummaryAndRemainsUnknownWhenUnreadable
             node scripts/verify-test-log.mjs .build/focused-portable.log testMultiSentenceSourceGrammarPermitsExactSentenceChoicesWithoutForcingParagraphOwnership
@@ -834,7 +834,7 @@ jobs:
   # Native SDK assertions run independently during test-first core failures.
   # All three jobs remain mandatory for the overall workflow result.
   native-build:
-    if: ${{ inputs.mode == 'validation' || inputs.mode == 'mvp3-integration' }}
+    if: ${{ inputs.mode == 'validation' || inputs.mode == 'mvp3-integration' || inputs.mode == 'mvp3-functional' }}
     runs-on: macos-15
     timeout-minutes: 45
     permissions:
@@ -1055,7 +1055,7 @@ jobs:
           python3 -m unittest discover -s scripts/native-hygiene-tests -p 'test_*.py' -v
 
       - name: Retain passing native MVP3 package without a second device compilation
-        if: ${{ success() && inputs.mode == 'mvp3-integration' && inputs.retainMVP3 }}
+        if: ${{ success() && (inputs.mode == 'mvp3-integration' || inputs.mode == 'mvp3-functional') && inputs.retainMVP3 }}
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}

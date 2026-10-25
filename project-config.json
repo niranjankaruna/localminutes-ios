@@ -50,6 +50,8 @@
     "lockedColdStartStatus": "UNVERIFIED"
   },
   "models": {
+    "qualityEvaluationPolicy": "Owner chooses and evaluates models manually; automated model-quality benchmarks are not an MVP3 delivery gate (25 October 2026). Preserve tests/results; no mocked production inference.",
+    "ownerSummaryModelChoice": "Manual; owner does not intend to use Phi-3",
     "asrCandidate": "csukuangfj/sherpa-onnx-streaming-zipformer-en-2023-06-26",
     "asrProvider": "cpu",
     "summaryCandidate": "microsoft/Phi-3-mini-4k-instruct-gguf",
