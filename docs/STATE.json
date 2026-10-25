@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-25T08:14:32.681Z",
+  "lastUpdated": "2026-10-25T08:28:22.393Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -11,7 +11,7 @@
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "Observe combined40175800050 exact866935cb. Require core/actualmodels/native/UI/releasefixture/IPA hygiene GREEN; no result inferred yet. Native success retainsIPA/checksum/manifest/dependency receipt in owner-only draftmvp-preview-866935cb6644. Download locally, independently verifydeviceapp+extension/source/hash/notices and allmandatoryjobresults, then deliverMVP3. Boundedfocusrepaironly genuinefailures; physicalgatesNOT_RUN.",
+  "nextAction": "Finish active40175800050/866935cb for existing repairs/modelquality. Even ifPASS, holdMVP3completion: prove5newstartupselectiontests RED with mvp3-startup atcurrentcommittedtestfirstSHA, repair selectionbinding/controllerafterstartup, verifyGREEN+pertinentregressions+candidateIPAexactSHA. Reuse compatible modelquality observations honestly; avoid fullsuiteperedit. No hardrun cap, zero paidspend,1activebranchrun. PhysicalgatesNOT_RUN.",
   "pendingPushCommit": null,
   "remoteBranchHead": "14ff749a2bd8678b6523cf377b6695283513a76e",
   "localScriptGreen": {
@@ -2300,7 +2300,38 @@
       "mode": "mvp3-integration",
       "status": "in_progress",
       "conclusion": null,
-      "retainMVP3": true
+      "retainMVP3": true,
+      "nativeCompile": {
+        "status": "failure",
+        "executedProductTests": 0,
+        "error": "LocalMinutesHomeView.swift84 compilerunabletotypecheck enlargedMeetingHistoryView.body",
+        "repair": "Firstcompiler-onlyrepair prepared: extractedexistinghistoryList and typedMeetingHistoryRow, behaviorunchanged",
+        "notBehavioralRED": true
+      },
+      "core": {
+        "jobId": 121116095720,
+        "executed": 461,
+        "passed": 461,
+        "failed": 0,
+        "skipped": 0,
+        "durationSeconds": 318.678,
+        "scriptsPassed": 62,
+        "tsan": {
+          "executed": 88,
+          "passed": 88,
+          "failed": 0,
+          "skipped": 0
+        }
+      }
+    },
+    "startupSelectionReview": {
+      "status": "IN_PROGRESS",
+      "finding": "Fresh LocalMinutesServices initializes defaultPhi and controller captures session before initialize, bypassing persistedalternative/explicitunequip",
+      "testFirstSource": "7a7f58b",
+      "testFile": "Tests/NativeAppTests/NativeSummarySelectionStartupTests.swift",
+      "preparedTests": 5,
+      "actualRED": false,
+      "productionRepair": false
     }
   }
 }

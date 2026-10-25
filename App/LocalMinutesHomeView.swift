@@ -83,59 +83,7 @@ private struct MeetingHistoryView: View {
 
     var body: some View {
         NavigationStack(path: $path) {
-            List {
-                if let error = services.library.errorMessage { Text(error).foregroundStyle(.red) }
-                if let actionMessage { Text(actionMessage).foregroundStyle(.secondary) }
-                if let message = services.libraryMessage { Text(message).font(.caption).foregroundStyle(.secondary) }
-                if working { ProgressView("Preparing saved meetings…") }
-                if let backupURL {
-                    Section("Backup ready") {
-                        ShareLink("Save or share library backup", item: backupURL)
-                        Text("This backup includes meeting audio, transcripts, notes and generated content.")
-                            .font(.caption).foregroundStyle(.secondary)
-                    }
-                }
-                if let reportText {
-                    Section("Recording report") {
-                        ShareLink("Share sampled recording report", item: reportText)
-                        Text("Samples describe observed performance. Your locked-screen and long-meeting checks are still required.")
-                            .font(.caption).foregroundStyle(.secondary)
-                    }
-                }
-                if services.library.meetings.isEmpty {
-                    ContentUnavailableView("No meetings yet", systemImage: "text.book.closed",
-                        description: Text("Install the speech model, then start your first meeting."))
-                }
-                ForEach(services.library.meetings.filter {
-                    query.isEmpty || $0.title.localizedCaseInsensitiveContains(query)
-                }) { meeting in
-                    NavigationLink(value: meeting.id) {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(meeting.title).font(.headline)
-                            Text(meeting.createdAt, format: .dateTime.month().day().hour().minute())
-                                .font(.subheadline).foregroundStyle(.secondary)
-                            Text("\(meeting.capturedSampleCount / 16_000 / 60) min · \(meeting.recordingState == .recording ? "Unfinished" : meeting.recordingState.rawValue.capitalized)")
-                                .font(.caption).foregroundStyle(.secondary)
-                            let content = services.library.contentStatuses[meeting.id] ?? .unknown
-                            Text(transcriptStatus(content.transcript))
-                                .font(.caption).foregroundStyle(.secondary)
-                                .accessibilityIdentifier("meeting.history.transcriptStatus")
-                            Text(summaryStatus(content.summary))
-                                .font(.caption).foregroundStyle(.secondary)
-                                .accessibilityIdentifier("meeting.history.summaryStatus")
-                        }
-                        .padding(.vertical, 5)
-                    }
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        Button("Delete", role: .destructive) { askToDelete(meeting.id) }
-                            .disabled(unavailable)
-                    }
-                    .contextMenu {
-                        Button("Delete meeting", role: .destructive) { askToDelete(meeting.id) }
-                            .disabled(unavailable)
-                    }
-                }
-            }
+            historyList
             .navigationTitle("Meetings")
             .searchable(text: $query, prompt: "Search meeting titles")
             .refreshable { await services.library.refresh() }
@@ -191,25 +139,52 @@ private struct MeetingHistoryView: View {
         }
     }
 
+    private var historyList: some View {
+        List {
+            if let error = services.library.errorMessage { Text(error).foregroundStyle(.red) }
+            if let actionMessage { Text(actionMessage).foregroundStyle(.secondary) }
+            if let message = services.libraryMessage { Text(message).font(.caption).foregroundStyle(.secondary) }
+            if working { ProgressView("Preparing saved meetings…") }
+            if let backupURL {
+                Section("Backup ready") {
+                    ShareLink("Save or share library backup", item: backupURL)
+                    Text("This backup includes meeting audio, transcripts, notes and generated content.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            if let reportText {
+                Section("Recording report") {
+                    ShareLink("Share sampled recording report", item: reportText)
+                    Text("Samples describe observed performance. Your locked-screen and long-meeting checks are still required.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            if services.library.meetings.isEmpty {
+                ContentUnavailableView("No meetings yet", systemImage: "text.book.closed",
+                    description: Text("Install the speech model, then start your first meeting."))
+            }
+            ForEach(services.library.meetings.filter {
+                query.isEmpty || $0.title.localizedCaseInsensitiveContains(query)
+            }) { meeting in
+                NavigationLink(value: meeting.id) {
+                    MeetingHistoryRow(meeting: meeting,
+                        content: services.library.contentStatuses[meeting.id] ?? .unknown)
+                }
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button("Delete", role: .destructive) { askToDelete(meeting.id) }
+                        .disabled(unavailable)
+                }
+                .contextMenu {
+                    Button("Delete meeting", role: .destructive) { askToDelete(meeting.id) }
+                        .disabled(unavailable)
+                }
+            }
+        }
+    }
+
     private func askToDelete(_ id: UUID) {
         guard !unavailable else { return }
         pendingDeletion = id; confirmingDeletion = true
-    }
-
-    private func transcriptStatus(_ availability: MeetingContentAvailability) -> String {
-        switch availability {
-        case .available: "Transcript available"
-        case .absent: "No transcript"
-        case .unknown: "Transcript status unavailable"
-        }
-    }
-
-    private func summaryStatus(_ availability: MeetingContentAvailability) -> String {
-        switch availability {
-        case .available: "Summary available"
-        case .absent: "Summary not generated"
-        case .unknown: "Summary status unavailable"
-        }
     }
 
     private func createBackup() {
@@ -240,6 +215,45 @@ private struct MeetingHistoryView: View {
             guard let text = String(data: bytes, encoding: .utf8) else { return }
             reportText = text; actionMessage = nil
         } catch { actionMessage = "The recording report could not be prepared yet." }
+    }
+}
+
+@MainActor
+private struct MeetingHistoryRow: View {
+    let meeting: MeetingRecord
+    let content: MeetingContentStatus
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(meeting.title).font(.headline)
+            Text(meeting.createdAt, format: .dateTime.month().day().hour().minute())
+                .font(.subheadline).foregroundStyle(.secondary)
+            Text("\(meeting.capturedSampleCount / 16_000 / 60) min · \(meeting.recordingState == .recording ? "Unfinished" : meeting.recordingState.rawValue.capitalized)")
+                .font(.caption).foregroundStyle(.secondary)
+            Text(transcriptStatus)
+                .font(.caption).foregroundStyle(.secondary)
+                .accessibilityIdentifier("meeting.history.transcriptStatus")
+            Text(summaryStatus)
+                .font(.caption).foregroundStyle(.secondary)
+                .accessibilityIdentifier("meeting.history.summaryStatus")
+        }
+        .padding(.vertical, 5)
+    }
+
+    private var transcriptStatus: String {
+        switch content.transcript {
+        case .available: "Transcript available"
+        case .absent: "No transcript"
+        case .unknown: "Transcript status unavailable"
+        }
+    }
+
+    private var summaryStatus: String {
+        switch content.summary {
+        case .available: "Summary available"
+        case .absent: "Summary not generated"
+        case .unknown: "Summary status unavailable"
+        }
     }
 }
 

@@ -140,3 +140,27 @@ final milestone run will exercise actual models, native product and UI cases,
 release fixture exclusion, device build and IPA hygiene together. Passing native
 bytes are retained in an unpublished owner draft from that same build; delivery
 still requires all mandatory lanes and independent Windows byte verification.
+
+## Combined candidate 866935cb observations
+
+[Run40175800050](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40175800050),
+exact source `866935cb66445d485f35df9355c35945496b2b4f`:
+
+- Core job121116095720 passed all 461 XCTest cases, 0 failures/skips,
+  318.678 seconds; all 62 script cases passed. Separate Thread Sanitizer pass
+  executed 88 cases, all passed, 0 failures/skips. The exact-sentence regression
+  passed (0.002 seconds), and actual loaded default Parakeet CPU policy passed
+  (0.598 seconds). Real corpus error counts matched the earlier observation.
+- Native job121116095787 failed compiling the expanded SwiftUI history body
+  (`LocalMinutesHomeView.swift:84`, type-check complexity). No product tests
+  executed in that lane. First compiler-only correction extracts the existing
+  list and row into smaller typed views, preserving content and navigation.
+- Phi lane remains active; no outcome inferred.
+
+Independent review also found a fresh-launch summary-selection binding bug.
+Five native tests were pushed in `7a7f58b` before any behavior repair. They use
+real selection files/installations and production controllers; synthetic invalid
+GGUF bytes reject before inference, so these are routing checks only. Actual
+native RED is pending. Do not deliver this candidate as completed MVP3 even if
+the other model checks pass. Next: focused startup routing RED, smallest binding
+repair, relevant GREEN and exact-source verified IPA.
