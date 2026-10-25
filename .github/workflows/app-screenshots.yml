@@ -32,26 +32,48 @@ jobs:
           node-version: '22'
       - name: Prepare and generate iOS project
         run: bash scripts/prepare-ios.sh
-      - name: Boot an iPhone simulator
+      - name: Select and boot an iPhone simulator matching Xcode
+        timeout-minutes: 3
         run: |
           node --input-type=module <<'JS'
           import { execFileSync } from 'node:child_process';
           import { appendFileSync } from 'node:fs';
-          const inventory = JSON.parse(execFileSync('xcrun', ['simctl', 'list', 'devices', 'available', '--json']));
-          const devices = Object.entries(inventory.devices)
-            .filter(([runtime]) => runtime.includes('.iOS-26-'))
-            .flatMap(([runtime, devices]) => devices.map(device => ({ ...device, runtime })))
+          const xcrun = args => execFileSync('xcrun', args, {
+            encoding: 'utf8', timeout: 60000, killSignal: 'SIGKILL'
+          });
+          const sdk = xcrun(['--sdk', 'iphonesimulator', '--show-sdk-version']).trim();
+          const versionPair = version => version.split('.').slice(0, 2).join('.');
+          const runtimes = JSON.parse(xcrun(['simctl', 'list', 'runtimes', '--json'])).runtimes;
+          const runtime = runtimes.find(runtime => runtime.isAvailable &&
+            runtime.identifier.startsWith('com.apple.CoreSimulator.SimRuntime.iOS-') &&
+            versionPair(runtime.version) === versionPair(sdk));
+          if (!runtime) throw new Error(`No installed iOS simulator runtime matches Xcode's ${sdk} SDK`);
+          const inventory = JSON.parse(xcrun(['simctl', 'list', 'devices', 'available', '--json']));
+          const devices = (inventory.devices[runtime.identifier] ?? [])
             .filter(device => device.isAvailable && device.name.startsWith('iPhone'));
           const device = devices.find(device => device.name === 'iPhone 17 Pro') ?? devices[0];
-          if (!device) throw new Error('An iOS 26 iPhone simulator is required');
-          if (device.state !== 'Booted') execFileSync('xcrun', ['simctl', 'boot', device.udid]);
+          if (!device) throw new Error(`No available iPhone simulator for iOS ${runtime.version}`);
+          console.log(`Selected ${device.name}, iOS ${runtime.version}, SDK ${sdk}, UDID ${device.udid}`);
           appendFileSync(process.env.GITHUB_ENV,
             `LOCALMINUTES_SCREENSHOT_SIMULATOR=${device.udid}\n` +
-            `LOCALMINUTES_SCREENSHOT_DEVICE=${device.name} (${device.runtime})\n`);
+            `LOCALMINUTES_SCREENSHOT_DEVICE=${device.name} (${runtime.identifier})\n`);
+          if (device.state !== 'Booted') xcrun(['simctl', 'boot', device.udid]);
+          console.log('Boot requested; the next step waits for startup to finish.');
           JS
-      - name: Standardize the simulator status bar
+      - name: Wait for simulator startup (maximum 5 minutes)
+        id: simulator_ready
+        timeout-minutes: 5
+        run: xcrun simctl bootstatus "$LOCALMINUTES_SCREENSHOT_SIMULATOR" -b
+      - name: Report simulator startup failure
+        if: failure() && steps.simulator_ready.outcome == 'failure'
+        timeout-minutes: 1
         run: |
-          xcrun simctl bootstatus "$LOCALMINUTES_SCREENSHOT_SIMULATOR" -b
+          echo '::error::The simulator failed to become ready within 5 minutes. App screenshot tests have not started.'
+          xcrun simctl list devices available
+      - name: Standardize the simulator status bar
+        timeout-minutes: 1
+        continue-on-error: true
+        run: |
           xcrun simctl status_bar "$LOCALMINUTES_SCREENSHOT_SIMULATOR" override \
             --time '9:41' --dataNetwork wifi --wifiMode active --wifiBars 3 --batteryState charged --batteryLevel 100
       - name: Run the app and capture the screen tour
