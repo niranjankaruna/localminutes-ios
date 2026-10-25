@@ -35,3 +35,11 @@ public struct ModelTransferProgress: Equatable, Sendable {
 }
 
 public typealias ModelTransferProgressHandler = @Sendable (ModelTransferProgress) -> Void
+
+extension ModelInstallationManager {
+    // Test-first aggregate progress interface; behavior awaits hosted RED.
+    public func download(_ manifest: ModelManifest,
+                         progress: @escaping ModelTransferProgressHandler) async throws -> VerifiedModel {
+        try await download(manifest)
+    }
+}

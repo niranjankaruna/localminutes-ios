@@ -101,7 +101,9 @@ public final class IntelligenceSession {
     private let admission: HeavyModelAdmission
     // Read-only composition observation; this is the actual stored dependency.
     var heavyAdmissionIdentity: HeavyModelAdmission { admission }
-    private let manifest: ModelManifest
+    private let manifest: ModelManifest?
+    private let systemModelRevision: String?
+    private let systemRuntimeLoader: (@Sendable () async throws -> any IntelligenceRuntime)?
     private let runtimeLoader: IntelligenceRuntimeLoader
     // App-owned progress survives a request/view/session; the stable active
     // summary job belongs to the selected meeting until commit or explicit reset.
@@ -116,6 +118,17 @@ public final class IntelligenceSession {
         self.store = store; self.models = models; self.admission = admission
         self.manifest = manifest; self.runtimeLoader = runtimeLoader
         self.summaryCheckpoints = summaryCheckpoints
+        self.systemModelRevision = nil; self.systemRuntimeLoader = nil
+    }
+
+    // Test-first composition interface: no Apple behavior before hosted RED.
+    public init(store: SQLiteMeetingStore, models: ModelInstallationManager, admission: HeavyModelAdmission,
+                appleSystemRevision: String,
+                systemRuntimeLoader: @escaping @Sendable () async throws -> any IntelligenceRuntime) {
+        self.store = store; self.models = models; self.admission = admission
+        self.manifest = nil; self.systemModelRevision = appleSystemRevision
+        self.systemRuntimeLoader = systemRuntimeLoader; self.summaryCheckpoints = nil
+        self.runtimeLoader = { _ in throw IntelligenceSessionError.notImplemented }
     }
 
     /// Validate the reviewed local artifact, then construct the CPU runtime
@@ -272,6 +285,7 @@ public final class IntelligenceSession {
 
     private func generate(_ use: Use) async throws -> StoredGeneratedDocument {
         try check(use)
+        guard let manifest else { throw IntelligenceSessionError.notImplemented }
         let request = use.request
         guard request.createdAt.timeIntervalSince1970.isFinite else { throw GeneratedDocumentStoreError.invalidInput }
         guard let meeting = try await store.meeting(id: request.meetingID) else { throw IntelligenceSessionError.meetingMissing }

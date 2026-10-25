@@ -1918,6 +1918,24 @@
       "evidence": [
         "docs/evidence/T26_MODEL_ADAPTERS_TRANSFERS.md"
       ]
+    },
+    {
+      "id": "T27",
+      "priority": 1,
+      "title": "Native iPhone Models redesign with Figcraft MCP and built-in Apple on-device summaries",
+      "status": "IN_PROGRESS",
+      "tddRequired": true,
+      "acceptance": [
+        "Native iOS grouped rows; remove Privacy and renewal and Action Button sections; device information last; preserve accessible installed model actions.",
+        "Detailed download/verification UI; bounded updates.",
+        "List Apple Intelligence with actual availability, persistent selection and real on-device summary runtime; no fabricated weights or exact model digest."
+      ],
+      "redEvidence": [],
+      "greenEvidence": [],
+      "deviceEvidence": [],
+      "evidence": [
+        "docs/evidence/T27_MODELS_UI_APPLE.md"
+      ]
     }
   ],
   "executionPausedByOwner": false,
@@ -1945,8 +1963,8 @@
     "blocker": "OWNER_PHONE_VALIDATION_REQUIRED",
     "nextAction": "Owner validates delivered build 6 on iPhone 17 Pro / iOS 27.0.1: record installed version and a short recording saved by Live Activity Stop; then complete offline chosen-model use, Action Button warm/locked/cold-start, two 125-minute passes with at least 120 locked minutes each, storage protection, and in-place signing-renewal preservation. See docs/MVP4_DEVICE_CHECKLIST.md. Resume code work on a reproducible defect; do not rerun model-quality benchmarks."
   },
-  "lastUpdated": "2026-10-25T16:05:55.375Z",
-  "resumeAction": "Observe hosted macOS behavioral RED at 20da4e8/run 40209885118 before implementing download memory/progress, then build the versioned Parakeet adapter.",
+  "lastUpdated": "2026-10-25T16:42:14.129Z",
+  "resumeAction": "Push the corrected compileable pack/aggregate/Apple/layout/native-v3 tests; observe portable RED, then native model-upgrades RED before each implementation.",
   "historicalCheckpoint": "https://github.com/niranjankaruna/localminutes-ios/blob/a314967626b01b0a3a071eb61eb02b2d5d2320e8/docs/BACKLOG.json",
   "evidencePolicy": "Per-task draft/checkpoint/model-decision entries are historical, scoped to recorded commits. Current delivered source and next action are in docs/STATE.json. Removed draft references use immutable Git permalinks.",
   "latestRepositoryVerification": {

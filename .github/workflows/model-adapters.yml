@@ -62,3 +62,6 @@ jobs:
           node scripts/verify-test-log.mjs .agent-local/model-tests.log \
             testLargeDownloadVerificationAndReopenKeepPeakMemoryIndependentOfFileSize \
             testActualHTTPTransferReportsByteProgressThenVerificationBeforeCompletion
+      - name: Run unchanged script regressions on a platform supporting symlinks
+        if: always()
+        run: node --test scripts/tests/*.test.mjs

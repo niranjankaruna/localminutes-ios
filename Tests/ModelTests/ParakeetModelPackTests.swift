@@ -30,7 +30,7 @@ final class ParakeetModelPackTests: XCTestCase {
             let installed: VerifiedModel
             do { installed = try await manager.download(decoded) }
             catch { XCTFail("Compatible native packs must install using their own reviewed hashes: \(error)"); continue }
-            let choices = ModelSelectionStore(directory: root.appendingPathComponent("Selections", isDirectory: true),
+            let choices = ModelSelectionStore(rootURL: root.appendingPathComponent("Selections", isDirectory: true),
                 models: manager, availableProfiles: [.parakeetTDTCoreML], canChangeSelection: { true })
             do {
                 _ = try await choices.select(manifest: installed.manifest, profile: .parakeetTDTCoreML, for: .speechRecognition)

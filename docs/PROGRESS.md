@@ -1,5 +1,20 @@
 # Progress
 
+## T26/T27 active work — 25 October 2026
+
+Owner requested an upgradeable Parakeet adapter, a download memory fix and detailed
+progress, then a Figcraft-designed native iPhone Models page and Apple on-device
+summaries. T26/T27 are IN_PROGRESS. Actual 512 MiB Darwin regression reproduced
+1,615,675,392 bytes of peak-memory growth; progress events were absent. Native UI
+RED at 32f00ba/run 40211090733 executed two cases, both failed (four assertions),
+zero skips. The next model test batch had a compile error in a test initializer;
+that is not RED/GREEN, and its argument label is corrected without assertion changes.
+Figcraft MCP produced the revised native iPhone grouped-list design under design/.
+No new IPA/device inference is claimed. Existing phone/signing/endurance gates
+remain pending. Next: run the corrected pack/aggregate/Apple/layout/native-v3
+contracts and implement only after the corresponding hosted behavioral RED.
+
+
 ## Model format clarification — 25 October 2026
 
 Source inspection at `ac26bec9ed68503371cce061a6e9d4d615f4bae5` confirms that

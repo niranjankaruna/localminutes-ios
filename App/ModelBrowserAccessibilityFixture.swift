@@ -38,7 +38,7 @@ enum ModelBrowserAccessibilityFixture {
         }
         services.modelBrowser.purpose = .summary
         await services.modelBrowser.refresh()
-        if let stage = ProcessInfo.processInfo.environment["LOCALMINUTES_UI_MODEL_PROGRESS"] {
+        if let stage = ProcessInfo.processInfo.environment["LOCALMINUTES_UI_MODEL_PROGRESS"], stage != "idle" {
             services.modelBrowser.updateDownloadProgress(.init(
                 stage: stage == "verifying" ? .verifying : .downloading,
                 fileName: "Encoder.mlmodelc/weights/weight.bin", completedBytes: 104_857_600,

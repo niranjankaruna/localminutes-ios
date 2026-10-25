@@ -475,8 +475,8 @@ jobs:
           set -euo pipefail
           native_scheme=LocalMinutesFocusedValidation
           if [ "$NATIVE_TEST_CLASS" = ModelUpgradeUI ]; then
-            native_scheme=LocalMinutesUIValidation
-            native_cases=(-only-testing:LocalMinutesUITests/ModelDownloadProgressUITests)
+            native_scheme=LocalMinutes
+            native_cases=(-only-testing:LocalMinutesUITests/ModelDownloadProgressUITests -only-testing:LocalMinutesUITests/ModelBrowserAccessibilityUITests -only-testing:LocalMinutesAppTests/NativeAppleSummaryTests -only-testing:LocalMinutesAppTests/NativeSummarySelectionStartupTests -only-testing:LocalMinutesAppTests/NativeIntelligenceMemoryPressureTests)
           elif [ "$NATIVE_TEST_CLASS" = MVP4AnswerOnlyUI ]; then
             native_scheme=LocalMinutesUIValidation
             native_cases=(-only-testing:LocalMinutesUITests/AnswerEditingUITests)
@@ -539,7 +539,7 @@ jobs:
             tail -40 .agent-local/focused-simulator-boot.log
           fi
           if [ "$NATIVE_TEST_CLASS" = ModelUpgradeUI ]; then
-            node scripts/verify-test-log.mjs .agent-local/focused-app-metrics.log testDownloadShowsBytesPercentageSpeedRemainingTimeFileAndResumeDetails testVerificationHasItsOwnProgressAndDoesNotShowAStaleDownloadSpeedOrETA
+            node scripts/verify-test-log.mjs .agent-local/focused-app-metrics.log testDownloadShowsBytesPercentageSpeedRemainingTimeFileAndResumeDetails testVerificationHasItsOwnProgressAndDoesNotShowAStaleDownloadSpeedOrETA testModelsPageRemovesUnrelatedSectionsAndEndsWithDeviceInformation testSummaryListIncludesAppleIntelligenceWithItsAvailabilityAndSelectionAction testAppleSummaryCompositionSavesWithExplicitSystemProvenanceAndNoInstalledWeights testInstalledModelSpokenActionsIncludePurposeAndDistinctModelIdentity testInstalledModelActionsRemainReachableWith44PointTargetsAtLargestAccessibilityText
           elif [ "$NATIVE_TEST_CLASS" = MVP4AnswerOnlyUI ]; then
             node scripts/verify-test-log.mjs .agent-local/focused-app-metrics.log testSavedAnswerEditorExplicitSaveNavigationAndRelaunchPreserveOnlyItsDisplayCopy
           elif [ "$NATIVE_TEST_CLASS" = MVP4FinalHistoryUI ]; then
@@ -680,9 +680,9 @@ jobs:
         run: node scripts/verify-test-log.mjs .build/actual-summary-resume.log testActualPhiValidatedMapsSurviveCancelledCommitAndReopenedServiceCommitsWithoutRegeneration
 
   native-parakeet:
-    if: ${{ inputs.mode == 'mvp2-parakeet' }}
+    if: ${{ inputs.mode == 'mvp2-parakeet' || inputs.mode == 'model-upgrades' }}
     runs-on: macos-15
-    timeout-minutes: 18
+    timeout-minutes: 45
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     steps:
@@ -697,6 +697,35 @@ jobs:
           python3 scripts/prepare_asr_only.py --platform macos
           python3 scripts/fixtures/prepare_native_summary.py --framework-only
           python3 scripts/fixtures/prepare_native_parakeet_fixture.py
+          if [ "${{ inputs.mode }}" = model-upgrades ]; then
+            python3 - <<'PY'
+          import hashlib, json, os, time, urllib.request
+          from pathlib import Path
+          pack = Path('Tests/Fixtures/Parakeet/parakeet-v3.modelpack.json')
+          model = json.loads(pack.read_text())
+          target = Path('.agent-local/parakeet-v3-fixtures/model')
+          target.mkdir(parents=True, exist_ok=True)
+          started = time.monotonic()
+          for asset in model['artifacts']:
+              file = target / asset['fileName']
+              file.parent.mkdir(parents=True, exist_ok=True)
+              partial = file.with_name(file.name + '.partial')
+              digest = hashlib.sha256()
+              received = 0
+              with urllib.request.urlopen(asset['downloadURL'], timeout=45) as response, partial.open('xb') as output:
+                  while chunk := response.read(65536):
+                      received += len(chunk)
+                      assert received <= asset['byteCount'] and time.monotonic() - started < 900
+                      output.write(chunk)
+                      digest.update(chunk)
+              assert received == asset['byteCount'] and digest.hexdigest() == asset['sha256']
+              partial.replace(file)
+          with open(os.environ['GITHUB_ENV'], 'a') as environment:
+              environment.write('LOCALMINUTES_PARAKEET_V3_DIRECTORY=' + str(target.resolve()) + '\n')
+              environment.write('LOCALMINUTES_PARAKEET_V3_PACK=' + str(pack.resolve()) + '\n')
+          print(json.dumps({'modelRevision': model['revision'], 'assets': len(model['artifacts']), 'bytes': sum(a['byteCount'] for a in model['artifacts']), 'inferenceExecuted': False}))
+          PY
+          fi
       - name: Exercise native Core ML TDT and actual selected capture
         shell: bash
         run: |
@@ -704,7 +733,12 @@ jobs:
           export LOCALMINUTES_PARAKEET_COREML_MODEL_DIRECTORY="$PWD/.agent-local/parakeet-coreml-fixtures/model"
           export LOCALMINUTES_PARAKEET_COREML_FIXTURE_PATH="$PWD/.agent-local/parakeet-coreml-fixtures/6930-75918-0000.flac"
           mkdir -p .build
-          swift test --filter 'ASRTests[.](CoreMLParakeetRecognizerTests|SelectedCoreMLParakeetLiveSessionTests|CoreMLParakeetSelectionIntegrationTests|CoreMLParakeetReplayIntegrationTests)' 2>&1 | tee .build/native-parakeet.log
+          if [ "${{ inputs.mode }}" = model-upgrades ]; then
+            filter='ASRTests[.](CoreMLParakeetRecognizerTests|SelectedCoreMLParakeetLiveSessionTests|CoreMLParakeetSelectionIntegrationTests|CoreMLParakeetReplayIntegrationTests|ParakeetModelPackNativeTests|SelectedV3ParakeetLiveSessionTests|V3ParakeetReplayIntegrationTests)'
+          else
+            filter='ASRTests[.](CoreMLParakeetRecognizerTests|SelectedCoreMLParakeetLiveSessionTests|CoreMLParakeetSelectionIntegrationTests|CoreMLParakeetReplayIntegrationTests)'
+          fi
+          swift test --filter "$filter" 2>&1 | tee .build/native-parakeet.log
       - name: Require real native inference contracts without skip
         if: always()
         shell: bash
@@ -718,6 +752,9 @@ jobs:
             testEquippedNativeParakeetPublishesLicensedSpeechDuringCaptureAndPersistsCapturedPin \
             testActualNativeInstallationEquipsAndReopensWithoutChangingIndependentSummarySlot \
             testDurableLicensedCAFReplaysCapturedNativePinPreservingOriginalsAndIdempotentCursor
+          if [ "${{ inputs.mode }}" = model-upgrades ]; then
+            node scripts/verify-test-log.mjs .build/native-parakeet.log testActualV3PackUsesItsOwnPinAndDecodesLicensedSpeechOnCPU testEquippedV3PackPublishesDuringCaptureAndPersistsItsOwnManifest testDurableCAFReplaysCapturedV3PackPreservingItsPinAndOriginals
+          fi
 
   selected-model-integration:
     if: ${{ inputs.mode == 'model-integration' || inputs.mode == 'model-repair' || inputs.mode == 'model-delivery' }}

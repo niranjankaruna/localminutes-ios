@@ -196,10 +196,10 @@
     "scope": "Third consecutive phone-only condition after final delivery. No new owner observation, active build or concrete independent development task; prior follow-up produced no application progress. Full goal remains unachieved. Goal blocked audit satisfied; resume when owner supplies phone evidence or reports a reproducible defect.",
     "lastRevalidatedAt": "2026-10-25T12:56:17.577Z"
   },
-  "lastUpdated": "2026-10-25T16:05:55.375Z",
+  "lastUpdated": "2026-10-25T16:42:14.129Z",
   "currentBranch": "codex/parakeet-downloads",
-  "currentTask": "T26.1/T26.2 tests-first download memory and progress",
-  "nextAction": "Observe hosted macOS behavioral RED at 20da4e8/run 40209885118 before implementing download memory/progress, then build the versioned Parakeet adapter.",
+  "currentTask": "T26/T27: tests-first model packs, bounded transfers, native iPhone UI and Apple summaries",
+  "nextAction": "Push the corrected compileable pack/aggregate/Apple/layout/native-v3 tests; observe portable RED, then native model-upgrades RED before each implementation.",
   "activeCIRun": null,
   "repositoryHeadScope": "Read actual local/remote HEAD; latest application CI source remains separately identified.",
   "completedThisInvocation": [],
@@ -263,6 +263,29 @@
     "phoneTerminationCause": "UNCONFIRMED",
     "redRun": 40209885118,
     "redSource": "20da4e8e8e68ea9b7add81d1c6d4b18bdedb1ae1",
-    "costGuard": "Public repository and owner approval verified; standard macos-15-intel runner only; no artifact upload or billing changes."
+    "costGuard": "Public repository and owner approval verified; standard macos-15-intel runner only; no artifact upload or billing changes.",
+    "uiRed": {
+      "source": "32f00ba277474307b95a30811615c26339d4ef6a",
+      "run": 40211090733,
+      "executed": 2,
+      "failed": 2,
+      "assertionFailures": 4,
+      "skipped": 0,
+      "seconds": 63.143
+    },
+    "secondRun": {
+      "run": 40210819975,
+      "source": "32f00ba277474307b95a30811615c26339d4ef6a",
+      "result": "compile failure in new test rootURL label; not RED or GREEN; test corrected without changing assertions"
+    }
+  },
+  "modelsUIWork": {
+    "task": "T27",
+    "status": "IN_PROGRESS",
+    "evidence": "docs/evidence/T27_MODELS_UI_APPLE.md",
+    "design": "design/LocalMinutes-Models.figcraft",
+    "preview": "design/LocalMinutes-Models.png",
+    "ownerStyleCorrection": "Native iPhone grouped lists; initial Android-like card concept rejected.",
+    "appleDeviceInference": "NOT_RUN"
   }
 }

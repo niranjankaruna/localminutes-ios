@@ -4,6 +4,28 @@ import XCTest
 /// fixture. Real HTTP progress and Darwin memory have independent native tests.
 @MainActor
 final class ModelDownloadProgressUITests: XCTestCase {
+    func testModelsPageRemovesUnrelatedSectionsAndEndsWithDeviceInformation() {
+        let app = launch(stage: "idle")
+        defer { app.terminate() }
+        XCTAssertFalse(app.staticTexts["Privacy and renewal"].exists)
+        XCTAssertFalse(app.staticTexts["Action Button"].exists)
+        let device = app.staticTexts["models.device.heading"]
+        reveal(device, in: app)
+        XCTAssertTrue(device.exists, "The final section must clearly identify this iPhone")
+        XCTAssertTrue(app.staticTexts["models.device.availableMemory"].exists)
+    }
+
+    func testSummaryListIncludesAppleIntelligenceWithItsAvailabilityAndSelectionAction() {
+        let app = launch(stage: "idle")
+        defer { app.terminate() }
+        let choice = app.staticTexts["models.apple.title"]
+        reveal(choice, in: app)
+        XCTAssertTrue(choice.exists, "The system model must be discoverable alongside downloaded summary choices")
+        XCTAssertEqual(choice.label, "Apple Intelligence")
+        XCTAssertTrue(app.staticTexts["models.apple.availability"].exists)
+        XCTAssertTrue(app.buttons["models.apple.equip"].exists, "Unavailable devices keep an honest, disabled system-model choice")
+    }
+
     func testDownloadShowsBytesPercentageSpeedRemainingTimeFileAndResumeDetails() {
         let app = launch(stage: "downloading")
         defer { app.terminate() }
