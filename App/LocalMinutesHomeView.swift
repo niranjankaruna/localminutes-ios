@@ -149,6 +149,8 @@ private struct MeetingHistoryView: View {
             if let backupURL {
                 Section("Backup ready") {
                     ShareLink("Save or share library backup", item: backupURL)
+                        .accessibilityLabel("Save or share library backup")
+                        .accessibilityIdentifier("meeting.history.backup.share")
                     Text("This backup includes meeting audio, transcripts, notes and generated content.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
@@ -156,6 +158,8 @@ private struct MeetingHistoryView: View {
             if let reportText {
                 Section("Recording report") {
                     ShareLink("Share sampled recording report", item: reportText)
+                        .accessibilityLabel("Share sampled recording report")
+                        .accessibilityIdentifier("meeting.history.report.share")
                     Text("Samples describe observed performance. Your locked-screen and long-meeting checks are still required.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
@@ -363,9 +367,13 @@ private struct MeetingDetailView: View {
             Section("Export") {
                 if let text = try? controller.export(markdown: false) {
                     ShareLink("Share text", item: text)
+                        .accessibilityLabel("Share text")
+                        .accessibilityIdentifier("meeting.export.text")
                 }
                 if let markdown = try? controller.export(markdown: true) {
                     ShareLink("Share Markdown", item: markdown)
+                        .accessibilityLabel("Share Markdown")
+                        .accessibilityIdentifier("meeting.export.markdown")
                 }
                 Text("Sharing sends the selected meeting to the app you choose.")
                     .font(.caption).foregroundStyle(.secondary)

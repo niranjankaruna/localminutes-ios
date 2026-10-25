@@ -28,7 +28,9 @@ final class AppScreenshotsUITests: XCTestCase {
         app.buttons["Library actions"].tap()
         try capture("meetings_actions", in: app, showing: app.buttons["Create library backup"])
         app.buttons["Create library backup"].tap()
-        try capture("meetings_backup_ready", in: app, showing: app.buttons["Save or share library backup"])
+        let backup = app.buttons["meeting.history.backup.share"]
+        try wait(backup)
+        try capture("meetings_backup_ready", in: app, showing: backup)
         app.buttons["Library actions"].tap()
         app.buttons["Restore library backup…"].tap()
         try capture("meetings_restore_picker", in: app, showing: app.buttons["Cancel"].firstMatch)
@@ -60,8 +62,8 @@ final class AppScreenshotsUITests: XCTestCase {
         try capture("meeting_summary_reset_confirmation", in: app, showing: app.buttons["Discard progress and generate"])
         app.buttons["Cancel"].firstMatch.tap()
         try capture("meeting_questions_and_answers", in: app, showing: app.textViews["Saved answer"])
-        try capture("meeting_export", in: app, showing: app.buttons["Share Markdown"])
-        let share = app.buttons["Share text"]
+        try capture("meeting_export", in: app, showing: app.buttons["meeting.export.markdown"])
+        let share = app.buttons["meeting.export.text"]
         try reveal(share, in: app)
         share.tap()
         try wait(app.buttons["Copy"].firstMatch)
@@ -174,24 +176,27 @@ final class AppScreenshotsUITests: XCTestCase {
         try wait(app.textViews["Original meeting notes"])
     }
 
-    private func wait(_ element: XCUIElement) throws {
+    private func wait(_ element: XCUIElement, file: StaticString = #filePath, line: UInt = #line) throws {
         guard element.waitForExistence(timeout: 20) else {
-            XCTFail("Screenshot destination did not appear: \(element)")
-            throw CaptureError.missingScreen
+            try failCapture("Screenshot destination did not appear: \(element)", file: file, line: line)
         }
     }
 
-    private func capture(_ name: String, in app: XCUIApplication, showing element: XCUIElement? = nil) throws {
-        if let element { try reveal(element, in: app) }
+    private func capture(_ name: String, in app: XCUIApplication, showing element: XCUIElement? = nil,
+                         file: StaticString = #filePath, line: UInt = #line) throws {
+        print("APPUI_CAPTURE_BEGIN \(name)_\(appearance)")
+        if let element { try reveal(element, in: app, file: file, line: line) }
         XCTAssertTrue(captured.insert(name).inserted, "Screenshot names must be unique")
         XCTAssertFalse(app.otherElements["localminutes.privacy.cover"].exists)
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = "appui__\(appearance)__\(name)__"
         attachment.lifetime = .keepAlways
         add(attachment)
+        print("APPUI_CAPTURE_SAVED \(name)_\(appearance)")
     }
 
-    private func reveal(_ element: XCUIElement, in app: XCUIApplication, initiallyDown: Bool = false) throws {
+    private func reveal(_ element: XCUIElement, in app: XCUIApplication, initiallyDown: Bool = false,
+                        file: StaticString = #filePath, line: UInt = #line) throws {
         for _ in 0..<45 {
             let window = app.frame
             var top = window.minY + 8
@@ -203,7 +208,8 @@ final class AppScreenshotsUITests: XCTestCase {
                 bottom = min(bottom, bar.frame.minY - 8)
             }
             if app.keyboards.firstMatch.exists { bottom = min(bottom, app.keyboards.firstMatch.frame.minY - 8) }
-            let viewport = CGRect(x: window.minX + 8, y: top, width: window.width - 16, height: bottom - top)
+            // Full-width accessibility frames can reach the window edges.
+            let viewport = CGRect(x: window.minX, y: top, width: window.width, height: bottom - top)
             // Navigation bars and sheets are not inside the scrolling content viewport.
             if element.exists && element.isHittable &&
                 (viewport.contains(element.frame) || element.elementType == .navigationBar ||
@@ -225,7 +231,13 @@ final class AppScreenshotsUITests: XCTestCase {
             let end = origin.withOffset(CGVector(dx: window.width - 10, dy: startY - window.minY + (upward ? -distance : distance)))
             start.press(forDuration: 0.05, thenDragTo: end)
         }
-        XCTFail("Could not reveal screenshot content: \(element)")
+        try failCapture("Could not reveal screenshot content: \(element)", file: file, line: line)
+    }
+
+    private func failCapture(_ message: String, file: StaticString, line: UInt) throws -> Never {
+        print("APPUI_FAILURE \(appearance): \(message)")
+        if let runningApp { print(runningApp.debugDescription) }
+        XCTFail(message, file: file, line: line)
         throw CaptureError.missingScreen
     }
 

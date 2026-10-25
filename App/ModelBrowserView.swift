@@ -246,6 +246,7 @@ struct ModelBrowserView: View {
                     .accessibilityIdentifier("settings.storageAudit.groupCount")
                 if let json = controller.storageCheckJSON {
                     ShareLink("Share storage check", item: json)
+                        .accessibilityLabel("Share storage check")
                         .accessibilityIdentifier("settings.storageAudit.share")
                 }
             }

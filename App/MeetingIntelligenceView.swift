@@ -489,6 +489,8 @@ struct MeetingIntelligenceView: View {
                 if let error = controller.errorMessage { Text(error).foregroundStyle(.red) }
                 if let text = controller.exportText {
                     ShareLink("Share generated notes and answers", item: text)
+                        .accessibilityLabel("Share generated notes and answers")
+                        .accessibilityIdentifier("meeting.intelligence.share")
                         .disabled(controller.hasSummaryEdits || controller.isSaving || controller.hasAnswerEdits
                                   || !controller.savingAnswerIDs.isEmpty || !controller.answerEditConflicts.isEmpty)
                 }

@@ -101,11 +101,13 @@ final class LibraryProductUITests: XCTestCase {
             "Missing real model must never manufacture an answer or display another meeting's saved answer")
         XCTAssertFalse(app.staticTexts["Seeded Beta private answer."].exists)
         XCTAssertFalse(app.progressIndicators["meeting.intelligence.running"].exists)
-        let plain = app.buttons["Share text"]
+        let plain = app.buttons["meeting.export.text"]
         reveal(plain, in: app)
         XCTAssertTrue(plain.exists); XCTAssertTrue(plain.isEnabled)
-        let markdown = app.buttons["Share Markdown"]
+        XCTAssertEqual(plain.label, "Share text")
+        let markdown = app.buttons["meeting.export.markdown"]
         XCTAssertTrue(markdown.exists); XCTAssertTrue(markdown.isEnabled)
+        XCTAssertEqual(markdown.label, "Share Markdown")
         XCTAssertTrue(app.staticTexts["Sharing sends the selected meeting to the app you choose."].exists)
         // Payload bytes and source isolation have independent real exporter
         // tests. This UI case observes the real controls, not an external send.
