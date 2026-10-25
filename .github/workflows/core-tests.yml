@@ -8,7 +8,7 @@ on:
         required: true
         type: choice
         default: mvp
-        options: [mvp, features, package, validation, candidate, candidate-summary, candidate-summary-parts, model-catalog, model-integration, model-repair, model-delivery, mvp2-red, mvp2, mvp2-integration, mvp2-parakeet, mvp3, mvp3-integration, mvp3-startup, mvp3-functional, mvp4-storage, mvp4-final]
+        options: [mvp, features, package, validation, candidate, candidate-summary, candidate-summary-parts, model-catalog, model-integration, model-repair, model-delivery, mvp2-red, mvp2, mvp2-integration, mvp2-parakeet, mvp3, mvp3-integration, mvp3-startup, mvp3-functional, mvp4-storage, mvp4-final, mvp4-answer-ui]
       sourceCommit:
         description: Reviewed app source for the MVP package
         required: true
@@ -403,26 +403,36 @@ jobs:
         run: node --test scripts/tests/whisper-package-policy.test.mjs scripts/tests/package-audit.test.mjs scripts/tests/ios-artifacts.test.mjs
 
   focused-app-metrics:
-    if: ${{ inputs.mode == 'candidate-summary-parts' || inputs.mode == 'model-catalog' || inputs.mode == 'model-integration' || inputs.mode == 'model-repair' || inputs.mode == 'model-delivery' || inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet' || inputs.mode == 'mvp3' || inputs.mode == 'mvp3-startup' || inputs.mode == 'mvp4-storage' || inputs.mode == 'mvp4-final' }}
+    if: ${{ inputs.mode == 'candidate-summary-parts' || inputs.mode == 'model-catalog' || inputs.mode == 'model-integration' || inputs.mode == 'model-repair' || inputs.mode == 'model-delivery' || inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet' || inputs.mode == 'mvp3' || inputs.mode == 'mvp3-startup' || inputs.mode == 'mvp4-storage' || inputs.mode == 'mvp4-final' || inputs.mode == 'mvp4-answer-ui' }}
     name: Native focused (${{ matrix.testclass }})
-    runs-on: ${{ (inputs.mode == 'mvp2-parakeet' || inputs.mode == 'mvp3' || inputs.mode == 'mvp3-startup' || inputs.mode == 'mvp4-storage' || inputs.mode == 'mvp4-final') && 'macos-15' || 'macos-15-intel' }}
-    timeout-minutes: ${{ (inputs.mode == 'mvp3' || inputs.mode == 'mvp3-startup' || inputs.mode == 'mvp4-storage' || inputs.mode == 'mvp4-final') && 45 || (inputs.mode == 'model-delivery' || inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet') && 18 || 15 }}
+    runs-on: ${{ (inputs.mode == 'mvp2-parakeet' || inputs.mode == 'mvp3' || inputs.mode == 'mvp3-startup' || inputs.mode == 'mvp4-storage' || inputs.mode == 'mvp4-final' || inputs.mode == 'mvp4-answer-ui') && 'macos-15' || 'macos-15-intel' }}
+    timeout-minutes: ${{ (inputs.mode == 'mvp3' || inputs.mode == 'mvp3-startup' || inputs.mode == 'mvp4-storage' || inputs.mode == 'mvp4-final' || inputs.mode == 'mvp4-answer-ui') && 45 || (inputs.mode == 'model-delivery' || inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet') && 18 || 15 }}
     strategy:
       fail-fast: false
       matrix:
-        testclass: ${{ fromJSON(inputs.mode == 'mvp4-final' && (inputs.packageMVP2 && '["MVP4FinalContracts","MVP4FinalHistoryUI","MVP4FinalAnswersUI"]' || '["MVP4FinalContracts","MVP4FinalUI"]') || inputs.mode == 'mvp4-storage' && '["NativeStoragePrivacyReportTests","MVP4StorageUI"]' || inputs.mode == 'mvp3-startup' && '["NativeSummarySelectionStartupTests","MVP3AccessibilityUI"]' || inputs.mode == 'mvp3' && '["MVP3Contracts","MVP3AccessibilityUI"]' || (inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet') && '["NativeMVP2LibraryTests"]' || inputs.mode == 'model-delivery' && '["MVP1Services"]' || (inputs.mode == 'model-integration' || inputs.mode == 'model-repair') && '["NativeAppMetricsTests","NativeModelResourceTests"]' || '["NativeAppMetricsTests"]') }}
+        testclass: ${{ fromJSON(inputs.mode == 'mvp4-answer-ui' && '["MVP4AnswerOnlyUI"]' || inputs.mode == 'mvp4-final' && (inputs.packageMVP2 && '["MVP4FinalContracts","MVP4FinalHistoryUI","MVP4FinalAnswersUI"]' || '["MVP4FinalContracts","MVP4FinalUI"]') || inputs.mode == 'mvp4-storage' && '["NativeStoragePrivacyReportTests","MVP4StorageUI"]' || inputs.mode == 'mvp3-startup' && '["NativeSummarySelectionStartupTests","MVP3AccessibilityUI"]' || inputs.mode == 'mvp3' && '["MVP3Contracts","MVP3AccessibilityUI"]' || (inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet') && '["NativeMVP2LibraryTests"]' || inputs.mode == 'model-delivery' && '["MVP1Services"]' || (inputs.mode == 'model-integration' || inputs.mode == 'model-repair') && '["NativeAppMetricsTests","NativeModelResourceTests"]' || '["NativeAppMetricsTests"]') }}
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
       NATIVE_TEST_CLASS: ${{ matrix.testclass }}
+      LOCALMINUTES_TEST_APP_SOURCE: ${{ inputs.mode == 'mvp4-answer-ui' && inputs.sourceCommit || github.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
+          ref: ${{ inputs.mode == 'mvp4-answer-ui' && inputs.sourceCommit || github.sha }}
       - name: Verify source and prepare pinned project tools
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$LOCALMINUTES_TEST_APP_SOURCE"
+          if [ "${{ inputs.mode }}" = mvp4-answer-ui ]; then
+            test "$LOCALMINUTES_TEST_APP_SOURCE" = 36bf6f4c8726fbc5d2efbfa4f740ef4031457233
+            git fetch --no-tags --depth=1 origin "$GITHUB_SHA"
+            git diff --exit-code HEAD "$GITHUB_SHA" -- App Core Recording Models Persistence Transcription MeetingLibrary Summaries QuestionAnswering Intelligence Shared Resources Vendor project.yml Package.swift Package.resolved
+            git show "$GITHUB_SHA:Tests/NativeUITests/AnswerEditingUITests.swift" > Tests/NativeUITests/AnswerEditingUITests.swift
+            printf 'APP_SOURCE=%s\nTEST_HARNESS_SOURCE=%s\n' "$LOCALMINUTES_TEST_APP_SOURCE" "$GITHUB_SHA"
+            test "$(git diff --name-only)" = Tests/NativeUITests/AnswerEditingUITests.swift
+          fi
           python3 - <<'PY'
           import json
           from pathlib import Path
@@ -464,7 +474,10 @@ jobs:
         run: |
           set -euo pipefail
           native_scheme=LocalMinutesFocusedValidation
-          if [ "$NATIVE_TEST_CLASS" = MVP4FinalHistoryUI ]; then
+          if [ "$NATIVE_TEST_CLASS" = MVP4AnswerOnlyUI ]; then
+            native_scheme=LocalMinutesUIValidation
+            native_cases=(-only-testing:LocalMinutesUITests/AnswerEditingUITests)
+          elif [ "$NATIVE_TEST_CLASS" = MVP4FinalHistoryUI ]; then
             native_scheme=LocalMinutesUIValidation
             native_cases=(-only-testing:LocalMinutesUITests/HistoryPaginationUITests -only-testing:LocalMinutesUITests/RequiredScreenInformationUITests)
           elif [ "$NATIVE_TEST_CLASS" = MVP4FinalAnswersUI ]; then
@@ -508,7 +521,7 @@ jobs:
             -parallel-testing-enabled NO -collect-test-diagnostics never "${native_cases[@]}" \
             -derivedDataPath build/focused-app -clonedSourcePackagesDirPath .agent-local/source-packages \
             -resultBundlePath .agent-local/focused-app-metrics.xcresult \
-            CODE_SIGNING_ALLOWED=NO LOCALMINUTES_SOURCE_COMMIT="$GITHUB_SHA" 2>&1 | tee .agent-local/focused-app-metrics.log
+            CODE_SIGNING_ALLOWED=NO LOCALMINUTES_SOURCE_COMMIT="$LOCALMINUTES_TEST_APP_SOURCE" 2>&1 | tee .agent-local/focused-app-metrics.log
       - name: Require the focused native assertions
         if: always()
         shell: bash
@@ -522,7 +535,9 @@ jobs:
           if [ -f .agent-local/focused-simulator-boot.log ]; then
             tail -40 .agent-local/focused-simulator-boot.log
           fi
-          if [ "$NATIVE_TEST_CLASS" = MVP4FinalHistoryUI ]; then
+          if [ "$NATIVE_TEST_CLASS" = MVP4AnswerOnlyUI ]; then
+            node scripts/verify-test-log.mjs .agent-local/focused-app-metrics.log testSavedAnswerEditorExplicitSaveNavigationAndRelaunchPreserveOnlyItsDisplayCopy
+          elif [ "$NATIVE_TEST_CLASS" = MVP4FinalHistoryUI ]; then
             node scripts/verify-test-log.mjs .agent-local/focused-app-metrics.log \
               testHistoryOffersExplicitNextPageAndExhaustsItsActualOlderRows \
               testHistoryTitleSearchFindsAndOpensAStoredMeetingBeyondTheInitialPage \

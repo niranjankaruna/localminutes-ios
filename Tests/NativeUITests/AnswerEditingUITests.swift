@@ -37,6 +37,7 @@ final class AnswerEditingUITests: XCTestCase {
         app.terminate(); app.launch()
         guard openHistory(app), openMeeting("UI Library Beta", in: app) else { return }
         reveal(editor, in: app); waitForValue(edited, element: editor)
+        returnToMeetingName(in: app)
         let notes = app.textViews["Original meeting notes"]
         reveal(notes, in: app); waitForValue("Original Beta manual note.", element: notes)
         let original = app.staticTexts["Beta shared-term original transcript."]
@@ -67,6 +68,40 @@ final class AnswerEditingUITests: XCTestCase {
     private func waitForValue(_ value: String, element: XCUIElement) {
         let expected = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", value), object: element)
         XCTAssertEqual(XCTWaiter.wait(for: [expected], timeout: 5), .completed)
+    }
+
+    private func returnToMeetingName(in app: XCUIApplication) {
+        let anchor = app.textFields["Meeting name"]
+        var reached = false
+        // The answer is below the original notes in a lazy List. An absent
+        // accessibility element has no reliable frame/direction; explicitly
+        // return toward the known first section before searching downward again.
+        for _ in 0..<24 {
+            let window = app.frame
+            var top = window.minY + 8, bottom = window.maxY - 8
+            for bar in app.navigationBars.allElementsBoundByIndex where bar.exists && bar.frame.intersects(window) {
+                top = max(top, bar.frame.maxY + 8)
+            }
+            for bar in app.tabBars.allElementsBoundByIndex where bar.exists && bar.frame.intersects(window) {
+                bottom = min(bottom, bar.frame.minY - 8)
+            }
+            let keyboard = app.keyboards.firstMatch
+            if keyboard.exists && keyboard.frame.intersects(window) { bottom = min(bottom, keyboard.frame.minY - 8) }
+            guard bottom > top else { break }
+            let viewport = CGRect(x: window.minX + 8, y: top, width: max(0, window.width - 16), height: bottom - top)
+            if anchor.exists && !anchor.frame.isEmpty && viewport.contains(anchor.frame) && anchor.isHittable {
+                reached = true
+                break
+            }
+            let distance = min(200, viewport.height * 0.45)
+            let origin = app.coordinate(withNormalizedOffset: .zero)
+            let start = origin.withOffset(CGVector(dx: viewport.maxX - window.minX - 2,
+                dy: viewport.midY - distance / 2 - window.minY))
+            let end = origin.withOffset(CGVector(dx: viewport.maxX - window.minX - 2,
+                dy: viewport.midY + distance / 2 - window.minY))
+            start.press(forDuration: 0.05, thenDragTo: end)
+        }
+        XCTAssertTrue(reached, "Return to the visible Meeting name section before inspecting original notes and transcript")
     }
 
     private func reveal(_ element: XCUIElement, in app: XCUIApplication) {
