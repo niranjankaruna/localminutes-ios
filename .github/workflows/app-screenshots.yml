@@ -70,12 +70,6 @@ jobs:
         run: |
           echo '::error::The simulator failed to become ready within 5 minutes. App screenshot tests have not started.'
           xcrun simctl list devices available
-      - name: Standardize the simulator status bar
-        timeout-minutes: 1
-        continue-on-error: true
-        run: |
-          xcrun simctl status_bar "$LOCALMINUTES_SCREENSHOT_SIMULATOR" override \
-            --time '9:41' --dataNetwork wifi --wifiMode active --wifiBars 3 --batteryState charged --batteryLevel 100
       - name: Run the app and capture the screen tour
         run: |
           xcodebuild test -project LocalMinutes.xcodeproj -scheme LocalMinutesUIValidation \
