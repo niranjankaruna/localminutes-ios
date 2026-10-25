@@ -90,6 +90,25 @@ public actor SQLiteMeetingStore {
         try readMeeting(id: id, database: connection.database())
     }
 
+    /// Content existence comes from this meeting's persisted rows. Neither audio
+    /// duration nor another meeting's generated content establishes availability.
+    /// One statement reads a consistent inventory without loading private text.
+    public func contentStatus(meetingID: UUID) -> MeetingContentStatus {
+        do {
+            let statement = try MeetingSQLiteStatement(database: connection.database(), sql: """
+                SELECT EXISTS(SELECT 1 FROM transcript_segments WHERE meeting_id=meetings.id),
+                       EXISTS(SELECT 1 FROM generated_documents WHERE meeting_id=meetings.id AND kind=?)
+                FROM meetings WHERE id=?
+                """)
+            try statement.bind(GeneratedDocumentKind.summary.rawValue, at: 1)
+            try statement.bind(meetingID.uuidString, at: 2)
+            guard try statement.next() else { return .unknown }
+            return try MeetingContentStatus(
+                transcript: statement.integer(at: 0) == 1 ? .available : .absent,
+                summary: statement.integer(at: 1) == 1 ? .available : .absent)
+        } catch { return .unknown }
+    }
+
     public func history(limit: Int = 100) throws -> [MeetingRecord] {
         let database = try connection.database()
         guard limit > 0 else { throw MeetingStoreError.invalidInput }

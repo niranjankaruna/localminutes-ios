@@ -33,6 +33,11 @@ on:
         type: boolean
         required: true
         default: false
+      retainMVP3:
+        description: Retain the passing native MVP3 package in an existing unpublished owner draft
+        type: boolean
+        required: true
+        default: false
 
 permissions:
   contents: read
@@ -789,6 +794,8 @@ jobs:
     if: ${{ inputs.mode == 'validation' || inputs.mode == 'mvp3-integration' }}
     runs-on: macos-15
     timeout-minutes: 45
+    permissions:
+      contents: write
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     steps:
@@ -983,6 +990,27 @@ jobs:
           export LOCALMINUTES_AUDIT_SOURCE_COMMIT="$GITHUB_SHA"
           export LOCALMINUTES_AUDIT_IPA_SHA256="$(python3 -c "import json;print(json.load(open('build/package/build-manifest.json'))['sha256'])")"
           python3 -m unittest discover -s scripts/native-hygiene-tests -p 'test_*.py' -v
+
+      - name: Retain passing native MVP3 package without a second device compilation
+        if: ${{ success() && inputs.mode == 'mvp3-integration' && inputs.retainMVP3 }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          MVP_TAG="mvp-preview-${GITHUB_SHA:0:12}"
+          gh release view "$MVP_TAG" --repo "$GITHUB_REPOSITORY" \
+            --json isDraft,tagName,targetCommitish > .agent-local/mvp3-release.json
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          release = json.loads(Path('.agent-local/mvp3-release.json').read_text())
+          assert release['isDraft'] is True, 'MVP assets must stay unpublished'
+          assert release['targetCommitish'] == os.environ['GITHUB_SHA']
+          assert release['tagName'] == 'mvp-preview-' + os.environ['GITHUB_SHA'][:12]
+          PY
+          gh release upload "$MVP_TAG" --repo "$GITHUB_REPOSITORY" \
+            build/package/*.ipa build/package/*.sha256 build/package/build-manifest.json
 
   # Owner-requested MVP delivery: compile/package only, no test runner or model weights.
   # The workflow definition and the reviewed app source are recorded separately.

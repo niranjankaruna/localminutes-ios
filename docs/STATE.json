@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-25T07:26:02.293Z",
+  "lastUpdated": "2026-10-25T07:34:33.110Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -1584,23 +1584,29 @@
   "deliveryStages": [
     {
       "id": 1,
-      "title": "Model-choiceMVP",
-      "status": "IN_PROGRESS"
+      "title": "Model choices",
+      "status": "CODE_COMPLETE_PENDING_DEVICE",
+      "delivered": true,
+      "sourceCommit": "4aec851bb1c83ec1a9acb8f48074db79dcdd8a23"
     },
     {
       "id": 2,
-      "title": "ReliabilityanddataMVP",
-      "status": "NOT_STARTED"
+      "title": "Reliability, data and native Parakeet",
+      "status": "CODE_COMPLETE_PENDING_DEVICE",
+      "delivered": true,
+      "sourceCommit": "35c7cefb946af188f5cc09858dca4ab180d72eab"
     },
     {
       "id": 3,
-      "title": "Releasecandidate",
-      "status": "NOT_STARTED"
+      "title": "MVP3 release candidate",
+      "status": "IN_PROGRESS",
+      "delivered": false
     },
     {
       "id": 4,
-      "title": "Verifiedfinalphoneacceptance",
-      "status": "NOT_STARTED"
+      "title": "Final phone acceptance",
+      "status": "NOT_STARTED",
+      "delivered": false
     }
   ],
   "modelChoiceMVP": {
@@ -2156,9 +2162,9 @@
     "resumedAt": "2026-10-25T07:26:02.293Z"
   },
   "mvp3Integration": {
-    "runId": 40138806203,
-    "sourceCommit": "14ff749a2bd8678b6523cf377b6695283513a76e",
-    "status": "completed",
+    "runId": 40172670154,
+    "sourceCommit": "b3f4e61181bdf81a0ab876e5defc3240513b7927",
+    "status": "in_progress",
     "scope": "Broad core/realASR corpus/currentPhi/native product+UI; separately recorded8ednilharnessbootstrapRED",
     "expectedPendingBehaviors": [
       "citationSourceRowNavigation",
@@ -2168,9 +2174,9 @@
       "modelControlAccessibility"
     ],
     "delivered": false,
-    "conclusion": "failure",
-    "currentExecuted": 0,
-    "failure": "LocalPackage tools5.9 cannot declare iOS18/macOS15 enums; firstrepair6.2 prepared. No modelquality/nativebehavior result.",
+    "conclusion": null,
+    "currentExecuted": 460,
+    "failure": "Prepared CPUdefault and database content-status cases have actual RED; smallest fixes implemented, GREEN pending. Native/UI and Phi remain active.",
     "historicalHarnessRED": {
       "sourceCommit": "8edff56a96f051587d727812239937ccba51b9a5",
       "runId": 40138806203,
@@ -2184,7 +2190,37 @@
     "metadataRepair": {
       "toolsVersion": "6.2",
       "nativeVerified": false,
-      "prebuildBeforeWeights": true
+      "prebuildBeforeWeights": true,
+      "portableCompilationVerified": true
+    },
+    "previousRun": {
+      "runId": 40138806203,
+      "sourceCommit": "14ff749a2bd8678b6523cf377b6695283513a76e",
+      "conclusion": "failure"
+    },
+    "core": {
+      "executed": 460,
+      "passed": 458,
+      "failed": 2,
+      "assertionFailures": 4,
+      "skipped": 0,
+      "durationSeconds": 263.217,
+      "jobId": 121106637096
+    },
+    "speechCorpus": {
+      "runId": 40172670154,
+      "scope": "Short public audiobook corpus; no owner-accent/technical meeting/device claim",
+      "referenceWords": 116,
+      "zipformer": {
+        "cleanErrors": 2,
+        "noiseErrors": 1,
+        "passed": true
+      },
+      "parakeetExplicitCPU": {
+        "cleanErrors": 14,
+        "noiseErrors": 1,
+        "passed": true
+      }
     }
   }
 }

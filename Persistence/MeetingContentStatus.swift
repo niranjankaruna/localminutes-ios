@@ -12,9 +12,3 @@ public struct MeetingContentStatus: Equatable, Sendable {
     }
     public static let unknown = Self(transcript: .unknown, summary: .unknown)
 }
-
-extension SQLiteMeetingStore {
-    // Test-first boundary: content existence must come from the owned database,
-    // never captured audio duration or another meeting's generated documents.
-    public func contentStatus(meetingID: UUID) -> MeetingContentStatus { .unknown }
-}

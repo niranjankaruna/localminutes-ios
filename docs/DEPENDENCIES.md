@@ -111,7 +111,25 @@ JNI/WebSocket OFF; its regular script does **not** disable TTS. Root
 Piper, eSpeak and UCD. Disabling their executables/tests does not remove those
 libraries.
 
-## ASR-only investigation; not an installed replacement
+## ASR-only source integration, 25 October 2026
+
+The MVP3 source now replaces the old sherpa binary dependency with the local
+`Vendor/SherpaASROnly` package. `scripts/prepare_asr_only.py` builds the same
+revision with TTS, speaker diarization, GPU providers, executables and PortAudio
+disabled, and explicitly merges only the nine required ASR archives. ONNX Runtime
+remains the separately pinned 1.28.2 dependency. This supersedes the old regular
+static build described above; delivered MVP2 bytes are unchanged.
+
+Run40135661801 built and retained the three iOS framework slices. Independent
+Windows verification checked the receipt, all 13 archive file hashes and five
+architectures. That framework result alone did not prove application linking or
+recognition. Run40172670154 is checking the application integration; its summary
+lane has passed Swift build-test compilation after the Swift-tools6.2 correction.
+Real ASR, final device linkage and the IPA's absence of unused TTS definitions
+must still pass before MVP3 delivery. The source archive, header and platform
+inputs are individually hashed in the generated receipt.
+
+## Prior ASR-only investigation evidence
 
 The same pinned source provides [build-ios-no-tts.sh](https://github.com/k2-fsa/sherpa-onnx/blob/11afbd009a7f8c08f4bcf2fc1b265d0df4670fbf/build-ios-no-tts.sh).
 It passes `-DSHERPA_ONNX_ENABLE_TTS=OFF` for all three iOS slices and omits

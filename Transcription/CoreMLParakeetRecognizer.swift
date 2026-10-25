@@ -9,8 +9,8 @@ import Synchronization
 import LocalMinutesModels
 #endif
 
-/// Core ML never enables GPU for background capture. Native CI uses CPU-only;
-/// an equipped phone may use CPU and the Apple Neural Engine.
+/// Live and recovery composition default to CPU-only. An explicit adapter
+/// override may allow the Neural Engine; neither policy enables the GPU.
 public enum CoreMLParakeetComputePolicy: String, Equatable, Sendable {
     case cpuOnly, cpuAndNeuralEngine
 }
@@ -70,7 +70,7 @@ public actor CoreMLParakeetRecognizer {
     private var teardown: Task<Void, Never>?
 
     public init(files: CoreMLParakeetModelFiles,
-                computePolicy: CoreMLParakeetComputePolicy = .cpuAndNeuralEngine) {
+                computePolicy: CoreMLParakeetComputePolicy = .cpuOnly) {
         self.files = files; self.computePolicy = computePolicy; executionObserver = nil
     }
     init(files: CoreMLParakeetModelFiles, computePolicy: CoreMLParakeetComputePolicy,
