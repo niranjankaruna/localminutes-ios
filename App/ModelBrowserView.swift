@@ -5,13 +5,16 @@ import UniformTypeIdentifiers
 @MainActor
 struct ModelBrowserView: View {
     @Bindable var controller: ModelBrowserController
+    let application: RecordingApplication?
     @State private var showingCard = false
     @State private var pendingRemoval: ModelManifest?
     @State private var showingRemoval = false
     @State private var showingImport = false
     @State private var importManifest: ModelManifest?
 
-    init(controller: ModelBrowserController) { self.controller = controller }
+    init(controller: ModelBrowserController, application: RecordingApplication? = nil) {
+        self.controller = controller; self.application = application
+    }
 
     var body: some View {
         NavigationStack {
@@ -114,6 +117,7 @@ struct ModelBrowserView: View {
                     Text("Export important notes before renewal and verify your meetings and models afterward. Do not delete the app to refresh it.")
                     Text("Record meetings only with the participants’ consent.")
                 }
+                storageCheckSection
                 Section("About LocalMinutes") {
                     if let identity = AppBuildIdentity.current() {
                         Text(verbatim: "Version \(identity.version) (build \(identity.build))")
@@ -124,6 +128,7 @@ struct ModelBrowserView: View {
                     }
                 }
             }
+            .disabled(controller.isPreparingStorageCheck)
             .navigationTitle("Models")
             .task { await controller.refresh() }
             .refreshable { await controller.refresh() }
@@ -146,6 +151,49 @@ struct ModelBrowserView: View {
             } message: {
                 Text("The model can be downloaded again. Your meetings remain stored separately.")
             }
+        }
+    }
+
+    private var storageCheckSection: some View {
+        Section("Storage check") {
+            Button("Prepare storage check") {
+                Task { await controller.prepareStorageCheck(recordingOwner: application?.owner) }
+            }
+            .accessibilityIdentifier("settings.storageAudit.prepare")
+            .disabled(application?.owner == nil || controller.isWorking || controller.isInspecting)
+            if controller.isPreparingStorageCheck { ProgressView("Reading storage metadata…") }
+            if let report = controller.storageCheckReport {
+                if report.audit.status == .complete {
+                    Text("Storage check ready").accessibilityIdentifier("settings.storageAudit.ready")
+                } else {
+                    Text("Storage check incomplete: \(report.audit.status.rawValue)")
+                        .accessibilityIdentifier("settings.storageAudit.status")
+                }
+                Text("Environment: \(storageEnvironment(report.audit.environment))")
+                    .accessibilityIdentifier("settings.storageAudit.environment")
+                Text("Inspected items: \(report.audit.inspectedItemCount)")
+                    .accessibilityIdentifier("settings.storageAudit.itemCount")
+                Text("Metadata groups: \(report.audit.groups.count)")
+                    .accessibilityIdentifier("settings.storageAudit.groupCount")
+                if let json = controller.storageCheckJSON {
+                    ShareLink("Share storage check", item: json)
+                        .accessibilityIdentifier("settings.storageAudit.share")
+                }
+            }
+            if let error = controller.storageCheckError {
+                Text(error).foregroundStyle(.red).accessibilityIdentifier("settings.storageAudit.error")
+            }
+            Text("This metadata snapshot does not verify locked-screen access or renewal. Sharing includes no meeting content or file paths.")
+                .font(.caption).foregroundStyle(.secondary)
+        }
+    }
+
+    private func storageEnvironment(_ environment: StorageAuditEnvironment) -> String {
+        switch environment {
+        case .iOSDevice: "iOS Device"
+        case .iOSSimulator: "iOS Simulator"
+        case .macOS: "macOS"
+        case .other: "Other"
         }
     }
 

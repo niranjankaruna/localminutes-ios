@@ -365,6 +365,14 @@ final class LocalMinutesServices: PlaybackHardware {
     }
     func endLibraryMaintenance() { maintainingLibrary = false }
 
+    /// Read-only diagnostics must not overlap work which can mutate the owned
+    /// tree or retain the shared audio session after its player has stopped.
+    var canPrepareStoragePrivacyReport: Bool {
+        startup.state == .ready && !maintainingLibrary && deletionWork.isEmpty
+            && !isChangingModels && !modelBrowser.isWorking && !modelBrowser.isInspecting
+            && playback == nil && !ownsPlaybackSession && recoveringMeetingID == nil
+    }
+
     func exportBackup() async throws -> URL {
         await initialize()
         try beginLibraryMaintenance(); defer { endLibraryMaintenance() }

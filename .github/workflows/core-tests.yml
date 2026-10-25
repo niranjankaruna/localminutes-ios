@@ -453,7 +453,9 @@ jobs:
           native_scheme=LocalMinutesFocusedValidation
           if [ "$NATIVE_TEST_CLASS" = MVP4StorageUI ]; then
             native_scheme=LocalMinutes
-            native_cases=(-only-testing:LocalMinutesUITests/StoragePrivacyReportUITests)
+            native_cases=(-only-testing:LocalMinutesUITests/StoragePrivacyReportUITests -only-testing:LocalMinutesUITests/ModelBrowserAccessibilityUITests)
+          elif [ "$NATIVE_TEST_CLASS" = NativeStoragePrivacyReportTests ]; then
+            native_cases=(-only-testing:LocalMinutesAppTests/NativeStoragePrivacyReportTests -only-testing:LocalMinutesAppTests/NativeStoragePolicyTests -only-testing:LocalMinutesAppTests/NativeMVP2AdmissionRaceTests)
           elif [ "$NATIVE_TEST_CLASS" = MVP3AccessibilityUI ]; then
             native_scheme=LocalMinutes
             native_cases=(-only-testing:LocalMinutesUITests/ModelBrowserAccessibilityUITests -only-testing:LocalMinutesUITests/RequiredScreenInformationUITests -only-testing:LocalMinutesUITests/LibraryProductUITests)
@@ -490,6 +492,9 @@ jobs:
           fi
           if [ "$NATIVE_TEST_CLASS" = MVP4StorageUI ]; then
             node scripts/verify-test-log.mjs .agent-local/focused-app-metrics.log testModelsPrepareStorageCheckReportsActualSimulatorCountsAndOffersExplicitShare
+            node scripts/verify-test-log.mjs .agent-local/focused-app-metrics.log \
+              testInstalledModelSpokenActionsIncludePurposeAndDistinctModelIdentity \
+              testInstalledModelActionsRemainReachableWith44PointTargetsAtLargestAccessibilityText
           elif [ "$NATIVE_TEST_CLASS" = NativeStoragePrivacyReportTests ]; then
             node scripts/verify-test-log.mjs .agent-local/focused-app-metrics.log \
               testReadyServicesReportActualOwnedRootCountBuildAndUIKitProtectedDataObservationWithoutChangingCanary \
@@ -499,6 +504,15 @@ jobs:
               testActivePreparationRecordingStoppingAndUnreleasedAudioDenyReportAndExport \
               testActualHeavyAdmissionLeaseDeniesReportWithoutCancellingItsOwner \
               testActualLibraryMaintenanceDeniesReportUntilMaintenanceEnds
+            node scripts/verify-test-log.mjs .agent-local/focused-app-metrics.log \
+              testSimulatorProtectionCapabilityIsReportedWithoutPhysicalVerification \
+              testDefaultServicesUseExcludedPrivatePersistentRoots \
+              testVerifiedModelCopyAndAtomicPointerPreserveSourceBytesAndPermissions \
+              testSQLiteSidecarRecreationAndCAFCheckpointRemainExcludedPrivateAndReadable \
+              testSymlinkPreflightAndAtomicReplacementPreserveOutsideFilesAndCleanTemporaryFiles \
+              testSecondMeetingEnduranceSamplingCannotRetainThePriorEpochOriginOrCountersDuringPreparation \
+              testActualSQLiteBlockedDeletionOwnsTheSharedHeavyGateUntilCacheAndMetadataCleanupSettle \
+              testPlaybackHeldAfterIdleSnapshotCannotActivateAfterLibraryRestoreAdmission
           elif [ "$NATIVE_TEST_CLASS" = MVP3AccessibilityUI ]; then
             node scripts/verify-test-log.mjs .agent-local/focused-app-metrics.log \
               testInstalledModelSpokenActionsIncludePurposeAndDistinctModelIdentity \
@@ -1122,9 +1136,9 @@ jobs:
   # Owner-requested MVP delivery: compile/package only, no test runner or model weights.
   # The workflow definition and the reviewed app source are recorded separately.
   mvp-package:
-    if: ${{ inputs.mode == 'mvp' || inputs.mode == 'features' || inputs.mode == 'package' || inputs.mode == 'model-delivery' || (inputs.mode == 'mvp2-parakeet' && inputs.packageMVP2) }}
-    runs-on: ${{ inputs.mode == 'mvp2-parakeet' && 'macos-15' || 'macos-15-intel' }}
-    timeout-minutes: 25
+    if: ${{ inputs.mode == 'mvp' || inputs.mode == 'features' || inputs.mode == 'package' || inputs.mode == 'model-delivery' || ((inputs.mode == 'mvp2-parakeet' || inputs.mode == 'mvp4-storage') && inputs.packageMVP2) }}
+    runs-on: ${{ (inputs.mode == 'mvp2-parakeet' || inputs.mode == 'mvp4-storage') && 'macos-15' || 'macos-15-intel' }}
+    timeout-minutes: ${{ inputs.mode == 'mvp4-storage' && 45 || 25 }}
     permissions:
       contents: write
     env:
@@ -1197,6 +1211,15 @@ jobs:
           console.log(readFileSync(result.manifestPath, 'utf8'));
           console.log(readFileSync(result.checksumPath, 'utf8'));
           JS
+      - name: Check actual native symbols and package privacy for the storage-report build
+        if: ${{ inputs.mode == 'mvp4-storage' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          export LOCALMINUTES_AUDIT_IPA="$PWD/build/package/$(python3 -c "import json;print(json.load(open('build/package/build-manifest.json'))['artifact'])")"
+          export LOCALMINUTES_AUDIT_SOURCE_COMMIT="$GITHUB_SHA"
+          export LOCALMINUTES_AUDIT_IPA_SHA256="$(python3 -c "import json;print(json.load(open('build/package/build-manifest.json'))['sha256'])")"
+          python3 -m unittest discover -s scripts/native-hygiene-tests -p 'test_*.py' -v
       - name: Retain the package in the existing unpublished owner draft
         shell: bash
         env:
@@ -1214,8 +1237,32 @@ jobs:
           assert release['targetCommitish'] == os.environ['EXPECTED_SOURCE']
           assert release['tagName'] == 'mvp-preview-' + os.environ['EXPECTED_SOURCE'][:12]
           PY
+          if [ "$DELIVERY_MODE" = mvp4-storage ]; then
+          python3 - <<'PY'
+          import hashlib, json, os, subprocess
+          from pathlib import Path
+          packages = []
+          for checkout in sorted(Path('.agent-local/source-packages/checkouts').iterdir()):
+              if checkout.is_dir():
+                  revision = subprocess.check_output(['git', '-C', str(checkout), 'rev-parse', 'HEAD'], text=True, timeout=10).strip()
+                  packages.append({'package': checkout.name, 'revision': revision})
+          resolved = []
+          for path in sorted(Path('LocalMinutes.xcodeproj').rglob('Package.resolved')):
+              resolved.append({'path': str(path), 'contents': json.loads(path.read_text())})
+          receipt = {'sourceCommit': os.environ['GITHUB_SHA'], 'packageCheckouts': packages,
+                     'resolvedPackages': resolved,
+                     'asrBuild': json.loads(Path('Vendor/SherpaASROnly/Artifacts/SherpaOnnxC.receipt.json').read_text()),
+                     'bundledNoticesSHA256': hashlib.sha256(Path('Resources/THIRD_PARTY_NOTICES.txt').read_bytes()).hexdigest()}
+          output = Path('build/package/dependency-receipt.json')
+          output.write_text(json.dumps(receipt, indent=2) + '\n')
+          Path(str(output) + '.sha256').write_text(hashlib.sha256(output.read_bytes()).hexdigest() + '  ' + output.name + '\n')
+          PY
+          gh release upload "$MVP_TAG" --repo "$GITHUB_REPOSITORY" \
+            build/package/*.ipa build/package/*.sha256 build/package/build-manifest.json build/package/dependency-receipt.json
+          else
           gh release upload "$MVP_TAG" --repo "$GITHUB_REPOSITORY" \
             build/package/*.ipa build/package/*.sha256 build/package/build-manifest.json
+          fi
 
   # One end-of-batch real-model observation per independent flow, in parallel.
   # Existing full validation is preserved separately; no per-change test loop.

@@ -142,7 +142,7 @@
       "milestone": "M1",
       "title": "Generate app/extension project and unsigned IPA pipeline",
       "kind": "infrastructure",
-      "status": "IN_PROGRESS",
+      "status": "VERIFIED_COMPLETE",
       "dependsOn": [
         "T02"
       ],
@@ -174,17 +174,23 @@
         {
           "id": "T04.4",
           "title": "Retain and deliver checksummed candidate artifact",
-          "status": "BLOCKED_EXTERNAL",
-          "blockers": [
-            "ARTIFACT_STORAGE_HEADROOM_UNVERIFIED"
-          ]
+          "status": "VERIFIED_COMPLETE",
+          "blockers": [],
+          "greenEvidence": [
+            "docs/evidence/MVP3_DELIVERY_2026_10_25.md",
+            "docs/evidence/MVP3_DEPENDENCY_RECEIPT_880d3dc.json"
+          ],
+          "greenSourceCommit": "880d3dcd2e21f79e6435ec134279cad192e7435d",
+          "greenRunId": 40181776855,
+          "scope": "Unsigned device app+LiveActivity retained in unpublished owner draft423297093, downloaded and SHA256/CRC/source/architecture/notices verified. No physical-signing claim."
         }
       ],
       "redEvidence": [
         "docs/evidence/T04_TDD.md"
       ],
       "greenEvidence": [
-        "docs/evidence/T04_TDD.md#t043-green--verified"
+        "docs/evidence/T04_TDD.md#t043-green--verified",
+        "docs/evidence/MVP3_DELIVERY_2026_10_25.md"
       ],
       "deviceEvidence": [],
       "blockers": [],
@@ -783,10 +789,17 @@
             "Reject unsafe paths and guard capture/heavy/library work; explicit owner share only",
             "Never substitute report for untouched physical XCTest execution or locked-access evidence"
           ],
-          "redEvidence": [],
+          "redEvidence": [
+            "docs/evidence/MVP4_STORAGE_AUDIT_TDD.md"
+          ],
           "greenEvidence": [],
           "deviceEvidence": [],
-          "nextAction": "Commit/push storage-audit tests plus minimal seams, dispatch focused mvp4-storage on hosted macOS/iOS and record actual behavioral RED before implementing inspector/service/UI. MVP3 IPA remains delivered. No automated model-quality jobs; owner phone gates remain NOT_RUN."
+          "nextAction": "T12.1a implementation reviewed after actual Core/native/UI RED. Commit/push build5, create unpublished exact-SHA owner draft, dispatch one mvp4-storage focused GREEN plus actual iPhone package (legacy packageMVP2 input true). Verify exact source/run, download/checksum/device bundles/dependency pins, deliver MVP4 development IPA and guide. No automated model-quality/full-suite run. Owner phone gates remain NOT_RUN.",
+          "redVerified": true,
+          "testFirstSource": "e9b1701cb81e0fb5f0a84f608f7c7598cd917449",
+          "redRunId": 40184895367,
+          "productionImplemented": true,
+          "greenVerified": false
         }
       ],
       "redEvidence": [],

@@ -1,8 +1,10 @@
 # MVP3 delivery work — 25 October 2026
 
-Status: IN_PROGRESS. No MVP3 IPA is delivered yet. Owner resumed work with
-GPT-6.1 Sol Medium for root and all subagents and removed the six-run hard cap.
-Existing zero-spend, single-active-run and bounded-repair rules remain.
+Current status: READY_FOR_DEVICE_VALIDATION. MVP3 source880d3dc/run40181776855
+is delivered and byte-verified; see **Delivered MVP3** below for exact evidence.
+Earlier entries are the chronological work record. The owner uses GPT-6.1 Sol
+Medium, removed the six-run cap and made model quality manual. Zero-spend,
+single-active-run and bounded-repair rules remain; physical gates are NOT_RUN.
 
 ## Build correction and first actual remaining RED
 

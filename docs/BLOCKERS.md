@@ -1,8 +1,10 @@
 # Blockers
 
-## Current checkpoint — MVP2 delivered
+## Current checkpoint — MVP3 delivered; MVP4 in progress
 
-Source35c7cefb946af188f5cc09858dca4ab180d72eab/run40132528745 passed all309 focused checks and unsigned iPhone app/Live Activity packaging. C7 installed-native and archive failures are resolved; prior records below are historical. Verified IPA and installation/model guide are delivered locally under build/delivery/MVP2-Parakeet-40132528745. Native Parakeet is included. No external coding blocker exists. MVP3 privacy/latest-shortcut/progress, dependency inventory, representative quality and final release validation remain. Physical signing/extension/Lock Screen/Action Button/two125min/renewal remain owner-run NOT_RUN; no completion is inferred from hosted tests.
+MVP3 source880d3dcd2e21f79e6435ec134279cad192e7435d/run40181776855 passed its functional/reliability gate. The delivered unsigned IPA, app/extension, exact checksum and dependency receipt are verified locally under build/delivery/MVP3-Functional-40181776855 and retained in unpublished draft423297093. Model quality is owner-manual under the25October override; historical quality results below are retained, not promoted to PASS. MVP4 T12.1a storage-report development remains unblocked; exact focused run40184895367 supplies its test-first evidence.
+
+**OWNER_PHONE_VALIDATION_REQUIRED:** the agent cannot provide real iPhone installation/signing, extension, offline chosen-model operation, Lock Screen, Action Button, two125-minute recordings, file-protection/locked-access or renewal-preservation evidence. The owner supplies those observations against the exact delivered build and model pins. All remain NOT_RUN. No account-storage or billing action is needed for the implemented draft-release delivery route.
 
 No confirmed external blocker prevents current code/test development. T00 authentication
 and repository bootstrap succeeded. A sandbox-only network error was resolved
@@ -11,11 +13,12 @@ signed-in browser despite insufficient CLI billing scope.
 
 Observation to track: account Actions storage displays 0.5 GB used / 0.5 GB
 included. Artifact headroom is unverified. Initial CI can use test logs without
-uploads; check headroom before attempting an IPA artifact. No unrelated artifacts
+uploads; headroom would need verification before any Actions-artifact upload. The
+implemented unpublished-release route does not use Actions-artifact storage. No unrelated artifacts
 were deleted and no billing settings were changed. All device gates remain
 NOT_RUN, not inferred blocked or passed before a candidate exists.
 
-## ARTIFACT_STORAGE_HEADROOM_UNVERIFIED — external, artifact delivery only
+## Historical ARTIFACT_STORAGE_HEADROOM_UNVERIFIED — delivery workaround verified
 
 - First observed: 23 October 2026, approximately 14:41 UTC; rechecked about 15:07 UTC.
 - Affected: T04/T21 artifact upload and G03 IPA delivery; no effect on current
@@ -26,11 +29,11 @@ NOT_RUN, not inferred blocked or passed before a candidate exists.
   or deletions attempted. The existing account Actions hard budget remains $0.
 - Safe independent work: core behavior, native compilation/testing without
   uploads, local scripts and documentation.
-- Owner action when an IPA is ready: free space by reviewing unneeded account
-  artifacts, or wait for their expiration, then verify included storage headroom.
-  No purchase, public repository or credential is requested.
-- Resolution: pending. Never set candidateArtifact until a retained, checksummed
-  artifact has actually been delivered and verified.
+- Current owner action: none for storage. Do not delete unrelated artifacts or
+  change billing. Headroom remains unknown and is not needed by this route.
+- Resolution for T04.4/T21 delivery: actual owner-only unpublished release assets,
+  downloaded and checksummed, most recently MVP3 source880d3dc/run40181776855.
+  See evidence/MVP3_DELIVERY_2026_10_25.md. This resolves delivery, not phone gates.
 
 ## Resolved implementation issue — T03.1
 

@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-25T10:35:17.664Z",
+  "lastUpdated": "2026-10-25T10:49:41.423Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -58,7 +58,7 @@
     },
     "evidence": "docs/evidence/MVP3_DELIVERY_2026_10_25.md"
   },
-  "nextAction": "Continue T12.1a: Core inspector implementation authorized by actual7-case RED (5 failures/28assertions) at e9b1701/run40184895367. Native7 and UI1 remain in hosted preparation; obtain actual native/UI behavioral RED before implementing their seams. Then one focused GREEN/package batch; no quality or repeated full-suite jobs. Delivered MVP3 stays at source880d3dc. Physical owner gates NOT_RUN.",
+  "nextAction": "T12.1a implementation reviewed after actual Core/native/UI RED. Commit/push build5, create unpublished exact-SHA owner draft, dispatch one mvp4-storage focused GREEN plus actual iPhone package (legacy packageMVP2 input true). Verify exact source/run, download/checksum/device bundles/dependency pins, deliver MVP4 development IPA and guide. No automated model-quality/full-suite run. Owner phone gates remain NOT_RUN.",
   "pendingPushCommit": null,
   "remoteBranchHead": "880d3dcd2e21f79e6435ec134279cad192e7435d",
   "localScriptGreen": {
@@ -74,7 +74,7 @@
   "lastVerifiedNativeBuildCommit": "880d3dcd2e21f79e6435ec134279cad192e7435d",
   "lastVerifiedNativeBuildCIRun": 40181776855,
   "blockedItems": [
-    "ARTIFACT_STORAGE_HEADROOM_UNVERIFIED"
+    "OWNER_PHONE_VALIDATION_REQUIRED"
   ],
   "ciInvocation": {
     "id": "2026-10-25-mvp3-delivery-01",
@@ -95,11 +95,12 @@
     "runLimitPolicy": "Owner explicitly removed six-run cap; batch checks, retain bounded retries and zero spend"
   },
   "latestCIRun": {
-    "runId": 40181776855,
-    "sourceCommit": "880d3dcd2e21f79e6435ec134279cad192e7435d",
+    "runId": 40184895367,
+    "sourceCommit": "e9b1701cb81e0fb5f0a84f608f7c7598cd917449",
+    "mode": "mvp4-storage",
     "status": "completed",
-    "conclusion": "success",
-    "mode": "mvp3-functional"
+    "conclusion": "failure",
+    "purpose": "actual tests-first RED"
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -275,13 +276,7 @@
     "latestSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
     "latestRunUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180"
   },
-  "activeCIRun": {
-    "runId": 40184895367,
-    "sourceCommit": "e9b1701cb81e0fb5f0a84f608f7c7598cd917449",
-    "mode": "mvp4-storage",
-    "phase": "tests-first RED",
-    "status": "in_progress"
-  },
+  "activeCIRun": null,
   "pendingPushScope": null,
   "repositoryVisibility": "PUBLIC",
   "publication": {
@@ -2567,8 +2562,8 @@
     "blocker": "OWNER_PHONE_VALIDATION_REQUIRED: agent has no physical iPhone access; installation/signing, extension/Action Button/locked live capture, two125min, offline use, file protection and renewal need owner evidence.",
     "storageAudit": {
       "status": "IN_PROGRESS",
-      "behaviorImplemented": false,
-      "redVerified": false,
+      "behaviorImplemented": true,
+      "redVerified": true,
       "tests": {
         "core": 7,
         "native": 7,
@@ -2591,7 +2586,44 @@
         "failed": 5,
         "assertionFailures": 28,
         "skipped": 0
+      },
+      "greenVerified": false,
+      "buildNumber": "5",
+      "nativeRed": {
+        "executed": 7,
+        "passed": 2,
+        "failed": 5,
+        "assertionFailures": 18,
+        "skipped": 0,
+        "jobId": 121143513071
+      },
+      "uiRed": {
+        "executed": 1,
+        "passed": 0,
+        "failed": 1,
+        "assertionFailures": 1,
+        "skipped": 0,
+        "jobId": 121143513055
+      },
+      "review": "Root plus independent Medium peer review found no concrete remaining defect; actual hosted compile/GREEN pending",
+      "nextGate": {
+        "core": 7,
+        "native": 15,
+        "ui": 3,
+        "scripts": 46,
+        "ipaHygiene": 3,
+        "qualityJobs": 0,
+        "fullSuite": false
       }
+    },
+    "partialAudit": {
+      "completedTaskIds": [
+        "T04",
+        "T04.4"
+      ],
+      "scope": "T04,T08,T09,T10,T11 current code/evidence read-only audit; no additional concrete production gap found. Does not close physical gates or prove whole-baseline completion.",
+      "evidence": "docs/evidence/MVP3_DELIVERY_2026_10_25.md",
+      "artifactStorageBlocker": "Resolved for implemented unpublished-release delivery; Actions-artifact headroom remains unverified and unused."
     }
   }
 }

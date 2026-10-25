@@ -27,7 +27,7 @@ struct LocalMinutesHomeView: View {
                 MeetingHistoryView(services: services, application: application, path: $meetingPath)
                     .tabItem { Label("Meetings", systemImage: "text.book.closed") }
                     .tag(1)
-                ModelBrowserView(controller: services.modelBrowser)
+                ModelBrowserView(controller: services.modelBrowser, application: application)
                     .tabItem { Label("Models", systemImage: "internaldrive") }
                     .tag(2)
             }

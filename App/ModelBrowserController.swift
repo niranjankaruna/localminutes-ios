@@ -21,6 +21,10 @@ final class ModelBrowserController {
     private(set) var isWorking = false
     private(set) var isDownloading = false
     private(set) var isImporting = false
+    private(set) var isPreparingStorageCheck = false
+    private(set) var storageCheckReport: StoragePrivacyReport?
+    private(set) var storageCheckJSON: String?
+    private(set) var storageCheckError: String?
     private(set) var message: String?
     private(set) var errorMessage: String?
     @ObservationIgnored private weak var services: LocalMinutesServices?
@@ -28,6 +32,45 @@ final class ModelBrowserController {
     @ObservationIgnored private var download: Task<Void, Never>?
 
     init(services: LocalMinutesServices) { self.services = services }
+
+    func prepareStorageCheck(recordingOwner: RecordingSessionOwner?) async {
+        guard !isPreparingStorageCheck else { return }
+        storageCheckReport = nil; storageCheckJSON = nil; storageCheckError = nil
+        guard !isWorking, !isInspecting else {
+            storageCheckError = "Finish model changes before preparing the storage check."
+            return
+        }
+        guard let services, let recordingOwner else {
+            storageCheckError = "Storage check is unavailable until the app is ready."
+            return
+        }
+        isPreparingStorageCheck = true
+        defer { isPreparingStorageCheck = false }
+        do {
+            let recording = await recordingOwner.snapshot()
+            try Task.checkCancellation()
+            let bytes = try await services.exportStoragePrivacyReport(recording: recording)
+            try Task.checkCancellation()
+            let report = try JSONDecoder().decode(StoragePrivacyReport.self, from: bytes)
+            guard let text = String(data: bytes, encoding: .utf8) else {
+                throw CocoaError(.fileReadCorruptFile)
+            }
+            storageCheckReport = report
+            storageCheckJSON = text
+        } catch StoragePrivacyReportError.recordingActive {
+            storageCheckError = "Stop recording and wait for cleanup before preparing the storage check."
+        } catch StoragePrivacyReportError.busy {
+            storageCheckError = "Finish playback, local processing or library changes before preparing the storage check."
+        } catch StoragePrivacyReportError.notReady {
+            storageCheckError = "Storage check is unavailable until the app is ready."
+        } catch StoragePrivacyReportError.invalidBuildIdentity {
+            storageCheckError = "Build information could not be verified for this storage check."
+        } catch is CancellationError {
+            storageCheckError = "Storage check cancelled."
+        } catch {
+            storageCheckError = "The storage check could not be prepared. Try again when the app is idle."
+        }
+    }
 
     var compatibility: HuggingFaceCompatibilityAssessment? {
         guard let repository else { return nil }
@@ -41,14 +84,14 @@ final class ModelBrowserController {
             contextTokens: 4_096, device: resources)
     }
     var canDownload: Bool {
-        guard !isWorking, !isInspecting, let assessment = compatibility else { return false }
+        guard !isWorking, !isInspecting, !isPreparingStorageCheck, let assessment = compatibility else { return false }
         let recognized = assessment.status == .supported
         guard recognized, assessment.profile != nil, !assessment.selectedFiles.isEmpty else { return false }
         return resourceAssessment?.status != .insufficientStorage
     }
 
     func inspect() async {
-        guard !isInspecting, !isWorking else { return }
+        guard !isInspecting, !isWorking, !isPreparingStorageCheck else { return }
         isInspecting = true; errorMessage = nil; message = nil; selectedFileName = nil
         defer { isInspecting = false }
         do {
@@ -107,7 +150,7 @@ final class ModelBrowserController {
     func cancelDownload() { download?.cancel() }
 
     func selectedImportManifest() -> ModelManifest? {
-        guard !isWorking, let repository else { return nil }
+        guard !isWorking, !isPreparingStorageCheck, let repository else { return nil }
         let format = repository.assessment(for: purpose, fileName: selectedFileName, maximumDownloadBytes: .max)
         let assessment = ModelRuntimeCompatibility.assess(repository: repository, format: format,
             availableProfiles: [.streamingZipformerONNX, .whisperGGML, .llamaGGUF, .parakeetTDTCoreML])
@@ -124,7 +167,7 @@ final class ModelBrowserController {
     }
 
     func importSelectedFiles(_ files: [URL], manifest: ModelManifest) {
-        guard !isWorking, let services, !services.maintainingLibrary else { return }
+        guard !isWorking, !isPreparingStorageCheck, let services, !services.maintainingLibrary else { return }
         isWorking = true; isImporting = true; errorMessage = nil
         message = "Reading the selected files and verifying this model…"
         download = Task { [weak self] in
@@ -140,7 +183,7 @@ final class ModelBrowserController {
     }
 
     func equip(_ manifest: ModelManifest) async {
-        guard !isWorking, let services else { return }
+        guard !isWorking, !isPreparingStorageCheck, let services else { return }
         isWorking = true; errorMessage = nil
         defer { isWorking = false }
         do {
@@ -152,7 +195,7 @@ final class ModelBrowserController {
     }
 
     func remove(_ manifest: ModelManifest) async {
-        guard !isWorking, let services else { return }
+        guard !isWorking, !isPreparingStorageCheck, let services else { return }
         isWorking = true; errorMessage = nil
         defer { isWorking = false }
         do {
