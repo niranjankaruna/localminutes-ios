@@ -38,6 +38,10 @@ enum ModelBrowserAccessibilityFixture {
         }
         services.modelBrowser.purpose = .summary
         await services.modelBrowser.refresh()
+        if AppScreenshotFixture.requested,
+           ProcessInfo.processInfo.arguments.contains("--ui-screenshot-model-card") {
+            try services.modelBrowser.loadScreenshotModelCard()
+        }
         if let stage = ProcessInfo.processInfo.environment["LOCALMINUTES_UI_MODEL_PROGRESS"], stage != "idle" {
             services.modelBrowser.updateDownloadProgress(.init(
                 stage: stage == "verifying" ? .verifying : .downloading,
@@ -75,6 +79,7 @@ struct ModelBrowserAccessibilityFixtureRoot: View {
             }
         }
         .accessibilityIdentifier(ModelBrowserAccessibilityFixture.releaseCanary)
+        .preferredColorScheme(AppScreenshotFixture.colorScheme)
         .task {
             guard !finished else { return }
             defer { finished = true }

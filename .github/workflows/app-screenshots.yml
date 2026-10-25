@@ -1,0 +1,119 @@
+name: Capture app UI for local download
+run-name: Screenshots ${{ inputs.request_id }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      request_id:
+        description: Unique request ID supplied by scripts/download-screenshots.mjs
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  capture:
+    name: Capture all app screens in light and dark mode
+    runs-on: macos-15
+    timeout-minutes: 90
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+    outputs:
+      artifact_id: ${{ steps.transfer.outputs.artifact-id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare and generate iOS project
+        run: bash scripts/prepare-ios.sh
+      - name: Boot an iPhone simulator
+        run: |
+          node --input-type=module <<'JS'
+          import { execFileSync } from 'node:child_process';
+          import { appendFileSync } from 'node:fs';
+          const inventory = JSON.parse(execFileSync('xcrun', ['simctl', 'list', 'devices', 'available', '--json']));
+          const devices = Object.entries(inventory.devices)
+            .filter(([runtime]) => runtime.includes('.iOS-26-'))
+            .flatMap(([runtime, devices]) => devices.map(device => ({ ...device, runtime })))
+            .filter(device => device.isAvailable && device.name.startsWith('iPhone'));
+          const device = devices.find(device => device.name === 'iPhone 17 Pro') ?? devices[0];
+          if (!device) throw new Error('An iOS 26 iPhone simulator is required');
+          if (device.state !== 'Booted') execFileSync('xcrun', ['simctl', 'boot', device.udid]);
+          appendFileSync(process.env.GITHUB_ENV,
+            `LOCALMINUTES_SCREENSHOT_SIMULATOR=${device.udid}\n` +
+            `LOCALMINUTES_SCREENSHOT_DEVICE=${device.name} (${device.runtime})\n`);
+          JS
+      - name: Standardize the simulator status bar
+        run: |
+          xcrun simctl bootstatus "$LOCALMINUTES_SCREENSHOT_SIMULATOR" -b
+          xcrun simctl status_bar "$LOCALMINUTES_SCREENSHOT_SIMULATOR" override \
+            --time '9:41' --dataNetwork wifi --wifiMode active --wifiBars 3 --batteryState charged --batteryLevel 100
+      - name: Run the app and capture the screen tour
+        run: |
+          xcodebuild test -project LocalMinutes.xcodeproj -scheme LocalMinutesUIValidation \
+            -configuration Debug -destination "platform=iOS Simulator,id=$LOCALMINUTES_SCREENSHOT_SIMULATOR" \
+            -destination-timeout 120 -parallel-testing-enabled NO -collect-test-diagnostics never \
+            -testLanguage en -testRegion US \
+            -only-testing:LocalMinutesUITests/AppScreenshotsUITests \
+            -derivedDataPath build/screenshots -clonedSourcePackagesDirPath .agent-local/source-packages \
+            -resultBundlePath .agent-local/app-screenshots.xcresult \
+            CODE_SIGNING_ALLOWED=NO LOCALMINUTES_SOURCE_COMMIT="$GITHUB_SHA" \
+            2>&1 | tee .agent-local/app-screenshots.log
+          node scripts/verify-test-log.mjs .agent-local/app-screenshots.log
+      - name: Export named PNG screenshots and verify completeness
+        run: |
+          xcrun xcresulttool export attachments --path .agent-local/app-screenshots.xcresult \
+            --output-path .agent-local/screenshot-attachments
+          node scripts/app-screenshots.mjs .agent-local/screenshot-attachments AppUI_Screenshots \
+            "$GITHUB_SHA" "$LOCALMINUTES_SCREENSHOT_DEVICE"
+      - uses: actions/upload-artifact@v4
+        id: transfer
+        with:
+          name: app-ui-screenshots-transfer
+          path: AppUI_Screenshots/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
+
+  transfer:
+    name: Wait for local download and delete temporary screenshots
+    if: ${{ always() && needs.capture.outputs.artifact_id != '' }}
+    needs: capture
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      actions: write
+    steps:
+      - name: Wait up to 15 minutes for the download script
+        if: needs.capture.result == 'success'
+        uses: actions/github-script@v7
+        env:
+          ARTIFACT_ID: ${{ needs.capture.outputs.artifact_id }}
+        with:
+          script: |
+            const artifact_id = Number(process.env.ARTIFACT_ID);
+            if (!Number.isSafeInteger(artifact_id) || artifact_id <= 0) throw new Error('Missing transfer artifact');
+            const deadline = Date.now() + 15 * 60 * 1000;
+            while (Date.now() < deadline) {
+              try { await github.rest.actions.getArtifact({ ...context.repo, artifact_id }); }
+              catch (error) { if (error.status === 404) return; throw error; }
+              await new Promise(resolve => setTimeout(resolve, 10000));
+            }
+            core.setFailed('Local transfer timed out; temporary screenshots will be deleted.');
+      - name: Delete temporary artifact even if transfer fails
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          ARTIFACT_ID: ${{ needs.capture.outputs.artifact_id }}
+        with:
+          script: |
+            const artifact_id = Number(process.env.ARTIFACT_ID);
+            if (!Number.isSafeInteger(artifact_id) || artifact_id <= 0) throw new Error('Missing transfer artifact');
+            try { await github.rest.actions.deleteArtifact({ ...context.repo, artifact_id }); }
+            catch (error) { if (error.status !== 404) throw error; }

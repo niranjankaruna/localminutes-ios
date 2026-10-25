@@ -40,7 +40,7 @@ xcodebuild -project LocalMinutes.xcodeproj -scheme LocalMinutes \
   LOCALMINUTES_SOURCE_COMMIT="$LOCALMINUTES_SOURCE_COMMIT" build
 ```
 
-The summary helper prepares the pinned llama.cpp framework. `--framework-only` downloads no model weights. Swift Package Manager resolves FluidAudio for Parakeet Core ML speech inference. [prepare-ios.sh](./scripts/prepare-ios.sh) prepares the framework and pinned XcodeGen automatically for both hosted workflows.
+The summary helper prepares the pinned llama.cpp framework. `--framework-only` downloads no model weights. Swift Package Manager resolves FluidAudio for Parakeet Core ML speech inference. [prepare-ios.sh](./scripts/prepare-ios.sh) prepares the framework and pinned XcodeGen automatically for hosted iOS workflows.
 
 The app requires a valid 40-character source commit stamp and numeric build number when initializing services. If building in Xcode's UI, set `LOCALMINUTES_SOURCE_COMMIT` in the app and extension build settings to the checkout's commit. A missing stamp can leave recording services unavailable.
 
@@ -57,10 +57,11 @@ Recording, playback, inference, and library maintenance share admission controls
 
 ## GitHub workflows from Windows
 
-There are two manually triggered workflows. Neither publishes releases or uses persistent build caches:
+There are three manually triggered workflows. None publishes releases or uses persistent build caches:
 
 - [Run all tests](./.github/workflows/tests.yml) runs every retained SwiftPM test, including actual model inference and speech-quality tests, plus Node tests, iOS app-hosted/UI tests, native packaging tests. Its macOS runners discard build outputs when the jobs end. No physical iPhone or self-hosted Mac is needed.
 - [Build IPA for local download](./.github/workflows/build-ipa.yml) builds an unsigned IPA for the local transfer script. It uploads only a temporary transfer artifact, not a release.
+- [Capture app UI for local download](./.github/workflows/app-screenshots.yml) runs the real app in an iPhone simulator, captures light/dark screenshots with sample data, and transfers them to the local project.
 
 After committing and pushing these files to GitHub, run all tests from the Actions page or with GitHub CLI:
 
@@ -77,6 +78,24 @@ node scripts/download-ipa.mjs
 [download-ipa.mjs](./scripts/download-ipa.mjs) dispatches the build for the current branch, waits for its uniquely identified run, downloads the IPA and receipts into a new folder under `Downloads/LocalMinutes`, verifies the source commit and checksum, and deletes the temporary artifact and build run. Use `--ref BRANCH_OR_TAG` or `--output NEW_DIRECTORY` to override the defaults. Existing output directories are never overwritten. GitHub authentication must permit workflow dispatch and Actions deletion in this repository.
 
 Keep the script running through cleanup. If the local handoff stops, the workflow deletes its transfer artifact after a 15-minute wait. GitHub's one-day artifact retention is a final fallback if workflow cleanup itself is interrupted; the script reports API cleanup failures rather than claiming the remote build was deleted. The test workflow retains its normal test logs, but no build artifacts.
+
+### Review the UI from Windows
+
+After committing and pushing, use the same Node.js/GitHub CLI setup to run:
+
+```powershell
+node scripts/download-screenshots.mjs
+```
+
+[download-screenshots.mjs](./scripts/download-screenshots.mjs) starts the screenshot workflow, waits for capture, verifies every PNG and its source commit, then replaces **`AppUI_Screenshots/` in this project**. Use `--ref BRANCH_OR_TAG` to select a pushed ref that matches the local commit. Run this command on Windows and keep it open; a GitHub-hosted workflow by itself cannot write to your local disk.
+
+Each successful run replaces the entire prior screenshot set, including obsolete filenames. An incomplete or invalid download leaves the previous set in place. The folder is ignored by Git; screenshots are not committed or published. Temporary GitHub artifacts and the screenshot workflow run are deleted after the local transfer. The same 15-minute cleanup and one-day retention fallback described above apply. If final folder replacement fails, the command reports where the new and previous sets remain without restoring files automatically.
+
+The [screen tour](./Tests/NativeUITests/AppScreenshotsUITests.swift) captures 39 screen/section states in both appearances (78 PNGs): Record idle, blocked, and active views; live transcript/notes; empty and populated history, search, backup and restore picker; meeting notes, transcript, summary, saved answers, export/share and confirmations; speech/summary model lists, Parakeet details, model card, import pickers, download/verification progress, storage, version and device information. Example names are `record_active_light.png`, `meeting_summary_dark.png`, and `models_downloading_light.png`. `manifest.json` records the commit, simulator, dimensions, and checksums.
+
+Long pages have separate captures for their sections. Capture uses the production SwiftUI views with DEBUG-only sample meetings and display inputs. Recording/download states and the model card fixture are presentation examples, not real microphone activity or inference. No model weights are downloaded for this workflow. iOS-owned surfaces outside the app, such as the Lock Screen/Dynamic Island, are not part of the tour. Screenshots use [XCTest screenshot attachments](https://developer.apple.com/documentation/xcuiautomation/xcuiscreenshot); the exporter rejects missing or duplicate captures instead of publishing a partial gallery.
+
+Open the PNGs on Windows and give feedback using their filenames. Rerun the same command after pushing UI changes to replace the images.
 
 ## Local validation on macOS
 

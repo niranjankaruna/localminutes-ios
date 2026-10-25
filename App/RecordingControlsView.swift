@@ -13,6 +13,13 @@ struct RecordingControlsView: View {
     @State private var isStopping = false
     @State private var commandError: String?
 
+    private var displayedTranscript: LiveTranscriptSnapshot? {
+        #if DEBUG
+        if AppScreenshotFixture.recording { return AppScreenshotFixture.transcript }
+        #endif
+        return application.services?.live.transcript
+    }
+
     private var hasActiveSession: Bool {
         guard let snapshot else { return false }
         return snapshot.cleanupPending ||
@@ -58,23 +65,22 @@ struct RecordingControlsView: View {
                         .accessibilityIdentifier("recording.stop")
                     }
                     .controlSize(.large)
-                    if let live = application.services?.live,
-                       live.transcript.sessionID != nil {
+                    if let transcript = displayedTranscript, transcript.sessionID != nil {
                         LazyVStack(alignment: .leading, spacing: 14) {
                             Text("Live transcript").font(.headline)
-                            Text("\(live.transcript.receivedSampleCount / 16_000) seconds transcribed locally")
+                            Text("\(transcript.receivedSampleCount / 16_000) seconds transcribed locally")
                                 .font(.caption).foregroundStyle(.secondary)
-                            ForEach(live.transcript.finalized) { segment in
+                            ForEach(transcript.finalized) { segment in
                                 Text(segment.text).textSelection(.enabled)
                             }
-                            if !live.transcript.partial.isEmpty {
-                                Text(live.transcript.partial).italic().foregroundStyle(.secondary)
+                            if !transcript.partial.isEmpty {
+                                Text(transcript.partial).italic().foregroundStyle(.secondary)
                             }
-                            if live.transcript.failure != nil {
+                            if transcript.failure != nil {
                                 Text("Live transcription stopped with an error. Review this meeting before relying on its transcript.")
                                     .foregroundStyle(.red)
                             }
-                            if let services = application.services, let id = live.transcript.sessionID {
+                            if let services = application.services, let id = transcript.sessionID {
                                 ActiveMeetingNotesView(services: services, id: id).id(id)
                             }
                         }
@@ -168,6 +174,13 @@ struct RecordingControlsView: View {
     }
 
     private func refresh() async {
+        #if DEBUG
+        if AppScreenshotFixture.recording {
+            snapshot = AppScreenshotFixture.snapshot
+            progress = AppScreenshotFixture.progress
+            return
+        }
+        #endif
         guard let owner = application.owner else { return }
         let latest = await owner.snapshot()
         guard !Task.isCancelled else { return }

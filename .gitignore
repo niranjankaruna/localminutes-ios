@@ -33,6 +33,7 @@ Native/Artifacts/
 *.key
 secrets/
 .agent-local/
+/AppUI_Screenshots/
 
 # Real meeting/device data: never commit
 recordings/

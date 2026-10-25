@@ -24,6 +24,7 @@ enum LibraryUITestFixture {
         let root = parent.appendingPathComponent(token.uuidString, isDirectory: true)
         let marker = root.appendingPathComponent("fixture-seeded.txt")
         let pagination = ProcessInfo.processInfo.arguments.contains("--ui-test-library-pagination")
+        let empty = ProcessInfo.processInfo.arguments.contains("--ui-test-library-empty")
         let services = try LocalMinutesServices(rootURL: root)
         do {
             if FileManager.default.fileExists(atPath: marker.path) {
@@ -32,16 +33,18 @@ enum LibraryUITestFixture {
                 }
                 // Reopen the same token-owned database. Never replace edits or
                 // reseed a terminated app's existing fixture on a second launch.
-                guard try await services.store.history(limit: 104).count == (pagination ? 103 : 2) else {
+                guard try await services.store.history(limit: 104).count == (empty ? 0 : pagination ? 103 : 2) else {
                     throw LibraryUIFixtureError.invalidFixture
                 }
             } else {
                 guard try await services.store.history().isEmpty else {
                     throw LibraryUIFixtureError.invalidFixture
                 }
-                try await seed("Alpha", in: services, at: Date(timeIntervalSince1970: 2_000))
-                try await seed("Beta", in: services, at: Date(timeIntervalSince1970: 1_000))
-                if pagination {
+                if !empty {
+                    try await seed("Alpha", in: services, at: Date(timeIntervalSince1970: 2_000))
+                    try await seed("Beta", in: services, at: Date(timeIntervalSince1970: 1_000))
+                }
+                if pagination && !empty {
                     for index in 0..<101 {
                         try await services.store.createMeeting(.init(id: UUID(),
                             title: index == 0 ? "UI Earlier Archive Target" : "UI Archive Meeting \(index)",
@@ -58,7 +61,7 @@ enum LibraryUITestFixture {
     }
 
     private static func seed(_ name: String, in services: LocalMinutesServices, at date: Date) async throws {
-        let id = UUID()
+        let id = AppScreenshotFixture.requested && name == "Alpha" ? AppScreenshotFixture.meetingID : UUID()
         let source = UUID()
         let audioDirectory = services.meetingsDirectory.appendingPathComponent(id.uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: audioDirectory, withIntermediateDirectories: false)
@@ -125,6 +128,7 @@ struct LibraryUITestFixtureRoot: View {
             } else { ProgressView("Preparing library fixture…") }
         }
         .accessibilityIdentifier(LibraryUITestFixture.releaseCanary)
+        .preferredColorScheme(AppScreenshotFixture.colorScheme)
         .task {
             guard !finished else { return }
             defer { finished = true }

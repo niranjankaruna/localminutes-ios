@@ -206,6 +206,23 @@ final class ModelBrowserController {
         } catch { errorMessage = Self.describe(error) }
     }
 
+    #if DEBUG
+    func loadScreenshotModelCard() throws {
+        guard AppScreenshotFixture.requested,
+              let manifest = BundledParakeetPacks.manifests.first else { throw ParakeetModelPackError.invalidManifest }
+        try loadParakeetPack(manifest)
+        guard let descriptor = repository else { throw ParakeetModelPackError.invalidManifest }
+        var fixture = HuggingFaceModelRepository(id: descriptor.id, revision: descriptor.revision,
+            files: descriptor.files, licenseIdentifier: descriptor.licenseIdentifier,
+            cardMarkdown: "# Parakeet TDT Core ML\n\nSample model card for UI review.\n\nSpeech recognition runs on this iPhone after downloading and equipping the complete model pack.",
+            pipelineTag: descriptor.pipelineTag, libraryName: descriptor.libraryName,
+            modelType: descriptor.modelType, architectures: descriptor.architectures,
+            isGated: false, contextConfiguration: descriptor.contextConfiguration)
+        fixture.parakeetManifest = manifest
+        repository = fixture
+    }
+    #endif
+
     func importParakeetPack(_ url: URL) {
         do {
             let access = url.startAccessingSecurityScopedResource()
