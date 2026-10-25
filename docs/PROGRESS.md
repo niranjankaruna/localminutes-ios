@@ -878,3 +878,10 @@ Run40135661801 atb26b89d: ASR-onlyframeworkbuildSUCCESS; portablefocusedSUCCESS;
 ## C12 terminal and bounded verification handoff
 
 Exact14ff749/run40138806203: currentcore/Phi/native0tests; localSwift-tools5.9 manifest cannotuseiOS18/macOS15 platformconstants. Firstmetadatarepair6.2 andmanifest/build-before-weights verificationprepared; noquality/nativeGREENclaim. Separateold8ednilLibraryfixture actuallyexecuted3cases3FAIL64.008s, harnessonly; seededcurrentUI stillpending. Sixof6runsused, no7thdispatch. Nextlegitimateboundedinvocation verifiescompilerrepair thenactualremainingproductRED/GREEN/quality, finalIPAonlyaftergates. MVP2source35c7stilldelivered; overallIN_PROGRESS, allphysicalgatesNOT_RUN.
+
+
+## MVP3 resumed — 25 October 2026
+
+Owner explicitly resumed delivery. Public repository/admin authentication and standard free runners rechecked. Fresh bounded batch 2026-10-25-mvp3-delivery-01: run40172670154 verifies exact b3f4e61181bdf81a0ab876e5defc3240513b7927; prior six-run batch retained. Three new review agents explicitly use GPT-6.1 Sol Medium; remaining prepared behavior waits for actual RED. No physical result or MVP3 delivery claimed. Next: verify build correction, complete pending behavior, focused GREEN/regressions and checksummed IPA.
+
+Owner override, 25 October 2026: no six-run hard cap. AGENTS/config/spec updated; run accounting, zero-spend controls, one active branch run and bounded repair retries remain. Continue MVP3 delivery without stopping solely on run count.

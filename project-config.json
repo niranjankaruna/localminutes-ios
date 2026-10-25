@@ -24,7 +24,8 @@
   "ci": {
     "costGuardVerified": true,
     "costGuardEvidence": "docs/evidence/T01_PUBLIC_REPOSITORY.md",
-    "maxNewRunsPerInvocation": 6,
+    "maxNewRunsPerInvocation": null,
+    "runLimitPolicy": "Owner removed the six-run hard cap on 25 October 2026; batch related checks, retain bounded retries and zero additional spend.",
     "maxConcurrentRunsPerBranch": 1,
     "jobTimeoutMinutes": 45,
     "artifactRetentionDays": 1,

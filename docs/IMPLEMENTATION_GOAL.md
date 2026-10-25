@@ -364,7 +364,7 @@ Publish an Actions artifact named with app version and source SHA. Include the u
 
 ### 13.4 Cost controls
 
-Set initial CI limits in configuration: one concurrent run per branch, a maximum 45-minute individual job, six new CI runs per agent invocation, and one-day artifact retention where supported. These are safety defaults, not a promise that a complex native build will fit; optimize or document a justified adjustment without permitting paid spend.
+Current owner override, 25 October 2026: no hard cap on CI runs per agent invocation. Batch related checks and avoid repeated full suites per change. Retain one concurrent run per branch, a maximum 45-minute individual job, one-day artifact retention where supported, bounded root-cause/transient retries and zero additional spend. These controls do not permit paid infrastructure.
 
 Stop CI dispatch when quota or billing state is uncertain. Count retries toward the same limits. Do not poll the API continuously. Prefer checking the specific run at a moderate interval and preserving its run ID when the session ends. If private quota is exhausted, continue only genuinely local tasks and report the blocker; do not covertly move the project public.
 

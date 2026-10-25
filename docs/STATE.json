@@ -3,15 +3,15 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-24T22:44:01.026Z",
+  "lastUpdated": "2026-10-25T07:26:02.293Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "MVP3 native package compatibility repair pending verification",
+  "currentTask": "MVP3: verify committed build repair, obtain remaining prepared behavioral RED, implement and deliver exact-source IPA",
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "NEXT legitimateboundedinvocation: retainthis6of6batch/evidence, recheckrepo/cost/auth andactualcurrentHEAD. Verify repaired6.2 localpackage and nativecompile first; thenrun mvp3-integration proveLibraryBootstrap=false (oldnilRED alreadycaptured), currentseededUI mustGREEN. Record actualnewcitation/screens/CPUdefault/a11y RED beforeimplementingthem; keep modeloracles andunknownquality. Finish fixes, focusedregressions+realmodelgate+unsignedIPAexactSHA/checksum; deliverMVP3onlyafterrequiredGREEN. Physicalsigning/LockScreen/ActionButton/2x125min/renewalNOT_RUN. AllsubagentsGPT6.1SolMedium; no seventhCI inoldinvocation.",
+  "nextAction": "Observe run40172670154 at exact b3f4e61. Verify tools6.2 manifest, native compile and current model gates. Require actual RED for remaining citation/info/status/accessibility/CPU default tests before behavior. Implement focused repairs, run pertinent regressions, deliver checksum-verified arm64 app+extension IPA after MVP3 gates. Physical gates remain NOT_RUN; user requests continuous work and Medium for all agents.",
   "pendingPushCommit": null,
   "remoteBranchHead": "14ff749a2bd8678b6523cf377b6695283513a76e",
   "localScriptGreen": {
@@ -30,27 +30,23 @@
     "ARTIFACT_STORAGE_HEADROOM_UNVERIFIED"
   ],
   "ciInvocation": {
-    "id": "2026-10-24-mvp2-delivery-02",
-    "startedAt": "2026-10-24T20:52:13.101Z",
-    "maxNewRuns": 6,
-    "plannedNewRuns": 0,
+    "id": "2026-10-25-mvp3-delivery-01",
+    "startedAt": "2026-10-25T07:26:02.293Z",
+    "maxNewRuns": null,
     "newRunIds": [
-      40131735329,
-      40132528745,
-      40133352703,
-      40134199884,
-      40135661801,
-      40138806203
+      40172670154
     ],
-    "limitReached": true,
-    "costGuardObservedAt": "2026-10-24T21:46:23.242Z",
-    "costGuardBasis": "Resume auth/admin and PUBLIC intendedrepo checked; standardmacos-15/macOS15-intel only; currentrun5of6, singleactivebranch,45minnativebuild, noActionsartifact/cache or billingchange."
+    "limitReached": false,
+    "costGuardObservedAt": "2026-10-25T07:26:02.293Z",
+    "costGuardBasis": "Authenticated owner/admin, configured publication approval and actual public repository verified; standard macos-15 and macos-15-intel only, 45-minute jobs, one active branch run, no paid runners, billing changes, Actions cache/artifact storage or public release.",
+    "runLimitPolicy": "Owner explicitly removed six-run cap; batch checks, retain bounded retries and zero spend"
   },
   "latestCIRun": {
-    "runId": 40138806203,
-    "sourceCommit": "14ff749a2bd8678b6523cf377b6695283513a76e",
-    "status": "completed",
-    "conclusion": "failure"
+    "runId": 40172670154,
+    "sourceCommit": "b3f4e61181bdf81a0ab876e5defc3240513b7927",
+    "mode": "mvp3-integration",
+    "status": "in_progress",
+    "conclusion": null
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -226,7 +222,13 @@
     "latestSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
     "latestRunUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180"
   },
-  "activeCIRun": null,
+  "activeCIRun": {
+    "runId": 40172670154,
+    "sourceCommit": "b3f4e61181bdf81a0ab876e5defc3240513b7927",
+    "mode": "mvp3-integration",
+    "status": "in_progress",
+    "conclusion": null
+  },
   "pendingPushScope": null,
   "repositoryVisibility": "PUBLIC",
   "publication": {
@@ -656,6 +658,23 @@
       "costGuardObservedAt": "2026-10-24T19:45:21.646Z",
       "costGuardBasis": "PUBLIC intended repository; standard free macos-15-intel plus official standard macos-15 Apple Silicon for native Core ML/app checks; no paid/larger runners, Actions artifact/cache storage or billing changes.",
       "finishedAt": "2026-10-24T20:47:50.404Z"
+    },
+    {
+      "id": "2026-10-24-mvp2-delivery-02",
+      "startedAt": "2026-10-24T20:52:13.101Z",
+      "maxNewRuns": 6,
+      "plannedNewRuns": 0,
+      "newRunIds": [
+        40131735329,
+        40132528745,
+        40133352703,
+        40134199884,
+        40135661801,
+        40138806203
+      ],
+      "limitReached": true,
+      "costGuardObservedAt": "2026-10-24T21:46:23.242Z",
+      "costGuardBasis": "Resume auth/admin and PUBLIC intendedrepo checked; standardmacos-15/macOS15-intel only; currentrun5of6, singleactivebranch,45minnativebuild, noActionsartifact/cache or billingchange."
     }
   ],
   "executionPause": {
@@ -1670,7 +1689,9 @@
     "unboundedTimeApproved": true,
     "repeatFullSuitePerChange": false,
     "installer": "iLoader",
-    "ownerReportsMainAppInstalled": true
+    "ownerReportsMainAppInstalled": true,
+    "hardCIRunCapRemoved": true,
+    "hardCIRunCapRemovedAt": "2026-10-25T07:28:32.342Z"
   },
   "mvp2Pending": {
     "summaryResume": "Pipeline implemented after actualRED; app/session integration4 and actual Phi cancelled-commit/reopen1 prepared before behavior",
@@ -2128,7 +2149,11 @@
       "mvp3_privacy_medium",
       "mvp3_navigation_medium",
       "asr_build_medium"
-    ]
+    ],
+    "subagentModel": "gpt-6.1-sol",
+    "subagentReasoningEffort": "medium",
+    "rootSetting": "User selected GPT-6.1 Sol Medium; runtime setting not directly observable",
+    "resumedAt": "2026-10-25T07:26:02.293Z"
   },
   "mvp3Integration": {
     "runId": 40138806203,
