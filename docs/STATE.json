@@ -2,12 +2,12 @@
   "schemaVersion": 1,
   "project": "LocalMinutes",
   "specVersion": "1.0",
-  "state": "READY_FOR_DEVICE_VALIDATION",
-  "lastUpdated": "2026-10-25T12:55:08.758Z",
+  "state": "BLOCKED_EXTERNAL",
+  "lastUpdated": "2026-10-25T12:56:17.577Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "T23 baseline evidence audit; MVP4 development delivered, owner device evidence pending",
+  "currentTask": "T23 final acceptance blocked on owner physical-device evidence; MVP4 development delivered",
   "lastVerifiedCommit": "36bf6f4c8726fbc5d2efbfa4f740ef4031457233",
   "lastVerifiedCIRun": 40193408469,
   "candidateArtifact": {
@@ -2893,8 +2893,15 @@
     "requirements": "R01–R12 mapped to actual evidence/remaining acceptance",
     "fullGoalAchieved": false,
     "remainingExternalBlocker": "OWNER_PHONE_VALIDATION_REQUIRED",
-    "blockedAuditConsecutiveTurns": 2,
-    "scope": "Phone-only prerequisite persisted across delivery handoff and this follow-up audit. Previous turn made progress by finalizing actual R11 PASS/delivery; current audit confirms terminal R11, clean worktree, backlog acceptance and production marker scan. No live CI, no new concrete unblocked development task. Goal remains active until third consecutive phone-only audit.",
-    "lastRevalidatedAt": "2026-10-25T12:55:08.758Z"
+    "blockedAuditConsecutiveTurns": 3,
+    "scope": "Third consecutive phone-only condition after final delivery. No new owner observation, active build or concrete independent development task; prior follow-up produced no application progress. Full goal remains unachieved. Goal blocked audit satisfied; resume when owner supplies phone evidence or reports a reproducible defect.",
+    "lastRevalidatedAt": "2026-10-25T12:56:17.577Z"
+  },
+  "executionCheckpoint": {
+    "status": "BLOCKED_EXTERNAL",
+    "blocker": "OWNER_PHONE_VALIDATION_REQUIRED",
+    "artifactStatus": "READY_FOR_DEVICE_VALIDATION",
+    "automaticContinuation": "Stop after goal blocked transition; no repeated status-only work or CI",
+    "resumeAction": "Owner phone validation on delivered build6: confirm installed version/build and a short actual recording whose Live Activity Stop saves the meeting; then checklist offline chosen models, Action Button warm/locked continuation/cold-start, two125min passes with120min locked each, storage protection and in-place renewal preservation. Device iPhone17Pro/iOS27.0.1 is OWNER_REPORTED only. No safe remaining development change identified by requirement audit; do not rerun passed suites or model-quality benchmarks while awaiting real evidence."
   }
 }
