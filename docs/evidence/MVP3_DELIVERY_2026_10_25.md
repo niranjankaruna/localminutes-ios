@@ -53,3 +53,31 @@ All physical signing, Lock Screen, Action Button, two125-minute and renewal
 gates remain NOT_RUN. Next: finish the active run, implement only proven missing
 behavior, then verify and retain the passing package without repeating its
 device compilation solely for download.
+
+## First run terminal results
+
+All three lanes finished. Native Release iPhone and Debug Simulator compilation
+passed at b3f4e61. The two existing build-contract cases failed because their
+expected build was still `1`, while both compiled bundles correctly identify
+build `4`. The assertion is updated to the current explicit build `4`; identity,
+version, architecture, platform and extension assertions are retained. This
+harness failure prevented native product/UI execution, so those tests remain
+unverified. No citation or screen behavior RED is inferred from it.
+
+The actual arm64 app/extension package was created ephemerally (14,826,819 bytes,
+SHA256 b9a89a266779be54f1c1090532364f25dfa49bd7ea53ebd357e3c1ab5b48de80).
+All three real IPA hygiene cases passed, 0 failures/skips, 0.627 seconds:
+source/receipt integrity, retained defined CPU ASR entry points, and absence of
+unused eSpeak/Piper definitions. The artifact was not retained or delivered.
+
+The Phi lane executed two real cases: basic selected-service summary/Q&A passed
+375.208 seconds; the new representative case failed `unsupportedClaim` after
+513.558 seconds. Its first raw map used exact valid source paragraphs and correct
+Leo/Thursday values, but the schema enumerated whole paragraphs for action
+tasks, forcing a conflict with the unchanged guard against paragraph-wide
+ownership. Repair generation constraints, not that guard or the model oracle.
+A deterministic sentence-schema regression is prepared next; expensive model
+inference is not repeated during this focused test-first step.
+
+Next run targets the pending native product/UI cases plus the schema regression
+and existing status/progress tests. It does not repeat the real model suite.

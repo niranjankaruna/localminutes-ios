@@ -5,6 +5,93 @@ import XCTest
 
 @MainActor
 final class SummaryPipelineTests: XCTestCase {
+    func testMultiSentenceSourceGrammarPermitsExactSentenceChoicesWithoutForcingParagraphOwnership() async throws {
+        let meetingID = UUID(uuidString: "30000000-0000-0000-0000-000000000019")!
+        let sentences = [
+            "Ari: I will review the cafe\u{301} checklist by Wednesday.",
+            "The supporting note preserves e\u{301} and 📝 exactly.",
+            "No other owner or deadline was assigned."
+        ]
+        let paragraph = sentences.joined(separator: " ")
+        let segment = SummaryEvidenceSegment(id: "generic-three-sentence-source",
+            startSample: 32_000, endSample: 80_000, text: paragraph)
+        let source = GroundedSummarySource(meetingID: meetingID, segments: [segment],
+            originalManualNotes: "Original separate manual note.")
+        func citation(_ quote: String) -> [String: Any] {
+            ["source_id": segment.id, "start_sample": segment.startSample,
+             "end_sample": segment.endSample, "quote": quote]
+        }
+        // Supply only the untrusted generation boundary. The schema must permit
+        // this valid choice; the real decoder still validates every returned field.
+        let reply: [String: Any] = [
+            "meeting_id": meetingID.uuidString,
+            "summary_points": [["evidence": [citation(sentences[1])], "text": sentences[1]]],
+            "decisions": [],
+            "actions": [["evidence": [citation(sentences[0])], "task": sentences[0],
+                         "owner": "Ari", "due": "Wednesday"]]
+        ]
+        let raw = String(decoding: try JSONSerialization.data(withJSONObject: reply), as: UTF8.self)
+        let boundary = PipelineGenerationBoundary(replies: [raw])
+        let pipeline = SummaryPipeline(modelRevision: String(repeating: "a", count: 40),
+            tokenizer: { _ in 10 }, generator: { prompt, schema, maximum in
+                try await boundary.generate(prompt, schema: schema, maximumTokens: maximum)
+            })
+        let output = try await pipeline.summarize(selectedMeetingID: meetingID, source: source)
+        let requests = await boundary.requests
+        let request = try XCTUnwrap(requests.first)
+        XCTAssertEqual(requests.count, 1)
+        XCTAssertTrue(request.prompt.contains(segment.id))
+        XCTAssertTrue(request.prompt.contains("No other owner or deadline was assigned."),
+            "Sentence choices must not discard the later source material from model input")
+        _ = try request.schema.grammar()
+
+        func fields(inArray name: String, fields: [StructuredJSONField]) throws -> [StructuredJSONField] {
+            let field = try XCTUnwrap(fields.first { $0.name == name })
+            guard case .array(let element, let maximumItems) = field.type,
+                  case .object(let result) = element else {
+                XCTFail("Expected a bounded object array for \(name)")
+                return []
+            }
+            XCTAssertTrue((1...128).contains(maximumItems))
+            return result
+        }
+        func exactChoices(_ name: String, fields: [StructuredJSONField]) throws {
+            let field = try XCTUnwrap(fields.first { $0.name == name })
+            guard case .stringEnumeration(let values) = field.type else {
+                return XCTFail("Short source sentences must retain a bounded extractive choice set")
+            }
+            XCTAssertEqual(values.map { Data($0.utf8) }, sentences.map { Data($0.utf8) },
+                "The grammar must offer every exact sentence instead of forcing the full paragraph")
+            XCTAssertFalse(values.contains(paragraph),
+                "A multi-sentence task cannot inherit the first commitment's owner")
+            let normalized = sentences[1].precomposedStringWithCanonicalMapping
+            XCTAssertNotEqual(Data(normalized.utf8), Data(sentences[1].utf8))
+            XCTAssertFalse(values.contains { Data($0.utf8) == Data(normalized.utf8) },
+                "Candidate extraction must not normalize original Unicode bytes")
+        }
+        let actions = try fields(inArray: "actions", fields: request.schema.fields)
+        try exactChoices("task", fields: actions)
+        let evidence = try fields(inArray: "evidence", fields: actions)
+        try exactChoices("quote", fields: evidence)
+        for category in ["summary_points", "decisions"] {
+            let points = try fields(inArray: category, fields: request.schema.fields)
+            try exactChoices("text", fields: points)
+        }
+        for name in ["owner", "due"] {
+            let field = try XCTUnwrap(actions.first { $0.name == name })
+            XCTAssertEqual(field.type, .nullable(.string),
+                "The grammar must leave model-selected attributes unknown or independently validated")
+        }
+        XCTAssertEqual(output.actions.first?.task, sentences[0])
+        XCTAssertEqual(output.actions.first?.owner, "Ari")
+        XCTAssertEqual(output.actions.first?.due, "Wednesday")
+        XCTAssertEqual(output.actions.first?.evidence.first?.sourceID, segment.id)
+        XCTAssertEqual(output.actions.first?.evidence.first?.startSample, segment.startSample)
+        XCTAssertEqual(output.actions.first?.evidence.first?.endSample, segment.endSample)
+        XCTAssertEqual(output.summaryPoints.first.map { Data($0.text.utf8) }, Data(sentences[1].utf8))
+        XCTAssertEqual(source.segments, [segment])
+    }
+
     func testPipelineMapsEveryChunkAndPublishesOnlyValidatedMergedContentWithProvenance() async throws {
         let h = PipelineFixture()
         let calls = PipelineGenerationBoundary(replies: [try h.response(for: h.first), try h.response(for: h.second)])

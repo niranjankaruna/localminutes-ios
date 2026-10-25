@@ -331,7 +331,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           mkdir -p .build
           if [ "${{ inputs.mode }}" = mvp3 ]; then
-            swift test --filter 'CoreTests[.](RecordingProgressPresenterTests|TranscriptionMetricsTests)' 2>&1 | tee .build/focused-portable.log
+            swift test --filter 'CoreTests[.](RecordingProgressPresenterTests|TranscriptionMetricsTests)|PersistenceTests[.]MeetingContentStatusTests|SummaryTests[.]SummaryPipelineTests' 2>&1 | tee .build/focused-portable.log
           elif [[ "${{ inputs.mode }}" == model-integration || "${{ inputs.mode }}" == model-repair || "${{ inputs.mode }}" == model-delivery ]]; then
             swift test --filter 'ModelTests[.](HuggingFaceRepositoryTests|ModelSelectionTests|ModelDeviceResourceReaderTests|ModelInstallationIdentityTests|ModelRuntimeCompatibilityTests)|CoreTests[.]TranscriptionMetricsTests|PersistenceTests[.]SummaryCheckpointStoreTests|SummaryTests[.](SummaryPipelineTests|GroundedSummaryTests|NestedStructuredSchemaTests|StructuredJSONSchemaTests)' 2>&1 | tee .build/focused-portable.log
           elif [ "${{ inputs.mode }}" = model-catalog ]; then
@@ -346,6 +346,8 @@ jobs:
           set -euo pipefail
           if [ "${{ inputs.mode }}" = mvp3 ]; then
             node scripts/verify-test-log.mjs .build/focused-portable.log testFirstPCMElapsedSurvivesPresenterRecreationAndDoesNotUseTranscribedDuration testMeasuredBacklogWarnsStrictlyAboveFiveSecondsAndReportsRealCatchUp
+            node scripts/verify-test-log.mjs .build/focused-portable.log testActualSQLiteStatusDistinguishesEachMeetingsTranscriptAndSummaryAndRemainsUnknownWhenUnreadable
+            node scripts/verify-test-log.mjs .build/focused-portable.log testMultiSentenceSourceGrammarPermitsExactSentenceChoicesWithoutForcingParagraphOwnership
           elif [[ "${{ inputs.mode }}" == model-integration || "${{ inputs.mode }}" == model-repair || "${{ inputs.mode }}" == model-delivery ]]; then
             node scripts/verify-test-log.mjs .build/focused-portable.log testInstalledInventoryListsBothAlternativesDeterministicallyWithoutChangingEquipment
           elif [ "${{ inputs.mode }}" = model-catalog ]; then
@@ -360,7 +362,7 @@ jobs:
     if: ${{ inputs.mode == 'candidate-summary-parts' || inputs.mode == 'model-catalog' || inputs.mode == 'model-integration' || inputs.mode == 'model-repair' || inputs.mode == 'model-delivery' || inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet' || inputs.mode == 'mvp3' }}
     name: Native focused (${{ matrix.testclass }})
     runs-on: ${{ (inputs.mode == 'mvp2-parakeet' || inputs.mode == 'mvp3') && 'macos-15' || 'macos-15-intel' }}
-    timeout-minutes: ${{ (inputs.mode == 'model-delivery' || inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet') && 18 || 15 }}
+    timeout-minutes: ${{ inputs.mode == 'mvp3' && 45 || (inputs.mode == 'model-delivery' || inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet') && 18 || 15 }}
     strategy:
       fail-fast: false
       matrix:
@@ -420,9 +422,9 @@ jobs:
           native_scheme=LocalMinutesFocusedValidation
           if [ "$NATIVE_TEST_CLASS" = MVP3AccessibilityUI ]; then
             native_scheme=LocalMinutes
-            native_cases=(-only-testing:LocalMinutesUITests/ModelBrowserAccessibilityUITests)
+            native_cases=(-only-testing:LocalMinutesUITests/ModelBrowserAccessibilityUITests -only-testing:LocalMinutesUITests/RequiredScreenInformationUITests -only-testing:LocalMinutesUITests/LibraryProductUITests)
           elif [ "$NATIVE_TEST_CLASS" = MVP3Contracts ]; then
-            native_cases=(-only-testing:LocalMinutesAppTests/NativeRootPrivacyTests -only-testing:LocalMinutesAppTests/NativeOpenLatestMeetingIntentTests -only-testing:LocalMinutesAppTests/NativeRecordingProgressTests -only-testing:LocalMinutesAppTests/RecordingSessionOwnerTests/testNativeSDKConformancesAndThreeDiscoverableShortcutsArePresent)
+            native_cases=(-only-testing:LocalMinutesAppTests/NativeRootPrivacyTests -only-testing:LocalMinutesAppTests/NativeOpenLatestMeetingIntentTests -only-testing:LocalMinutesAppTests/NativeRecordingProgressTests -only-testing:LocalMinutesAppTests/NativeMeetingCitationNavigationTests -only-testing:LocalMinutesAppTests/NativeAppBuildIdentityTests -only-testing:LocalMinutesAppTests/RecordingSessionOwnerTests/testNativeSDKConformancesAndThreeDiscoverableShortcutsArePresent)
           elif [ "$NATIVE_TEST_CLASS" = MVP1Services ]; then
             native_cases=(-only-testing:LocalMinutesAppTests/NativeAppMetricsTests -only-testing:LocalMinutesAppTests/NativeModelResourceTests)
           elif [ "$NATIVE_TEST_CLASS" = NativeMVP2LibraryTests ]; then
@@ -453,6 +455,12 @@ jobs:
             node scripts/verify-test-log.mjs .agent-local/focused-app-metrics.log \
               testInstalledModelSpokenActionsIncludePurposeAndDistinctModelIdentity \
               testInstalledModelActionsRemainReachableWith44PointTargetsAtLargestAccessibilityText
+            node scripts/verify-test-log.mjs .agent-local/focused-app-metrics.log \
+              testActualRecordAndModelsScreensExplainMicrophoneLiveActivityAndDisplayVersionAndBuild \
+              testActualHistoryRowsReportOnlyTheirOwnPersistedTranscriptAndSummaryAvailability \
+              testActualHistoryDetailsAndTranscriptSearchStayWithinTheSelectedMeeting \
+              testManualNoteNavigationAndRelaunchPreserveTheEditWithoutChangingAnotherMeeting \
+              testEditableGeneratedSummaryAndAskMissingModelStaySeparateFromOriginalsAndOtherMeetings
           elif [ "$NATIVE_TEST_CLASS" = MVP3Contracts ]; then
             node scripts/verify-test-log.mjs .agent-local/focused-app-metrics.log \
               testPresenterUsesActualDefaultServiceFirstPCMOriginAndMeasuredPendingSamples \
@@ -460,6 +468,11 @@ jobs:
               testOwningSceneNotificationsOpaqueCoverTheHostedRootAndRestoreAccessibility \
               testActualHomeRootPrivacyPreservesRunningOwnedCaptureAndRealCAFFlush \
               testNativeSDKConformancesAndThreeDiscoverableShortcutsArePresent
+            node scripts/verify-test-log.mjs .agent-local/focused-app-metrics.log \
+              testSummaryCitationRetainsMeetingAndExactSegmentIdentityAlongsideValidatedPlaybackOffset \
+              testAnswerCitationWithSameOffsetAsAnotherMeetingStillTargetsOnlySelectedTranscriptRow \
+              testForeignUnknownOutOfBoundsAndUnsupportedQuoteCitationsCannotCreateNavigationTargets \
+              testDisplayedBuildIdentityReadsTheActualHostedAppBundleVersionAndBuild
           elif [ "$NATIVE_TEST_CLASS" = NativeMVP2LibraryTests ]; then
             node scripts/verify-test-log.mjs .agent-local/focused-app-metrics.log \
               testDefaultAppManagerResumesPinnedDownloadThroughItsConfiguredTransportAndPublishesVerifiedInstallation \

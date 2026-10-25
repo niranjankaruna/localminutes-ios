@@ -3,7 +3,7 @@
   "project": "LocalMinutes",
   "specVersion": "1.0",
   "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-25T07:34:33.110Z",
+  "lastUpdated": "2026-10-25T07:46:54.649Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
@@ -11,7 +11,7 @@
   "lastVerifiedCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
   "lastVerifiedCIRun": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180",
   "candidateArtifact": null,
-  "nextAction": "Observe run40172670154 at exact b3f4e61. Verify tools6.2 manifest, native compile and current model gates. Require actual RED for remaining citation/info/status/accessibility/CPU default tests before behavior. Implement focused repairs, run pertinent regressions, deliver checksum-verified arm64 app+extension IPA after MVP3 gates. Physical gates remain NOT_RUN; user requests continuous work and Medium for all agents.",
+  "nextAction": "Prepare deterministic sentence-schema regression test, push testfirst; dispatch focused mvp3 for meaningful schema/native/UI RED without repeating realmodel inference. Implement those proven behaviors, verifyfocusedGREEN, then final model/native/package milestone and checksumdelivery.",
   "pendingPushCommit": null,
   "remoteBranchHead": "14ff749a2bd8678b6523cf377b6695283513a76e",
   "localScriptGreen": {
@@ -44,9 +44,8 @@
   "latestCIRun": {
     "runId": 40172670154,
     "sourceCommit": "b3f4e61181bdf81a0ab876e5defc3240513b7927",
-    "mode": "mvp3-integration",
-    "status": "in_progress",
-    "conclusion": null
+    "status": "completed",
+    "conclusion": "failure"
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -222,13 +221,7 @@
     "latestSourceCommit": "db1b8d51c5ff72bf1d8abfd13f99a1da06a11e04",
     "latestRunUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40079629180"
   },
-  "activeCIRun": {
-    "runId": 40172670154,
-    "sourceCommit": "b3f4e61181bdf81a0ab876e5defc3240513b7927",
-    "mode": "mvp3-integration",
-    "status": "in_progress",
-    "conclusion": null
-  },
+  "activeCIRun": null,
   "pendingPushScope": null,
   "repositoryVisibility": "PUBLIC",
   "publication": {
@@ -2164,7 +2157,7 @@
   "mvp3Integration": {
     "runId": 40172670154,
     "sourceCommit": "b3f4e61181bdf81a0ab876e5defc3240513b7927",
-    "status": "in_progress",
+    "status": "completed",
     "scope": "Broad core/realASR corpus/currentPhi/native product+UI; separately recorded8ednilharnessbootstrapRED",
     "expectedPendingBehaviors": [
       "citationSourceRowNavigation",
@@ -2174,7 +2167,7 @@
       "modelControlAccessibility"
     ],
     "delivered": false,
-    "conclusion": null,
+    "conclusion": "failure",
     "currentExecuted": 460,
     "failure": "Prepared CPUdefault and database content-status cases have actual RED; smallest fixes implemented, GREEN pending. Native/UI and Phi remain active.",
     "historicalHarnessRED": {
@@ -2221,6 +2214,32 @@
         "noiseErrors": 1,
         "passed": true
       }
+    },
+    "native": {
+      "deviceCompile": "PASS",
+      "simulatorCompile": "PASS",
+      "behaviorExecuted": 0,
+      "metadataTests": {
+        "passed": 0,
+        "failed": 2,
+        "cause": "Stale expected build1, actualcorrectbuild4"
+      },
+      "ipaNativeHygiene": {
+        "executed": 3,
+        "passed": 3,
+        "failed": 0,
+        "skipped": 0,
+        "durationSeconds": 0.627
+      }
+    },
+    "phi": {
+      "executed": 2,
+      "passed": 1,
+      "failed": 1,
+      "skipped": 0,
+      "basicSeconds": 375.208,
+      "representativeSeconds": 513.558,
+      "cause": "Schema forces fullparagraph task but validator correctly rejects paragraph-wide ownership; repair generation constraints, preserve validator"
     }
   }
 }

@@ -1,6 +1,6 @@
 # Native dependency and notice inventory
 
-Audit date: 24 October 2026. **IN_PROGRESS; not a complete SBOM or legal clearance.**
+Audit dates: 24–25 October 2026. **IN_PROGRESS; not a complete SBOM or legal clearance.**
 This records the pinned checkout, independently inspected public artifacts and
 the delivered MVP2 development preview. It changes neither project licensing nor
 runtime/dependency selection. Updated notices become part of a later build;
@@ -12,7 +12,7 @@ the already-delivered IPA is unchanged.
 |---|---|---|
 | llama.cpp / ggml | [b5046 source](https://github.com/ggml-org/llama.cpp/tree/74d4f5b041ad837153b0e90fc864b8290e01d8d5), MIT | Local GGUF summaries/questions; dynamic `llama.framework`. |
 | whisper.cpp / ggml | [v1.7.5 source](https://github.com/ggml-org/whisper.cpp/tree/51c6961c7b64b406833f4b6a4a20e67142f69225), MIT | Rolling Whisper GGML recognition; dynamic `whisper.framework`. |
-| sherpa-onnx | [pinned package/source](https://github.com/k2-fsa/sherpa-onnx/tree/11afbd009a7f8c08f4bcf2fc1b265d0df4670fbf), v1.13.8, Apache-2.0 plus transitive notices below | Swift wrapper and static SherpaOnnxC; streaming Zipformer. Current binary also contains unused TTS code. |
+| sherpa-onnx | [pinned package/source](https://github.com/k2-fsa/sherpa-onnx/tree/11afbd009a7f8c08f4bcf2fc1b265d0df4670fbf), v1.13.8, Apache-2.0 plus transitive notices below | Local ASR-only Swift wrapper and static SherpaOnnxC candidate; streaming Zipformer. Delivered MVP2 contains unused TTS code; final MVP3 symbol audit is pending. |
 | ONNX Runtime | [packaging revision](https://github.com/csukuangfj/onnxruntime-libs/tree/8ebc5ebf92190903c274a7621ba4c96a732335ec), exact package1.28.2; [Microsoft source/license](https://github.com/microsoft/onnxruntime/tree/33ca9628233dc8f002435e868d4c2e9f82766ca1), MIT plus third-party notices | Static ORT dependency of sherpa. Microsoft source commit is the resolved v1.28.2 tag; this is not an attestation of the distributor's complete build inputs. |
 | FluidAudio | [c79c4106b954f81205113c3343e5a7e59a1089b5](https://github.com/FluidInference/FluidAudio/tree/c79c4106b954f81205113c3343e5a7e59a1089b5), Apache-2.0 plus fastcluster notice | Source-built Core ML/Swift TDT Parakeet. Swift6.2 manifest with `traits: []`; see exclusions below. |
 | Apple system frameworks / SQLite | SDK-provided SwiftUI, App Intents, ActivityKit, WidgetKit, AVFoundation, Core ML, Accelerate, Metal, Foundation and `libsqlite3` | System SDK dependencies; no separately downloaded SQLite binary. Exact system versions depend on build/device OS. |
@@ -95,9 +95,11 @@ disable OpenMP/examples/tests/server and set `GGML_NATIVE=OFF`. They build stati
 inputs and wrap them into dynamic Apple frameworks. **CPU inference policy does
 not mean these distributed frameworks lack GPU code.** App adapters explicitly
 set llama`n_gpu_layers=0`/`offload_kqv=false`, Whisper`use_gpu=false`/
-`flash_attn=false`, and sherpa provider`cpu`. Parakeet uses Core ML CPU+Neural
-Engine configuration, with CPU-only native fixture execution; GPU is excluded
-from its configured policy.
+`flash_attn=false`, and sherpa provider`cpu`. Delivered MVP2 Parakeet permits
+Core ML CPU+Neural Engine. The MVP3 production default is now CPU-only after an
+actual failing policy test; its repaired default awaits GREEN. Explicit CPU-only
+real-model corpus execution passed. Neither configured policy enables the GPU;
+physical scheduling and locked-screen performance remain unverified.
 
 FluidAudio's `Package@swift-6.2.swift` selects no default traits in this project.
 TTS, diarization and NemoTextProcessing conditional dependencies/resources are

@@ -21,7 +21,7 @@ function requireMatchingVersions(bundles) {
     [bundles.extension, 'com.niranjankaruna.localminutes.LiveActivity', 'LocalMinutesLiveActivity', 'XPC!']
   ]) {
     assert.equal(bundle.info.CFBundleShortVersionString, '1.0');
-    assert.equal(bundle.info.CFBundleVersion, '1');
+    assert.equal(bundle.info.CFBundleVersion, '4');
     assert.equal(bundle.info.CFBundleIdentifier, identifier);
     assert.equal(bundle.info.CFBundleExecutable, executable);
     assert.equal(bundle.info.CFBundlePackageType, packageType);
