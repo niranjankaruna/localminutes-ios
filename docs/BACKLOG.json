@@ -1912,8 +1912,27 @@
           "status": "IN_PROGRESS"
         }
       ],
-      "redEvidence": [],
-      "greenEvidence": [],
+      "redEvidence": [
+        {
+          "sourceCommit": "20da4e8e8e68ea9b7add81d1c6d4b18bdedb1ae1",
+          "runId": 40209885118,
+          "scope": "512 MiB transfer memory and absent actual HTTP progress"
+        },
+        {
+          "sourceCommit": "1d2f290032bdebcc497d2701eb456caef887124c",
+          "runId": 40213241251,
+          "scope": "actual v3 local load/live/replay contract"
+        }
+      ],
+      "greenEvidence": [
+        {
+          "sourceCommit": "7cb82d436adfbc9e20ec7006bd020538dfadd354",
+          "runId": 40216369493,
+          "scope": "123 model-module and 62 script checks; native inference/UI pending",
+          "failures": 0,
+          "skips": 0
+        }
+      ],
       "deviceEvidence": [],
       "evidence": [
         "docs/evidence/T26_MODEL_ADAPTERS_TRANSFERS.md"

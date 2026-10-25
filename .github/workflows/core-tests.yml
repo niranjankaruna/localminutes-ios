@@ -734,7 +734,7 @@ jobs:
           export LOCALMINUTES_PARAKEET_COREML_FIXTURE_PATH="$PWD/.agent-local/parakeet-coreml-fixtures/6930-75918-0000.flac"
           mkdir -p .build
           if [ "${{ inputs.mode }}" = model-upgrades ]; then
-            filter='ASRTests[.](CoreMLParakeetRecognizerTests|SelectedCoreMLParakeetLiveSessionTests|CoreMLParakeetSelectionIntegrationTests|CoreMLParakeetReplayIntegrationTests|ParakeetModelPackNativeTests|SelectedV3ParakeetLiveSessionTests|V3ParakeetReplayIntegrationTests)'
+            filter='ASRTests[.](CoreMLParakeetRecognizerTests|SelectedCoreMLParakeetLiveSessionTests|CoreMLParakeetSelectionIntegrationTests|CoreMLParakeetReplayIntegrationTests|ParakeetModelPackNativeTests|SelectedV3ParakeetLiveSessionTests|V3ParakeetReplayIntegrationTests)|IntelligenceTests[.]AppleGeneratedJSONTests'
           else
             filter='ASRTests[.](CoreMLParakeetRecognizerTests|SelectedCoreMLParakeetLiveSessionTests|CoreMLParakeetSelectionIntegrationTests|CoreMLParakeetReplayIntegrationTests)'
           fi
@@ -755,6 +755,17 @@ jobs:
           if [ "${{ inputs.mode }}" = model-upgrades ]; then
             node scripts/verify-test-log.mjs .build/native-parakeet.log testActualV3PackUsesItsOwnPinAndDecodesLicensedSpeechOnCPU testEquippedV3PackPublishesDuringCaptureAndPersistsItsOwnManifest testDurableCAFReplaysCapturedV3PackPreservingItsPinAndOriginals
           fi
+
+      - name: Regress model provenance, summary composition and durable storage
+        if: ${{ always() && inputs.mode == 'model-upgrades' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          swift test --skip-build --filter 'CoreTests|PersistenceTests|SummaryTests[.](GroundedSummaryTests|StructuredJSONSchemaTests|NestedStructuredSchemaTests|SummaryChunkPlannerTests|SummaryPipelineTests|SummaryPromptFormatterTests|SummaryResumePipelineTests)|IntelligenceTests[.](IntelligenceSessionTests|SummaryResumeIntelligenceTests)|QuestionAnsweringTests[.]MeetingQuestionAnswererTests' 2>&1 | tee .build/model-upgrade-regressions.log
+          node scripts/verify-test-log.mjs .build/model-upgrade-regressions.log \
+            testSummaryAndQASaveSelectedValidatedDocumentsAndProvenanceWithoutChangingOriginals \
+            testSummaryAndQuestionAnswerOriginalsEditsAndProvenanceSurviveReopenSeparately \
+            testExtractiveSummaryDecisionsAndNullableActionsRetainSourceAndManualTextExactly
 
   selected-model-integration:
     if: ${{ inputs.mode == 'model-integration' || inputs.mode == 'model-repair' || inputs.mode == 'model-delivery' }}
@@ -1257,9 +1268,9 @@ jobs:
   # Owner-requested MVP delivery: compile/package only, no test runner or model weights.
   # The workflow definition and the reviewed app source are recorded separately.
   mvp-package:
-    if: ${{ inputs.mode == 'mvp' || inputs.mode == 'features' || inputs.mode == 'package' || inputs.mode == 'model-delivery' || ((inputs.mode == 'mvp2-parakeet' || inputs.mode == 'mvp4-storage' || inputs.mode == 'mvp4-final') && inputs.packageMVP2) }}
-    runs-on: ${{ (inputs.mode == 'mvp2-parakeet' || inputs.mode == 'mvp4-storage' || inputs.mode == 'mvp4-final') && 'macos-15' || 'macos-15-intel' }}
-    timeout-minutes: ${{ (inputs.mode == 'mvp4-storage' || inputs.mode == 'mvp4-final') && 45 || 25 }}
+    if: ${{ inputs.mode == 'mvp' || inputs.mode == 'features' || inputs.mode == 'package' || inputs.mode == 'model-delivery' || ((inputs.mode == 'model-upgrades' || inputs.mode == 'mvp2-parakeet' || inputs.mode == 'mvp4-storage' || inputs.mode == 'mvp4-final') && inputs.packageMVP2) }}
+    runs-on: ${{ (inputs.mode == 'model-upgrades' || inputs.mode == 'mvp2-parakeet' || inputs.mode == 'mvp4-storage' || inputs.mode == 'mvp4-final') && 'macos-15' || 'macos-15-intel' }}
+    timeout-minutes: ${{ (inputs.mode == 'model-upgrades' || inputs.mode == 'mvp4-storage' || inputs.mode == 'mvp4-final') && 45 || 25 }}
     permissions:
       contents: write
     env:
@@ -1333,7 +1344,7 @@ jobs:
           console.log(readFileSync(result.checksumPath, 'utf8'));
           JS
       - name: Check actual native symbols and package privacy for the storage-report build
-        if: ${{ inputs.mode == 'mvp4-storage' || inputs.mode == 'mvp4-final' }}
+        if: ${{ inputs.mode == 'model-upgrades' || inputs.mode == 'mvp4-storage' || inputs.mode == 'mvp4-final' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -1359,7 +1370,7 @@ jobs:
           assert release['targetCommitish'] == os.environ['EXPECTED_SOURCE']
           assert release['tagName'] == 'mvp-preview-' + os.environ['EXPECTED_SOURCE'][:12]
           PY
-          if [[ "$DELIVERY_MODE" == mvp4-storage || "$DELIVERY_MODE" == mvp4-final ]]; then
+          if [[ "$DELIVERY_MODE" == model-upgrades || "$DELIVERY_MODE" == mvp4-storage || "$DELIVERY_MODE" == mvp4-final ]]; then
           python3 - <<'PY'
           import hashlib, json, os, subprocess
           from pathlib import Path

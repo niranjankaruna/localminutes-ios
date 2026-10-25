@@ -71,3 +71,7 @@ Next: push these tests, observe genuine hosted RED, then implement T26.1/T26.2.
 At source `fe7aa94f6cd85aeb95644a32789b5f2972167a05`, [run 40215222725](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40215222725) executed 123 model tests: 122 passed, one new publisher-independent pack discovery case failed three assertions, zero skipped, 31.706 seconds. Pack installation/equip, legacy compatibility, raw/aggregate HTTP progress and Apple selection all passed. The unchanged 512 MiB memory regression measured 40,759,296 bytes before and 40,828,928 after: 69,632 bytes additional peak, below 67,108,864. The failing discovery test was committed before implementing the generic repository route.
 
 The native v2/v3 runtime and final UI/Apple checks are still pending at the new implementation.
+
+## Focused model GREEN
+
+At 7cb82d436adfbc9e20ec7006bd020538dfadd354, run 40216369493 passed all 123 model tests (zero failures/skips, 19.344 seconds) and all 62 unchanged script tests (zero failures/skips). The 512 MiB regression measured 40,488,960 bytes before and 40,550,400 after: 61,440 bytes additional peak. Native run 40216588328 is pending at the same exact source; it includes actual v2/v3 ASR and the new Apple startup binding test.

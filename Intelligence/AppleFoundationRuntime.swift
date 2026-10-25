@@ -89,7 +89,7 @@ private actor AppleOnDeviceSummaryRuntime: IntelligenceRuntime {
         try Task.checkCancellation()
         let json = response.content.jsonString
         guard json.utf8.count <= 65_536 else { throw AppleFoundationRuntimeError.invalidRequest }
-        return json
+        return try AppleGeneratedJSON.completeOptionalFields(json, schema: schema)
     }
 
     func unload() async { session = nil }
@@ -103,7 +103,13 @@ struct AppleGenerationSchemaCompiler {
     mutating func object(_ fields: [StructuredJSONField]) throws -> DynamicGenerationSchema {
         let typeName = name()
         let properties = try fields.map { field in
-            DynamicGenerationSchema.Property(name: field.name, schema: try type(field.type))
+            if case .nullable(let wrapped) = field.type {
+                // The iOS 26.0 dynamic API represents nullable object members
+                // with optional properties. Explicit-null schema APIs start at 26.4.
+                return DynamicGenerationSchema.Property(name: field.name,
+                    schema: try type(wrapped), isOptional: true)
+            }
+            return DynamicGenerationSchema.Property(name: field.name, schema: try type(field.type))
         }
         return DynamicGenerationSchema(name: typeName, properties: properties)
     }
@@ -129,10 +135,14 @@ struct AppleGenerationSchemaCompiler {
                 return .init(type: Int.self, guides: [.range(integer...integer)])
             }
             return .init(name: typeName, anyOf: variants)
-        case .nullable(.string): return .init(type: String?.self)
-        case .nullable(.boolean): return .init(type: Bool?.self)
         case .nullable: throw AppleFoundationRuntimeError.unsupportedSchema
         }
     }
 }
 #endif
+
+/// Compileable contract for adapting Apple's omitted optional members into the
+/// existing explicit-null document schema. Implement after its native RED.
+enum AppleGeneratedJSON {
+    static func completeOptionalFields(_ json: String, schema: StructuredJSONSchema) throws -> String { json }
+}
