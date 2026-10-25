@@ -1,6 +1,6 @@
 # MVP4: phone acceptance
 
-MVP4 build6 is a development candidate; phone acceptance requires actual observations. No phone
+MVP4 build6 development is delivered; phone acceptance requires actual observations. No phone
 gate is passed by hosted tests. Model choice and output-quality assessment are
 owner-manual, as requested on25October2026.
 

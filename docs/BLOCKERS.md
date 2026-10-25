@@ -1,12 +1,18 @@
 # Blockers
 
-## Current checkpoint — MVP3 delivered; MVP4 in progress
+## Current checkpoint — MVP3 delivered; MVP4 development delivered; owner phone acceptance pending
 
-MVP3 source880d3dcd2e21f79e6435ec134279cad192e7435d/run40181776855 passed its functional/reliability gate. The delivered unsigned IPA, app/extension, exact checksum and dependency receipt are verified locally under build/delivery/MVP3-Functional-40181776855 and retained in unpublished draft423297093. Model quality is owner-manual under the25October override; historical quality results below are retained, not promoted to PASS. MVP4 T12.1a storage-report development remains unblocked; exact focused run40184895367 supplies its test-first evidence.
+MVP3 source880d3dcd2e21f79e6435ec134279cad192e7435d/run40181776855 passed its functional/reliability gate. MVP4 storage-report development passed R7→R8. Build6 app source36bf6f4c8726fbc5d2efbfa4f740ef4031457233 is packaged and locally byte/provenance verified. R10/run40190643613 passed76portable+46scripts+116native+7UI+package/hygiene/fixture checks but is terminal FAILURE because one answer UI case missed original notes/transcript after test scrolling. Harness-only R11/run40193408469 is terminal SUCCESS against the unchanged exact app source;1casePASS/0fail/0skip190.795s, all assertions retained. See [handoff](evidence/MVP4_REQUIREMENT_HANDOFF.md). Model quality is owner-manual; historical results remain unchanged.
 
 **OWNER_PHONE_VALIDATION_REQUIRED:** the agent cannot provide real iPhone installation/signing, extension, offline chosen-model operation, Lock Screen, Action Button, two125-minute recordings, file-protection/locked-access or renewal-preservation evidence. The owner supplies those observations against the exact delivered build and model pins. All remain NOT_RUN. No account-storage or billing action is needed for the implemented draft-release delivery route.
 
-No confirmed external blocker prevents current code/test development. T00 authentication
+Owner reports iPhone17Pro/iOS27.0.1. Next physical input is installed build6 and
+whether a short recording's Live Activity Stop saves the meeting. Device facts
+alone do not pass that check. No active CI or further dispatch is required while awaiting phone evidence.
+
+## Historical bootstrap/account observations
+
+At that earlier checkpoint, no external blocker prevented code/test development. T00 authentication
 and repository bootstrap succeeded. A sandbox-only network error was resolved
 by an authorized direct check; account billing read access was available in the
 signed-in browser despite insufficient CLI billing scope.

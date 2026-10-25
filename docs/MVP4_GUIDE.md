@@ -1,12 +1,13 @@
 # LocalMinutes MVP4
 
-**Development candidate: one focused answer-screen retry is running.** The IPA
-is downloaded and byte-verified. Run40190643613 passed76 portable,46 script,
-116 app-hosted and7 screen checks plus package/hygiene checks, but failed the
-answer screen's navigation to original notes/transcript. It remains FAILURE.
-The harness-only retry [run40193408469](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40193408469)
-retains every assertion and verifies unchanged app source. This page will record
-development delivery after that actual result; the IPA is unchanged.
+**MVP4 development delivered; READY_FOR_DEVICE_VALIDATION.** Build6 passed its
+functional/reliability gate using the original batch plus one focused harness
+repair against the exact unchanged app source. Original run40190643613 remains
+FAILURE; focused [run40193408469](https://github.com/niranjankaruna/localminutes-ios/actions/runs/40193408469)
+passed the answer-edit/save/isolation/navigation/relaunch/original-content case
+in190.795s, zero failures/skips. The combined evidence includes76 portable,46
+script,116 app-hosted,8 screen,3 actual-IPA hygiene and2 compiled fixture checks.
+No automated model-quality or physical-phone PASS is claimed.
 
 | Item | Value |
 |---|---|
@@ -71,3 +72,6 @@ warm/locked continuation/cold-start, two separate125-minute runs, actual storage
 facts and in-place signing refresh. Report any unlock requirement explicitly.
 All phone results are currently **NOT_RUN**; model/OS facts alone are not passes.
 Keep real audio, transcripts, backups and account details private.
+
+See the [requirement/evidence handoff](evidence/MVP4_REQUIREMENT_HANDOFF.md)
+for the scope of each automated result and every remaining physical gate.

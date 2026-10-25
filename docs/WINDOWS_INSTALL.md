@@ -12,6 +12,12 @@ feature-preview artifacts are listed in [STATE.json](STATE.json); the full
 release-candidate artifact remains pending. Installation does not establish
 extension, locked-screen, offline or renewal results.
 
+**Current checkpoint, 25 October 2026:** MVP3 was delivered; build6 is the
+[delivered MVP4 development build](MVP4_GUIDE.md), with its focused screen retry
+passed. The owner reports iPhone17Pro/iOS27.0.1. Exact installed build, iLoader
+version and all phone acceptance observations remain unreported. Use the
+candidate guide/checksum and [build6 checklist](MVP4_DEVICE_CHECKLIST.md).
+
 ## Before installing a candidate
 
 Use a candidate whose manifest names the exact tested source commit. Download
@@ -74,13 +80,12 @@ available for any meeting whose unfinished transcript needs recovery.
 | Streaming Zipformer | Reviewed matching encoder, decoder, joiner and tokens set | CPU local streaming transcription |
 | Whisper | Compatible Whisper GGML `ggml-*.bin` file | CPU chunked transcription |
 | Parakeet v2 | Reviewed FluidInference Core ML conversion, with all required bundles and vocabulary | Chunked local transcription; see the candidate's compute policy |
-| Phi summary model | `microsoft/Phi-3-mini-4k-instruct-gguf`, `Phi-3-mini-4k-instruct-q4.gguf`, about 2.39 GB | Local summaries and selected-meeting questions after recording |
+| Summary model | Compatible Qwen2/Phi3-family GGUF with a supported template | Local summaries and selected-meeting questions after recording; owner chooses the model, Phi-3 is not required |
 
-Use [MVP2's exact model/setup instructions](MVP2_GUIDE.md) for the delivered
-MVP2 build. The [MVP3 guide](MVP3_GUIDE.md) remains marked delivery pending until
-its exact passing source, run and IPA checksum are recorded. The MVP3 candidate
-changes Parakeet to CPU-only; evidence from an earlier CPU/Neural Engine
-configuration cannot validate that changed runtime. Fresh phone checks are required.
+Use the guide matching the installed candidate: [MVP2](MVP2_GUIDE.md),
+[delivered MVP3](MVP3_GUIDE.md), or [build6 MVP4](MVP4_GUIDE.md). MVP3 and build6
+use CPU-only Parakeet; evidence from an earlier CPU/Neural Engine configuration
+cannot validate that changed runtime. Fresh phone checks are required.
 
 Models are separate from the IPA. File verification checks integrity;
 phone recognition and endurance still need their own evidence. Keep the model

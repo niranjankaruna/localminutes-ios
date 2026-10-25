@@ -1,5 +1,23 @@
 # Native dependency and notice inventory
 
+## Current delivery evidence — 25 October 2026
+
+The sections below retain the historical investigation. Their pending labels
+refer to that earlier checkpoint. MVP3 source880d3dc/run40181776855 subsequently
+passed actual ASR-only packaging/hygiene; its immutable receipt is
+[archived here](evidence/MVP3_DEPENDENCY_RECEIPT_880d3dc.json).
+Build6 app source36bf6f4/run40190643613 also passed actual device packaging and
+three compiled-IPA hygiene checks. Its downloaded SHA256 is
+`08c00c22c0edd446ec0656a5695d9b05e20b7d1cc497f9186f57ec99cf00f2e0`.
+Exact runtime pins, receipt digest and bundled notice bytes were independently
+verified; the [build6 receipt](evidence/MVP4_DEPENDENCY_RECEIPT_36bf6f4.json)
+is archived, and the receipt and verification summary accompany the IPA in
+`build/delivery/MVP4-Final-40190643613`. TTS/Piper/eSpeak exclusion passed the
+actual binary checks. This is an inventory and reproducibility record, not a
+complete supplier attestation or legal clearance. Build6's unrelated answer UI
+retry subsequently passed in run40193408469; the original workflow remains FAILURE. See
+[MVP4 candidate status](MVP4_GUIDE.md).
+
 Audit dates: 24–25 October 2026. **IN_PROGRESS; not a complete SBOM or legal clearance.**
 This records the pinned checkout, independently inspected public artifacts and
 the delivered MVP2 development preview. It changes neither project licensing nor

@@ -2,32 +2,49 @@
   "schemaVersion": 1,
   "project": "LocalMinutes",
   "specVersion": "1.0",
-  "state": "IN_PROGRESS",
-  "lastUpdated": "2026-10-25T12:38:02.774Z",
+  "state": "READY_FOR_DEVICE_VALIDATION",
+  "lastUpdated": "2026-10-25T12:52:18.363Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "T18.7 harness-only focused answer UI verification; build6 candidate packaged",
-  "lastVerifiedCommit": "880d3dcd2e21f79e6435ec134279cad192e7435d",
-  "lastVerifiedCIRun": 40181776855,
+  "currentTask": "T23 baseline evidence audit; MVP4 development delivered, owner device evidence pending",
+  "lastVerifiedCommit": "36bf6f4c8726fbc5d2efbfa4f740ef4031457233",
+  "lastVerifiedCIRun": 40193408469,
   "candidateArtifact": {
-    "stage": "MVP3",
+    "stage": "MVP4",
     "status": "READY_FOR_DEVICE_VALIDATION",
     "delivered": true,
-    "sourceCommit": "880d3dcd2e21f79e6435ec134279cad192e7435d",
-    "runId": 40181776855,
-    "runUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40181776855",
-    "artifact": "LocalMinutes-1.0-880d3dcd2e21f79e6435ec134279cad192e7435d-unsigned.ipa",
-    "sha256": "b0bc6e2d618f742ab257b85bc81765b25ca34b94b3c9d09fe33656b7aea1f5c9",
-    "sizeBytes": 14855799,
+    "deliveredAt": "2026-10-25T12:52:18.363Z",
+    "sourceCommit": "36bf6f4c8726fbc5d2efbfa4f740ef4031457233",
+    "runId": 40190643613,
+    "runUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40190643613",
+    "originalRunConclusion": "failure; one UI harness-navigation case, repaired separately",
+    "focusedRetry": {
+      "runId": 40193408469,
+      "sourceCommit": "81fbff3a1bdf4ed17b757dd96d97486d9485254f",
+      "appSourceCommit": "36bf6f4c8726fbc5d2efbfa4f740ef4031457233",
+      "mode": "mvp4-answer-ui",
+      "status": "completed",
+      "conclusion": "success",
+      "jobId": 121169039791,
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "durationSeconds": 190.795,
+      "productionDiff": "ZERO; exact checkout/source-stamp guard verified",
+      "testHarnessOnly": true
+    },
+    "artifact": "LocalMinutes-1.0-36bf6f4c8726fbc5d2efbfa4f740ef4031457233-unsigned.ipa",
+    "sha256": "08c00c22c0edd446ec0656a5695d9b05e20b7d1cc497f9186f57ec99cf00f2e0",
+    "sizeBytes": 14982180,
     "appVersion": "1.0",
-    "buildNumber": "4",
+    "buildNumber": "6",
     "schemaVersion": 5,
-    "signing": "unsigned; owner iLoader signing required",
-    "localDirectory": "build/delivery/MVP3-Functional-40181776855",
-    "guide": "docs/MVP3_GUIDE.md",
-    "draftReleaseId": 423297093,
-    "draftReleaseTag": "mvp-preview-880d3dcd2e21",
+    "signing": "unsigned; owner iLoader/free Apple Account signing required",
+    "localDirectory": "build/delivery/MVP4-Final-40190643613",
+    "guide": "docs/MVP4_GUIDE.md",
+    "draftReleaseTag": "mvp-preview-36bf6f4c8726",
     "published": false,
     "retained": true,
     "checksumMatched": true,
@@ -36,29 +53,20 @@
     "bundledNotices": "Exact source bytes verified",
     "automatedModelQuality": "OWNER_MANUAL_NOT_A_DELIVERY_GATE",
     "deviceValidation": "NOT_RUN",
-    "deliveredAt": "2026-10-25T10:11:34.452Z",
     "functionalGate": {
-      "swift": 25,
+      "basis": "Composite evidence for exact app source; original R10 failure retained",
+      "portable": 76,
       "scripts": 46,
-      "nativeApp": 100,
-      "nativeUI": 10,
-      "deviceContracts": 2,
+      "nativeApp": 116,
+      "nativeUI": 8,
       "fixtureBoundary": 2,
-      "package": 13,
       "ipaHygiene": 3,
-      "failed": 0,
-      "skipped": 0
+      "unresolvedFailures": 0,
+      "skippedTests": 0
     },
-    "localIPAReview": {
-      "executed": 3,
-      "passed": 3,
-      "failed": 0,
-      "skipped": 0,
-      "durationSeconds": 0.303
-    },
-    "evidence": "docs/evidence/MVP3_DELIVERY_2026_10_25.md"
+    "evidence": "docs/evidence/MVP4_REQUIREMENT_HANDOFF.md"
   },
-  "nextAction": "Observe existing focused run40193408469/job121169039791; verify APP_SOURCE36bf and TEST_HARNESS_SOURCE81fb with zero production differences, then the single answer-edit/navigation/relaunch UI case. No IPA rebuild, passed-suite rerun or model-quality benchmark. On PASS record composite evidence (original run40190643613 remains FAILURE), deliver build6 and updated guide/checklist. Owner iPhone17Pro/iOS27.0.1 facts are OWNER_REPORTED; actual phone gates NOT_RUN.",
+  "nextAction": "Owner phone validation on delivered build6: confirm installed version/build and a short actual recording whose Live Activity Stop saves the meeting; then checklist offline chosen models, Action Button warm/locked continuation/cold-start, two125min passes with120min locked each, storage protection and in-place renewal preservation. Device iPhone17Pro/iOS27.0.1 is OWNER_REPORTED only. No safe remaining development change identified by requirement audit; do not rerun passed suites or model-quality benchmarks while awaiting real evidence.",
   "pendingPushCommit": null,
   "remoteBranchHead": "81fbff3a1bdf4ed17b757dd96d97486d9485254f",
   "localScriptGreen": {
@@ -71,8 +79,8 @@
     "nativePackagingVerified": false,
     "scope": "Portable script regression only, no Swift/iOS/native/inference/device claim."
   },
-  "lastVerifiedNativeBuildCommit": "880d3dcd2e21f79e6435ec134279cad192e7435d",
-  "lastVerifiedNativeBuildCIRun": 40181776855,
+  "lastVerifiedNativeBuildCommit": "36bf6f4c8726fbc5d2efbfa4f740ef4031457233",
+  "lastVerifiedNativeBuildCIRun": 40190643613,
   "blockedItems": [
     "OWNER_PHONE_VALIDATION_REQUIRED"
   ],
@@ -103,9 +111,16 @@
     "sourceCommit": "81fbff3a1bdf4ed17b757dd96d97486d9485254f",
     "appSourceCommit": "36bf6f4c8726fbc5d2efbfa4f740ef4031457233",
     "mode": "mvp4-answer-ui",
-    "status": "in_progress",
+    "status": "completed",
+    "conclusion": "success",
     "jobId": 121169039791,
-    "purpose": "One UI harness repair; no production changes"
+    "executed": 1,
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0,
+    "durationSeconds": 190.795,
+    "productionDiff": "ZERO; exact checkout/source-stamp guard verified",
+    "testHarnessOnly": true
   },
   "localReporterRed": {
     "sourceCommit": "35074aaf5009de2897ba7bf8d7fd3a48ceab624e",
@@ -178,7 +193,11 @@
     "T06.2.1",
     "T06.2.2.1",
     "T08.4",
-    "T08.5"
+    "T08.5",
+    "T12.1a",
+    "T12.5",
+    "T15.2",
+    "T18.7"
   ],
   "remoteBranchHeadScope": "Verified delivered feature source; documentation-only checkpoint commit follows. Recheck actual Git HEAD for repository operations.",
   "nativeCompileRepair": {
@@ -2560,12 +2579,17 @@
     "T20.1",
     "T20.2",
     "T20.3",
-    "T21.MVP3"
+    "T21.MVP3",
+    "T12.1a",
+    "T12.5",
+    "T15.2",
+    "T18.7",
+    "T21.MVP4"
   ],
   "mvp4": {
-    "status": "IN_PROGRESS",
+    "status": "READY_FOR_DEVICE_VALIDATION",
     "checklist": "docs/MVP4_DEVICE_CHECKLIST.md",
-    "exactArtifactSource": "880d3dcd2e21f79e6435ec134279cad192e7435d",
+    "exactArtifactSource": "36bf6f4c8726fbc5d2efbfa4f740ef4031457233",
     "phoneModel": "iPhone 17 Pro",
     "iOSVersion": "27.0.1",
     "ownerPerformsEndurance": true,
@@ -2587,7 +2611,8 @@
         "sourceCommit": "e9b1701cb81e0fb5f0a84f608f7c7598cd917449",
         "mode": "mvp4-storage",
         "phase": "tests-first RED",
-        "status": "in_progress"
+        "status": "completed",
+        "conclusion": "failure"
       },
       "coreRed": {
         "sourceCommit": "e9b1701cb81e0fb5f0a84f608f7c7598cd917449",
@@ -2617,7 +2642,7 @@
         "skipped": 0,
         "jobId": 121143513055
       },
-      "review": "Root plus independent Medium peer review found no concrete remaining defect; actual hosted compile/GREEN pending",
+      "review": "Root and independent Medium review; actual R8 Core/native/UI/package GREEN and local bytes verified",
       "nextGate": {
         "core": 7,
         "native": 15,
@@ -2664,7 +2689,7 @@
         "sizeBytes": 14925881,
         "retainedInUnpublishedDraft": true,
         "localDownloadedVerification": "PASS: SHA256/GitHub digest/CRC/IDs/source/build5/arm64 iPhoneOS app+extension/pins/notices",
-        "uiGate": "PENDING"
+        "uiGate": "PASS: R8 three UI cases"
       },
       "uiGreen": {
         "sourceCommit": "3273fb20401023fd8095d36c7007923aa42d7bca",
@@ -2687,7 +2712,7 @@
       "artifactStorageBlocker": "Resolved for implemented unpublished-release delivery; Actions-artifact headroom remains unverified and unused."
     },
     "finalFunctionalGaps": {
-      "status": "IN_PROGRESS",
+      "status": "CODE_COMPLETE_PENDING_DEVICE",
       "taskIds": [
         "T12.5",
         "T15.2",
@@ -2711,7 +2736,7 @@
         "phase": "tests-first RED",
         "conclusion": "failure"
       },
-      "greenVerified": false,
+      "greenVerified": true,
       "coreRed": {
         "executed": 5,
         "passed": 1,
@@ -2736,7 +2761,7 @@
         "skipped": 0,
         "jobId": 121153187939
       },
-      "review": "Root plus independent Medium review completed; tests unchanged; actual GREEN pending",
+      "review": "Root and independent Medium review; R10 native/Core/history/package PASS, R11 unchanged-app answer UI PASS; original R10 failure preserved",
       "buildNumber": "6",
       "greenRun": {
         "runId": 40190643613,
@@ -2766,9 +2791,16 @@
         "sourceCommit": "81fbff3a1bdf4ed17b757dd96d97486d9485254f",
         "appSourceCommit": "36bf6f4c8726fbc5d2efbfa4f740ef4031457233",
         "mode": "mvp4-answer-ui",
-        "status": "in_progress",
+        "status": "completed",
+        "conclusion": "success",
         "jobId": 121169039791,
-        "purpose": "One UI harness repair; no production changes"
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "durationSeconds": 190.795,
+        "productionDiff": "ZERO; exact checkout/source-stamp guard verified",
+        "testHarnessOnly": true
       }
     },
     "phoneFactsSource": "OWNER_REPORTED_2026_10_25",
@@ -2779,14 +2811,89 @@
       "runId": 40190643613,
       "buildNumber": "6",
       "draftTag": "mvp-preview-36bf6f4c8726",
-      "delivered": false,
-      "verified": false,
+      "delivered": true,
+      "verified": true,
       "sha256": "08c00c22c0edd446ec0656a5695d9b05e20b7d1cc497f9186f57ec99cf00f2e0",
       "sizeBytes": 14982180,
       "localDirectory": "build/delivery/MVP4-Final-40190643613",
       "localByteVerification": "PASS: checksum/GitHub digests/CRC/source/build6/IDs/arm64/pins/notices/Release fixture absence",
       "previewShared": true,
-      "functionalGate": "PENDING single UI retry"
+      "functionalGate": "PASS composite exact app source; R10 original FAILURE retained, R11 harness-only SUCCESS",
+      "deliveredAt": "2026-10-25T12:52:18.363Z",
+      "verificationScope": "Automated functional/reliability and downloaded bytes only; device NOT_RUN",
+      "focusedRetry": {
+        "runId": 40193408469,
+        "sourceCommit": "81fbff3a1bdf4ed17b757dd96d97486d9485254f",
+        "appSourceCommit": "36bf6f4c8726fbc5d2efbfa4f740ef4031457233",
+        "mode": "mvp4-answer-ui",
+        "status": "completed",
+        "conclusion": "success",
+        "jobId": 121169039791,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "durationSeconds": 190.795,
+        "productionDiff": "ZERO; exact checkout/source-stamp guard verified",
+        "testHarnessOnly": true
+      }
     }
+  },
+  "previousMVP3Artifact": {
+    "stage": "MVP3",
+    "status": "READY_FOR_DEVICE_VALIDATION",
+    "delivered": true,
+    "sourceCommit": "880d3dcd2e21f79e6435ec134279cad192e7435d",
+    "runId": 40181776855,
+    "runUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40181776855",
+    "artifact": "LocalMinutes-1.0-880d3dcd2e21f79e6435ec134279cad192e7435d-unsigned.ipa",
+    "sha256": "b0bc6e2d618f742ab257b85bc81765b25ca34b94b3c9d09fe33656b7aea1f5c9",
+    "sizeBytes": 14855799,
+    "appVersion": "1.0",
+    "buildNumber": "4",
+    "schemaVersion": 5,
+    "signing": "unsigned; owner iLoader signing required",
+    "localDirectory": "build/delivery/MVP3-Functional-40181776855",
+    "guide": "docs/MVP3_GUIDE.md",
+    "draftReleaseId": 423297093,
+    "draftReleaseTag": "mvp-preview-880d3dcd2e21",
+    "published": false,
+    "retained": true,
+    "checksumMatched": true,
+    "zipCRC": "PASS",
+    "deviceBundles": "arm64 iPhoneOS app + Live Activity",
+    "bundledNotices": "Exact source bytes verified",
+    "automatedModelQuality": "OWNER_MANUAL_NOT_A_DELIVERY_GATE",
+    "deviceValidation": "NOT_RUN",
+    "deliveredAt": "2026-10-25T10:11:34.452Z",
+    "functionalGate": {
+      "swift": 25,
+      "scripts": 46,
+      "nativeApp": 100,
+      "nativeUI": 10,
+      "deviceContracts": 2,
+      "fixtureBoundary": 2,
+      "package": 13,
+      "ipaHygiene": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    "localIPAReview": {
+      "executed": 3,
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "durationSeconds": 0.303
+    },
+    "evidence": "docs/evidence/MVP3_DELIVERY_2026_10_25.md"
+  },
+  "completionAudit": {
+    "at": "2026-10-25T12:52:18.363Z",
+    "evidence": "docs/evidence/MVP4_REQUIREMENT_HANDOFF.md",
+    "requirements": "R01–R12 mapped to actual evidence/remaining acceptance",
+    "fullGoalAchieved": false,
+    "remainingExternalBlocker": "OWNER_PHONE_VALIDATION_REQUIRED",
+    "blockedAuditConsecutiveTurns": 0,
+    "scope": "First phone-only handoff after final focused verification; no completion or blocked goal transition"
   }
 }

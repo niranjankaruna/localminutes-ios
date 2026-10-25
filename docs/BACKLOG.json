@@ -796,7 +796,7 @@
             "docs/evidence/MVP4_STORAGE_AUDIT_TDD.md"
           ],
           "deviceEvidence": [],
-          "nextAction": "T12.1a implementation reviewed after actual Core/native/UI RED. Commit/push build5, create unpublished exact-SHA owner draft, dispatch one mvp4-storage focused GREEN plus actual iPhone package (legacy packageMVP2 input true). Verify exact source/run, download/checksum/device bundles/dependency pins, deliver MVP4 development IPA and guide. No automated model-quality/full-suite run. Owner phone gates remain NOT_RUN.",
+          "nextAction": "Owner phone validation on delivered build6: confirm installed version/build and a short actual recording whose Live Activity Stop saves the meeting; then checklist offline chosen models, Action Button warm/locked continuation/cold-start, two125min passes with120min locked each, storage protection and in-place renewal preservation. Device iPhone17Pro/iOS27.0.1 is OWNER_REPORTED only. No safe remaining development change identified by requirement audit; do not rerun passed suites or model-quality benchmarks while awaiting real evidence.",
           "redVerified": true,
           "testFirstSource": "e9b1701cb81e0fb5f0a84f608f7c7598cd917449",
           "redRunId": 40184895367,
@@ -808,23 +808,26 @@
         {
           "id": "T12.5",
           "title": "App-owned memory-pressure intelligence cleanup preserving capture",
-          "status": "IN_PROGRESS",
+          "status": "CODE_COMPLETE_PENDING_DEVICE",
           "tddRequired": true,
           "redEvidence": [
             "docs/evidence/MVP4_FINAL_GAPS_TDD.md"
           ],
-          "greenEvidence": [],
+          "greenEvidence": [
+            "docs/evidence/MVP4_FINAL_GAPS_TDD.md",
+            "docs/evidence/MVP4_ANSWER_UI_HARNESS_REPAIR.md"
+          ],
           "deviceEvidence": [],
           "testsFirstPrepared": true,
           "redVerified": true,
           "productionImplemented": true,
-          "nextAction": "Observe existing focused run40193408469/job121169039791; verify APP_SOURCE36bf and TEST_HARNESS_SOURCE81fb with zero production differences, then the single answer-edit/navigation/relaunch UI case. No IPA rebuild, passed-suite rerun or model-quality benchmark. On PASS record composite evidence (original run40190643613 remains FAILURE), deliver build6 and updated guide/checklist. Owner iPhone17Pro/iOS27.0.1 facts are OWNER_REPORTED; actual phone gates NOT_RUN.",
+          "nextAction": "Owner phone validation on delivered build6: confirm installed version/build and a short actual recording whose Live Activity Stop saves the meeting; then checklist offline chosen models, Action Button warm/locked continuation/cold-start, two125min passes with120min locked each, storage protection and in-place renewal preservation. Device iPhone17Pro/iOS27.0.1 is OWNER_REPORTED only. No safe remaining development change identified by requirement audit; do not rerun passed suites or model-quality benchmarks while awaiting real evidence.",
           "evidence": "docs/evidence/MVP4_FINAL_GAPS_TDD.md",
           "testFirstSource": "b05e7d9730ecefea1c5ba216183cad928861fc8f",
           "testFirstPushed": true,
           "redSourceCommit": "3df777c9cc4beccf652294874e52f889bb9204c3",
           "redRunId": 40188134859,
-          "greenVerified": false,
+          "greenVerified": true,
           "implementationCommit": "716feae8863e0f10a1e5caf13e99925c14d69a04",
           "candidateSource": "36bf6f4c8726fbc5d2efbfa4f740ef4031457233",
           "greenRunId": 40190643613,
@@ -833,10 +836,22 @@
             "sourceCommit": "81fbff3a1bdf4ed17b757dd96d97486d9485254f",
             "appSourceCommit": "36bf6f4c8726fbc5d2efbfa4f740ef4031457233",
             "mode": "mvp4-answer-ui",
-            "status": "in_progress",
+            "status": "completed",
+            "conclusion": "success",
             "jobId": 121169039791,
-            "purpose": "One UI harness repair; no production changes"
-          }
+            "executed": 1,
+            "passed": 1,
+            "failed": 0,
+            "skipped": 0,
+            "durationSeconds": 190.795,
+            "productionDiff": "ZERO; exact checkout/source-stamp guard verified",
+            "testHarnessOnly": true
+          },
+          "greenSourceCommit": "36bf6f4c8726fbc5d2efbfa4f740ef4031457233",
+          "greenRunIds": [
+            40190643613,
+            40193408469
+          ]
         }
       ],
       "redEvidence": [],
@@ -991,23 +1006,26 @@
         {
           "id": "T15.2",
           "title": "Complete paged history/title search/loading and transcript result access",
-          "status": "IN_PROGRESS",
+          "status": "CODE_COMPLETE_PENDING_DEVICE",
           "tddRequired": true,
           "redEvidence": [
             "docs/evidence/MVP4_FINAL_GAPS_TDD.md"
           ],
-          "greenEvidence": [],
+          "greenEvidence": [
+            "docs/evidence/MVP4_FINAL_GAPS_TDD.md",
+            "docs/evidence/MVP4_ANSWER_UI_HARNESS_REPAIR.md"
+          ],
           "deviceEvidence": [],
           "testsFirstPrepared": true,
           "redVerified": true,
           "productionImplemented": true,
-          "nextAction": "Observe existing focused run40193408469/job121169039791; verify APP_SOURCE36bf and TEST_HARNESS_SOURCE81fb with zero production differences, then the single answer-edit/navigation/relaunch UI case. No IPA rebuild, passed-suite rerun or model-quality benchmark. On PASS record composite evidence (original run40190643613 remains FAILURE), deliver build6 and updated guide/checklist. Owner iPhone17Pro/iOS27.0.1 facts are OWNER_REPORTED; actual phone gates NOT_RUN.",
+          "nextAction": "Owner phone validation on delivered build6: confirm installed version/build and a short actual recording whose Live Activity Stop saves the meeting; then checklist offline chosen models, Action Button warm/locked continuation/cold-start, two125min passes with120min locked each, storage protection and in-place renewal preservation. Device iPhone17Pro/iOS27.0.1 is OWNER_REPORTED only. No safe remaining development change identified by requirement audit; do not rerun passed suites or model-quality benchmarks while awaiting real evidence.",
           "evidence": "docs/evidence/MVP4_FINAL_GAPS_TDD.md",
           "testFirstSource": "b05e7d9730ecefea1c5ba216183cad928861fc8f",
           "testFirstPushed": true,
           "redSourceCommit": "3df777c9cc4beccf652294874e52f889bb9204c3",
           "redRunId": 40188134859,
-          "greenVerified": false,
+          "greenVerified": true,
           "implementationCommit": "716feae8863e0f10a1e5caf13e99925c14d69a04",
           "candidateSource": "36bf6f4c8726fbc5d2efbfa4f740ef4031457233",
           "greenRunId": 40190643613,
@@ -1016,10 +1034,22 @@
             "sourceCommit": "81fbff3a1bdf4ed17b757dd96d97486d9485254f",
             "appSourceCommit": "36bf6f4c8726fbc5d2efbfa4f740ef4031457233",
             "mode": "mvp4-answer-ui",
-            "status": "in_progress",
+            "status": "completed",
+            "conclusion": "success",
             "jobId": 121169039791,
-            "purpose": "One UI harness repair; no production changes"
-          }
+            "executed": 1,
+            "passed": 1,
+            "failed": 0,
+            "skipped": 0,
+            "durationSeconds": 190.795,
+            "productionDiff": "ZERO; exact checkout/source-stamp guard verified",
+            "testHarnessOnly": true
+          },
+          "greenSourceCommit": "36bf6f4c8726fbc5d2efbfa4f740ef4031457233",
+          "greenRunIds": [
+            40190643613,
+            40193408469
+          ]
         }
       ],
       "redEvidence": [
@@ -1321,23 +1351,26 @@
         {
           "id": "T18.7",
           "title": "Durable editable saved answers with immutable evidence and conflict handling",
-          "status": "IN_PROGRESS",
+          "status": "CODE_COMPLETE_PENDING_DEVICE",
           "tddRequired": true,
           "redEvidence": [
             "docs/evidence/MVP4_FINAL_GAPS_TDD.md"
           ],
-          "greenEvidence": [],
+          "greenEvidence": [
+            "docs/evidence/MVP4_FINAL_GAPS_TDD.md",
+            "docs/evidence/MVP4_ANSWER_UI_HARNESS_REPAIR.md"
+          ],
           "deviceEvidence": [],
           "testsFirstPrepared": true,
           "redVerified": true,
           "productionImplemented": true,
-          "nextAction": "Observe existing focused run40193408469/job121169039791; verify APP_SOURCE36bf and TEST_HARNESS_SOURCE81fb with zero production differences, then the single answer-edit/navigation/relaunch UI case. No IPA rebuild, passed-suite rerun or model-quality benchmark. On PASS record composite evidence (original run40190643613 remains FAILURE), deliver build6 and updated guide/checklist. Owner iPhone17Pro/iOS27.0.1 facts are OWNER_REPORTED; actual phone gates NOT_RUN.",
+          "nextAction": "Owner phone validation on delivered build6: confirm installed version/build and a short actual recording whose Live Activity Stop saves the meeting; then checklist offline chosen models, Action Button warm/locked continuation/cold-start, two125min passes with120min locked each, storage protection and in-place renewal preservation. Device iPhone17Pro/iOS27.0.1 is OWNER_REPORTED only. No safe remaining development change identified by requirement audit; do not rerun passed suites or model-quality benchmarks while awaiting real evidence.",
           "evidence": "docs/evidence/MVP4_FINAL_GAPS_TDD.md",
           "testFirstSource": "b05e7d9730ecefea1c5ba216183cad928861fc8f",
           "testFirstPushed": true,
           "redSourceCommit": "3df777c9cc4beccf652294874e52f889bb9204c3",
           "redRunId": 40188134859,
-          "greenVerified": false,
+          "greenVerified": true,
           "implementationCommit": "716feae8863e0f10a1e5caf13e99925c14d69a04",
           "candidateSource": "36bf6f4c8726fbc5d2efbfa4f740ef4031457233",
           "greenRunId": 40190643613,
@@ -1346,10 +1379,22 @@
             "sourceCommit": "81fbff3a1bdf4ed17b757dd96d97486d9485254f",
             "appSourceCommit": "36bf6f4c8726fbc5d2efbfa4f740ef4031457233",
             "mode": "mvp4-answer-ui",
-            "status": "in_progress",
+            "status": "completed",
+            "conclusion": "success",
             "jobId": 121169039791,
-            "purpose": "One UI harness repair; no production changes"
-          }
+            "executed": 1,
+            "passed": 1,
+            "failed": 0,
+            "skipped": 0,
+            "durationSeconds": 190.795,
+            "productionDiff": "ZERO; exact checkout/source-stamp guard verified",
+            "testHarnessOnly": true
+          },
+          "greenSourceCommit": "36bf6f4c8726fbc5d2efbfa4f740ef4031457233",
+          "greenRunIds": [
+            40190643613,
+            40193408469
+          ]
         }
       ],
       "redEvidence": [],
@@ -1621,7 +1666,7 @@
       "milestone": "M7",
       "title": "Final independent verification and completion audit",
       "kind": "validation",
-      "status": "NOT_STARTED",
+      "status": "IN_PROGRESS",
       "dependsOn": [
         "T14",
         "T21",
@@ -1651,8 +1696,12 @@
       "redEvidence": [],
       "greenEvidence": [],
       "deviceEvidence": [],
-      "blockers": [],
-      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead."
+      "blockers": [
+        "OWNER_PHONE_VALIDATION_REQUIRED"
+      ],
+      "tddApplicability": "Mandatory for any behavior or executable-script change; documentation-only and account/device observations use evidence checks instead.",
+      "nextAction": "Owner phone validation on delivered build6: confirm installed version/build and a short actual recording whose Live Activity Stop saves the meeting; then checklist offline chosen models, Action Button warm/locked continuation/cold-start, two125min passes with120min locked each, storage protection and in-place renewal preservation. Device iPhone17Pro/iOS27.0.1 is OWNER_REPORTED only. No safe remaining development change identified by requirement audit; do not rerun passed suites or model-quality benchmarks while awaiting real evidence.",
+      "evidence": "docs/evidence/MVP4_REQUIREMENT_HANDOFF.md"
     },
     {
       "id": "T24",
@@ -1773,13 +1822,23 @@
     }
   ],
   "executionPausedByOwner": false,
-  "resumeAction": "NEXT legitimateboundedinvocation: retainthis6of6batch/evidence, recheckrepo/cost/auth andactualcurrentHEAD. Verify repaired6.2 localpackage and nativecompile first; thenrun mvp3-integration proveLibraryBootstrap=false (oldnilRED alreadycaptured), currentseededUI mustGREEN. Record actualnewcitation/screens/CPUdefault/a11y RED beforeimplementingthem; keep modeloracles andunknownquality. Finish fixes, focusedregressions+realmodelgate+unsignedIPAexactSHA/checksum; deliverMVP3onlyafterrequiredGREEN. Physicalsigning/LockScreen/ActionButton/2x125min/renewalNOT_RUN. AllsubagentsGPT6.1SolMedium; no seventhCI inoldinvocation.",
-  "lastUpdated": "2026-10-25T10:11:34.454Z",
+  "resumeAction": "Owner phone validation on delivered build6: confirm installed version/build and a short actual recording whose Live Activity Stop saves the meeting; then checklist offline chosen models, Action Button warm/locked continuation/cold-start, two125min passes with120min locked each, storage protection and in-place renewal preservation. Device iPhone17Pro/iOS27.0.1 is OWNER_REPORTED only. No safe remaining development change identified by requirement audit; do not rerun passed suites or model-quality benchmarks while awaiting real evidence.",
+  "lastUpdated": "2026-10-25T12:52:18.363Z",
   "latestVerification": {
-    "runId": 40138806203,
-    "sourceCommit": "14ff749a2bd8678b6523cf377b6695283513a76e",
+    "runId": 40193408469,
+    "sourceCommit": "81fbff3a1bdf4ed17b757dd96d97486d9485254f",
+    "appSourceCommit": "36bf6f4c8726fbc5d2efbfa4f740ef4031457233",
+    "mode": "mvp4-answer-ui",
     "status": "completed",
-    "conclusion": "failure"
+    "conclusion": "success",
+    "jobId": 121169039791,
+    "executed": 1,
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0,
+    "durationSeconds": 190.795,
+    "productionDiff": "ZERO; exact checkout/source-stamp guard verified",
+    "testHarnessOnly": true
   },
   "ownerMVPDeliveryOverride": {
     "requestedByOwner": "2026-10-24",
@@ -1812,12 +1871,60 @@
     "mvpDeliveryBlockers": []
   },
   "latestFeatureArtifact": {
-    "stage": "MVP2",
-    "sourceCommit": "35c7cefb946af188f5cc09858dca4ab180d72eab",
-    "runId": 40132528745,
-    "sha256": "21b6feaf59824a2eb6ab92de68fdb07fc9eb36449ba58337b41771ad986ac7f6",
-    "path": "build/delivery/MVP2-Parakeet-40132528745",
-    "guide": "docs/MVP2_GUIDE.md"
+    "stage": "MVP4",
+    "status": "READY_FOR_DEVICE_VALIDATION",
+    "delivered": true,
+    "deliveredAt": "2026-10-25T12:52:18.363Z",
+    "sourceCommit": "36bf6f4c8726fbc5d2efbfa4f740ef4031457233",
+    "runId": 40190643613,
+    "runUrl": "https://github.com/niranjankaruna/localminutes-ios/actions/runs/40190643613",
+    "originalRunConclusion": "failure; one UI harness-navigation case, repaired separately",
+    "focusedRetry": {
+      "runId": 40193408469,
+      "sourceCommit": "81fbff3a1bdf4ed17b757dd96d97486d9485254f",
+      "appSourceCommit": "36bf6f4c8726fbc5d2efbfa4f740ef4031457233",
+      "mode": "mvp4-answer-ui",
+      "status": "completed",
+      "conclusion": "success",
+      "jobId": 121169039791,
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "durationSeconds": 190.795,
+      "productionDiff": "ZERO; exact checkout/source-stamp guard verified",
+      "testHarnessOnly": true
+    },
+    "artifact": "LocalMinutes-1.0-36bf6f4c8726fbc5d2efbfa4f740ef4031457233-unsigned.ipa",
+    "sha256": "08c00c22c0edd446ec0656a5695d9b05e20b7d1cc497f9186f57ec99cf00f2e0",
+    "sizeBytes": 14982180,
+    "appVersion": "1.0",
+    "buildNumber": "6",
+    "schemaVersion": 5,
+    "signing": "unsigned; owner iLoader/free Apple Account signing required",
+    "localDirectory": "build/delivery/MVP4-Final-40190643613",
+    "guide": "docs/MVP4_GUIDE.md",
+    "draftReleaseTag": "mvp-preview-36bf6f4c8726",
+    "published": false,
+    "retained": true,
+    "checksumMatched": true,
+    "zipCRC": "PASS",
+    "deviceBundles": "arm64 iPhoneOS app + Live Activity",
+    "bundledNotices": "Exact source bytes verified",
+    "automatedModelQuality": "OWNER_MANUAL_NOT_A_DELIVERY_GATE",
+    "deviceValidation": "NOT_RUN",
+    "functionalGate": {
+      "basis": "Composite evidence for exact app source; original R10 failure retained",
+      "portable": 76,
+      "scripts": 46,
+      "nativeApp": 116,
+      "nativeUI": 8,
+      "fixtureBoundary": 2,
+      "ipaHygiene": 3,
+      "unresolvedFailures": 0,
+      "skippedTests": 0
+    },
+    "evidence": "docs/evidence/MVP4_REQUIREMENT_HANDOFF.md"
   },
   "installationCheckpoint": {
     "observedAt": "2026-10-24T15:31:15.814076Z",
@@ -1875,9 +1982,11 @@
     },
     {
       "id": "MVP4",
-      "scope": "Owner phone acceptance: extension/Lock Screen/Action Button/two125min runs/offline/renewal preservation",
+      "scope": "Build6 development: storage metadata report, memory-warning cleanup, complete history/search paging, saved-answer editing; owner physical acceptance remains separate",
       "status": "READY_FOR_DEVICE_VALIDATION",
-      "nextAction": "Owner phone checklist and sanitized evidence; all physical gates pending"
+      "nextAction": "Owner phone validation on delivered build6: confirm installed version/build and a short actual recording whose Live Activity Stop saves the meeting; then checklist offline chosen models, Action Button warm/locked continuation/cold-start, two125min passes with120min locked each, storage protection and in-place renewal preservation. Device iPhone17Pro/iOS27.0.1 is OWNER_REPORTED only. No safe remaining development change identified by requirement audit; do not rerun passed suites or model-quality benchmarks while awaiting real evidence.",
+      "developmentDelivered": true,
+      "sourceCommit": "36bf6f4c8726fbc5d2efbfa4f740ef4031457233"
     }
   ],
   "ownerDeliveryDirection": {
