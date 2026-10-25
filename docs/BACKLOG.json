@@ -771,6 +771,22 @@
             "runId": 40181776855,
             "scope": "Functional/native/UI gate PASS; physical pending"
           }
+        },
+        {
+          "id": "T12.1a",
+          "title": "Owner-accessible read-only actual OS storage metadata report",
+          "status": "IN_PROGRESS",
+          "tddRequired": true,
+          "acceptance": [
+            "Inspect actual owned root with bounded enumeration and truthful environment/status",
+            "Aggregate fixed roles, observed protection and effective backup exclusion without paths/text/audio/names",
+            "Reject unsafe paths and guard capture/heavy/library work; explicit owner share only",
+            "Never substitute report for untouched physical XCTest execution or locked-access evidence"
+          ],
+          "redEvidence": [],
+          "greenEvidence": [],
+          "deviceEvidence": [],
+          "nextAction": "Commit/push storage-audit tests plus minimal seams, dispatch focused mvp4-storage on hosted macOS/iOS and record actual behavioral RED before implementing inspector/service/UI. MVP3 IPA remains delivered. No automated model-quality jobs; owner phone gates remain NOT_RUN."
         }
       ],
       "redEvidence": [],

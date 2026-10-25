@@ -8,7 +8,7 @@ on:
         required: true
         type: choice
         default: mvp
-        options: [mvp, features, package, validation, candidate, candidate-summary, candidate-summary-parts, model-catalog, model-integration, model-repair, model-delivery, mvp2-red, mvp2, mvp2-integration, mvp2-parakeet, mvp3, mvp3-integration, mvp3-startup, mvp3-functional]
+        options: [mvp, features, package, validation, candidate, candidate-summary, candidate-summary-parts, model-catalog, model-integration, model-repair, model-delivery, mvp2-red, mvp2, mvp2-integration, mvp2-parakeet, mvp3, mvp3-integration, mvp3-startup, mvp3-functional, mvp4-storage]
       sourceCommit:
         description: Reviewed app source for the MVP package
         required: true
@@ -322,7 +322,7 @@ jobs:
         run: node scripts/verify-test-log.mjs .build/mvp2-recovery.log testCursorOnlyJumpToTimelineEndCannotSkipRemainingActualSpeechAfterReopen testActualWhisperPreparationPersistsCoherentImmutableMeetingPinBeforeFirstAudioFrame
 
   focused-portable:
-    if: ${{ inputs.mode == 'candidate-summary-parts' || inputs.mode == 'model-catalog' || inputs.mode == 'model-integration' || inputs.mode == 'model-repair' || inputs.mode == 'model-delivery' || inputs.mode == 'mvp3' || inputs.mode == 'mvp3-startup' || inputs.mode == 'mvp3-functional' }}
+    if: ${{ inputs.mode == 'candidate-summary-parts' || inputs.mode == 'model-catalog' || inputs.mode == 'model-integration' || inputs.mode == 'model-repair' || inputs.mode == 'model-delivery' || inputs.mode == 'mvp3' || inputs.mode == 'mvp3-startup' || inputs.mode == 'mvp3-functional' || inputs.mode == 'mvp4-storage' }}
     runs-on: macos-15-intel
     timeout-minutes: 12
     env:
@@ -346,7 +346,9 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           mkdir -p .build
-          if [[ "${{ inputs.mode }}" == mvp3 || "${{ inputs.mode }}" == mvp3-startup || "${{ inputs.mode }}" == mvp3-functional ]]; then
+          if [ "${{ inputs.mode }}" = mvp4-storage ]; then
+            swift test --filter 'CoreTests[.]StorageAuditTests' 2>&1 | tee .build/focused-portable.log
+          elif [[ "${{ inputs.mode }}" == mvp3 || "${{ inputs.mode }}" == mvp3-startup || "${{ inputs.mode }}" == mvp3-functional ]]; then
             swift test --filter 'CoreTests[.](RecordingProgressPresenterTests|TranscriptionMetricsTests)|PersistenceTests[.]MeetingContentStatusTests|SummaryTests[.](SummaryPipelineTests|StructuredJSONSchemaTests)' 2>&1 | tee .build/focused-portable.log
           elif [[ "${{ inputs.mode }}" == model-integration || "${{ inputs.mode }}" == model-repair || "${{ inputs.mode }}" == model-delivery ]]; then
             swift test --filter 'ModelTests[.](HuggingFaceRepositoryTests|ModelSelectionTests|ModelDeviceResourceReaderTests|ModelInstallationIdentityTests|ModelRuntimeCompatibilityTests)|CoreTests[.]TranscriptionMetricsTests|PersistenceTests[.]SummaryCheckpointStoreTests|SummaryTests[.](SummaryPipelineTests|GroundedSummaryTests|NestedStructuredSchemaTests|StructuredJSONSchemaTests)' 2>&1 | tee .build/focused-portable.log
@@ -360,7 +362,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "${{ inputs.mode }}" == mvp3 || "${{ inputs.mode }}" == mvp3-startup || "${{ inputs.mode }}" == mvp3-functional ]]; then
+          if [ "${{ inputs.mode }}" = mvp4-storage ]; then
+            node scripts/verify-test-log.mjs .build/focused-portable.log \
+              testActualOwnedTreeReportsFixedRolesCountsAndOSMetadataWithoutRewritingFiles \
+              testActualAncestorBackupExclusionIsComparedWithIndependentFoundationReads \
+              testActualEnvironmentCannotBeReportedAsPhysicalIOSByDesktopOrSimulator \
+              testSerializedReportContainsOnlyFixedCategoriesAndCountsNeverPathsNamesOrContent \
+              testSmallBoundAndInvalidBoundsRemainExplicitInsteadOfClaimingACompleteAudit \
+              testMissingRootIsUnreadableAndNonFileRootIsUnsafeWithoutFabricatingEmptySuccess \
+              testSymlinkRootAndNestedEscapeAreRejectedWithoutReadingOrModifyingOutsideFiles
+          elif [[ "${{ inputs.mode }}" == mvp3 || "${{ inputs.mode }}" == mvp3-startup || "${{ inputs.mode }}" == mvp3-functional ]]; then
             node scripts/verify-test-log.mjs .build/focused-portable.log testFirstPCMElapsedSurvivesPresenterRecreationAndDoesNotUseTranscribedDuration testMeasuredBacklogWarnsStrictlyAboveFiveSecondsAndReportsRealCatchUp
             node scripts/verify-test-log.mjs .build/focused-portable.log testActualSQLiteStatusDistinguishesEachMeetingsTranscriptAndSummaryAndRemainsUnknownWhenUnreadable
             node scripts/verify-test-log.mjs .build/focused-portable.log testMultiSentenceSourceGrammarPermitsExactSentenceChoicesWithoutForcingParagraphOwnership
@@ -379,14 +390,14 @@ jobs:
         run: node --test scripts/tests/whisper-package-policy.test.mjs scripts/tests/package-audit.test.mjs scripts/tests/ios-artifacts.test.mjs
 
   focused-app-metrics:
-    if: ${{ inputs.mode == 'candidate-summary-parts' || inputs.mode == 'model-catalog' || inputs.mode == 'model-integration' || inputs.mode == 'model-repair' || inputs.mode == 'model-delivery' || inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet' || inputs.mode == 'mvp3' || inputs.mode == 'mvp3-startup' }}
+    if: ${{ inputs.mode == 'candidate-summary-parts' || inputs.mode == 'model-catalog' || inputs.mode == 'model-integration' || inputs.mode == 'model-repair' || inputs.mode == 'model-delivery' || inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet' || inputs.mode == 'mvp3' || inputs.mode == 'mvp3-startup' || inputs.mode == 'mvp4-storage' }}
     name: Native focused (${{ matrix.testclass }})
-    runs-on: ${{ (inputs.mode == 'mvp2-parakeet' || inputs.mode == 'mvp3' || inputs.mode == 'mvp3-startup') && 'macos-15' || 'macos-15-intel' }}
-    timeout-minutes: ${{ (inputs.mode == 'mvp3' || inputs.mode == 'mvp3-startup') && 45 || (inputs.mode == 'model-delivery' || inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet') && 18 || 15 }}
+    runs-on: ${{ (inputs.mode == 'mvp2-parakeet' || inputs.mode == 'mvp3' || inputs.mode == 'mvp3-startup' || inputs.mode == 'mvp4-storage') && 'macos-15' || 'macos-15-intel' }}
+    timeout-minutes: ${{ (inputs.mode == 'mvp3' || inputs.mode == 'mvp3-startup' || inputs.mode == 'mvp4-storage') && 45 || (inputs.mode == 'model-delivery' || inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet') && 18 || 15 }}
     strategy:
       fail-fast: false
       matrix:
-        testclass: ${{ fromJSON(inputs.mode == 'mvp3-startup' && '["NativeSummarySelectionStartupTests","MVP3AccessibilityUI"]' || inputs.mode == 'mvp3' && '["MVP3Contracts","MVP3AccessibilityUI"]' || (inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet') && '["NativeMVP2LibraryTests"]' || inputs.mode == 'model-delivery' && '["MVP1Services"]' || (inputs.mode == 'model-integration' || inputs.mode == 'model-repair') && '["NativeAppMetricsTests","NativeModelResourceTests"]' || '["NativeAppMetricsTests"]') }}
+        testclass: ${{ fromJSON(inputs.mode == 'mvp4-storage' && '["NativeStoragePrivacyReportTests","MVP4StorageUI"]' || inputs.mode == 'mvp3-startup' && '["NativeSummarySelectionStartupTests","MVP3AccessibilityUI"]' || inputs.mode == 'mvp3' && '["MVP3Contracts","MVP3AccessibilityUI"]' || (inputs.mode == 'mvp2-integration' || inputs.mode == 'mvp2-parakeet') && '["NativeMVP2LibraryTests"]' || inputs.mode == 'model-delivery' && '["MVP1Services"]' || (inputs.mode == 'model-integration' || inputs.mode == 'model-repair') && '["NativeAppMetricsTests","NativeModelResourceTests"]' || '["NativeAppMetricsTests"]') }}
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
       NATIVE_TEST_CLASS: ${{ matrix.testclass }}
@@ -440,7 +451,10 @@ jobs:
         run: |
           set -euo pipefail
           native_scheme=LocalMinutesFocusedValidation
-          if [ "$NATIVE_TEST_CLASS" = MVP3AccessibilityUI ]; then
+          if [ "$NATIVE_TEST_CLASS" = MVP4StorageUI ]; then
+            native_scheme=LocalMinutes
+            native_cases=(-only-testing:LocalMinutesUITests/StoragePrivacyReportUITests)
+          elif [ "$NATIVE_TEST_CLASS" = MVP3AccessibilityUI ]; then
             native_scheme=LocalMinutes
             native_cases=(-only-testing:LocalMinutesUITests/ModelBrowserAccessibilityUITests -only-testing:LocalMinutesUITests/RequiredScreenInformationUITests -only-testing:LocalMinutesUITests/LibraryProductUITests)
           elif [[ "$NATIVE_TEST_CLASS" == MVP3Contracts || "$NATIVE_TEST_CLASS" == NativeSummarySelectionStartupTests ]]; then
@@ -474,7 +488,18 @@ jobs:
           if [ -f .agent-local/focused-simulator-boot.log ]; then
             tail -40 .agent-local/focused-simulator-boot.log
           fi
-          if [ "$NATIVE_TEST_CLASS" = MVP3AccessibilityUI ]; then
+          if [ "$NATIVE_TEST_CLASS" = MVP4StorageUI ]; then
+            node scripts/verify-test-log.mjs .agent-local/focused-app-metrics.log testModelsPrepareStorageCheckReportsActualSimulatorCountsAndOffersExplicitShare
+          elif [ "$NATIVE_TEST_CLASS" = NativeStoragePrivacyReportTests ]; then
+            node scripts/verify-test-log.mjs .agent-local/focused-app-metrics.log \
+              testReadyServicesReportActualOwnedRootCountBuildAndUIKitProtectedDataObservationWithoutChangingCanary \
+              testExportHasOnlyFixedMetadataAndCountsNeverSandboxPathsNamesMeetingTextOrDeviceVerdicts \
+              testMissingCoordinatorSnapshotFailsClosedInsteadOfAssumingRecordingIsIdle \
+              testUninitializedLibraryIsNotAssumedSafeToInspect \
+              testActivePreparationRecordingStoppingAndUnreleasedAudioDenyReportAndExport \
+              testActualHeavyAdmissionLeaseDeniesReportWithoutCancellingItsOwner \
+              testActualLibraryMaintenanceDeniesReportUntilMaintenanceEnds
+          elif [ "$NATIVE_TEST_CLASS" = MVP3AccessibilityUI ]; then
             node scripts/verify-test-log.mjs .agent-local/focused-app-metrics.log \
               testInstalledModelSpokenActionsIncludePurposeAndDistinctModelIdentity \
               testInstalledModelActionsRemainReachableWith44PointTargetsAtLargestAccessibilityText

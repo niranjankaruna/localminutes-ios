@@ -2,12 +2,12 @@
   "schemaVersion": 1,
   "project": "LocalMinutes",
   "specVersion": "1.0",
-  "state": "READY_FOR_DEVICE_VALIDATION",
-  "lastUpdated": "2026-10-25T10:11:34.454Z",
+  "state": "IN_PROGRESS",
+  "lastUpdated": "2026-10-25T10:27:34.516Z",
   "repositoryUrl": "https://github.com/niranjankaruna/localminutes-ios",
   "bootstrapCommit": "5767409b9bc8797a53409bc4bd86799019c833b4",
   "currentBranch": "task/t06-activity",
-  "currentTask": "MVP4: owner phone acceptance and final evidence audit",
+  "currentTask": "T12.1a: owner-accessible read-only storage metadata report for Windows/iLoader validation",
   "lastVerifiedCommit": "880d3dcd2e21f79e6435ec134279cad192e7435d",
   "lastVerifiedCIRun": 40181776855,
   "candidateArtifact": {
@@ -58,7 +58,7 @@
     },
     "evidence": "docs/evidence/MVP3_DELIVERY_2026_10_25.md"
   },
-  "nextAction": "MVP3 delivered and byte-verified. Continue MVP4 with owner phone/iOS/build facts and short recording/LiveActivityStop report; then ActionButton warm/locked continuation/cold-start, offline chosen models, two separate125min locked runs and in-place renewal. Use docs/MVP4_DEVICE_CHECKLIST.md and separate sanitized reports. Do not run model-quality benchmarks or mark VERIFIED_COMPLETE without required physical evidence. No further CI is needed unless a real functional failure or code change invalidates its relevant gate.",
+  "nextAction": "Commit/push storage-audit tests plus minimal seams, dispatch focused mvp4-storage on hosted macOS/iOS and record actual behavioral RED before implementing inspector/service/UI. MVP3 IPA remains delivered. No automated model-quality jobs; owner phone gates remain NOT_RUN.",
   "pendingPushCommit": null,
   "remoteBranchHead": "880d3dcd2e21f79e6435ec134279cad192e7435d",
   "localScriptGreen": {
@@ -572,19 +572,12 @@
     }
   },
   "remainingBaseline": [
-    "T08 actual ASR crash replay, cross-coordinator recovery admission and automatic launch UI",
-    "T12 OS interruption/route/reset, storage reserve/pressure and thermal handling; physical protection",
-    "T13 bounded measured metrics, private durable checkpoints and diagnostics UI",
-    "T14 owner-run two 125-minute iPhone passes",
-    "T15 onboarding, history pagination, complete native flows, manual notes and accessibility",
-    "T16 safe Delete UI, scoped playback task binding, continuous playback and full backup/export",
-    "T17 global ASR/LLM resource admission, model load/cancel/unload and representative quality",
-    "T18 actual grounded map/reduce summaries, nested schema, generated SQLite/editing and resume",
-    "T19 actual selected-meeting question answering/refusal and UI",
-    "T20 accessibility/privacy/dependency hardening",
-    "T21 retained installable artifact and complete handover",
-    "T22 free signing/extension, offline physical iPhone and renewal preservation",
-    "T23 coverage, requirement traceability and independent final audit"
+    "T12.1a owner-accessible storage metadata report, focused RED/GREEN and updated IPA",
+    "MVP4 owner phone install/extension, offline chosen models and short functionality walkthrough",
+    "MVP4 owner Action Button/locked continuation/cold-start observations",
+    "T14 owner two separate125min physical locked recordings",
+    "T22 owner in-place free-signing renewal and preservation evidence",
+    "T23 final requirements/evidence audit; physical gates cannot be inferred from simulator"
   ],
   "pendingIntegrationRegressions": {
     "status": "IN_PROGRESS",
@@ -2556,7 +2549,7 @@
     "T21.MVP3"
   ],
   "mvp4": {
-    "status": "READY_FOR_DEVICE_VALIDATION",
+    "status": "IN_PROGRESS",
     "checklist": "docs/MVP4_DEVICE_CHECKLIST.md",
     "exactArtifactSource": "880d3dcd2e21f79e6435ec134279cad192e7435d",
     "phoneModel": null,
@@ -2564,6 +2557,17 @@
     "ownerPerformsEndurance": true,
     "allDeviceChecks": "NOT_RUN",
     "nextInput": "Phone/iOS facts and short Live Activity/Stop observation",
-    "blocker": "OWNER_PHONE_VALIDATION_REQUIRED: agent has no physical iPhone access; installation/signing, extension/Action Button/locked live capture, two125min, offline use, file protection and renewal need owner evidence."
+    "blocker": "OWNER_PHONE_VALIDATION_REQUIRED: agent has no physical iPhone access; installation/signing, extension/Action Button/locked live capture, two125min, offline use, file protection and renewal need owner evidence.",
+    "storageAudit": {
+      "status": "IN_PROGRESS",
+      "behaviorImplemented": false,
+      "redVerified": false,
+      "tests": {
+        "core": 7,
+        "native": 7,
+        "ui": 1
+      },
+      "scope": "Read actual OS metadata only; fixed aggregate roles/counts, no paths/content, no physical verdict. Existing seven physical XCTest cases unchanged and NOT_RUN."
+    }
   }
 }
