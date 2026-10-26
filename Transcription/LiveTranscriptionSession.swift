@@ -33,6 +33,7 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
     private let meetingsDirectory: URL
     private let router: TranscriptSinkRouter
     private let storageReserveBytes: Int64
+    @ObservationIgnored private let runtimeFactory: SpeechModelRuntimeFactory
     private let availableStorageBytes: @MainActor (URL) throws -> Int64
     @ObservationIgnored private let metrics: TranscriptionMetricsRecorder?
     // Evaluated once per reserved epoch. An in-flight recording retains its
@@ -47,6 +48,7 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
                 availableStorageBytes: @escaping @MainActor (URL) throws -> Int64 = {
                     try ModelStoragePolicy.availableBytes(at: $0)
                 },
+                runtimeFactory: @escaping SpeechModelRuntimeFactory = SpeechModelRuntimeRegistry.makeRuntime,
                 selectedSpeechModel: @escaping @MainActor () async throws -> ModelManifest? = {
                     ParakeetCoreMLModel.manifest
                 }) {
@@ -57,6 +59,7 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
         self.storageReserveBytes = max(1_000_000_000, storageReserveBytes)
         self.availableStorageBytes = availableStorageBytes
         self.selectedSpeechModel = selectedSpeechModel
+        self.runtimeFactory = runtimeFactory
         let router = TranscriptSinkRouter()
         self.router = router
         normalizedSink = router
@@ -112,10 +115,13 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
                 throw SpeechRecognitionError.invalidModel
             }
             metrics?.beginEpoch(modelRevision: selected.revision, runtimeVersion: selected.runtimeVersion)
-            _ = try ParakeetModelPack.configuration(for: selected)
-            let recognizer = CoreMLParakeetRecognizer(files: .init(
-                directory: model.directoryURL, manifest: selected))
+            let recognizer = try runtimeFactory(model)
             epoch.recognizer = recognizer
+            guard recognizer.capabilities.sampleRate == 16_000,
+                  recognizer.capabilities.channelCount == 1,
+                  recognizer.capabilities.maximumInputSampleCount >= 3_200 else {
+                throw SpeechRecognitionError.invalidModel
+            }
             try await recognizer.load()
             try Task.checkCancellation()
             try await recognizer.start(epochID: epoch.id)
@@ -133,7 +139,7 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
                                                 recordingState: .recording))
             epoch.meetingCreated = true
             try await store.saveSpeechModelPin(.init(meetingID: epoch.id,
-                selection: .init(manifest: selected, profile: .parakeetTDTCoreML,
+                selection: .init(manifest: selected, profile: recognizer.profile,
                     installationID: model.installationID)))
             try Task.checkCancellation()
             epoch.ingress = ingress
@@ -245,7 +251,7 @@ public final class LiveTranscriptionSession: RecordingPreparationSource {
     }
 
     private nonisolated static func consume(_ ingress: TranscriptIngress,
-        recognizer: CoreMLParakeetRecognizer, store: SQLiteMeetingStore, id: UUID, revision: String,
+        recognizer: any SpeechModelRuntime, store: SQLiteMeetingStore, id: UUID, revision: String,
         publish: @escaping @Sendable (LiveTranscriptSnapshot) async -> Void) async -> TranscriptDrain {
         var scratch = [Float](repeating: 0, count: 3_200)
         var cursor: Int64 = 0
@@ -337,7 +343,7 @@ private final class LiveTranscriptEpoch {
     let token = UUID()
     var lease: ModelLease?
     var selectedManifest: ModelManifest?
-    var recognizer: CoreMLParakeetRecognizer?
+    var recognizer: (any SpeechModelRuntime)?
     var ingress: TranscriptIngress?
     var directory: URL?
     var meetingCreated = false

@@ -40,8 +40,7 @@ extension StoredMeetingSpeechModelPin {
               selection.installationID.uuidString != "00000000-0000-0000-0000-000000000000" else {
             throw MeetingSpeechModelPinError.invalidPin
         }
-        guard selection.profile == .parakeetTDTCoreML,
-              (try? ParakeetModelPack.configuration(for: manifest)) != nil else {
+        guard ModelRuntimeContracts.supports(manifest, profile: selection.profile) else {
             throw MeetingSpeechModelPinError.invalidPin
         }
         var names: Set<String> = []

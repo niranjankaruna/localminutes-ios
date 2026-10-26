@@ -32,10 +32,10 @@ public enum ModelRuntimeCompatibility {
             return result(.supported, "Core ML decodes speech on CPU in short chunks. Memory use, live speed and locked-screen operation still need checks on this iPhone.")
         case .llamaGGUF:
             guard let architecture = repository.modelType?.lowercased() else {
-                return result(.unverified, "The repository does not identify its GGUF architecture. This build supports reviewed Qwen2 and Phi3 templates; compatibility cannot be confirmed from this metadata.")
+                return result(.unverified, "The repository does not identify its GGUF architecture. Choose a pinned variant from the model catalogue.")
             }
-            guard ["qwen2", "phi3"].contains(architecture) else {
-                return result(.unsupported, "The GGUF container is recognized, but this build has no reviewed chat template for \(architecture). Current summary adapters support Qwen2 and Phi3.")
+            guard ModelRuntimeContracts.summaryArchitectures.contains(architecture) else {
+                return result(.unsupported, "The GGUF container is recognized, but this build has no reviewed adapter for \(architecture).")
             }
             guard format.selectedFiles.allSatisfy({ !$0.fileName.contains("/") }) else {
                 return result(.unsupported, "This build's summary loader requires a GGUF file at the repository root. Nested-file loading needs a tested adapter update.")

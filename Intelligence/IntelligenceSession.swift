@@ -8,14 +8,9 @@ import LocalMinutesSummary
 import LocalMinutesQuestionAnswering
 #endif
 
-public protocol IntelligenceRuntime: Sendable {
-    func promptTokenCount(prompt: String) async throws -> Int
-    func generateJSON(prompt: String, schema: StructuredJSONSchema, maximumTokens: Int) async throws -> String
-    func unload() async
-}
-
-// Interface conformance only; all inference remains the existing actual actor.
-extension LocalSummaryRuntime: IntelligenceRuntime {}
+/// Source compatibility for existing callers; all adapters share the lower-level
+/// summary/Q&A contract, which has no application-session dependencies.
+public typealias IntelligenceRuntime = SummaryModelRuntime
 
 public typealias IntelligenceRuntimeLoader = @Sendable (VerifiedModel) async throws -> any IntelligenceRuntime
 
@@ -137,6 +132,9 @@ public final class IntelligenceSession {
     public nonisolated static func loadPinnedRuntime(_ model: VerifiedModel) async throws -> any IntelligenceRuntime {
         try Task.checkCancellation()
         let manifest = model.manifest
+        let configuration: SummaryModelConfiguration?
+        do { configuration = try SummaryAdapterRegistry.configuration(for: manifest) }
+        catch { throw IntelligenceSessionError.invalidModel }
         func lowerHex(_ value: String, count: Int) -> Bool {
             value.utf8.count == count && value.utf8.allSatisfy { (48...57).contains($0) || (97...102).contains($0) }
         }
@@ -151,7 +149,7 @@ public final class IntelligenceSession {
                 && value.query == nil && value.fragment == nil
         }
         guard manifest.schemaVersion == 1, component(manifest.modelID), manifest.purpose == .summary,
-              lowerHex(manifest.revision, count: 40), manifest.runtimeVersion == "llama.cpp-b5046",
+              lowerHex(manifest.revision, count: 40),
               !manifest.licenseIdentifier.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               !manifest.licenseNotice.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               manifest.sampleRate == nil, manifest.featureDimension == nil,
@@ -178,7 +176,7 @@ public final class IntelligenceSession {
         let digest = artifact.sha256
         let byteCount = artifact.byteCount
         let cancellation = IntelligenceCancellation()
-        let loading = Task.detached(priority: .userInitiated) { () throws -> LocalSummaryRuntime in
+        let loading = Task.detached(priority: .userInitiated) { () throws -> any SummaryModelRuntime in
             try Task.checkCancellation()
             do {
                 try PersistentFilePolicy.validateItem(file, within: model.directoryURL)
@@ -210,10 +208,10 @@ public final class IntelligenceSession {
             try Task.checkCancellation()
             // Once native construction begins, always return its actor to the
             // joining owner. A late cancellation must explicitly unload it.
-            return try LocalSummaryRuntime(modelURL: file, contextSize: 4_096, threads: 4, chatFormat: .automatic)
+            return try SummaryAdapterRegistry.makeRuntime(modelURL: file, configuration: configuration)
         }
         return try await withTaskCancellationHandler {
-            let runtime: LocalSummaryRuntime
+            let runtime: any SummaryModelRuntime
             do { runtime = try await loading.value }
             catch {
                 if cancellation.isCancelled || Task.isCancelled { throw CancellationError() }
@@ -324,8 +322,13 @@ public final class IntelligenceSession {
                 guard let artifact = manifest.artifacts.first(where: { $0.role == .summary }) else {
                     throw IntelligenceSessionError.invalidModel
                 }
+                // An older installed manifest still describes its original
+                // artifact contract. Checkpoints must identify the engine now
+                // doing inference so b5046 maps are not reused after upgrading.
+                let runtimeVersion = manifest.runtimeVersion == "llama.cpp-b5046"
+                    ? SummaryModelConfiguration.runtimeVersion : manifest.runtimeVersion
                 resume = .init(jobID: request.meetingID, modelID: manifest.modelID,
-                    modelSHA256: artifact.sha256, runtimeVersion: manifest.runtimeVersion,
+                    modelSHA256: artifact.sha256, runtimeVersion: runtimeVersion,
                     checkpoints: summaryCheckpoints)
             } else { resume = nil }
             let pipeline = SummaryPipeline(modelRevision: modelRevision,

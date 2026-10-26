@@ -117,7 +117,7 @@ CPU-only is the production default. The adapter also exposes an explicit CPU-and
 
 [ModelManifest](./Models/ModelManifest.swift) binds a model identity to an immutable revision, exact file sizes and SHA-256 hashes, license notice, runtime identity, and semantic file roles. Compatibility, resource estimates, byte verification, and successful native load are separate checks.
 
-[HuggingFaceRepository](./Models/HuggingFaceRepository.swift) inspects public repositories through bounded metadata requests. Model cards are displayed as inert text. The app supports specific reviewed runtime contracts: an arbitrary Core ML or GGUF file does not become usable merely because its extension is recognized.
+[ModelCatalog](./Models/ModelCatalog.swift) exposes two speech cards and six summary family cards. [SummaryCatalog.json](./Models/Resources/SummaryCatalog.json) contains twelve summary variants with immutable publisher revisions, sizes, SHA-256 digests, licences, and adapter profiles. The UI has no repository lookup or arbitrary model import. Runtime contracts validate the selected model again before inference; a file extension does not establish compatibility.
 
 [ModelInstallationManager](./Models/ModelInstallationManager.swift) follows this lifecycle:
 
@@ -127,9 +127,9 @@ CPU-only is the production default. The adapter also exposes an explicit CPU-and
 4. Atomically update that model's `current.json` pointer.
 5. Reverify bytes when acquiring a usage lease. Keep leased older installations alive across replacement; reject removal while in use.
 
-The model browser omits installed speech runtimes that this build cannot load. Their stored files are preserved. Equipping a supported Parakeet pack replaces the speech selection.
+The model browser matches legacy installations by exact source revision and artifact bytes, preserving their original metadata and installation identity. Downloading does not equip a variant. Remove deletes installed bytes and retained download checkpoints; removing the equipped variant writes an explicit unequipped selection. Active inference leases prevent deleting models still in use.
 
-[ModelFilesImporter](./Models/ModelFilesImporter.swift) copies selected Files-provider resources into protected staging. Core ML imports require the complete supported compiled-model tree. Source files are not used as mutable inference storage.
+[ModelFilesImporter](./Models/ModelFilesImporter.swift) remains an internal installation/test boundary; it is not exposed in model settings. Core ML imports require the complete supported compiled-model tree. Source files are not used as mutable inference storage.
 
 [HTTPSModelTransport](./Models/HTTPSModelTransport.swift) uses HTTPS with an explicit distribution-host allowlist and no account credentials or cookies. [ResumableModelDownload](./Models/ResumableModelDownload.swift) keeps partial bytes and a checkpoint under a separate download root. Resume binds the exact artifact pin, strong ETag, and partial digest; it validates `206` ranges and restarts on a full `200` response.
 
@@ -200,7 +200,9 @@ History uses stable cursor pagination; transcript search and evidence retrieval 
 
 [IntelligenceSession](./Intelligence/IntelligenceSession.swift) acquires shared admission, snapshots the selected meeting's source, acquires the selected model installation when applicable, runs generation, and drains/unloads before committing a generated document. Cancellation and SQL commit have an explicit admission boundary: late cancellation cannot erase a document already committed.
 
-The local [summary runtime](./Summaries/LocalSummaryRuntime.swift) uses llama.cpp on CPU with four threads and an app context of 4,096 tokens. It validates supported Qwen2/Phi3 model metadata and chat formatting. JSON generation uses a compiled schema rather than accepting arbitrary prose as a structured result.
+Both summaries and Q&A consume [SummaryModelRuntime](./Summaries/SummaryModelRuntime.swift). Its Qwen, Phi-3, Phi-4, Gemma 3, and Gemma 4 adapters share the local llama.cpp engine; [AppleIntelligenceSummaryAdapter](./Intelligence/AppleFoundationRuntime.swift) implements the same interface through the OS. The local engine uses four CPU threads and a 4,096-token app context. Reviewed profiles validate the actual GGUF architecture and chat-template digest. Qwen 3 thinking-capable weights receive a non-thinking prefill; Instruct 2507 uses its separate profile. Phi-4 mini's prompt differs from Phi-3 despite sharing the `phi3` architecture. JSON generation uses a compiled schema rather than accepting arbitrary prose as a structured result.
+
+Live capture and recovered-audio replay consume [SpeechModelRuntime](./Transcription/SpeechRecognition.swift), constructed by an injected factory. [ParakeetSpeechAdapter](./Transcription/CoreMLParakeetRecognizer.swift) implements the interface for both v2 and v3. The orchestration owns leases and cleanup independently of the concrete adapter. [ModelRuntimeContracts](./Models/ModelRuntimeContracts.swift) centralizes metadata validation used by selection and persisted speech pins.
 
 [SummaryPipeline](./Summaries/SummaryPipeline.swift) plans atomic transcript segments against the input/output token budget, with a normal output budget of 1,024 tokens. It refuses an oversized segment instead of truncating evidence. It generates bounded maps and combines them with [GroundedSummaryMerger](./Summaries/GroundedSummaryMerger.swift); there is no second model-generated reduction.
 
@@ -228,14 +230,14 @@ Named XCTest attachments are exported even after test failure. The collector com
 
 [TranscriptionMetrics](./Core/TranscriptionMetrics.swift) and [EnduranceMetrics](./Core/EnduranceMetrics.swift) record bounded operational metadata such as sample counts, queues, latency, memory, thermal state, and battery facts. Exports are capped at 64 KiB and exclude meeting text/audio. The [storage privacy report](./App/StoragePrivacyReport.swift) reports categories and policy facts without meeting names or content. It is not proof of physical lock-state behavior.
 
-Network operations are model discovery/downloads, not meeting uploads. Text/Markdown sharing and backup export are explicit user actions. The bundled [privacy manifest](./Resources/PrivacyInfo.xcprivacy) declares no tracking or collected-data types and includes the disk-space API reason.
+Network operations download pinned catalogue artifacts, not meeting uploads or repository searches. Text/Markdown sharing and backup export are explicit user actions. The bundled [privacy manifest](./Resources/PrivacyInfo.xcprivacy) declares no tracking or collected-data types and includes the disk-space API reason.
 
 ## Native dependencies
 
 | Dependency | Pin and role |
 | --- | --- |
 | FluidAudio | Revision `c79c4106b954f81205113c3343e5a7e59a1089b5`, optional traits disabled; Parakeet decoding |
-| llama.cpp | b5046, pinned framework prepared by [prepare_native_summary.py](./scripts/fixtures/prepare_native_summary.py) |
+| llama.cpp | b11900; pinned official device/macOS framework plus a simulator slice built from hash-pinned matching source by [prepare_native_summary.py](./scripts/fixtures/prepare_native_summary.py) |
 | Apple frameworks | SwiftUI, AVFoundation, ActivityKit, AppIntents, Core ML, and optionally Foundation Models |
 
 [package-ios.mjs](./scripts/package-ios.mjs) checks bundle/source identity, device architectures, unsigned state, and excluded private/model data. [THIRD_PARTY_NOTICES.txt](./Resources/THIRD_PARTY_NOTICES.txt) contains the retained dependencies' bundled legal notices. Native libraries, model weights, recordings, and generated projects are not committed.

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 test -f project.yml && test -f Package.swift
-python3 scripts/fixtures/prepare_native_summary.py --framework-only
+python3 scripts/fixtures/prepare_native_summary.py --framework-only --with-simulator
 
 mkdir -p .agent-local/tools
 curl --fail --location --proto '=https' --proto-redir '=https' --retry 2 --max-time 120 \

@@ -52,7 +52,11 @@ typealias CoreMLParakeetExecutionObserver = @Sendable
 
 /// Parakeet TDT v2/v3 Core ML inference with FluidAudio's Swift decoder.
 /// Disjoint five-second windows are finalized during capture.
-public actor CoreMLParakeetRecognizer {
+public actor ParakeetSpeechAdapter: SpeechModelRuntime {
+    public nonisolated var profile: HuggingFaceRuntimeProfile { .parakeetTDTCoreML }
+    public nonisolated var capabilities: SpeechModelCapabilities {
+        .init(maximumInputSampleCount: Self.stepSamples, producesPartialResults: false)
+    }
     public static let sampleRate = 16_000
     public static let stepSamples = 80_000
     public static let maximumWindowSamples = 240_000
@@ -213,6 +217,11 @@ public actor CoreMLParakeetRecognizer {
         phase = .unloaded
         cancellationRouter.select(nil, flag: nil)
         teardown = nil
+    }
+
+    public func runtimeSnapshot() -> SpeechModelSnapshot {
+        .init(phase: phase, epochID: epochID, modelRevision: manager == nil ? nil : files.revision,
+              acceptedSampleCount: acceptedSamples, bufferedSampleCount: pcm.count)
     }
 
     public func snapshot() -> CoreMLParakeetSnapshot {
@@ -424,3 +433,6 @@ private final class CoreMLParakeetWorker: SerialExecutor, TaskExecutor {
     func asUnownedTaskExecutor() -> UnownedTaskExecutor { .init(ordinary: self) }
     func assertCurrent() { dispatchPrecondition(condition: .onQueue(queue)) }
 }
+
+/// Source compatibility for native diagnostics and existing integration tests.
+public typealias CoreMLParakeetRecognizer = ParakeetSpeechAdapter

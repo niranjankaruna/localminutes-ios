@@ -48,6 +48,7 @@ final class RecordingControlsUITests: XCTestCase {
             "The new design only shows a Stop control for an active session.")
         XCTAssertFalse(app.staticTexts["recording.active"].exists)
         guard minutesTap(app.buttons["Choose speech model"], in: app) else { return }
-        XCTAssertTrue(app.buttons["models.parakeet.browse"].waitForExistence(timeout: 5))
+        XCTAssertTrue(minutesElement("models.family.parakeet-v2", in: app).waitForExistence(timeout: 5))
+        XCTAssertFalse(minutesElement("models.repository.open", in: app).exists)
     }
 }

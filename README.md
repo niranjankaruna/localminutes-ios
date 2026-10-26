@@ -6,7 +6,7 @@ The app has three tabs:
 
 - **Meetings:** history and search, with focused Summary, Transcript, Notes, and Ask views. Meeting actions provide rename, recovery, export, and deletion.
 - **Record:** a single start/stop control, live transcript and notes, recording status, and a Live Activity. Shortcuts support starting, stopping, and toggling a recording.
-- **Settings:** speech and summary model selection, repository lookup, verified downloads/imports, library backup/restore, privacy, and diagnostics.
+- **Settings:** a fixed speech and summary model catalogue, verified downloads, equip/remove controls, library backup/restore, privacy, and diagnostics.
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for ownership, data flow, storage, recovery, and inference contracts.
 
@@ -30,7 +30,7 @@ Prepare the native libraries **before** resolving Swift packages or generating t
 
 ```bash
 export DEVELOPER_DIR=/Applications/Xcode_26.2.app/Contents/Developer
-python3 scripts/fixtures/prepare_native_summary.py --framework-only
+python3 scripts/fixtures/prepare_native_summary.py --framework-only --with-simulator
 xcodegen generate --spec project.yml
 export LOCALMINUTES_SOURCE_COMMIT="$(git rev-parse HEAD)"
 
@@ -48,12 +48,16 @@ Signing is disabled in the checked-in project configuration. Running on a physic
 
 ## Use the app
 
-1. Open **Settings → Speech**, install a supported speech model, then choose **Use for recording**. The Record tab also opens setup when a model is missing. Speech recognition uses Parakeet TDT Core ML. Supported packs include v2 (about 464 MB) and v3 (about 483 MB); import or download the complete pack.
-2. In **Settings → Summaries & answers**, select a local GGUF model or an available Apple Intelligence provider. The local runtime supports reviewed Qwen2 and Phi3 architectures. A file being GGUF alone does not make it compatible. A repository and file selection are required before importing so the installer has the expected verification metadata.
+1. Open **Settings → Speech** and download Parakeet v2 or v3, then equip it for recording. The Record tab also opens setup when a model is missing. Both cards show their source repository, model details, download progress, and installed state.
+2. In **Settings → Summaries & answers**, choose a family and variant, download it, and equip it. The catalogue includes Qwen 2.5 (0.5B/1.5B), Qwen 3 (0.6B/1.7B/4B/4B Instruct 2507), Phi-3 mini 4K, Phi-4 mini, Gemma 3 (1B/4B IT QAT), and Gemma 4 (E2B/E4B IT QAT). Apple Intelligence remains available when supported by the device. There is no repository search or arbitrary model import. Qwen 2.5 3B is excluded.
 3. Start recording from **Record** or a recording Shortcut. Recording becomes active only after the audio session, microphone buffer, and Live Activity are ready. There is no recording-only fallback when speech preparation fails.
 4. Stop recording before requesting a summary or asking a question. Review generated content and its citations. Editable generated text is kept separately from the original output and transcript.
 
 Recording, playback, inference, and library maintenance share admission controls. A pending cleanup can temporarily block another operation until its resources are released. Interrupted audio remains available for recovery; recovery needs the exact speech-model installation originally pinned to the meeting.
+
+**Remove** deletes installed model files and retained partial-download bytes; it also clears the equipped selection when necessary. Meetings and notes remain. A model in active use cannot be removed until its inference work finishes. Downloading does not automatically equip a model. Apple manages its own system model, so the app only offers an Equip action for Apple Intelligence.
+
+The [catalogue data](./Models/Resources/SummaryCatalog.json) pins each summary artifact to an exact publisher revision, byte count, and SHA-256. Sources are Qwen, Microsoft, Google, and reviewed Unsloth/llama.cpp organization conversions. Gemma 3 uses public `ggml-org` QAT conversions with Google's Gemma terms retained. Model download size is not a promise of available RAM, inference speed, or answer quality on every iPhone.
 
 ## GitHub workflows from Windows
 
@@ -193,7 +197,18 @@ After preparing Phi-3 and exporting its variable:
 swift test --filter 'Phi3IntegrationTests|ActualSelectedModelIntelligenceTests|ActualResumedPhiIntelligenceTests'
 ```
 
-Parakeet v3 tests also use the v2 fixture's licensed audio, so prepare both versions and export the v2 variables as well. See [ParakeetModelPackNativeTests.swift](./Tests/ASRTests/ParakeetModelPackNativeTests.swift) for the exact input checks. Once every fixture and environment variable is ready, `swift test` runs the complete SwiftPM suite without filters.
+Parakeet v3 tests also use the v2 fixture's licensed audio, so prepare both versions and export the v2 variables as well. See [ParakeetModelPackNativeTests.swift](./Tests/ASRTests/ParakeetModelPackNativeTests.swift) for the exact input checks. Run these baseline suites with `swift test --skip ActualCatalogAdapterIntegrationTests`; the catalogue suite requires a separate variant-specific fixture.
+
+The all-tests workflow derives a twelve-variant matrix from the bundled catalogue. Each job downloads one artifact with [prepare_catalog_model.mjs](./scripts/fixtures/prepare_catalog_model.mjs), verifies its pinned size and checksum, and runs [ActualCatalogAdapterIntegrationTests](./Tests/IntelligenceTests/ActualCatalogAdapterIntegrationTests.swift) through the production loader. For a focused macOS run:
+
+```bash
+node scripts/fixtures/prepare_catalog_model.mjs --variant qwen3-0.6b-q8_0
+export LOCALMINUTES_CATALOG_VARIANT_ID=qwen3-0.6b-q8_0
+export LOCALMINUTES_CATALOG_MODEL_PATH="$PWD/.agent-local/catalog-fixtures/qwen3-0.6b-q8_0/Qwen3-0.6B-Q8_0.gguf"
+swift test --filter ActualCatalogAdapterIntegrationTests
+```
+
+These integration checks exercise actual model loading, token counting, structured generation, and resource release. They do not substitute for iPhone memory, thermal, or meeting-quality evaluation.
 
 ### Speech quality checks
 

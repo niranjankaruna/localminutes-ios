@@ -26,9 +26,9 @@ final class ModelRuntimeCompatibilityTests: XCTestCase {
             totalBytes: files.reduce(0) { $0 + ($1.byteCount ?? 0) },
             reasons: ["Metadata format fixture; not runtime validation."], suggestedRepositories: [])
     }
-    func testGGUFRuntimeAcceptsReviewedQwenAndPhiArchitecturesButRejectsUnknownChatFamilies() throws {
+    func testGGUFRuntimeRecognizesRegisteredArchitecturesButRejectsUnknownChatFamilies() throws {
         let files = [file("chosen.gguf")]
-        for type in ["qwen2", "phi3"] {
+        for type in ["qwen2", "qwen3", "phi3", "gemma3", "gemma4"] {
             let repo = try repository(type: type, files: files)
             XCTAssertEqual(ModelRuntimeCompatibility.assess(repository: repo,
                 format: format(.llamaGGUF, files: files), availableProfiles: available).status, .supported)

@@ -230,8 +230,11 @@ public struct HuggingFaceModelRepository: Equatable, Sendable {
             return result(.unverified, "A usable license notice must be reviewed before installation.", profile, candidates, total)
         }
         if profile == .llamaGGUF {
-            let known = ["qwen2", "phi3"].contains(type ?? "")
-                || architectures.contains { ["qwen2forcausallm", "phi3forcausallm"].contains($0.lowercased()) }
+            let known = ModelRuntimeContracts.summaryArchitectures.contains(type ?? "")
+                || architectures.contains {
+                    ["qwen2forcausallm", "qwen3forcausallm", "phi3forcausallm", "gemma3forcausallm",
+                     "gemma3forconditionalgeneration", "gemma4forconditionalgeneration"].contains($0.lowercased())
+                }
             guard known else {
                 return result(type == nil && architectures.isEmpty ? .unverified : .unsupported,
                     "The architecture/chat format is not verified for the current llama.cpp adapter.", profile, candidates, total)

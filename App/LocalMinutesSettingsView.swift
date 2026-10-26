@@ -172,7 +172,7 @@ struct StorageCheckView: View {
                     Task { await controller.prepareStorageCheck(recordingOwner: application?.owner) }
                 }
                 .frame(minHeight: 44).accessibilityIdentifier("settings.storageAudit.prepare")
-                .disabled(application?.owner == nil || controller.isWorking || controller.isInspecting || controller.isPreparingStorageCheck)
+                .disabled(application?.owner == nil || controller.isWorking || controller.isPreparingStorageCheck)
             } footer: {
                 Text("No meeting content or file paths are shared. This check does not verify Lock Screen access.")
             }

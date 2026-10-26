@@ -30,7 +30,6 @@ enum AppScreenshotFixture {
     static func prepareModels(_ controller: ModelBrowserController) {
         guard let scene else { return }
         controller.purpose = scene.usesSummaryModels ? .summary : .speechRecognition
-        if scene.usesRepository && scene != .modelsCard { controller.loadBundledParakeetV3() }
     }
 
     static func scroll(_ proxy: ScrollViewProxy) {

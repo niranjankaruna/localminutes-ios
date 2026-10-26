@@ -53,7 +53,7 @@ final class ModelDownloadProgressUITests: XCTestCase {
         app.launchArguments = ["--ui-test-model-accessibility", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launchEnvironment["LOCALMINUTES_UI_MODEL_PROGRESS"] = stage
         app.launch()
-        XCTAssertTrue(app.navigationBars[stage == "idle" ? "Summary model" : "Model transfer"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.navigationBars[stage == "idle" ? "Summary & Q&A" : "Model transfer"].waitForExistence(timeout: 15))
         return app
     }
 }

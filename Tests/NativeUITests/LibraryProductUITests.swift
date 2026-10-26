@@ -97,12 +97,11 @@ final class LibraryProductUITests: XCTestCase {
         minutesWaitForValue("Original Alpha manual note.", app.staticTexts["meeting.notes.content"])
         app.navigationBars.buttons["Meetings"].tap()
         app.tabBars.buttons["Settings"].tap()
-        guard minutesTap(minutesElement("settings.models.summary", in: app), in: app),
-              minutesTap(minutesElement("models.repository.open", in: app), in: app) else { return }
-        let repository = app.textFields["Hugging Face repository"]
-        guard minutesTap(repository, in: app) else { return }
-        repository.typeText("microsoft/Phi-3-mini-4k-instruct-gguf")
-        XCTAssertTrue(app.buttons["Look up repository"].isEnabled)
-        XCTAssertFalse(app.buttons["models.download.selected"].exists)
+        guard minutesTap(minutesElement("settings.models.summary", in: app), in: app) else { return }
+        let family = minutesElement("models.family.qwen25", in: app)
+        minutesReveal(family, in: app)
+        XCTAssertTrue(family.exists)
+        XCTAssertFalse(app.textFields["Hugging Face repository"].exists)
+        XCTAssertFalse(minutesElement("models.repository.open", in: app).exists)
     }
 }

@@ -26,14 +26,13 @@ struct IntelligenceFixture {
     let otherSegments: [StoredTranscriptSegment]
     let note: StoredManualNote
 
-    static func create(actualModel: URL? = nil, manifestOverride: ModelManifest? = nil) async throws -> IntelligenceFixture {
+    static func create(actualModel: URL? = nil, manifestOverride: ModelManifest? = nil,
+                       importActualDirectoryDirectly: Bool = false) async throws -> IntelligenceFixture {
         let root = FileManager.default.temporaryDirectory.standardizedFileURL
             .appendingPathComponent("localminutes-intelligence-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
         var openedStore: SQLiteMeetingStore?
         do {
-        let source = root.appendingPathComponent("import", isDirectory: true)
-        try FileManager.default.createDirectory(at: source, withIntermediateDirectories: false)
         if let manifestOverride {
             guard actualModel != nil, manifestOverride.purpose == .summary, manifestOverride.artifacts.count == 1,
                   let artifact = manifestOverride.artifacts.first, artifact.role == .summary,
@@ -42,9 +41,23 @@ struct IntelligenceFixture {
         }
         let name = manifestOverride?.artifacts.first?.fileName
             ?? (actualModel == nil ? "boundary-model.gguf" : "qwen2.5-1.5b-instruct-q4_k_m.gguf")
+        let source: URL
+        if importActualDirectoryDirectly {
+            guard let actualModel, manifestOverride != nil, actualModel.isFileURL,
+                  actualModel.lastPathComponent == name else { throw IntelligenceSessionError.invalidModel }
+            // The catalogue downloader isolates each reviewed variant in a
+            // single-file directory. Import directly to avoid a third multi-GB
+            // copy; the real installer still hashes the source and owned copy.
+            source = actualModel.deletingLastPathComponent()
+        } else {
+            source = root.appendingPathComponent("import", isDirectory: true)
+            try FileManager.default.createDirectory(at: source, withIntermediateDirectories: false)
+        }
         let file = source.appendingPathComponent(name)
-        if let actualModel { try FileManager.default.copyItem(at: actualModel, to: file) }
-        else { try Data("Original nonsense bytes: file-integrity fixture, never inference.".utf8).write(to: file) }
+        if !importActualDirectoryDirectly {
+            if let actualModel { try FileManager.default.copyItem(at: actualModel, to: file) }
+            else { try Data("Original nonsense bytes: file-integrity fixture, never inference.".utf8).write(to: file) }
+        }
         let handle = try FileHandle(forReadingFrom: file)
         var hash = SHA256()
         while let bytes = try handle.read(upToCount: 1_048_576), !bytes.isEmpty { hash.update(data: bytes) }

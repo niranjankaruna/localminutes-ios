@@ -161,23 +161,13 @@ public final class ModelSelectionStore {
     }
 
     private func profileMatchesPurpose(_ profile: HuggingFaceRuntimeProfile, _ purpose: ModelPurpose) -> Bool {
-        switch profile {
-        case .llamaGGUF: purpose == .summary
-        case .parakeetTDTCoreML: purpose == .speechRecognition
-        }
+        ModelRuntimeContracts.matchesPurpose(profile, purpose)
     }
 
     private func validateShape(_ manifest: ModelManifest, profile: HuggingFaceRuntimeProfile) throws {
-        let roles = Set(manifest.artifacts.map(\.role))
-        let valid: Bool
-        switch profile {
-        case .parakeetTDTCoreML:
-            valid = (try? ParakeetModelPack.configuration(for: manifest)) != nil
-        case .llamaGGUF:
-            valid = manifest.purpose == .summary && manifest.artifacts.count == 1 && roles == [.summary]
-                && manifest.artifacts[0].fileName.lowercased().hasSuffix(".gguf")
+        guard ModelRuntimeContracts.supports(manifest, profile: profile) else {
+            throw ModelSelectionError.invalidPurpose
         }
-        guard valid else { throw ModelSelectionError.invalidPurpose }
     }
 
     private func pointer(_ purpose: ModelPurpose) -> URL {

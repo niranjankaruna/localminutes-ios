@@ -124,7 +124,10 @@ final class LocalMinutesServices: PlaybackHardware {
     @ObservationIgnored private var ownsPlaybackSession = false
     @ObservationIgnored private var intelligenceCleanup: (id: UUID, task: Task<Void, Never>)?
 
-    static let summaryManifest = ModelManifest(
+    static let summaryManifest = ModelCatalog.variant(id: "phi3-mini-4k-instruct-q4")?.manifest
+        ?? legacySummaryManifest
+
+    private static let legacySummaryManifest = ModelManifest(
         modelID: "phi3-mini-4k-instruct-q4", purpose: .summary,
         upstreamRepository: URL(string: "https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf")!,
         revision: "a64113399c2f6b8ad3e11c394733a2ddadaa7f33",
@@ -178,7 +181,7 @@ final class LocalMinutesServices: PlaybackHardware {
         endurance = try EnduranceMetricsRecorder(transcription: metrics, clock: AppMetricsClock())
         let admission = HeavyModelAdmission()
         let selections = ModelSelectionStore(rootURL: root.appendingPathComponent("ModelSelections", isDirectory: true),
-            models: manager, availableProfiles: [.llamaGGUF, .parakeetTDTCoreML],
+            models: manager, availableProfiles: ModelRuntimeContracts.availableProfiles,
             canChangeSelection: { admission.snapshot().phase == .idle })
         modelSelections = selections
         models = manager; store = database; meetingsDirectory = meetings
@@ -272,7 +275,12 @@ final class LocalMinutesServices: PlaybackHardware {
                 } else {
                     // Missing legacy weights remain a truthful model-required
                     // result when generation acquires this default manifest.
-                    chosen = Self.summaryManifest
+                    if let existing = try await self.models.current(modelID: Self.summaryManifest.modelID),
+                       ModelCatalog.matchesSourceWeights(existing.manifest, Self.summaryManifest) {
+                        chosen = existing.manifest
+                    } else {
+                        chosen = Self.summaryManifest
+                    }
                 }
                 guard self.heavyAdmission?.snapshot().phase == .idle else {
                     self.intelligence = nil
@@ -391,7 +399,7 @@ final class LocalMinutesServices: PlaybackHardware {
     /// tree or retain the shared audio session after its player has stopped.
     var canPrepareStoragePrivacyReport: Bool {
         startup.state == .ready && !maintainingLibrary && deletionWork.isEmpty
-            && !modelBrowser.isWorking && !modelBrowser.isInspecting
+            && !modelBrowser.isWorking
             && playback == nil && !ownsPlaybackSession && recoveringMeetingID == nil
     }
 

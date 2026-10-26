@@ -90,6 +90,8 @@ final class ActualResumedPhiIntelligenceTests: XCTestCase {
             XCTAssertEqual(checkpoint.identity.meetingID, h.selected)
             XCTAssertEqual(checkpoint.identity.modelRevision, revision)
             XCTAssertEqual(checkpoint.identity.modelSHA256, manifest.artifacts[0].sha256)
+            XCTAssertEqual(checkpoint.identity.runtimeVersion, SummaryModelConfiguration.runtimeVersion,
+                           "Legacy installed weights use the current engine and must invalidate older checkpoints")
             XCTAssertEqual(checkpoint.maps.count, 1)
             guard checkpoint.maps.count == 1 else {
                 XCTFail("The unchanged small selected fixture must have exactly one validated native map")

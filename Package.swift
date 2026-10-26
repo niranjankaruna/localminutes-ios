@@ -23,7 +23,8 @@ let package = Package(
         .binaryTarget(name: "llama", path: ".agent-local/native-llm/llama.xcframework"),
         .target(name: "LocalMinutesCore", path: "Core"),
         .target(name: "LocalMinutesRecording", dependencies: ["LocalMinutesCore"], path: "Recording"),
-        .target(name: "LocalMinutesModels", dependencies: ["LocalMinutesCore"], path: "Models"),
+        .target(name: "LocalMinutesModels", dependencies: ["LocalMinutesCore"], path: "Models",
+                resources: [.process("Resources")]),
         .target(name: "LocalMinutesPersistence", dependencies: ["LocalMinutesCore", "LocalMinutesModels"], path: "Persistence", linkerSettings: [.linkedLibrary("sqlite3")]),
         .target(name: "LocalMinutesTranscription", dependencies: [
             .product(name: "FluidAudio", package: "FluidAudio"),
@@ -40,7 +41,7 @@ let package = Package(
         .testTarget(name: "PersistenceTests", dependencies: ["LocalMinutesPersistence"], path: "Tests/PersistenceTests", linkerSettings: [.linkedLibrary("sqlite3")]),
         .testTarget(name: "ASRTests", dependencies: ["LocalMinutesTranscription", "LocalMinutesCore", "LocalMinutesModels", "LocalMinutesPersistence", "LocalMinutesRecording", "LocalMinutesMeetingLibrary"], path: "Tests/ASRTests"),
         .testTarget(name: "MeetingLibraryTests", dependencies: ["LocalMinutesMeetingLibrary", "LocalMinutesPersistence", "LocalMinutesRecording", "LocalMinutesModels", "LocalMinutesCore"], path: "Tests/MeetingLibraryTests"),
-        .testTarget(name: "SummaryTests", dependencies: ["LocalMinutesSummary", "LocalMinutesPersistence", "llama"], path: "Tests/SummaryTests"),
+        .testTarget(name: "SummaryTests", dependencies: ["LocalMinutesSummary", "LocalMinutesModels", "LocalMinutesPersistence", "llama"], path: "Tests/SummaryTests"),
         .testTarget(name: "QuestionAnsweringTests", dependencies: ["LocalMinutesQuestionAnswering", "LocalMinutesPersistence", "LocalMinutesSummary"], path: "Tests/QuestionAnsweringTests"),
         .testTarget(name: "IntelligenceTests", dependencies: ["LocalMinutesIntelligence", "LocalMinutesCore", "LocalMinutesModels", "LocalMinutesPersistence", "LocalMinutesSummary", "LocalMinutesQuestionAnswering"], path: "Tests/IntelligenceTests")
     ]

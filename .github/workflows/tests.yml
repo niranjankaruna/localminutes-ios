@@ -23,6 +23,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Validate native source extraction
+        run: python3 -B -m unittest discover -s scripts/fixtures -p test_prepare_native_summary.py
       - name: Prepare native libraries and all model fixtures
         run: |
           python3 scripts/fixtures/prepare_native_summary.py
@@ -36,14 +38,69 @@ jobs:
             "LOCALMINUTES_PARAKEET_V3_DIRECTORY=$PWD/.agent-local/parakeet-v3-fixtures/model" \
             "LOCALMINUTES_PARAKEET_V3_PACK=$PWD/Tests/Fixtures/Parakeet/parakeet-v3.modelpack.json" \
             "LOCALMINUTES_ASR_CORPUS_DIRECTORY=$PWD/.agent-local/asr-quality-corpus" >> "$GITHUB_ENV"
-      - name: Run every SwiftPM test
+      - name: Run SwiftPM tests (catalogue inference runs in its required matrix)
         run: |
           mkdir -p .build
-          swift test 2>&1 | tee .build/tests.log
+          swift test --skip ActualCatalogAdapterIntegrationTests 2>&1 | tee .build/tests.log
           node scripts/verify-test-log.mjs .build/tests.log
       - name: Run script tests
         if: ${{ !cancelled() }}
         run: node --test scripts/tests/*.test.mjs
+
+  catalog-matrix:
+    name: Enumerate reviewed summary model variants
+    runs-on: ubuntu-latest
+    outputs:
+      variants: ${{ steps.catalog.outputs.variants }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - id: catalog
+        name: Validate and enumerate the pinned catalogue
+        run: |
+          node --test scripts/tests/catalog-models.test.mjs
+          node --input-type=module <<'JS'
+          import { appendFileSync } from 'node:fs';
+          import { loadCatalog } from './scripts/fixtures/prepare_catalog_model.mjs';
+          const variants = await loadCatalog();
+          appendFileSync(process.env.GITHUB_OUTPUT, 'variants=' + JSON.stringify(variants.map(variant => variant.id)) + '\n');
+          JS
+
+  catalog-adapters:
+    name: Native adapter — ${{ matrix.variant }}
+    needs: catalog-matrix
+    runs-on: macos-15
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: ${{ fromJSON(needs.catalog-matrix.outputs.variants) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare native library and this model variant only
+        env:
+          CATALOG_VARIANT: ${{ matrix.variant }}
+        run: |
+          python3 scripts/fixtures/prepare_native_summary.py --framework-only
+          mkdir -p .agent-local
+          node scripts/fixtures/prepare_catalog_model.mjs --variant "$CATALOG_VARIANT" > .agent-local/catalog-fixture.json
+          node --input-type=module <<'JS'
+          import { appendFileSync, readFileSync } from 'node:fs';
+          const fixture = JSON.parse(readFileSync('.agent-local/catalog-fixture.json', 'utf8'));
+          appendFileSync(process.env.GITHUB_ENV,
+            'LOCALMINUTES_CATALOG_VARIANT_ID=' + fixture.variantID + '\n' +
+            'LOCALMINUTES_CATALOG_MODEL_PATH=' + fixture.modelPath + '\n');
+          JS
+      - name: Run native catalogue adapter integration tests
+        run: |
+          mkdir -p .build
+          swift test --filter ActualCatalogAdapterIntegrationTests 2>&1 | tee .build/catalog-tests.log
+          node scripts/verify-test-log.mjs .build/catalog-tests.log
 
   ios:
     name: iOS app, UI, and packaging tests

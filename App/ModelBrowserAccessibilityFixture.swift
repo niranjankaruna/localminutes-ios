@@ -19,6 +19,7 @@ enum ModelBrowserAccessibilityFixture {
         let root = parent.appendingPathComponent(UUID().uuidString, isDirectory: true)
         let services = try LocalMinutesServices(rootURL: root)
         let revision = String(repeating: "a", count: 40)
+        var variants: [ModelCatalogVariant] = []
         for name in ["alpha", "beta"] {
             let bytes = Data("Synthetic \(name) model-list UI fixture; not inference weights.".utf8)
             let input = root.appendingPathComponent("Input-\(name)", isDirectory: true)
@@ -35,14 +36,22 @@ enum ModelBrowserAccessibilityFixture {
                         digestProvenance: .upstreamReported)
                 ])
             _ = try await services.models.importDirectory(input, manifest: manifest)
+            variants.append(.init(id: manifest.modelID, title: name == "alpha" ? "0.5B" : "1.5B",
+                detail: "Synthetic UI fixture · not inference weights", manifest: manifest, profile: .llamaGGUF))
         }
+        let productionFamilies = ModelCatalog.families(for: .summary)
+        let summaryFamilies = productionFamilies.enumerated().map { index, family in
+            index == 0 ? ModelCatalogFamily(id: family.id, title: family.title, detail: family.detail,
+                purpose: .summary, variants: variants) : family
+        }
+        services.modelBrowser.useFixtureCatalog(
+            ModelCatalog.families(for: .speechRecognition, speechPacks: BundledParakeetPacks.manifests) + summaryFamilies)
         services.modelBrowser.purpose = .summary
+        if ProcessInfo.processInfo.environment["LOCALMINUTES_UI_MODEL_PURPOSE"] == "speech" {
+            services.modelBrowser.purpose = .speechRecognition
+        }
         await services.modelBrowser.refresh()
         AppScreenshotFixture.prepareModels(services.modelBrowser)
-        if AppScreenshotFixture.requested,
-           AppScreenshotFixture.scene == .modelsCard {
-            try services.modelBrowser.loadScreenshotModelCard()
-        }
         let screenshotStage: String? = AppScreenshotFixture.scene == .modelsDownloading ? "downloading" :
             AppScreenshotFixture.scene == .modelsVerifying ? "verifying" : nil
         if let stage = screenshotStage ?? ProcessInfo.processInfo.environment["LOCALMINUTES_UI_MODEL_PROGRESS"], stage != "idle" {

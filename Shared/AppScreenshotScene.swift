@@ -102,10 +102,8 @@ enum AppScreenshotScene: String, CaseIterable {
         case .meetingSummaryReset: ["meeting.summary.options", "meeting.summary.reset"]
         case .meetingShare: ["meeting.export.text"]
         case .meetingDelete: ["meeting.actions", "meeting.delete"]
-        case .modelsImport: ["models.import"]
-        case .modelsPack: ["models.pack.import"]
         case .modelsRemove: ["models.remove.ui-model-alpha"]
-        case .modelsCard: ["models.card.open"]
+        case .modelsCard: ["models.license.open"]
         default: []
         }
     }
@@ -120,7 +118,7 @@ enum AppScreenshotScene: String, CaseIterable {
         case .meetingsHistory, .meetingsSearch: "meeting.history.row.10000000-0000-0000-0000-000000000001"
         case .meetingsActions: "meeting.history.backup.create"
         case .meetingsBackup: "meeting.history.backup.share"
-        case .meetingsRestore, .modelsImport, .modelsPack: "system.filePicker"
+        case .meetingsRestore: "system.filePicker"
         case .meetingNotes: "meeting.notes.content"
         case .meetingTranscript, .meetingTranscriptSearch: "meeting.transcript.segment.20000000-0000-0000-0000-000000000002"
         case .meetingSummary: "meeting.generatedSummary.content"
@@ -132,21 +130,19 @@ enum AppScreenshotScene: String, CaseIterable {
         case .meetingNoTranscript: "meeting.transcript.empty"
         case .meetingNoSummary: "meeting.generatedSummary.generate"
         case .meetingModelRequired: "meeting.intelligence.modelRequired"
-        case .modelsSpeech: "models.parakeet.browse"
+        case .modelsSpeech, .modelsPack: "models.family.parakeet-v2"
         case .modelsSummary: "models.apple.availability"
         case .modelsStorage: "settings.storageAudit.share"
         case .modelsAbout: "settings.appBuildIdentity"
         case .modelsDevice: "models.device.availableMemory"
         case .modelsRepository: "models.repository.title"
-        case .modelsSource: "models.repository.revision"
-        case .modelsCompatibility: "models.compatibility.heading"
-        case .modelsRequirements: "models.requirements.heading"
-        case .modelsDownload: "models.download.selected"
+        case .modelsSource, .modelsCompatibility, .modelsRequirements,
+             .modelsDownload, .modelsImport: "models.details.title"
         case .modelsInstalled: "models.title.ui-model-alpha"
         case .modelsDetails: "models.runtime.ui-model-alpha"
         case .modelsRemove: "models.remove.confirm"
         case .modelsDownloading, .modelsVerifying: "models.download.stage"
-        case .modelsCard: "models.card.content"
+        case .modelsCard: "models.license.notice"
         }
     }
 }

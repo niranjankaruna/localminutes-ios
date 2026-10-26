@@ -55,7 +55,7 @@ public final class MeetingTranscriptionReplayCoordinator {
         let meetingLease: MeetingRecordingLease
         var gateLease: HeavyModelUseLease?
         var modelLease: ModelLease?
-        var recognizer: CoreMLParakeetRecognizer?
+        var recognizer: (any SpeechModelRuntime)?
         var work: Task<TranscriptionReplayReport, Error>?
         var completion: Task<TranscriptionReplayReport, Error>?
         var resourcesReleased = false
@@ -109,25 +109,30 @@ public final class MeetingTranscriptionReplayCoordinator {
     private let recordingsRoot: URL
     private let usage: MeetingUsageRegistry
     private let admission: HeavyModelAdmission
+    private let runtimeFactory: SpeechModelRuntimeFactory
     private let afterClaim: (@Sendable () async -> Void)?
     private let afterCheckpoint: (@Sendable (TranscriptionReplayCheckpoint) async -> Void)?
     private var current: Use?
 
     public init(store: SQLiteMeetingStore, models: ModelInstallationManager,
-                recordingsRoot: URL, usage: MeetingUsageRegistry, admission: HeavyModelAdmission) {
+                recordingsRoot: URL, usage: MeetingUsageRegistry, admission: HeavyModelAdmission,
+                runtimeFactory: @escaping SpeechModelRuntimeFactory = SpeechModelRuntimeRegistry.makeRuntime) {
         self.store = store; self.models = models; self.recordingsRoot = recordingsRoot.standardizedFileURL
         self.usage = usage; self.admission = admission; afterClaim = nil; afterCheckpoint = nil
+        self.runtimeFactory = runtimeFactory
     }
 
     // Scheduling boundaries only. Production uses the public initializer; these
     // never replace file decoding, persistence, or actual model inference.
     init(store: SQLiteMeetingStore, models: ModelInstallationManager,
          recordingsRoot: URL, usage: MeetingUsageRegistry, admission: HeavyModelAdmission,
+         runtimeFactory: @escaping SpeechModelRuntimeFactory = SpeechModelRuntimeRegistry.makeRuntime,
          afterClaim: @escaping @Sendable () async -> Void,
          afterCheckpoint: (@Sendable (TranscriptionReplayCheckpoint) async -> Void)? = nil) {
         self.store = store; self.models = models; self.recordingsRoot = recordingsRoot.standardizedFileURL
         self.usage = usage; self.admission = admission; self.afterClaim = afterClaim
         self.afterCheckpoint = afterCheckpoint
+        self.runtimeFactory = runtimeFactory
     }
 
     public func replay(meetingID: UUID) async throws -> TranscriptionReplayReport {
@@ -237,13 +242,17 @@ public final class MeetingTranscriptionReplayCoordinator {
               source.installationID == lease.model.installationID else {
             throw TranscriptionReplayError.modelUnavailable
         }
-        guard source.profile == .parakeetTDTCoreML,
-              (try? ParakeetModelPack.configuration(for: source.manifest)) != nil else {
+        let recognizer: any SpeechModelRuntime
+        do { recognizer = try runtimeFactory(lease.model) }
+        catch is CancellationError { throw CancellationError() }
+        catch { throw TranscriptionReplayError.modelUnavailable }
+        use.recognizer = recognizer
+        guard recognizer.profile == source.profile,
+              recognizer.capabilities.sampleRate == 16_000,
+              recognizer.capabilities.channelCount == 1,
+              recognizer.capabilities.maximumInputSampleCount >= 3_200 else {
             throw TranscriptionReplayError.modelUnavailable
         }
-        let recognizer = CoreMLParakeetRecognizer(files: .init(
-            directory: lease.model.directoryURL, manifest: source.manifest))
-        use.recognizer = recognizer
         try await recognizer.load()
         return try await replayAudio(use, recognizer: recognizer, source: source, plan: plan,
             directory: directory, rows: initialRows, remaining: remaining, resume: resume)
@@ -270,7 +279,7 @@ public final class MeetingTranscriptionReplayCoordinator {
         await afterCheckpoint?(checkpoint)
     }
 
-    private func replayAudio(_ use: Use, recognizer: CoreMLParakeetRecognizer, source: ReplaySource,
+    private func replayAudio(_ use: Use, recognizer: any SpeechModelRuntime, source: ReplaySource,
         plan: Plan, directory: URL, rows originalRows: [StoredTranscriptSegment],
         remaining: [StoredAudioSegment], resume: Int64) async throws -> TranscriptionReplayReport {
         try Task.checkCancellation()
