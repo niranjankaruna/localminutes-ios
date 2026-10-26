@@ -4,12 +4,15 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, realpath } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { promisify } from 'node:util';
+import { parseArgs, promisify } from 'node:util';
 import { downloadWorkflowArtifact, ghCLI } from './github-transfer.mjs';
-import { replaceScreenshots, verifyScreenshots } from './app-screenshots.mjs';
+import { expectedScreenshotNames, replaceScreenshots, resolveScreenshotSelection, screenshotCategories,
+  verifyScreenshots } from './app-screenshots.mjs';
 
 export async function captureAndDownload({ repositoryRoot, repository, ref, sourceCommit,
+  appearance = 'both', categories = '', screens = '', related = false,
   requestID = randomUUID(), gh = ghCLI, sleep, cancelled }) {
+  const selection = await resolveScreenshotSelection({ appearance, categories, screens, related });
   const root = await realpath(repositoryRoot);
   const local = join(root, '.agent-local');
   await mkdir(local, { recursive: true });
@@ -17,27 +20,45 @@ export async function captureAndDownload({ repositoryRoot, repository, ref, sour
   const stagingDirectory = join(local, `screenshots-${requestID}`);
   await downloadWorkflowArtifact({ repository, ref, sourceCommit, requestID, gh, sleep, cancelled,
     outputDirectory: stagingDirectory, workflow: 'app-screenshots.yml', runNamePrefix: 'Screenshots',
-    artifactName: 'app-ui-screenshots-transfer', verifyDownload: verifyScreenshots });
-  return replaceScreenshots({ repositoryRoot: root, stagingDirectory, sourceCommit });
+    artifactName: 'app-ui-screenshots-transfer', workflowInputs: { appearance, categories, screens, related: String(related) },
+    verifyDownload: (directory, commit) => verifyScreenshots(directory, commit, selection) });
+  return replaceScreenshots({ repositoryRoot: root, stagingDirectory, sourceCommit, selection });
 }
 
 async function main() {
-  const args = process.argv.slice(2);
-  if (args.includes('--help')) {
+  const { values } = parseArgs({ options: {
+    ref: { type: 'string' }, appearance: { type: 'string', default: 'both' },
+    categories: { type: 'string', default: '' }, screens: { type: 'string', default: '' },
+    related: { type: 'boolean', default: false }, list: { type: 'boolean' }, help: { type: 'boolean' }
+  } });
+  if (values.help) {
     console.log('Usage: node scripts/download-screenshots.mjs [--ref BRANCH_OR_TAG]\n' +
-      'Runs the iOS app on hosted macOS and replaces this project\'s AppUI_Screenshots folder.\n' +
+      '  [--appearance both|light|dark] [--categories NAME,NAME] [--screens NAME,NAME] [--related] [--list]\n' +
+      'No filters captures all screens in both appearances. Categories and screen names are combined.\n' +
+      '--related includes every screen in the named screen\'s category. --list previews the selection without GitHub.\n' +
+      'Output: AppUI_Screenshots/<appearance>/<category>/<screen>_<appearance>.png\n' +
+      'Partial captures update only selected images; complete captures replace the gallery.\n' +
       'Requires Node.js 22, Git, and authenticated GitHub CLI with Actions write access.\n' +
       'The checkout must be clean and pushed. Temporary artifacts and the run are deleted.');
     return;
   }
-  assert.ok(args.length === 0 || (args.length === 2 && args[0] === '--ref' && args[1]), 'Unknown or incomplete option');
+  const selection = await resolveScreenshotSelection(values);
+  const names = await expectedScreenshotNames(selection);
+  if (values.list) {
+    console.log(`Appearances: ${selection.appearances.join(', ')}; ${names.length} screenshots`);
+    for (const [category, members] of Object.entries(screenshotCategories)) {
+      const selected = members.filter(scene => selection.scenes.includes(scene));
+      if (selected.length) console.log(`${category}:\n${selected.map(scene => `  ${scene}`).join('\n')}`);
+    }
+    return;
+  }
   const root = await realpath(fileURLToPath(new URL('..', import.meta.url)));
   const execute = promisify(execFile);
   const git = async args => (await execute('git', args, { cwd: root, encoding: 'utf8' })).stdout.trim();
   const gh = args => ghCLI(args, { cwd: root });
   assert.equal(await git(['status', '--porcelain']), '', 'Commit and push local changes before taking screenshots');
   const sourceCommit = await git(['rev-parse', 'HEAD']);
-  const ref = args[1] ?? await git(['branch', '--show-current']);
+  const ref = values.ref ?? await git(['branch', '--show-current']);
   assert.ok(ref, 'Pass --ref for a detached checkout');
   const repository = await gh(['repo', 'view', '--json', 'nameWithOwner', '--jq', '.nameWithOwner']);
   const remote = JSON.parse(await gh(['api', `repos/${repository}/commits/${encodeURIComponent(ref)}`]));
@@ -46,10 +67,12 @@ async function main() {
   const interrupt = () => { cancelled = true; console.error('Cancelling; waiting for remote cleanup…'); };
   process.on('SIGINT', interrupt);
   try {
-    console.log(`Capturing ${sourceCommit}; destination: ${join(root, 'AppUI_Screenshots')}`);
-    const destination = await captureAndDownload({ repositoryRoot: root, repository, ref, sourceCommit, gh,
+    console.log(`Capturing ${names.length} screenshots (${selection.appearances.join(', ')}) at ${sourceCommit}; ` +
+      `destination: ${join(root, 'AppUI_Screenshots')}`);
+    console.log(names.join('\n'));
+    const destination = await captureAndDownload({ ...values, repositoryRoot: root, repository, ref, sourceCommit, gh,
       cancelled: () => cancelled });
-    console.log(`Screenshots replaced: ${destination}\nTemporary GitHub artifact and workflow run deleted.`);
+    console.log(`${names.length} screenshots updated: ${destination}\nTemporary GitHub artifact and workflow run deleted.`);
   } finally { process.off('SIGINT', interrupt); }
 }
 

@@ -87,11 +87,62 @@ After committing and pushing, use the same Node.js/GitHub CLI setup to run:
 node scripts/download-screenshots.mjs
 ```
 
-[download-screenshots.mjs](./scripts/download-screenshots.mjs) starts the screenshot workflow, waits for capture, verifies every PNG and its source commit, then replaces **`AppUI_Screenshots/` in this project**. Use `--ref BRANCH_OR_TAG` to select a pushed ref that matches the local commit. Run this command on Windows and keep it open; a GitHub-hosted workflow by itself cannot write to your local disk.
+[download-screenshots.mjs](./scripts/download-screenshots.mjs) starts the screenshot workflow, waits for capture, verifies every requested PNG and its source commit, then updates **`AppUI_Screenshots/` in this project**. Use `--ref BRANCH_OR_TAG` to select a pushed ref that matches the local commit. Run this command on Windows and keep it open; a GitHub-hosted workflow by itself cannot write to your local disk.
 
-Each successful run replaces the entire prior screenshot set, including obsolete filenames. An incomplete or invalid download leaves the previous set in place. The folder is ignored by Git; screenshots are not committed or published. Temporary GitHub artifacts and the screenshot workflow run are deleted after the local transfer. The same 15-minute cleanup and one-day retention fallback described above apply. If final folder replacement fails, the command reports where the new and previous sets remain without restoring files automatically.
+Choose an appearance, categories, or individual screens to avoid capturing the whole app:
 
-The [scene catalog](./Shared/AppScreenshotScene.swift) defines 41 screen/section states in both appearances (82 PNGs): Record idle, blocked, and active views; live transcript/notes; empty and populated history, search, backup and restore picker; meeting notes, transcript, summary, saved answers, export/share and confirmations; speech/summary model lists, Parakeet details, model card, import pickers, download/verification progress, storage, version and device information. Example names are `record_active_light.png`, `meeting_summary_dark.png`, and `models_downloading_light.png`. `manifest.json` records the commit, simulator, dimensions, checksums, completion status, and any missing captures.
+```powershell
+# List category names and every exact screen name without starting a workflow.
+node scripts/download-screenshots.mjs --list
+
+# All transcript and summary screens, dark mode only (7 screenshots).
+node scripts/download-screenshots.mjs --appearance dark --categories transcript,summary
+
+# Just these two screens, in both appearances (4 screenshots).
+node scripts/download-screenshots.mjs --screens meeting_transcript,meeting_share_sheet
+
+# A screen and its category's related states, in both appearances (6 screenshots).
+node scripts/download-screenshots.mjs --screens meeting_transcript --related
+
+# Preview any selection by adding --list; this makes no GitHub requests.
+node scripts/download-screenshots.mjs --appearance light --categories parakeet --list
+```
+
+`--appearance` accepts `both` (default), `light`, or `dark`. `--categories` and `--screens` accept comma-separated names; when both are supplied, their selections are combined without duplicates. `--related` requires `--screens` and adds every scene in each named screen's category. With neither category nor screen filters, all scenes are selected. Unknown names fail before dispatch. The workflow's manual inputs expose the same `appearance`, `categories`, `screens`, and `related` choices; the local command handles download and remote cleanup.
+
+The [scene catalog](./Shared/AppScreenshotScene.swift) defines 41 screen/section states (82 PNGs with both appearances). [app-screenshots.mjs](./scripts/app-screenshots.mjs) groups them as follows; counts are per appearance:
+
+| Category | Scenes | Included views |
+| --- | ---: | --- |
+| `recording` | 5 | Idle, model required, active recording, live transcript, live notes |
+| `library` | 7 | Empty/history, actions, search, backup, restore picker, meeting deletion |
+| `notes` | 1 | Meeting notes |
+| `transcript` | 3 | Transcript, transcript search, empty transcript |
+| `summary` | 4 | Summary, reset confirmation, empty summary, model required |
+| `questions` | 1 | Saved questions and answers |
+| `sharing` | 2 | Export and share sheet |
+| `models` | 2 | Speech and summary model lists |
+| `parakeet` | 8 | Repository, source, compatibility, requirements, download selection, import/pack pickers, model card |
+| `downloads` | 2 | Download and verification progress |
+| `installed-models` | 3 | Installed summary models, details, removal confirmation |
+| `settings` | 3 | Storage check, app version, device information |
+
+Output is grouped by appearance first, then category, with stable filenames:
+
+```text
+AppUI_Screenshots/
+  light/
+    transcript/meeting_transcript_light.png
+    summary/meeting_summary_light.png
+  dark/
+    transcript/meeting_transcript_dark.png
+    summary/meeting_summary_dark.png
+  manifest.json
+```
+
+A successful partial run replaces only its selected images and preserves the rest. Each image's manifest entry retains its own commit, capture time, simulator, dimensions, and checksum, so a gallery can contain captures from several commits. An existing flat gallery is reorganized into this structure when it is next updated. A full run replaces the whole set, removing obsolete filenames. An incomplete or invalid download leaves the previous gallery in place. Progress is numbered against the selected total, such as `[3/6]`, alongside XCTest's elapsed time.
+
+The folder is ignored by Git; screenshots are not committed or published. Temporary GitHub artifacts and the screenshot workflow run are deleted after the local transfer. The same 15-minute cleanup and one-day retention fallback described above apply. If final folder replacement fails, the command reports where the new and previous sets remain without restoring files automatically.
 
 The [capture tests](./Tests/NativeUITests/AppScreenshotsUITests.swift) launch a fresh app instance and isolated sample library for each scene. The app selects the tab/meeting, loads data, expands the required section, and scrolls to a named anchor. Capture waits for an explicit data-ready marker and the scene's visible accessibility target. Native menus, share sheets, pickers, and confirmations use only their explicit presentation controls (at most two taps for the restore picker reached through its menu). There are no swipe searches or dependencies on a previous scene. Each scene has bounded readiness waits; failure records a diagnostic image and accessibility tree, then capture continues with the next scene.
 

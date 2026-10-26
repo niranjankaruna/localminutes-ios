@@ -13,11 +13,18 @@ export const ghCLI = async (args, options = {}) => (await execute('gh', args, {
 
 // The injected CLI and delay let lifecycle tests exercise failures without GitHub writes.
 export async function downloadWorkflowArtifact({ repository, ref, sourceCommit, outputDirectory,
-  workflow, runNamePrefix, artifactName, verifyDownload,
+  workflow, runNamePrefix, artifactName, verifyDownload, workflowInputs = {},
   requestID = randomUUID(), gh = ghCLI, sleep = delay, cancelled = () => false }) {
   assert.match(repository, /^[\w.-]+\/[\w.-]+$/);
   assert.match(sourceCommit, /^[0-9a-f]{40}$/);
   assert.match(requestID, /^[0-9a-f-]{36}$/);
+  const inputArguments = [];
+  for (const [name, value] of Object.entries(workflowInputs)) {
+    assert.match(name, /^[a-z][a-z0-9_]*$/);
+    assert.notEqual(name, 'request_id', 'The transfer owns its request ID');
+    assert.equal(typeof value, 'string');
+    inputArguments.push('-f', `${name}=${value}`);
+  }
   assert.equal(await lstat(outputDirectory).then(() => true, error => {
     if (error.code === 'ENOENT') return false;
     throw error;
@@ -44,7 +51,7 @@ export async function downloadWorkflowArtifact({ repository, ref, sourceCommit, 
 
   try {
     await gh(['workflow', 'run', workflow, '--repo', repository, '--ref', ref,
-      '-f', `request_id=${requestID}`]);
+      '-f', `request_id=${requestID}`, ...inputArguments]);
     const deadline = Date.now() + 120 * 60 * 1000;
     while (!runID) {
       checkWaiting(deadline);

@@ -2,34 +2,61 @@ import XCTest
 
 @MainActor
 final class AppScreenshotsUITests: XCTestCase {
-    private static var startedSceneCount = 0
-
-    func testLightScreens() { captureScenes(appearance: "light") }
-    func testDarkScreens() { captureScenes(appearance: "dark") }
-
-    private func captureScenes(appearance: String) {
+    func testSelectedScreens() throws {
         continueAfterFailure = true
         XCUIDevice.shared.orientation = .portrait
-        let total = AppScreenshotScene.allCases.count * 2
-        for scene in AppScreenshotScene.allCases {
-            Self.startedSceneCount += 1
-            let progress = "[\(Self.startedSceneCount)/\(total)] \(scene.rawValue)_\(appearance)"
-            XCTContext.runActivity(named: "Screenshot \(progress)") { _ in
-                print("APPUI_CAPTURE_BEGIN \(progress)")
-                let app = XCUIApplication()
-                defer { app.terminate() }
-                do {
-                    try capture(scene, appearance: appearance, app: app)
-                    print("APPUI_CAPTURE_SAVED \(progress)")
-                } catch {
-                    print("APPUI_FAILURE \(progress): \(error)")
-                    print(app.debugDescription)
-                    let diagnostic = XCTAttachment(screenshot: app.screenshot())
-                    diagnostic.name = "diagnostic__\(appearance)__\(scene.rawValue)__"
-                    diagnostic.lifetime = .keepAlways
-                    add(diagnostic)
-                    XCTFail("\(progress): \(error)")
+        let selection = try captureSelection()
+        let total = selection.scenes.count * selection.appearances.count
+        print("APPUI_SELECTION \(total) screenshots: \(selection.appearances.joined(separator: ",")); \(selection.scenes.joined(separator: ","))")
+        var startedSceneCount = 0
+        for appearance in selection.appearances {
+            for name in selection.scenes {
+                guard let scene = AppScreenshotScene(rawValue: name) else {
+                    throw CaptureError.notReady("Unknown screenshot scene: \(name)")
                 }
+                startedSceneCount += 1
+                captureScene(scene, appearance: appearance, progress: "[\(startedSceneCount)/\(total)]")
+            }
+        }
+    }
+
+    private struct CaptureSelection: Decodable {
+        let appearances: [String]
+        let scenes: [String]
+    }
+
+    private func captureSelection() throws -> CaptureSelection {
+        guard let json = ProcessInfo.processInfo.environment["LOCALMINUTES_SCREENSHOT_SELECTION"] else {
+            return CaptureSelection(appearances: ["light", "dark"], scenes: AppScreenshotScene.allCases.map(\.rawValue))
+        }
+        let selection = try JSONDecoder().decode(CaptureSelection.self, from: Data(json.utf8))
+        guard !selection.scenes.isEmpty, !selection.appearances.isEmpty,
+              Set(selection.scenes).count == selection.scenes.count,
+              Set(selection.appearances).count == selection.appearances.count,
+              selection.scenes.allSatisfy({ AppScreenshotScene(rawValue: $0) != nil }),
+              selection.appearances.allSatisfy({ ["light", "dark"].contains($0) }) else {
+            throw CaptureError.notReady("Invalid screenshot selection")
+        }
+        return selection
+    }
+
+    private func captureScene(_ scene: AppScreenshotScene, appearance: String, progress: String) {
+        let progress = "\(progress) \(scene.rawValue)_\(appearance)"
+        XCTContext.runActivity(named: "Screenshot \(progress)") { _ in
+            print("APPUI_CAPTURE_BEGIN \(progress)")
+            let app = XCUIApplication()
+            defer { app.terminate() }
+            do {
+                try capture(scene, appearance: appearance, app: app)
+                print("APPUI_CAPTURE_SAVED \(progress)")
+            } catch {
+                print("APPUI_FAILURE \(progress): \(error)")
+                print(app.debugDescription)
+                let diagnostic = XCTAttachment(screenshot: app.screenshot())
+                diagnostic.name = "diagnostic__\(appearance)__\(scene.rawValue)__"
+                diagnostic.lifetime = .keepAlways
+                add(diagnostic)
+                XCTFail("\(progress): \(error)")
             }
         }
     }

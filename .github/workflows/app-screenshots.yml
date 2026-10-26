@@ -8,6 +8,23 @@ on:
         description: Unique request ID supplied by scripts/download-screenshots.mjs
         required: true
         type: string
+      appearance:
+        description: Appearance to capture
+        type: choice
+        default: both
+        options: [both, light, dark]
+      categories:
+        description: Comma-separated categories (blank with no screens captures all; use --list locally)
+        type: string
+        default: ''
+      screens:
+        description: Comma-separated exact scene names, combined with categories
+        type: string
+        default: ''
+      related:
+        description: Include every scene in each named screen's category (requires screens)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -18,7 +35,7 @@ defaults:
 
 jobs:
   capture:
-    name: Capture all app screens in light and dark mode
+    name: Capture selected app screens (${{ inputs.appearance }})
     runs-on: macos-15
     timeout-minutes: 90
     env:
@@ -30,6 +47,31 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Validate and report screenshot selection
+        env:
+          SCREENSHOT_APPEARANCE: ${{ inputs.appearance }}
+          SCREENSHOT_CATEGORIES: ${{ inputs.categories }}
+          SCREENSHOT_SCREENS: ${{ inputs.screens }}
+          SCREENSHOT_RELATED: ${{ inputs.related }}
+        run: |
+          node --input-type=module <<'JS'
+          import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
+          import { expectedScreenshotNames, resolveScreenshotSelection } from './scripts/app-screenshots.mjs';
+          const selection = await resolveScreenshotSelection({
+            appearance: process.env.SCREENSHOT_APPEARANCE || 'both',
+            categories: process.env.SCREENSHOT_CATEGORIES,
+            screens: process.env.SCREENSHOT_SCREENS,
+            related: process.env.SCREENSHOT_RELATED === 'true'
+          });
+          const json = JSON.stringify(selection);
+          mkdirSync('.agent-local', { recursive: true });
+          writeFileSync('.agent-local/screenshot-selection.json', json + '\n');
+          appendFileSync(process.env.GITHUB_ENV, `TEST_RUNNER_LOCALMINUTES_SCREENSHOT_SELECTION=${json}\n`);
+          const files = await expectedScreenshotNames(selection);
+          const report = `Selected ${files.length} screenshots (${selection.appearances.join(', ')}):\n` + files.join('\n');
+          console.log(report);
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY, '```text\n' + report + '\n```\n');
+          JS
       - name: Prepare and generate iOS project
         run: bash scripts/prepare-ios.sh
       - name: Select and boot an iPhone simulator matching Xcode
@@ -107,7 +149,8 @@ jobs:
           }
           JS
           node scripts/app-screenshots.mjs .agent-local/screenshot-attachments AppUI_Screenshots \
-            "$GITHUB_SHA" "$LOCALMINUTES_SCREENSHOT_DEVICE" "$CAPTURE_OUTCOME" .agent-local/app-screenshots.log
+            "$GITHUB_SHA" "$LOCALMINUTES_SCREENSHOT_DEVICE" "$CAPTURE_OUTCOME" .agent-local/app-screenshots.log \
+            .agent-local/screenshot-selection.json
       - uses: actions/upload-artifact@v4
         id: transfer
         if: ${{ !cancelled() && steps.export_screenshots.outcome == 'success' }}
@@ -121,8 +164,10 @@ jobs:
         if: ${{ !cancelled() && steps.export_screenshots.outcome == 'success' }}
         run: |
           node --input-type=module <<'JS'
+          import { readFileSync } from 'node:fs';
           import { verifyScreenshots } from './scripts/app-screenshots.mjs';
-          await verifyScreenshots('AppUI_Screenshots', process.env.GITHUB_SHA);
+          const selection = JSON.parse(readFileSync('.agent-local/screenshot-selection.json', 'utf8'));
+          await verifyScreenshots('AppUI_Screenshots', process.env.GITHUB_SHA, selection);
           JS
 
   transfer:
