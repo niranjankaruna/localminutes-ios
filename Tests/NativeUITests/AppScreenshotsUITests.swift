@@ -2,33 +2,39 @@ import XCTest
 
 @MainActor
 final class AppScreenshotsUITests: XCTestCase {
+    private static var startedSceneCount = 0
+
     func testLightScreens() { captureScenes(appearance: "light") }
     func testDarkScreens() { captureScenes(appearance: "dark") }
 
     private func captureScenes(appearance: String) {
         continueAfterFailure = true
         XCUIDevice.shared.orientation = .portrait
+        let total = AppScreenshotScene.allCases.count * 2
         for scene in AppScreenshotScene.allCases {
-            XCTContext.runActivity(named: "\(scene.rawValue)_\(appearance)") { _ in
+            Self.startedSceneCount += 1
+            let progress = "[\(Self.startedSceneCount)/\(total)] \(scene.rawValue)_\(appearance)"
+            XCTContext.runActivity(named: "Screenshot \(progress)") { _ in
+                print("APPUI_CAPTURE_BEGIN \(progress)")
                 let app = XCUIApplication()
                 defer { app.terminate() }
                 do {
                     try capture(scene, appearance: appearance, app: app)
+                    print("APPUI_CAPTURE_SAVED \(progress)")
                 } catch {
-                    print("APPUI_FAILURE \(scene.rawValue)_\(appearance): \(error)")
+                    print("APPUI_FAILURE \(progress): \(error)")
                     print(app.debugDescription)
                     let diagnostic = XCTAttachment(screenshot: app.screenshot())
                     diagnostic.name = "diagnostic__\(appearance)__\(scene.rawValue)__"
                     diagnostic.lifetime = .keepAlways
                     add(diagnostic)
-                    XCTFail("\(scene.rawValue)_\(appearance): \(error)")
+                    XCTFail("\(progress): \(error)")
                 }
             }
         }
     }
 
     private func capture(_ scene: AppScreenshotScene, appearance: String, app: XCUIApplication) throws {
-        print("APPUI_CAPTURE_BEGIN \(scene.rawValue)_\(appearance)")
         app.launchArguments = [scene.usesModelFixture ? "--ui-test-model-accessibility" : "--ui-test-library-fixture",
                                "--ui-screenshots", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launchEnvironment["LOCALMINUTES_UI_LIBRARY_TOKEN"] = UUID().uuidString
@@ -65,7 +71,6 @@ final class AppScreenshotsUITests: XCTestCase {
         attachment.name = "appui__\(appearance)__\(scene.rawValue)__"
         attachment.lifetime = .keepAlways
         add(attachment)
-        print("APPUI_CAPTURE_SAVED \(scene.rawValue)_\(appearance)")
     }
 
     private func element(_ identifier: String, in app: XCUIApplication) -> XCUIElement {
