@@ -63,7 +63,8 @@ struct MeetingNotesEditor: View {
     @FocusState private var focused: Bool
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            TextEditor(text: Binding(get: { draft.text }, set: draft.update))
+            // Avoid Swift 6.2's method-reference crash: https://github.com/swiftlang/swift/issues/82491.
+            TextEditor(text: Binding(get: { draft.text }, set: { draft.update($0) }))
                 .focused($focused)
                 .font(.body).lineSpacing(5)
                 .scrollContentBackground(.hidden)

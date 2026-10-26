@@ -43,11 +43,12 @@ targets:
         NSMicrophoneUsageDescription: Record meetings you explicitly start and transcribe them on this iPhone.
         UIBackgroundModes: [audio]
         NSSupportsLiveActivities: true
-        UILaunchScreen: {}
+        UILaunchStoryboardName: LaunchScreen
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.niranjankaruna.localminutes
         PRODUCT_NAME: LocalMinutes
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         GENERATE_INFOPLIST_FILE: 'NO'
       configs:
         Debug:

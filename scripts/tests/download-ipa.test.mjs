@@ -179,6 +179,7 @@ for (const failureKind of ['source error', 'large compiler failure log', 'logs u
           return failedLog;
         }
         if (args[0] === 'api' && args[1].endsWith('/artifacts')) return JSON.stringify({ artifacts: [] });
+        if (args[0] === 'api' && args[1].endsWith('/jobs?per_page=100')) return JSON.stringify([{ jobs: [] }]);
         if (args[0] === 'api' && args[1].endsWith('/runs/17')) return JSON.stringify({
           head_sha: commit, status: 'completed', conclusion: 'failure'
         });
@@ -209,6 +210,105 @@ for (const failureKind of ['source error', 'large compiler failure log', 'logs u
       assert.ok(calls.findIndex(call => call.startsWith('run view 17')) <
         calls.findIndex(call => call.includes('DELETE repos/owner/repository/actions/runs/17')));
       assert.equal(calls.some(call => call.startsWith('run download') || call.includes('/runs/99')), false);
+    });
+  });
+}
+
+for (const failureKind of ['runner annotations', 'check output unavailable', 'jobs unavailable', 'annotations unavailable',
+  'long raw log', 'escaped raw log', 'raw log unavailable']) {
+  test(`an interrupted build preserves GitHub job diagnostics (${failureKind})`, async () => {
+    await withDirectory(async directory => {
+      const outputDirectory = join(directory, 'interrupted-build');
+      const partialLog = 'SwiftExplicitDependencyGeneratePcm arm64 UIKit.pcm\n';
+      const longLine = 'SwiftCompile ' + 'x'.repeat(80 * 1024);
+      const crashLine = 'While emitting IR SIL function "compiler-generated-thunk"';
+      const fullLog = partialLog + (failureKind === 'long raw log' ? `${longLine}\n${crashLine}\n** BUILD FAILED **\n` : '');
+      const runnerMessage = 'The hosted runner lost communication with the server.';
+      const summary = 'Build worker stopped before compiler finished.';
+      const job = { id: 42, name: 'build', status: 'completed', conclusion: 'failure',
+        check_run_url: 'https://api.github.com/owner/repository/check-runs/700',
+        steps: [{ name: 'Build unsigned device app', conclusion: 'failure' }] };
+      let deleted = false;
+      let usedFallback = false;
+      const gh = async args => {
+        if (args[0] === 'workflow') return '';
+        if (args[0] === 'run' && args[1] === 'list') return JSON.stringify([
+          { databaseId: 17, displayTitle: `IPA ${requestID}` }
+        ]);
+        if (args[0] === 'run' && args[1] === 'view') { usedFallback = true; return partialLog; }
+        if (args[0] === 'api' && args[1].endsWith('/artifacts')) return JSON.stringify({ artifacts: [] });
+        if (args[0] === 'api' && args[1].endsWith('/runs/17')) return JSON.stringify({
+          head_sha: commit, status: 'completed', conclusion: 'failure'
+        });
+        if (args[0] === 'api' && args[1].endsWith('/jobs?per_page=100')) {
+          assert.ok(args.includes('--paginate') && args.includes('--slurp'));
+          if (failureKind === 'jobs unavailable') throw new Error('Jobs API unavailable');
+          return JSON.stringify([{ jobs: [{ name: 'unrelated success', conclusion: 'success' }] }, { jobs: [job] }]);
+        }
+        if (args[0] === 'api' && args[1] === 'repos/owner/repository/actions/jobs/42/logs') {
+          if (failureKind === 'raw log unavailable') throw new Error('Full job log unavailable');
+          if (failureKind === 'escaped raw log') {
+            if (!args.includes('--allow-escape-sequences')) throw new Error('the response contains terminal escape sequences');
+            return `\u001b[31m${fullLog}\u001b[0m`;
+          }
+          return fullLog;
+        }
+        if (args[0] === 'api' && args[1] === 'repos/owner/repository/check-runs/700') {
+          if (failureKind === 'check output unavailable') throw new Error('Check output unavailable');
+          return JSON.stringify({ output: { summary } });
+        }
+        if (args[0] === 'api' && args[1] === 'repos/owner/repository/check-runs/700/annotations?per_page=100') {
+          assert.ok(args.includes('--paginate') && args.includes('--slurp'));
+          if (failureKind === 'annotations unavailable') throw new Error('Annotations API unavailable');
+          return JSON.stringify([
+            [{ annotation_level: 'warning', message: 'An unrelated warning' }],
+            [{ annotation_level: 'failure', message: runnerMessage }]
+          ]);
+        }
+        if (args[0] === 'api' && args[1] === '--method') {
+          assert.deepEqual(args.slice(2), ['DELETE', 'repos/owner/repository/actions/runs/17']);
+          const log = await readFile(join(outputDirectory, 'build-failure.log'), 'utf8');
+          const report = JSON.parse(await readFile(join(outputDirectory, 'build-failure.json'), 'utf8'));
+          assert.ok(log.includes(partialLog));
+          assert.equal(log.includes('\u001b'), false, 'Terminal controls are removed from captured logs');
+          if (failureKind === 'long raw log') {
+            assert.ok(log.includes(longLine));
+            assert.ok(log.includes(crashLine), 'The compiler failure after a line over 64 KiB must survive');
+          }
+          assert.equal(report.logError, null);
+          if (failureKind === 'jobs unavailable') {
+            assert.deepEqual(report.jobs, []);
+            assert.match(log, /Jobs API unavailable/);
+          } else {
+            assert.equal(report.jobs.length, 1);
+            assert.deepEqual(report.jobs[0].steps, job.steps);
+            if (failureKind === 'annotations unavailable') {
+              assert.deepEqual(report.jobs[0].annotations, []);
+              assert.ok(log.includes(summary));
+            } else {
+              assert.equal(report.jobs[0].annotations.length, 2);
+              assert.ok(log.includes(runnerMessage));
+            }
+          }
+          assert.equal(report.diagnosticErrors.length,
+            ['runner annotations', 'long raw log', 'escaped raw log'].includes(failureKind) ? 0 : 1);
+          deleted = true;
+          return '';
+        }
+        throw new Error(`Unexpected CLI call: ${args.join(' ')}`);
+      };
+      await assert.rejects(() => buildAndDownload({ repository: 'owner/repository', ref: 'main',
+        sourceCommit: commit, outputDirectory, requestID, gh, sleep: async () => {} }), error => {
+        assert.match(error.message, /Build finished \(failure\)/);
+        if (!['jobs unavailable', 'annotations unavailable'].includes(failureKind)) {
+          assert.ok(error.message.includes(runnerMessage));
+        } else if (failureKind === 'annotations unavailable') assert.ok(error.message.includes(summary));
+        else assert.match(error.message, /Some GitHub job diagnostics were unavailable/);
+        if (failureKind === 'long raw log') assert.ok(error.message.includes(crashLine));
+        return true;
+      });
+      assert.equal(deleted, true, 'Remote cleanup follows durable local job diagnostics');
+      assert.equal(usedFallback, ['jobs unavailable', 'raw log unavailable'].includes(failureKind));
     });
   });
 }

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="300" viewBox="0 0 900 300" role="img"><defs></defs><rect width="450" height="300" fill="#F5F5F7"/><rect x="450" width="450" height="300" fill="#09090B"/><svg x="55" y="80" width="128" height="128" viewBox="0 0 1024 1024">
+<defs><linearGradient id="size128-brand-blue" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2385F5"/><stop offset="1" stop-color="#0756CC"/></linearGradient><clipPath id="size128-localminutes-clip"><rect width="1024" height="1024" rx="230"/></clipPath></defs>
+<g clip-path="url(#size128-localminutes-clip)"><rect width="1024" height="1024" fill="url(#size128-brand-blue)"/>
+<g fill="#FFFFFF"><rect x="244" y="438" width="80" height="148" rx="40"/><rect x="380" y="350" width="80" height="324" rx="40"/></g>
+<g fill="#FFFFFF"><path d="M556 278C578.091 278 596 295.909 596 318V666H748C770.091 666 788 683.909 788 706C788 728.091 770.091 746 748 746H556C533.909 746 516 728.091 516 706V318C516 295.909 533.909 278 556 278Z"/><rect x="652" y="278" width="136" height="80" rx="40"/><rect x="652" y="472" width="136" height="80" rx="40"/></g></g>
+</svg><svg x="217" y="112" width="64" height="64" viewBox="0 0 1024 1024">
+<defs><linearGradient id="size64-brand-blue" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2385F5"/><stop offset="1" stop-color="#0756CC"/></linearGradient><clipPath id="size64-localminutes-clip"><rect width="1024" height="1024" rx="230"/></clipPath></defs>
+<g clip-path="url(#size64-localminutes-clip)"><rect width="1024" height="1024" fill="url(#size64-brand-blue)"/>
+<g fill="#FFFFFF"><rect x="244" y="438" width="80" height="148" rx="40"/><rect x="380" y="350" width="80" height="324" rx="40"/></g>
+<g fill="#FFFFFF"><path d="M556 278C578.091 278 596 295.909 596 318V666H748C770.091 666 788 683.909 788 706C788 728.091 770.091 746 748 746H556C533.909 746 516 728.091 516 706V318C516 295.909 533.909 278 556 278Z"/><rect x="652" y="278" width="136" height="80" rx="40"/><rect x="652" y="472" width="136" height="80" rx="40"/></g></g>
+</svg><svg x="321" y="128" width="32" height="32" viewBox="0 0 1024 1024">
+<defs><linearGradient id="size32-brand-blue" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2385F5"/><stop offset="1" stop-color="#0756CC"/></linearGradient><clipPath id="size32-localminutes-clip"><rect width="1024" height="1024" rx="230"/></clipPath></defs>
+<g clip-path="url(#size32-localminutes-clip)"><rect width="1024" height="1024" fill="url(#size32-brand-blue)"/>
+<g fill="#FFFFFF"><rect x="244" y="438" width="80" height="148" rx="40"/><rect x="380" y="350" width="80" height="324" rx="40"/></g>
+<g fill="#FFFFFF"><path d="M556 278C578.091 278 596 295.909 596 318V666H748C770.091 666 788 683.909 788 706C788 728.091 770.091 746 748 746H556C533.909 746 516 728.091 516 706V318C516 295.909 533.909 278 556 278Z"/><rect x="652" y="278" width="136" height="80" rx="40"/><rect x="652" y="472" width="136" height="80" rx="40"/></g></g>
+</svg><svg x="505" y="80" width="128" height="128" viewBox="0 0 1024 1024">
+<defs><linearGradient id="dark128-brand-blue" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2385F5"/><stop offset="1" stop-color="#0756CC"/></linearGradient><clipPath id="dark128-localminutes-clip"><rect width="1024" height="1024" rx="230"/></clipPath></defs>
+<g clip-path="url(#dark128-localminutes-clip)"><rect width="1024" height="1024" fill="url(#dark128-brand-blue)"/>
+<g fill="#FFFFFF"><rect x="244" y="438" width="80" height="148" rx="40"/><rect x="380" y="350" width="80" height="324" rx="40"/></g>
+<g fill="#FFFFFF"><path d="M556 278C578.091 278 596 295.909 596 318V666H748C770.091 666 788 683.909 788 706C788 728.091 770.091 746 748 746H556C533.909 746 516 728.091 516 706V318C516 295.909 533.909 278 556 278Z"/><rect x="652" y="278" width="136" height="80" rx="40"/><rect x="652" y="472" width="136" height="80" rx="40"/></g></g>
+</svg><svg x="667" y="112" width="64" height="64" viewBox="0 0 1024 1024">
+<defs><linearGradient id="dark64-brand-blue" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2385F5"/><stop offset="1" stop-color="#0756CC"/></linearGradient><clipPath id="dark64-localminutes-clip"><rect width="1024" height="1024" rx="230"/></clipPath></defs>
+<g clip-path="url(#dark64-localminutes-clip)"><rect width="1024" height="1024" fill="url(#dark64-brand-blue)"/>
+<g fill="#FFFFFF"><rect x="244" y="438" width="80" height="148" rx="40"/><rect x="380" y="350" width="80" height="324" rx="40"/></g>
+<g fill="#FFFFFF"><path d="M556 278C578.091 278 596 295.909 596 318V666H748C770.091 666 788 683.909 788 706C788 728.091 770.091 746 748 746H556C533.909 746 516 728.091 516 706V318C516 295.909 533.909 278 556 278Z"/><rect x="652" y="278" width="136" height="80" rx="40"/><rect x="652" y="472" width="136" height="80" rx="40"/></g></g>
+</svg><svg x="771" y="128" width="32" height="32" viewBox="0 0 1024 1024">
+<defs><linearGradient id="dark32-brand-blue" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2385F5"/><stop offset="1" stop-color="#0756CC"/></linearGradient><clipPath id="dark32-localminutes-clip"><rect width="1024" height="1024" rx="230"/></clipPath></defs>
+<g clip-path="url(#dark32-localminutes-clip)"><rect width="1024" height="1024" fill="url(#dark32-brand-blue)"/>
+<g fill="#FFFFFF"><rect x="244" y="438" width="80" height="148" rx="40"/><rect x="380" y="350" width="80" height="324" rx="40"/></g>
+<g fill="#FFFFFF"><path d="M556 278C578.091 278 596 295.909 596 318V666H748C770.091 666 788 683.909 788 706C788 728.091 770.091 746 748 746H556C533.909 746 516 728.091 516 706V318C516 295.909 533.909 278 556 278Z"/><rect x="652" y="278" width="136" height="80" rx="40"/><rect x="652" y="472" width="136" height="80" rx="40"/></g></g>
+</svg><text x="55" y="250" font-family="Segoe UI, sans-serif" font-size="16" fill="#666B75" >128 px / 64 px / 32 px</text><text x="505" y="250" font-family="Segoe UI, sans-serif" font-size="16" fill="#969BA5" >128 px / 64 px / 32 px</text></svg>

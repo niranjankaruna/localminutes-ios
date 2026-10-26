@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "input": "C:\\Users\\NiMo\\repositories\\Localminutes\\Design\\Brand\\local-minutes\\layers\\03-written-minutes.svg",
+  "status": "ok",
+  "canvas": {
+    "width": 1024,
+    "height": 1024,
+    "viewBox": "0 0 1024 1024"
+  },
+  "parameters": {
+    "micro_segment_threshold_px": 2,
+    "high_line_ratio": 0.7,
+    "max_command_count": 140,
+    "fragment_gap_px": 1.5,
+    "flatten_tolerance_px": 0.5
+  },
+  "path_count": 1,
+  "paths": [
+    {
+      "index": 0,
+      "fill": "not-recorded",
+      "class_name": "Path",
+      "child_count": 1,
+      "command_counts": {
+        "M": 1,
+        "C": 5,
+        "V": 2,
+        "H": 2,
+        "Z": 1
+      },
+      "command_count": 11,
+      "drawing_command_count": 9,
+      "line_command_count": 4,
+      "curve_command_count": 5,
+      "line_command_ratio": 0.4444,
+      "path_length_px": 1394.2025,
+      "flattened_segment_count": 44,
+      "micro_segment_count": 0,
+      "micro_segment_ratio": 0,
+      "shortest_segment_px": 7.6748,
+      "bounds": {
+        "min_x": 516,
+        "min_y": 278,
+        "max_x": 788,
+        "max_y": 746,
+        "width": 272,
+        "height": 468
+      }
+    }
+  ],
+  "warnings": [],
+  "recommended_methods": [],
+  "semantic_note": "This is a geometry audit, not approval or repair. Use it to choose a route, then regenerate from the JSON spec and run verify."
+}

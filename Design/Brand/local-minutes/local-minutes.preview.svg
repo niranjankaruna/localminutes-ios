@@ -1,0 +1,6 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+<defs><linearGradient id="brand-blue" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2385F5"/><stop offset="1" stop-color="#0756CC"/></linearGradient><clipPath id="localminutes-clip"><rect width="1024" height="1024" rx="230"/></clipPath></defs>
+<g clip-path="url(#localminutes-clip)"><rect width="1024" height="1024" fill="url(#brand-blue)"/>
+<g fill="#FFFFFF"><rect x="244" y="438" width="80" height="148" rx="40"/><rect x="380" y="350" width="80" height="324" rx="40"/></g>
+<g fill="#FFFFFF"><path d="M556 278C578.091 278 596 295.909 596 318V666H748C770.091 666 788 683.909 788 706C788 728.091 770.091 746 748 746H556C533.909 746 516 728.091 516 706V318C516 295.909 533.909 278 556 278Z"/><rect x="652" y="278" width="136" height="80" rx="40"/><rect x="652" y="472" width="136" height="80" rx="40"/></g></g>
+</svg>

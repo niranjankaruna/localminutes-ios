@@ -1,0 +1,88 @@
+{
+  "status": "ok",
+  "out": "C:\\Users\\NiMo\\repositories\\Localminutes\\Design\\Brand\\local-minutes",
+  "style_report": "tmp/reports/style-report.json",
+  "reports_dir": "tmp/reports",
+  "target_platforms": [
+    "iOS"
+  ],
+  "canvas": {
+    "width": 1024,
+    "height": 1024
+  },
+  "preview_svg": "local-minutes.preview.svg",
+  "preview_png": {
+    "width": 1024,
+    "height": 1024,
+    "visible_pixels": 1003775,
+    "visible_bounds": {
+      "min_x": 0,
+      "min_y": 0,
+      "max_x": 1023,
+      "max_y": 1023
+    }
+  },
+  "app_svg": "local-minutes.svg",
+  "app_png": {
+    "width": 1024,
+    "height": 1024,
+    "visible_pixels": 1048576,
+    "visible_bounds": {
+      "min_x": 0,
+      "min_y": 0,
+      "max_x": 1023,
+      "max_y": 1023
+    }
+  },
+  "generic_assets": {
+    "layers": [
+      "layers/01-background.svg",
+      "layers/02-audio-signal.svg",
+      "layers/03-written-minutes.svg"
+    ]
+  },
+  "apple_adapter": null,
+  "generated_files_manifest_validation": {
+    "status": "valid",
+    "files": [
+      "local-minutes.preview.svg",
+      "local-minutes.preview.png",
+      "local-minutes.svg",
+      "local-minutes.png",
+      "layers/01-background.svg",
+      "layers/02-audio-signal.svg",
+      "layers/03-written-minutes.svg",
+      "tmp/README.md",
+      "tmp/reports/style-report.json",
+      "tmp/reports/package-verification.json",
+      "tmp/reports/reference-diff.png",
+      "tmp/reports/reference-overlay.png",
+      "tmp/reports/reference-side-by-side.png",
+      "tmp/reports/visual-review.json"
+    ],
+    "problems": []
+  },
+  "visual_review": {
+    "decision": "accepted",
+    "reviewer": "main-agent",
+    "evidence": [
+      "local-minutes.preview.png",
+      "local-minutes.png",
+      "layers/02-audio-signal.svg",
+      "layers/03-written-minutes.svg",
+      "tmp/work/small-size-review.png",
+      "../local-minutes-preview.png",
+      "../splash/local-minutes-splash-light.png",
+      "../splash/local-minutes-splash-dark.png"
+    ],
+    "notes": "Accepted as a low-risk original concept, not an existing brand reproduction. Inspected the full 1024px square source and rounded preview, small-size rendering at 128/64/32px on light and dark backgrounds, and both 1179x2556 splash images. The five positive shapes keep consistent 80-unit weight, clean rounded terminals, clear gaps, and an uninterrupted turn from the final audio pulse into a note line. Splash artwork is balanced and legible in both appearances. These are source assets and design previews; no native launch screen or platform rendering is claimed."
+  },
+  "outcome": {
+    "pixel_status": "not_required",
+    "route_status": "generic_assets_ready",
+    "review_required": false
+  },
+  "reference_comparison": null,
+  "warnings": [],
+  "failures": []
+}

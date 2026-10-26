@@ -1,0 +1,69 @@
+{
+  "mode": "icon-spec-authoring",
+  "layout": "delivery",
+  "spec": "C:\\Users\\NiMo\\repositories\\Localminutes\\Design\\Brand\\local-minutes\\tmp\\work\\spec.json",
+  "work_spec": "tmp/work/spec.json",
+  "name": "LocalMinutes",
+  "canvas": 1024,
+  "target_platforms": [
+    "iOS"
+  ],
+  "deliverable_type": "source-package",
+  "source_reference": "",
+  "brief": "Original LocalMinutes logo: rounded audio pulses resolve into three written lines. The blue palette extends the existing native app. This delivery contains source and preview artwork, not a compiled native icon package.",
+  "renderer": "@resvg/resvg-js",
+  "generated_files": [
+    "local-minutes.preview.svg",
+    "local-minutes.preview.png",
+    "local-minutes.svg",
+    "local-minutes.png",
+    "layers/01-background.svg",
+    "layers/02-audio-signal.svg",
+    "layers/03-written-minutes.svg",
+    "tmp/README.md",
+    "tmp/reports/style-report.json",
+    "tmp/reports/package-verification.json",
+    "tmp/reports/reference-diff.png",
+    "tmp/reports/reference-overlay.png",
+    "tmp/reports/reference-side-by-side.png",
+    "tmp/reports/visual-review.json"
+  ],
+  "generated_directories": [
+    "tmp/reports",
+    "layers",
+    "tmp"
+  ],
+  "preview_svg": "local-minutes.preview.svg",
+  "preview_png": "local-minutes.preview.png",
+  "app_svg": "local-minutes.svg",
+  "app_png": "local-minutes.png",
+  "layers": [
+    "layers/01-background.svg",
+    "layers/02-audio-signal.svg",
+    "layers/03-written-minutes.svg"
+  ],
+  "apple_adapter": null,
+  "preview_background_layers": [
+    {
+      "layer": "background",
+      "source_layer": "layers/01-background.svg",
+      "role": "preview-only-simple-fill"
+    }
+  ],
+  "icon_composer_layer_decisions": [],
+  "background_mode": "spec",
+  "semantic_review": {
+    "status": "exact-enough",
+    "identity_risk": "low",
+    "basis": "Original geometry authored for this app from its repository brief. No existing brand or supplied mark is being reproduced.",
+    "route": "semantic-svg",
+    "notes": "Five filled shapes in two meaningful foreground layers; consistent 80-unit weight, centered at y=512."
+  },
+  "warnings": [],
+  "claims": [
+    "spec-driven reusable cross-platform icon source package",
+    "semantic source layers retained",
+    "rounded preview PNG rendered by @resvg/resvg-js",
+    "unrounded app/source canvas outputs retained separately from preview masking"
+  ]
+}

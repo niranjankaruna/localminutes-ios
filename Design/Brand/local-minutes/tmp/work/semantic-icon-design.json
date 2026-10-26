@@ -1,0 +1,195 @@
+{
+  "version": "semantic-icon-design/v0.1",
+  "route": "direct-authored-package",
+  "app_context": {
+    "app_name": "LocalMinutes",
+    "category": "private on-device meeting recorder",
+    "job_to_be_done": "Turn a spoken meeting into a transcript and useful notes on the iPhone.",
+    "tone": "Clear, calm, precise, trustworthy."
+  },
+  "style": {
+    "direction": "single-hue-gradient-soft-white-symbol",
+    "svg_convertibility": "high",
+    "style_notes": "Soft white audio-to-transcript symbol on an app-aligned blue field. Direct vector authoring keeps the geometry exact and reusable."
+  },
+  "icon_intent": {
+    "metaphor": "Spoken audio becomes written meeting minutes; the tallest signal folds into a note line.",
+    "small_size_readability": "Five bold filled shapes with consistent 80-unit thickness; review at 64px and 32px.",
+    "must_feel_like": [
+      "focused meeting tool",
+      "private",
+      "native to the existing app"
+    ],
+    "must_not_feel_like": [
+      "generic microphone badge",
+      "cloud service",
+      "AI sparkle",
+      "busy document illustration"
+    ]
+  },
+  "layering_policy": {
+    "negative_space_strategy": "overlay-fill-layer",
+    "cutouts_are_layers": true,
+    "description": "No cutouts are needed. Clear spacing separates positive filled signal and transcript shapes."
+  },
+  "canvas": {
+    "size": 1024,
+    "composition_anchor": "center",
+    "alignment": "Optically centered, with a common vertical center at 512.",
+    "subject_scale": {
+      "width_pct": [
+        0.53,
+        0.54
+      ],
+      "height_pct": [
+        0.45,
+        0.46
+      ]
+    },
+    "safe_area": {
+      "x": [
+        220,
+        804
+      ],
+      "y": [
+        250,
+        774
+      ]
+    }
+  },
+  "background": {
+    "type": "linear-gradient",
+    "color": "#0065D4",
+    "gradient_stops": [
+      "#2385F5",
+      "#0756CC"
+    ],
+    "gradient_policy": {
+      "contrast": "low-to-medium",
+      "hue_relationship": "monochrome",
+      "stops": 2,
+      "rejects": [
+        "rainbow",
+        "glow",
+        "neon",
+        "competing color"
+      ]
+    },
+    "composer_fill_target": {
+      "linear-gradient": [
+        "extended-srgb:0.137255 0.521569 0.960784 1",
+        "extended-srgb:0.027451 0.337255 0.8 1"
+      ],
+      "orientation": {
+        "start": {
+          "x": 0.5,
+          "y": 0
+        },
+        "stop": {
+          "x": 0.5,
+          "y": 1
+        }
+      }
+    }
+  },
+  "layers": [
+    {
+      "id": "audio-signal",
+      "order": 1,
+      "role": "two rising audio pulses",
+      "format_target": "svg",
+      "shape_model": "two filled rounded capsules",
+      "description": "Short and medium length vertical audio strokes.",
+      "fill": "#FFFFFF",
+      "bounds": {
+        "x": [
+          244,
+          460
+        ],
+        "y": [
+          350,
+          674
+        ]
+      },
+      "geometry_constraints": [
+        "fully opaque",
+        "circular ends",
+        "no stroke",
+        "no material"
+      ],
+      "must_preserve": [
+        "80-unit thickness",
+        "56-unit gaps"
+      ],
+      "must_not_add": [
+        "microphone outline",
+        "shadow",
+        "glow"
+      ]
+    },
+    {
+      "id": "written-minutes",
+      "order": 2,
+      "role": "signal-to-note transformation",
+      "format_target": "svg",
+      "shape_model": "one connected L-shaped filled path and two filled capsules",
+      "description": "Tallest pulse continues into the bottom transcript line; two shorter lines sit above.",
+      "fill": "#FFFFFF",
+      "bounds": {
+        "x": [
+          516,
+          788
+        ],
+        "y": [
+          278,
+          746
+        ]
+      },
+      "geometry_constraints": [
+        "fully opaque",
+        "smooth tangent curves",
+        "no stroke",
+        "no material"
+      ],
+      "must_preserve": [
+        "continuous lower turn",
+        "aligned right terminals",
+        "80-unit thickness"
+      ],
+      "must_not_add": [
+        "page outline",
+        "folded corner",
+        "sparkle",
+        "glow"
+      ]
+    }
+  ],
+  "conversion_constraints": {
+    "target_layer_count": "2 foreground layers plus background",
+    "svg_first": true,
+    "allowed_svg_primitives": [
+      "filled path",
+      "rect"
+    ],
+    "forbidden_in_svg_assets": [
+      "text",
+      "image",
+      "filter",
+      "clipPath",
+      "mask",
+      "stroke",
+      "shadow",
+      "glow"
+    ],
+    "png_fallback_allowed_only_for": []
+  },
+  "image_generation_constraints": {
+    "priority": "Directly authored vector geometry; no bitmap concept is required.",
+    "avoid": [
+      "existing brand marks",
+      "photorealism",
+      "bevels",
+      "fine detail"
+    ]
+  }
+}
