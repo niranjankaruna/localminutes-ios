@@ -56,6 +56,11 @@ final class MeetingIntelligenceController {
     }
 
     var busy: Bool { isRunning || cleanupPending || isResetting }
+    #if DEBUG
+    func prepareScreenshotState() {
+        if AppScreenshotFixture.scene == .meetingModelRequired { modelRequired = true }
+    }
+    #endif
     var hasSummaryEdits: Bool { summary.map { summaryText != $0.editedText } ?? false }
     var hasAnswerEdits: Bool {
         answers.contains { answer in answerDrafts[answer.id].map { $0 != answer.editedText } == true }
@@ -461,8 +466,11 @@ struct MeetingIntelligenceView: View {
                 .disabled(controller.busy || controller.editConflict)
                 .accessibilityIdentifier("meeting.generatedSummary.generate")
                 Button("Start a fresh summary…", role: .destructive) { confirmingFreshSummary = true }
+                    .accessibilityIdentifier("meeting.summary.reset")
+                    .screenshotAnchor("meeting.summary.reset")
                     .disabled(controller.busy || controller.editConflict || controller.isSaving)
             }
+            .screenshotAnchor("meeting.summary")
             Section("Ask this meeting") {
                 TextField("Ask a question about this meeting", text: $controller.question, axis: .vertical)
                     .disabled(controller.busy)
@@ -474,6 +482,7 @@ struct MeetingIntelligenceView: View {
                     answerRow(answer)
                 }
             }
+            .screenshotAnchor("meeting.answers")
             Section {
                 if controller.isRunning {
                     ProgressView(controller.message ?? "Working locally…")
@@ -497,9 +506,11 @@ struct MeetingIntelligenceView: View {
                 Text("Generated content is separate from original notes and transcripts. Review it before sharing.")
                     .font(.caption).foregroundStyle(.secondary)
             }
+            .screenshotAnchor("meeting.intelligence")
         }
         .confirmationDialog("Start summary from the beginning?", isPresented: $confirmingFreshSummary, titleVisibility: .visible) {
             Button("Discard progress and generate", role: .destructive) { controller.startFreshSummary() }
+                .accessibilityIdentifier("meeting.summary.reset.confirm")
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("Discard unfinished summary progress for this meeting and generate again. Saved summaries, original notes and the transcript stay available.")

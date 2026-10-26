@@ -70,32 +70,60 @@ jobs:
         run: |
           echo '::error::The simulator failed to become ready within 5 minutes. App screenshot tests have not started.'
           xcrun simctl list devices available
-      - name: Run the app and capture the screen tour
+      - name: Capture independent app scenes
+        id: capture_scenes
         run: |
           xcodebuild test -project LocalMinutes.xcodeproj -scheme LocalMinutesUIValidation \
             -configuration Debug -destination "platform=iOS Simulator,id=$LOCALMINUTES_SCREENSHOT_SIMULATOR" \
             -destination-timeout 120 -parallel-testing-enabled NO -collect-test-diagnostics never \
             -testLanguage en -testRegion US \
+            -test-timeouts-enabled YES -default-test-execution-time-allowance 1800 \
+            -maximum-test-execution-time-allowance 1800 \
             -only-testing:LocalMinutesUITests/AppScreenshotsUITests \
             -derivedDataPath build/screenshots -clonedSourcePackagesDirPath .agent-local/source-packages \
             -resultBundlePath .agent-local/app-screenshots.xcresult \
             CODE_SIGNING_ALLOWED=NO LOCALMINUTES_SOURCE_COMMIT="$GITHUB_SHA" \
             2>&1 | tee .agent-local/app-screenshots.log
           node scripts/verify-test-log.mjs .agent-local/app-screenshots.log
-      - name: Export named PNG screenshots and verify completeness
+      - name: Export screenshots and failure diagnostics
+        id: export_screenshots
+        if: ${{ !cancelled() && (steps.capture_scenes.outcome == 'success' || steps.capture_scenes.outcome == 'failure') }}
+        timeout-minutes: 5
+        env:
+          CAPTURE_OUTCOME: ${{ steps.capture_scenes.outcome }}
         run: |
-          xcrun xcresulttool export attachments --path .agent-local/app-screenshots.xcresult \
-            --output-path .agent-local/screenshot-attachments
+          node --input-type=module <<'JS'
+          import { execFileSync } from 'node:child_process';
+          import { existsSync } from 'node:fs';
+          if (existsSync('.agent-local/app-screenshots.xcresult')) {
+            try {
+              execFileSync('xcrun', ['xcresulttool', 'export', 'attachments',
+                '--path', '.agent-local/app-screenshots.xcresult',
+                '--output-path', '.agent-local/screenshot-attachments'],
+                { stdio: 'inherit', timeout: 120000, killSignal: 'SIGKILL' });
+            } catch (error) {
+              console.error(`Attachment export failed; preserving the capture log: ${error.message}`);
+            }
+          }
+          JS
           node scripts/app-screenshots.mjs .agent-local/screenshot-attachments AppUI_Screenshots \
-            "$GITHUB_SHA" "$LOCALMINUTES_SCREENSHOT_DEVICE"
+            "$GITHUB_SHA" "$LOCALMINUTES_SCREENSHOT_DEVICE" "$CAPTURE_OUTCOME" .agent-local/app-screenshots.log
       - uses: actions/upload-artifact@v4
         id: transfer
+        if: ${{ !cancelled() && steps.export_screenshots.outcome == 'success' }}
         with:
           name: app-ui-screenshots-transfer
           path: AppUI_Screenshots/
           if-no-files-found: error
           compression-level: 0
           retention-days: 1
+      - name: Require a complete screenshot set
+        if: ${{ !cancelled() && steps.export_screenshots.outcome == 'success' }}
+        run: |
+          node --input-type=module <<'JS'
+          import { verifyScreenshots } from './scripts/app-screenshots.mjs';
+          await verifyScreenshots('AppUI_Screenshots', process.env.GITHUB_SHA);
+          JS
 
   transfer:
     name: Wait for local download and delete temporary screenshots
@@ -107,7 +135,6 @@ jobs:
       actions: write
     steps:
       - name: Wait up to 15 minutes for the download script
-        if: needs.capture.result == 'success'
         uses: actions/github-script@v7
         env:
           ARTIFACT_ID: ${{ needs.capture.outputs.artifact_id }}

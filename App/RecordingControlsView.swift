@@ -12,6 +12,7 @@ struct RecordingControlsView: View {
     @State private var isStarting = false
     @State private var isStopping = false
     @State private var commandError: String?
+    @State private var screenshotPrepared = false
 
     private var displayedTranscript: LiveTranscriptSnapshot? {
         #if DEBUG
@@ -28,6 +29,7 @@ struct RecordingControlsView: View {
 
     var body: some View {
         NavigationStack {
+            ScrollViewReader { screenshotScroll in
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     Text("Your meetings stay on this iPhone.")
@@ -40,8 +42,10 @@ struct RecordingControlsView: View {
                         .accessibilityIdentifier("recording.liveActivityExplanation")
                     status
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        .screenshotAnchor("record.status")
                     if snapshot?.phase == .recording {
                         recordingProgress
+                            .screenshotAnchor("record.progress")
                     }
                     VStack(spacing: 12) {
                         Button {
@@ -65,6 +69,7 @@ struct RecordingControlsView: View {
                         .accessibilityIdentifier("recording.stop")
                     }
                     .controlSize(.large)
+                    .screenshotAnchor("record.controls")
                     if let transcript = displayedTranscript, transcript.sessionID != nil {
                         LazyVStack(alignment: .leading, spacing: 14) {
                             Text("Live transcript").font(.headline)
@@ -72,6 +77,7 @@ struct RecordingControlsView: View {
                                 .font(.caption).foregroundStyle(.secondary)
                             ForEach(transcript.finalized) { segment in
                                 Text(segment.text).textSelection(.enabled)
+                                    .accessibilityIdentifier("recording.liveTranscript.\(segment.id.uuidString)")
                             }
                             if !transcript.partial.isEmpty {
                                 Text(transcript.partial).italic().foregroundStyle(.secondary)
@@ -82,8 +88,10 @@ struct RecordingControlsView: View {
                             }
                             if let services = application.services, let id = transcript.sessionID {
                                 ActiveMeetingNotesView(services: services, id: id).id(id)
+                                    .screenshotAnchor("record.notes")
                             }
                         }
+                        .screenshotAnchor("record.transcript")
                         .privacySensitive()
                     }
                     if let commandError {
@@ -93,10 +101,24 @@ struct RecordingControlsView: View {
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .screenshotReady(screenshotPrepared)
+            .screenshotScroll(screenshotScroll, ready: screenshotPrepared)
             .navigationTitle("LocalMinutes")
+            .task {
+                #if DEBUG
+                if AppScreenshotFixture.scene?.isRecord == true {
+                    await refresh()
+                    screenshotPrepared = true
+                }
+                #endif
+            }
+            }
         }
         .task(id: scenePhase) {
             guard scenePhase == .active else { return }
+            #if DEBUG
+            if AppScreenshotFixture.scene != nil { return }
+            #endif
             while !Task.isCancelled {
                 await refresh()
                 try? await Task.sleep(for: .milliseconds(250))
@@ -175,6 +197,12 @@ struct RecordingControlsView: View {
 
     private func refresh() async {
         #if DEBUG
+        if AppScreenshotFixture.scene == .recordModelRequired {
+            snapshot = .init(phase: .idle, sessionID: nil,
+                readiness: .init(audioSessionActive: false, firstBufferAccepted: false, activityActive: false),
+                failure: .modelUnavailable, cleanupPending: false)
+            return
+        }
         if AppScreenshotFixture.recording {
             snapshot = AppScreenshotFixture.snapshot
             progress = AppScreenshotFixture.progress

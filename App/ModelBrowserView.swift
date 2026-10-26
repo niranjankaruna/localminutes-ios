@@ -12,13 +12,24 @@ struct ModelBrowserView: View {
     @State private var showingImport = false
     @State private var showingPackImport = false
     @State private var importManifest: ModelManifest?
+    @State private var sourceExpanded = false
+    @State private var expandedModels = Set<String>()
+    @State private var screenshotPrepared = false
 
     init(controller: ModelBrowserController, application: RecordingApplication? = nil) {
         self.controller = controller; self.application = application
+        #if DEBUG
+        if let scene = AppScreenshotFixture.scene {
+            _sourceExpanded = State(initialValue: [.modelsSource, .modelsCard].contains(scene))
+            _expandedModels = State(initialValue: scene == .modelsDetails
+                ? Set(controller.installed.filter { $0.modelID == "ui-model-alpha" }.map { InstalledModelRow(manifest: $0).id }) : [])
+        }
+        #endif
     }
 
     var body: some View {
         NavigationStack {
+            ScrollViewReader { screenshotScroll in
             Form {
                 Section {
                     Picker("Model purpose", selection: $controller.purpose) {
@@ -28,15 +39,19 @@ struct ModelBrowserView: View {
                     .pickerStyle(.segmented)
                     .disabled(controller.isWorking)
                 }
+                .screenshotAnchor("models.top")
 
                 transferProgressSection
+                    .screenshotAnchor("models.progress")
 
                 installedSection
 
                 if controller.purpose == .speechRecognition {
                     Section("Parakeet Core ML") {
                         Button("Browse Parakeet TDT v3") { controller.loadBundledParakeetV3() }
+                            .accessibilityIdentifier("models.parakeet.browse")
                         Button("Open a model pack…") { showingPackImport = true }
+                            .accessibilityIdentifier("models.pack.import")
                         Text("A model pack describes the files and decoder version. Open a compatible pack to add another model.")
                             .font(.footnote).foregroundStyle(.secondary)
                     }.disabled(controller.isWorking || controller.isInspecting)
@@ -63,6 +78,7 @@ struct ModelBrowserView: View {
 
                 if let repository = controller.repository {
                     repositorySection(repository)
+                        .screenshotAnchor("models.repository")
                     if !variants.isEmpty {
                         Section("File variant") {
                             Picker("Model file", selection: $controller.selectedFileName) {
@@ -78,16 +94,20 @@ struct ModelBrowserView: View {
                         }
                     }
                     compatibilitySection
+                        .screenshotAnchor("models.compatibility")
                     selectedResourcesSection
+                        .screenshotAnchor("models.requirements")
                     Section {
                         Button { controller.downloadSelected() } label: {
                             Label("Download selected model", systemImage: "arrow.down.circle")
                         }
+                        .accessibilityIdentifier("models.download.selected")
                         .disabled(!controller.canDownload || controller.isWorking || controller.isInspecting)
                         Button("Import selected model from Files") {
                             importManifest = controller.selectedImportManifest()
                             showingImport = importManifest != nil
                         }
+                        .accessibilityIdentifier("models.import")
                         .disabled(!controller.canDownload || controller.isWorking || controller.isInspecting)
                         if controller.isImporting {
                             ProgressView(controller.message ?? "Importing model…")
@@ -98,6 +118,7 @@ struct ModelBrowserView: View {
                         Text("Import a complete Parakeet Core ML folder for speech, or a GGUF file for summaries. Downloads and imports are checked before installation.")
                             .font(.footnote).foregroundStyle(.secondary)
                     }
+                    .screenshotAnchor("models.download")
                 }
 
                 if let message = controller.message, !controller.isDownloading {
@@ -110,6 +131,7 @@ struct ModelBrowserView: View {
                     }
                 }
                 storageCheckSection
+                    .screenshotAnchor("models.storage")
                 Section("About LocalMinutes") {
                     if let identity = AppBuildIdentity.current() {
                         Text(verbatim: "Version \(identity.version) (build \(identity.build))")
@@ -119,13 +141,22 @@ struct ModelBrowserView: View {
                             .accessibilityIdentifier("settings.appBuildIdentity")
                     }
                 }
+                .screenshotAnchor("models.about")
                 deviceResourcesSection
+                    .screenshotAnchor("models.device")
             }
+            .screenshotReady(screenshotPrepared)
+            .screenshotScroll(screenshotScroll, ready: screenshotPrepared)
             .formStyle(.grouped)
             .tint(.blue)
             .disabled(controller.isPreparingStorageCheck)
             .navigationTitle("Models")
-            .task { await controller.refresh() }
+            .task {
+                await controller.refresh()
+                #if DEBUG
+                screenshotPrepared = AppScreenshotFixture.scene?.isModels == true
+                #endif
+            }
             .refreshable { await controller.refresh() }
             .sheet(isPresented: $showingCard) { modelCard }
             .fileImporter(isPresented: $showingPackImport, allowedContentTypes: [.json]) { result in
@@ -144,10 +175,12 @@ struct ModelBrowserView: View {
                         pendingRemoval = nil
                         Task { await controller.remove(manifest) }
                     }
+                    .accessibilityIdentifier("models.remove.confirm")
                 }
                 Button("Cancel", role: .cancel) { pendingRemoval = nil }
             } message: {
                 Text("The model can be downloaded again. Your meetings remain stored separately.")
+            }
             }
         }
     }
@@ -288,33 +321,38 @@ struct ModelBrowserView: View {
     private func repositorySection(_ repository: HuggingFaceModelRepository) -> some View {
         Section("Repository details") {
             Text(verbatim: repository.id.rawValue).font(.headline).textSelection(.enabled)
+                .accessibilityIdentifier("models.repository.title")
             if controller.usingPackDescriptor {
                 Text("Details from the model pack. Files will be verified against its checksums when installed.")
                     .font(.footnote).foregroundStyle(.secondary)
             }
             LabeledContent("License", value: repository.licenseIdentifier ?? "Unknown — review required")
-            DisclosureGroup("Source details") {
+            DisclosureGroup("Source details", isExpanded: $sourceExpanded) {
                 LabeledContent("Task", value: repository.pipelineTag ?? "Unknown")
                 LabeledContent("Architecture", value: repository.modelType
                     ?? (repository.architectures.isEmpty ? "Unknown" : repository.architectures.joined(separator: ", ")))
                 LabeledContent("Library", value: repository.libraryName ?? "Unknown")
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Pinned revision").font(.caption).foregroundStyle(.secondary)
+                        .accessibilityIdentifier("models.repository.revision")
                     Text(verbatim: repository.revision).font(.caption.monospaced()).textSelection(.enabled)
                 }
                 Button("Read full model card") { showingCard = true }
+                    .accessibilityIdentifier("models.card.open")
+                    .screenshotAnchor("models.card")
                     .disabled(repository.cardMarkdown == nil)
                 if repository.cardMarkdown == nil {
                     Text("No public model card was available at this revision.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }
+            .screenshotAnchor("models.source")
         }
     }
 
     @ViewBuilder private var compatibilitySection: some View {
         if let result = controller.compatibility {
-            Section("Engine compatibility") {
+            Section {
                 Label(compatibilityTitle(result.status), systemImage: compatibilitySymbol(result.status))
                 if let profile = result.profile {
                     LabeledContent("Engine", value: profileTitle(profile))
@@ -341,13 +379,15 @@ struct ModelBrowserView: View {
                         }
                     }
                 }
+            } header: {
+                Text("Engine compatibility").accessibilityIdentifier("models.compatibility.heading")
             }
         }
     }
 
     @ViewBuilder private var selectedResourcesSection: some View {
         if let result = controller.resourceAssessment {
-            Section("Selected model requirements") {
+            Section {
                 LabeledContent("Model files", value: bytes(result.requiredDiskBytes))
                 LabeledContent("Estimated RAM", value: ramRange(result))
                 if controller.purpose == .summary {
@@ -359,6 +399,8 @@ struct ModelBrowserView: View {
                 ForEach(Array(result.notes.enumerated()), id: \.offset) { _, note in
                     Text(verbatim: note).font(.caption).foregroundStyle(.secondary)
                 }
+            } header: {
+                Text("Selected model requirements").accessibilityIdentifier("models.requirements.heading")
             }
         }
     }
@@ -390,6 +432,7 @@ struct ModelBrowserView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(alignment: .firstTextBaseline) {
                         Text(installedTitle(manifest)).font(.headline)
+                            .accessibilityIdentifier("models.title.\(manifest.modelID)")
                         Spacer(minLength: 8)
                         if controller.isEquipped(manifest) {
                             Image(systemName: "checkmark").foregroundStyle(.blue)
@@ -417,11 +460,15 @@ struct ModelBrowserView: View {
                         .buttonStyle(.borderless)
                         .frame(minWidth: 44, minHeight: 44)
                         .accessibilityLabel("Remove \(modelActionIdentity(manifest))")
+                        .accessibilityIdentifier("models.remove.\(manifest.modelID)")
                         .disabled(controller.isWorking || controller.isInspecting)
                     }
-                    DisclosureGroup("Model details") {
+                    DisclosureGroup("Model details", isExpanded: Binding(
+                        get: { expandedModels.contains(entry.id) },
+                        set: { if $0 { expandedModels.insert(entry.id) } else { expandedModels.remove(entry.id) } })) {
                         VStack(alignment: .leading, spacing: 8) {
                             Text(verbatim: manifest.runtimeVersion).font(.caption)
+                                .accessibilityIdentifier("models.runtime.\(manifest.modelID)")
                             Text(verbatim: manifest.revision).font(.caption.monospaced())
                                 .textSelection(.enabled)
                             Text("\(manifest.artifacts.count) verified files · \(manifest.licenseIdentifier)")
@@ -434,6 +481,7 @@ struct ModelBrowserView: View {
                     }.font(.subheadline)
                 }
                 .padding(.vertical, 6)
+                .screenshotAnchor(manifest.modelID == "ui-model-alpha" ? "models.installed" : manifest.modelID)
             }
         }
     }
@@ -489,6 +537,7 @@ struct ModelBrowserView: View {
                 // Verbatim Text treats card code/HTML/images as inert content.
                 Text(verbatim: controller.repository?.cardMarkdown ?? "Model card unavailable.")
                     .textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading).padding()
+                    .accessibilityIdentifier("models.card.content")
             }
             .navigationTitle("Model card")
             .navigationBarTitleDisplayMode(.inline)

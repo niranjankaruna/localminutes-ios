@@ -106,6 +106,7 @@ targets:
     deploymentTarget: '18.0'
     sources:
       - Tests/NativeUITests
+      - Shared/AppScreenshotScene.swift
     dependencies:
       - target: LocalMinutes
     settings:

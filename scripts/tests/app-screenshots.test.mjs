@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { lstat, mkdir, mkdtemp, readFile, readdir, rm, rmdir, symlink, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
-import { collectScreenshots, expectedScreenshotNames, replaceScreenshots, verifyScreenshots } from '../app-screenshots.mjs';
+import { collectScreenshots, expectedScreenshotNames, replaceScreenshots, verifyScreenshotBundle, verifyScreenshots } from '../app-screenshots.mjs';
 import { captureAndDownload } from '../download-screenshots.mjs';
 
 const commit = 'a'.repeat(40);
@@ -44,6 +44,7 @@ test('exported XCTest attachments get stable meaningful names, complete light/da
   await withProject(async root => {
     const directory = await prepareDownload(root, join(root, 'download'));
     const names = await expectedScreenshotNames();
+    assert.equal(names.length, 82);
     assert.ok(names.includes('meeting_summary_light.png') && names.includes('record_active_dark.png'));
     assert.equal(await verifyScreenshots(directory, commit), directory);
     assert.deepEqual((await readdir(directory)).sort(), [...names, 'manifest.json'].sort());
@@ -82,6 +83,50 @@ test('untrusted attachment paths and extra download files are rejected', async (
     const directory = await prepareDownload(root, join(root, 'download'));
     await writeFile(join(directory, 'unexpected.txt'), 'Not part of the screenshot set');
     await assert.rejects(() => verifyScreenshots(directory, commit), /contents/);
+  });
+});
+
+test('a failed scene exports diagnostics and a checked log without replacing the previous gallery', async () => {
+  await withProject(async root => {
+    const attachmentsDirectory = await exportedAttachments(root);
+    const manifestPath = join(attachmentsDirectory, 'manifest.json');
+    const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+    manifest[0].attachments[0].suggestedHumanReadableName =
+      manifest[0].attachments[0].suggestedHumanReadableName.replace('appui__', 'diagnostic__');
+    await writeFile(manifestPath, JSON.stringify(manifest));
+    const logFile = join(root, 'test.log');
+    await writeFile(logFile, 'APPUI_FAILURE: expected view did not become ready\n');
+    const destination = join(root, 'AppUI_Screenshots');
+    await mkdir(destination);
+    await writeFile(join(destination, 'previous.png'), png);
+    const stagingDirectory = await collectScreenshots({ attachmentsDirectory,
+      outputDirectory: join(root, '.agent-local', `screenshots-${randomUUID()}`),
+      sourceCommit: commit, device: 'Fixture', allowIncomplete: true, captureSucceeded: false, logFile });
+    const report = await verifyScreenshotBundle(stagingDirectory, commit);
+    assert.equal(report.complete, false);
+    assert.equal(report.missingScreenshots.length, 1);
+    assert.equal(report.diagnostics.length, 1);
+    assert.equal(report.screenshots.length, 81);
+    assert.equal(await readFile(join(stagingDirectory, 'capture.log'), 'utf8'), await readFile(logFile, 'utf8'));
+    await assert.rejects(() => replaceScreenshots({ repositoryRoot: root, stagingDirectory, sourceCommit: commit }),
+      /Capture failed.*Previous screenshots were not replaced/);
+    assert.deepEqual(await readdir(destination), ['previous.png']);
+    await writeFile(join(stagingDirectory, 'capture.log'), 'Changed');
+    await assert.rejects(() => verifyScreenshotBundle(stagingDirectory, commit), /log checksum/);
+  });
+});
+
+test('build failures without an xcresult still produce a downloadable failure report', async () => {
+  await withProject(async root => {
+    const logFile = join(root, 'build.log');
+    await writeFile(logFile, 'Build failed before tests started\n');
+    const directory = await collectScreenshots({ attachmentsDirectory: join(root, 'no-attachments'),
+      outputDirectory: join(root, 'report'), sourceCommit: commit, device: 'Fixture',
+      allowIncomplete: true, captureSucceeded: false, logFile });
+    const report = await verifyScreenshotBundle(directory, commit);
+    assert.equal(report.screenshots.length, 0);
+    assert.equal(report.missingScreenshots.length, 82);
+    await assert.rejects(() => verifyScreenshots(directory, commit), /Capture failed/);
   });
 });
 
@@ -124,7 +169,8 @@ test('replacement refuses a linked destination and leaves its target untouched',
   });
 });
 
-test('screenshot command dispatches its own workflow, downloads, deletes only its remote run, and replaces locally', async () => {
+for (const captureFailed of [false, true]) {
+test(`screenshot transfer cleans its remote run and ${captureFailed ? 'preserves local failure diagnostics' : 'replaces a complete gallery'}`, async () => {
   await withProject(async root => {
     const requestID = randomUUID();
     let completed = false, artifactExists = true;
@@ -145,8 +191,16 @@ test('screenshot command dispatches its own workflow, downloads, deletes only it
         // The shared downloader creates the directory before invoking gh.
         await rmdir(directory);
         await prepareDownload(root, directory);
+        if (captureFailed) {
+          const manifestPath = join(directory, 'manifest.json');
+          const report = JSON.parse(await readFile(manifestPath, 'utf8'));
+          report.complete = false;
+          report.captureSucceeded = false;
+          await writeFile(manifestPath, JSON.stringify(report));
+        }
         return '';
       }
+      if (args[0] === 'run' && args[1] === 'cancel') { completed = true; return ''; }
       if (args[0] === 'api' && args[1] === '--method') {
         if (args[3].endsWith('/artifacts/42')) { artifactExists = false; completed = true; }
         else assert.ok(args[3].endsWith('/runs/17'));
@@ -156,17 +210,26 @@ test('screenshot command dispatches its own workflow, downloads, deletes only it
         artifacts: artifactExists ? [{ id: 42, name: 'app-ui-screenshots-transfer', expired: false }] : []
       });
       if (args[0] === 'api' && args[1].endsWith('/runs/17')) return JSON.stringify({
-        head_sha: commit, status: completed ? 'completed' : 'in_progress', conclusion: 'success'
+        head_sha: commit, status: completed ? 'completed' : 'in_progress', conclusion: captureFailed ? 'failure' : 'success'
       });
       throw new Error(`Unexpected CLI call: ${args.join(' ')}`);
     };
-    const directory = await captureAndDownload({ repositoryRoot: root, repository: 'owner/repo', ref: 'main',
+    const transfer = captureAndDownload({ repositoryRoot: root, repository: 'owner/repo', ref: 'main',
       sourceCommit: commit, requestID, gh, sleep: async () => {} });
-    assert.equal(directory, join(root, 'AppUI_Screenshots'));
-    await verifyScreenshots(directory, commit);
+    if (captureFailed) {
+      await assert.rejects(() => transfer, /Capture failed/);
+      const report = await verifyScreenshotBundle(join(root, '.agent-local', `screenshots-${requestID}`), commit);
+      assert.equal(report.complete, false);
+      await assert.rejects(() => lstat(join(root, 'AppUI_Screenshots')), { code: 'ENOENT' });
+    } else {
+      const directory = await transfer;
+      assert.equal(directory, join(root, 'AppUI_Screenshots'));
+      await verifyScreenshots(directory, commit);
+    }
     const deletion = calls.findIndex(call => call.includes('DELETE repos/owner/repo/actions/artifacts/42'));
     assert.ok(deletion > calls.findIndex(call => call.startsWith('run download 17')));
     assert.ok(calls.some(call => call.includes('DELETE repos/owner/repo/actions/runs/17')));
     assert.equal(calls.some(call => call.includes('/runs/99')), false);
   });
 });
+}

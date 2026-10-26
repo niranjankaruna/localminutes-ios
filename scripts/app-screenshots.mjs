@@ -4,14 +4,14 @@ import { copyFile, lstat, mkdir, readFile, readdir, realpath, rename, rm, writeF
 import { basename, dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-const testSource = new URL('../Tests/NativeUITests/AppScreenshotsUITests.swift', import.meta.url);
+const sceneSource = new URL('../Shared/AppScreenshotScene.swift', import.meta.url);
 const pngSignature = Buffer.from('89504e470d0a1a0a', 'hex');
 
 export async function expectedScreenshotNames() {
-  const source = await readFile(testSource, 'utf8');
-  const names = [...source.matchAll(/\bcapture\("([a-z0-9_]+)"/g)].map(match => match[1]);
-  assert.ok(names.length > 0, 'The screenshot tour must declare its captures');
-  assert.equal(new Set(names).size, names.length, 'Duplicate screenshot names in the UI tour');
+  const source = await readFile(sceneSource, 'utf8');
+  const names = [...source.matchAll(/^\s*case \w+ = "([a-z0-9_]+)"$/gm)].map(match => match[1]);
+  assert.ok(names.length > 0, 'The screenshot catalog must declare its scenes');
+  assert.equal(new Set(names).size, names.length, 'Duplicate screenshot names in the catalog');
   return names.flatMap(name => ['light', 'dark'].map(appearance => `${name}_${appearance}.png`)).sort();
 }
 
@@ -29,42 +29,67 @@ async function imageFacts(file) {
   return { sizeBytes: data.length, width, height, sha256: createHash('sha256').update(data).digest('hex') };
 }
 
-export async function collectScreenshots({ attachmentsDirectory, outputDirectory, sourceCommit, device }) {
+async function logFacts(file) {
+  const info = await lstat(file);
+  assert.ok(info.isFile() && info.size <= 100 * 1024 * 1024, 'Expected a regular capture log');
+  const data = await readFile(file);
+  return { sizeBytes: data.length, sha256: createHash('sha256').update(data).digest('hex') };
+}
+
+export async function collectScreenshots({ attachmentsDirectory, outputDirectory, sourceCommit, device,
+  allowIncomplete = false, captureSucceeded = true, logFile }) {
   assert.match(sourceCommit, /^[0-9a-f]{40}$/);
   assert.ok(typeof device === 'string' && device.length > 0);
-  const entries = JSON.parse(await readFile(join(attachmentsDirectory, 'manifest.json'), 'utf8'));
+  const rawManifest = await readFile(join(attachmentsDirectory, 'manifest.json'), 'utf8').catch(error => {
+    if (allowIncomplete && error.code === 'ENOENT') return '[]';
+    throw error;
+  });
+  const entries = JSON.parse(rawManifest);
   assert.ok(Array.isArray(entries), 'Unexpected xcresult attachment manifest');
   const images = new Map();
+  const diagnostics = new Map();
+  const expected = await expectedScreenshotNames();
   for (const entry of entries) {
     for (const attachment of entry.attachments ?? []) {
-      const match = /^appui__(light|dark)__([a-z0-9]+(?:_[a-z0-9]+)*)__/.exec(attachment.suggestedHumanReadableName ?? '');
+      const match = /^(appui|diagnostic)__(light|dark)__([a-z0-9]+(?:_[a-z0-9]+)*)__/.exec(attachment.suggestedHumanReadableName ?? '');
       if (!match) continue;
       const exported = attachment.exportedFileName;
       assert.equal(typeof exported, 'string');
       assert.match(exported, /^[A-Za-z0-9_.-]+\.png$/i, 'Unsafe exported screenshot path');
-      const filename = `${match[2]}_${match[1]}.png`;
-      assert.ok(!images.has(filename), `Duplicate capture: ${filename}`);
-      images.set(filename, join(attachmentsDirectory, exported));
+      const sceneName = `${match[3]}_${match[2]}.png`;
+      assert.ok(expected.includes(sceneName), `Unknown screenshot scene: ${sceneName}`);
+      const filename = match[1] === 'diagnostic' ? `diagnostic_${sceneName}` : sceneName;
+      const collection = match[1] === 'diagnostic' ? diagnostics : images;
+      assert.ok(!collection.has(filename), `Duplicate capture: ${filename}`);
+      collection.set(filename, join(attachmentsDirectory, exported));
     }
   }
-  const expected = await expectedScreenshotNames();
-  assert.deepEqual([...images.keys()].sort(), expected, 'The screenshot tour is incomplete');
+  const missingScreenshots = expected.filter(filename => !images.has(filename));
+  const complete = captureSucceeded && missingScreenshots.length === 0 && diagnostics.size === 0;
+  if (!allowIncomplete) assert.ok(complete, 'The screenshot set is incomplete');
   await mkdir(outputDirectory);
   const screenshots = [];
-  for (const filename of expected) {
-    const source = images.get(filename);
+  const diagnosticImages = [];
+  for (const [filename, source] of [...images, ...diagnostics].sort(([a], [b]) => a.localeCompare(b))) {
     const facts = await imageFacts(source);
     await copyFile(source, join(outputDirectory, filename));
-    screenshots.push({ filename, ...facts });
+    (images.has(filename) ? screenshots : diagnosticImages).push({ filename, ...facts });
+  }
+  let log;
+  if (logFile) {
+    log = { filename: 'capture.log', ...await logFacts(logFile) };
+    await copyFile(logFile, join(outputDirectory, log.filename));
   }
   await writeFile(join(outputDirectory, 'manifest.json'), JSON.stringify({
     schemaVersion: 1, sourceCommit, device, fixtureData: true,
-    capturedAt: new Date().toISOString(), screenshots
+    capturedAt: new Date().toISOString(), complete, captureSucceeded, missingScreenshots,
+    screenshots, diagnostics: diagnosticImages, ...(log ? { log } : {})
   }, null, 2) + '\n');
-  return verifyScreenshots(outputDirectory, sourceCommit);
+  await verifyScreenshotBundle(outputDirectory, sourceCommit);
+  return outputDirectory;
 }
 
-export async function verifyScreenshots(directory, sourceCommit) {
+export async function verifyScreenshotBundle(directory, sourceCommit) {
   assert.ok((await lstat(directory)).isDirectory(), 'Screenshot download must be a real directory');
   const manifestPath = join(directory, 'manifest.json');
   assert.ok((await lstat(manifestPath)).isFile(), 'Expected a regular screenshot manifest');
@@ -74,14 +99,38 @@ export async function verifyScreenshots(directory, sourceCommit) {
   assert.equal(manifest.fixtureData, true);
   assert.ok(typeof manifest.device === 'string' && manifest.device.length > 0);
   const expected = await expectedScreenshotNames();
-  assert.deepEqual(manifest.screenshots.map(image => image.filename).sort(), expected,
-    'Missing, duplicated, or unexpected screenshots');
-  assert.deepEqual((await readdir(directory)).sort(), [...expected, 'manifest.json'].sort(),
+  assert.equal(typeof manifest.captureSucceeded, 'boolean');
+  assert.ok(Array.isArray(manifest.screenshots) && Array.isArray(manifest.diagnostics));
+  const names = manifest.screenshots.map(image => image.filename);
+  const diagnostics = manifest.diagnostics.map(image => image.filename);
+  assert.ok(names.every(name => expected.includes(name)), 'Unexpected screenshot');
+  assert.ok(diagnostics.every(name => name.startsWith('diagnostic_') && expected.includes(name.slice(11))),
+    'Unexpected diagnostic screenshot');
+  assert.equal(new Set([...names, ...diagnostics]).size, names.length + diagnostics.length, 'Duplicate screenshot');
+  assert.deepEqual(manifest.missingScreenshots, expected.filter(name => !names.includes(name)),
+    'Missing screenshots do not match the report');
+  assert.equal(manifest.complete, manifest.captureSucceeded && names.length === expected.length && diagnostics.length === 0,
+    'Incorrect capture completion status');
+  const files = [...names, ...diagnostics, 'manifest.json'];
+  if (manifest.log) {
+    assert.equal(manifest.log.filename, 'capture.log');
+    const { filename, ...facts } = manifest.log;
+    assert.deepEqual(await logFacts(join(directory, filename)), facts, 'Capture log checksum does not match');
+    files.push(filename);
+  }
+  assert.deepEqual((await readdir(directory)).sort(), files.sort(),
     'Unexpected screenshot download contents');
-  for (const { filename, ...expectedFacts } of manifest.screenshots) {
+  for (const { filename, ...expectedFacts } of [...manifest.screenshots, ...manifest.diagnostics]) {
     assert.deepEqual(await imageFacts(join(directory, filename)), expectedFacts,
       `Screenshot checksum or dimensions do not match: ${filename}`);
   }
+  return manifest;
+}
+
+export async function verifyScreenshots(directory, sourceCommit) {
+  const report = await verifyScreenshotBundle(directory, sourceCommit);
+  assert.ok(report.complete, `Capture failed; ${report.missingScreenshots.length} screenshots missing. ` +
+    `The capture report, available images, and any log remain at ${directory}. Previous screenshots were not replaced.`);
   return directory;
 }
 
@@ -116,8 +165,10 @@ export async function replaceScreenshots({ repositoryRoot, stagingDirectory, sou
 }
 
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
-  const [attachmentsDirectory, outputDirectory, sourceCommit, device] = process.argv.slice(2);
-  collectScreenshots({ attachmentsDirectory, outputDirectory, sourceCommit, device })
-    .then(directory => console.log(`Verified screenshots: ${directory}`))
+  const [attachmentsDirectory, outputDirectory, sourceCommit, device, captureOutcome, logFile] = process.argv.slice(2);
+  assert.ok(captureOutcome === undefined || ['success', 'failure'].includes(captureOutcome), 'Invalid capture outcome');
+  collectScreenshots({ attachmentsDirectory, outputDirectory, sourceCommit, device, logFile,
+    allowIncomplete: captureOutcome !== undefined, captureSucceeded: captureOutcome !== 'failure' })
+    .then(directory => console.log(`Screenshot capture report: ${directory}`))
     .catch(error => { console.error(error.message); process.exitCode = 1; });
 }

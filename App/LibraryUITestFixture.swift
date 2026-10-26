@@ -25,6 +25,7 @@ enum LibraryUITestFixture {
         let marker = root.appendingPathComponent("fixture-seeded.txt")
         let pagination = ProcessInfo.processInfo.arguments.contains("--ui-test-library-pagination")
         let empty = ProcessInfo.processInfo.arguments.contains("--ui-test-library-empty")
+            || AppScreenshotFixture.scene == .meetingsEmpty
         let services = try LocalMinutesServices(rootURL: root)
         do {
             if FileManager.default.fileExists(atPath: marker.path) {
@@ -61,8 +62,11 @@ enum LibraryUITestFixture {
     }
 
     private static func seed(_ name: String, in services: LocalMinutesServices, at date: Date) async throws {
-        let id = AppScreenshotFixture.requested && name == "Alpha" ? AppScreenshotFixture.meetingID : UUID()
-        let source = UUID()
+        let id = AppScreenshotFixture.requested
+            ? (name == "Alpha" ? AppScreenshotFixture.meetingID : AppScreenshotFixture.detailMeetingID) : UUID()
+        let source = AppScreenshotFixture.requested
+            ? UUID(uuidString: name == "Alpha" ? "20000000-0000-0000-0000-000000000001" : "20000000-0000-0000-0000-000000000002")!
+            : UUID()
         let audioDirectory = services.meetingsDirectory.appendingPathComponent(id.uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: audioDirectory, withIntermediateDirectories: false)
         let writer = try SegmentCAFWriter(directory: audioDirectory, sessionID: id, maximumSegmentFrames: 16_000)
@@ -77,7 +81,8 @@ enum LibraryUITestFixture {
         guard manifest.totalFrames == 32_000 else { throw LibraryUIFixtureError.invalidFixture }
         try await services.store.createMeeting(.init(id: id, title: "UI Library \(name)", createdAt: date,
             recordingState: .completed, capturedSampleCount: manifest.totalFrames))
-        if name == "Beta", ProcessInfo.processInfo.arguments.contains("--ui-test-library-content-status") {
+        if name == "Beta", ProcessInfo.processInfo.arguments.contains("--ui-test-library-content-status")
+            || AppScreenshotFixture.scene?.isEmptyMeeting == true {
             // Dedicated status case: audio/notes exist, while this meeting has
             // no transcript or generated summary. Original product flows retain
             // their unchanged full Alpha/Beta default fixtures.
@@ -106,7 +111,8 @@ enum LibraryUITestFixture {
             modelRevision: LocalMinutesServices.summaryManifest.revision, promptVersion: "synthetic-ui-fixture-v1",
             createdAt: date, modifiedAt: date))
         if name == "Beta" {
-            try await services.store.createGeneratedDocument(.init(id: UUID(), meetingID: id, kind: .questionAnswer,
+            let answerID = AppScreenshotFixture.requested ? UUID(uuidString: "30000000-0000-0000-0000-000000000002")! : UUID()
+            try await services.store.createGeneratedDocument(.init(id: answerID, meetingID: id, kind: .questionAnswer,
                 originalJSON: original, question: "What is the Beta planning source?",
                 editedText: "Seeded Beta private answer.", modelRevision: LocalMinutesServices.summaryManifest.revision,
                 promptVersion: "synthetic-ui-fixture-v1", createdAt: date, modifiedAt: date))
@@ -133,7 +139,11 @@ struct LibraryUITestFixtureRoot: View {
             guard !finished else { return }
             defer { finished = true }
             guard let token = LibraryUITestFixture.token else { return }
-            application = try? await LibraryUITestFixture.makeApplication(token: token)
+            do {
+                let prepared = try await LibraryUITestFixture.makeApplication(token: token)
+                if let prepared { try await AppScreenshotFixture.prepare(prepared) }
+                application = prepared
+            } catch { application = nil }
         }
     }
 }

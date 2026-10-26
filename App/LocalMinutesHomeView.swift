@@ -15,6 +15,12 @@ struct LocalMinutesHomeView: View {
     init(application: RecordingApplication, privacy: RecordingPrivacyController? = nil) {
         self.application = application
         _privacy = State(initialValue: privacy ?? RecordingPrivacyController())
+        #if DEBUG
+        if let scene = AppScreenshotFixture.scene {
+            _selectedTab = State(initialValue: scene.isModels ? 2 : scene.isHistory || scene.isMeeting ? 1 : 0)
+            _meetingPath = State(initialValue: scene.isMeeting ? [AppScreenshotFixture.detailMeetingID] : [])
+        }
+        #endif
     }
 
     var body: some View {
@@ -37,6 +43,9 @@ struct LocalMinutesHomeView: View {
         .tint(.blue)
         .task(id: application.services.map { ObjectIdentifier($0) }) { await application.services?.initialize() }
         .onChange(of: application.meetingNavigation?.requestID, initial: true) { _, requestID in
+            #if DEBUG
+            if AppScreenshotFixture.scene != nil { return }
+            #endif
             guard requestID != nil, let id = application.meetingNavigation?.requestedMeetingID else {
                 meetingPath = []
                 handledMeetingRequestID = nil
@@ -78,16 +87,37 @@ private struct MeetingHistoryView: View {
     @State private var reportText: String?
     @State private var working = false
     @State private var actionMessage: String?
+    @State private var screenshotPrepared = false
 
     private var unavailable: Bool { working || services.maintainingLibrary || application.isRestoringLibrary }
 
     var body: some View {
         NavigationStack(path: $path) {
+            ScrollViewReader { screenshotScroll in
             historyList
+            .screenshotReady(screenshotPrepared)
+            .screenshotScroll(screenshotScroll, ready: screenshotPrepared)
+            .task {
+                #if DEBUG
+                guard let scene = AppScreenshotFixture.scene, scene.isHistory else { return }
+                if scene == .meetingsSearch { query = "Alpha" }
+                await services.library.searchHistory(query)
+                if scene == .meetingsBackup {
+                    do { backupURL = try await application.exportLibraryBackup() }
+                    catch { actionMessage = "Screenshot backup preparation failed: \(error)" }
+                }
+                screenshotPrepared = true
+                #endif
+            }
             .navigationTitle("Meetings")
             .searchable(text: $query, prompt: "Search meeting titles")
             .refreshable { await services.library.refresh() }
-            .task(id: query) { await services.library.searchHistory(query) }
+            .task(id: query) {
+                #if DEBUG
+                if AppScreenshotFixture.scene != nil { return }
+                #endif
+                await services.library.searchHistory(query)
+            }
             .onChange(of: path) { _, destinations in
                 if destinations.isEmpty { Task { await services.library.refresh() } }
             }
@@ -95,9 +125,16 @@ private struct MeetingHistoryView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         Button("Create library backup", systemImage: "square.and.arrow.up") { createBackup() }
+                            .accessibilityLabel("Create library backup")
+                            .accessibilityIdentifier("meeting.history.backup.create")
                         Button("Restore library backup…", systemImage: "square.and.arrow.down") { choosingBackup = true }
+                            .accessibilityLabel("Restore library backup…")
+                            .accessibilityIdentifier("meeting.history.backup.restore")
                         Button("Prepare recording report", systemImage: "chart.bar") { prepareReport() }
+                            .accessibilityLabel("Prepare recording report")
+                            .accessibilityIdentifier("meeting.history.report.prepare")
                     } label: { Label("Library actions", systemImage: "ellipsis.circle") }
+                    .accessibilityIdentifier("meeting.history.actions")
                     .disabled(unavailable)
                 }
             }
@@ -136,6 +173,7 @@ private struct MeetingHistoryView: View {
                 Text("Save edits and stop recording or playback first. This backup becomes the active library; the previous library is retained and installed models stay available.")
             }
             .disabled(services.maintainingLibrary || application.isRestoringLibrary)
+            }
         }
     }
 
@@ -154,6 +192,7 @@ private struct MeetingHistoryView: View {
                     Text("This backup includes meeting audio, transcripts, notes and generated content.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
+                .screenshotAnchor("history.backup")
             }
             if let reportText {
                 Section("Recording report") {
@@ -167,12 +206,15 @@ private struct MeetingHistoryView: View {
             if services.library.meetings.isEmpty && !services.library.isLoadingHistory && services.library.errorMessage == nil {
                 ContentUnavailableView(query.isEmpty ? "No meetings yet" : "No matching meetings", systemImage: "text.book.closed",
                     description: Text(query.isEmpty ? "Install the speech model, then start your first meeting." : "Try another meeting title."))
+                    .accessibilityIdentifier("meeting.history.empty")
+                    .screenshotAnchor("history.top")
             }
             ForEach(services.library.meetings) { meeting in
                 NavigationLink(value: meeting.id) {
                     MeetingHistoryRow(meeting: meeting,
                         content: services.library.contentStatuses[meeting.id] ?? .unknown)
                 }
+                .screenshotAnchor(meeting.id.uuidString == "10000000-0000-0000-0000-000000000001" ? "history.top" : meeting.id.uuidString)
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     Button("Delete", role: .destructive) { askToDelete(meeting.id) }
                         .disabled(unavailable)
@@ -239,6 +281,7 @@ private struct MeetingHistoryRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(meeting.title).font(.headline)
+                .accessibilityIdentifier("meeting.history.title.\(meeting.id.uuidString)")
             Text(meeting.createdAt, format: .dateTime.month().day().hour().minute())
                 .font(.subheadline).foregroundStyle(.secondary)
             Text("\(meeting.capturedSampleCount / 16_000 / 60) min · \(meeting.recordingState == .recording ? "Unfinished" : meeting.recordingState.rawValue.capitalized)")
@@ -289,6 +332,7 @@ private struct MeetingDetailView: View {
     @State private var recoveredTranscript: [StoredTranscriptSegment]?
     @State private var selectedTranscriptSegmentID: UUID?
     @State private var citationNavigationRequestID: UUID?
+    @State private var screenshotPrepared = false
 
     private var unavailable: Bool { deleting || services.maintainingLibrary || application.isRestoringLibrary }
 
@@ -315,6 +359,7 @@ private struct MeetingDetailView: View {
             Section("Original notes") {
                 MeetingNotesEditor(controller: controller)
             }
+            .screenshotAnchor("meeting.notes")
             .disabled(controller.isLoadingDetail)
             Section("Transcript") {
                 if services.recoveringMeetingID == id {
@@ -329,15 +374,22 @@ private struct MeetingDetailView: View {
                 }
                 if let message = services.libraryMessage { Text(message).font(.caption).foregroundStyle(.secondary) }
                 TextField("Find in this transcript", text: $search)
-                    .onChange(of: search) { _, query in Task { await controller.search(query) } }
+                    .onChange(of: search) { _, query in
+                        #if DEBUG
+                        if AppScreenshotFixture.scene != nil { return }
+                        #endif
+                        Task { await controller.search(query) }
+                    }
                     .disabled(controller.isLoadingDetail)
                 transcriptMoreMatches
                 if (recoveredTranscript ?? controller.transcript).isEmpty && !controller.isLoadingDetail {
                     Text("No finalized transcript is available.").foregroundStyle(.secondary)
+                        .accessibilityIdentifier("meeting.transcript.empty")
                 }
                 ForEach(search.isEmpty ? (recoveredTranscript ?? controller.transcript) : controller.matches) { segment in
                     VStack(alignment: .leading, spacing: 8) {
                         Text(segment.text).textSelection(.enabled)
+                            .accessibilityIdentifier("meeting.transcript.text.\(segment.id.uuidString)")
                         Button {
                             Task { await playSegment(at: segment.startSample) }
                         } label: {
@@ -356,6 +408,7 @@ private struct MeetingDetailView: View {
                     Button("Stop playback") { stopPlayback() }
                 }
             }
+            .screenshotAnchor("meeting.transcript")
             MeetingIntelligenceView(controller: intelligenceController, playCitation: { target in
                 guard target.meetingID == id,
                       (recoveredTranscript ?? controller.transcript).contains(where: { $0.id == target.segmentID && $0.meetingID == id }) else { return }
@@ -378,11 +431,16 @@ private struct MeetingDetailView: View {
                 Text("Sharing sends the selected meeting to the app you choose.")
                     .font(.caption).foregroundStyle(.secondary)
             }
+            .screenshotAnchor("meeting.export")
             Section {
                 Button("Delete meeting", role: .destructive) { confirmingDeletion = true }
+                    .accessibilityIdentifier("meeting.delete")
                     .disabled(unavailable || intelligenceController.busy || services.recoveringMeetingID != nil)
             }
+            .screenshotAnchor("meeting.delete")
         }
+        .screenshotReady(screenshotPrepared)
+        .screenshotScroll(transcriptScroll, ready: screenshotPrepared)
         .onChange(of: citationNavigationRequestID) { _, _ in
             // This runs after the cleared filter publishes the original row.
             if let segmentID = selectedTranscriptSegmentID {
@@ -396,6 +454,14 @@ private struct MeetingDetailView: View {
             await controller.open(id: id)
             title = controller.selected?.title ?? ""
             await intelligenceController.load()
+            #if DEBUG
+            intelligenceController.prepareScreenshotState()
+            if AppScreenshotFixture.scene == .meetingTranscriptSearch {
+                search = "shared-term"
+                await controller.search(search)
+            }
+            if AppScreenshotFixture.scene?.isMeeting == true { screenshotPrepared = true }
+            #endif
         }
         .onChange(of: services.recoveringMeetingID) { previous, current in
             if previous == id, current == nil {
@@ -417,6 +483,7 @@ private struct MeetingDetailView: View {
                     deleting = false
                 }
             }
+            .accessibilityIdentifier("meeting.delete.confirm")
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("Delete its audio, transcript, notes, summaries, answers and unfinished processing? This cannot be undone.")
@@ -525,6 +592,7 @@ struct MeetingNotesEditor: View {
             TextEditor(text: $text)
             .frame(minHeight: 120)
             .accessibilityLabel("Original meeting notes")
+            .accessibilityIdentifier("meeting.notes.editor")
             .task(id: controller.selected?.id) {
                 if let edit = lastEdit, edit.meetingID != controller.selected?.id {
                     pending?.cancel()

@@ -38,11 +38,14 @@ enum ModelBrowserAccessibilityFixture {
         }
         services.modelBrowser.purpose = .summary
         await services.modelBrowser.refresh()
+        AppScreenshotFixture.prepareModels(services.modelBrowser)
         if AppScreenshotFixture.requested,
-           ProcessInfo.processInfo.arguments.contains("--ui-screenshot-model-card") {
+           AppScreenshotFixture.scene == .modelsCard {
             try services.modelBrowser.loadScreenshotModelCard()
         }
-        if let stage = ProcessInfo.processInfo.environment["LOCALMINUTES_UI_MODEL_PROGRESS"], stage != "idle" {
+        let screenshotStage: String? = AppScreenshotFixture.scene == .modelsDownloading ? "downloading" :
+            AppScreenshotFixture.scene == .modelsVerifying ? "verifying" : nil
+        if let stage = screenshotStage ?? ProcessInfo.processInfo.environment["LOCALMINUTES_UI_MODEL_PROGRESS"], stage != "idle" {
             services.modelBrowser.updateDownloadProgress(.init(
                 stage: stage == "verifying" ? .verifying : .downloading,
                 fileName: "Encoder.mlmodelc/weights/weight.bin", completedBytes: 104_857_600,
