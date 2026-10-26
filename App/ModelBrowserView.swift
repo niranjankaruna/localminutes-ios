@@ -225,7 +225,7 @@ struct ModelPurposeView: View {
 
     private var lookupPage: some View {
         Form {
-            Section("Hugging Face repository") {
+            Section {
                 TextField("owner/repository or URL", text: $controller.repositoryInput)
                     .textInputAutocapitalization(.never).autocorrectionDisabled().keyboardType(.URL)
                     .submitLabel(.search).accessibilityLabel("Hugging Face repository")
@@ -235,7 +235,11 @@ struct ModelPurposeView: View {
                     else { Label("Look up repository", systemImage: "magnifyingglass") }
                 }.frame(minHeight: 44)
                     .disabled(busy || controller.repositoryInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            } footer: { Text("Public repositories only.") }
+            } header: {
+                Text("Hugging Face repository")
+            } footer: {
+                Text("Public repositories only.")
+            }
             if let error = controller.errorMessage { Section { Text(error).foregroundStyle(MinutesStyle.recording) } }
         }.minutesList().navigationTitle("Add a model")
     }

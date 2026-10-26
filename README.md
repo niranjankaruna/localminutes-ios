@@ -79,6 +79,8 @@ node scripts/download-ipa.mjs
 
 Keep the script running through cleanup. If the local handoff stops, the workflow deletes its transfer artifact after a 15-minute wait. GitHub's one-day artifact retention is a final fallback if workflow cleanup itself is interrupted; the script reports API cleanup failures rather than claiming the remote build was deleted. The test workflow retains its normal test logs, but no build artifacts.
 
+If a build fails before producing an IPA, the download script saves `build-failure.log` and `build-failure.json` in that request's download directory before deleting the workflow run. The terminal also prints the first compiler errors. These diagnostics are not an IPA; if GitHub cannot provide the logs, the report records that limitation.
+
 ### Review the UI from Windows
 
 After committing and pushing, use the same Node.js/GitHub CLI setup to run:

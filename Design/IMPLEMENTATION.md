@@ -26,11 +26,13 @@ No domain recording, inference, transfer, or storage engine was replaced with si
 
 Completed locally on Windows:
 
-- 89 repository Node tests passed using node --test scripts/tests/*.test.mjs.
+- 91 repository Node tests passed using node --test scripts/tests/*.test.mjs, including failed-build diagnostic preservation.
 - Swift grammar comparison found no additional errors in changed/new Swift files. Two existing files have baseline parser limitations around conditional/concurrent syntax; this check is not Swift type-checking.
 - Whitespace/diff checks passed.
 - Added native regression tests for notes saved after navigation, rapid edits, failed saves, original-versus-edited summary presentation, and citation navigation. Existing UI tests were updated for the new screen structure.
 
-**Not run:** Xcode compilation, app-hosted XCTest, simulator UI tests, native screenshot capture, VoiceOver, or on-device recording. This environment is Windows and has no Xcode/iOS SDK. Editor diagnostics and grammar parsing do not establish that the native build passes.
+**Native build follow-up:** GitHub Actions reproduced the Release build failure at commit 79c5e82c5bf535f2991731ee6d554b0703ba175a. Xcode reported an invalid SwiftUI Section initializer in the repository lookup view. The local correction uses explicit content, header, and footer closures. The corrected working tree has not yet been built by Xcode because the hosted workflow builds pushed commits. The download helper now saves failed-job logs locally before remote cleanup.
+
+**Not run:** app-hosted XCTest, simulator UI tests, native screenshot capture, VoiceOver, or on-device recording. This environment is Windows and has no Xcode/iOS SDK. Editor diagnostics and grammar parsing do not establish that the corrected native build passes.
 
 On a macOS/Xcode host, prepare the project's native dependencies and XcodeGen project using the existing README instructions, then run the LocalMinutesUIValidation and LocalMinutesFocusedValidation schemes. Re-capture all 41 scenes in both appearances and review the native layouts before shipping. Existing screenshots are from the previous UI and were not overwritten.
