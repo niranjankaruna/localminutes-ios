@@ -68,7 +68,7 @@ async function main() {
   try {
     console.log(`Building ${sourceCommit}; download destination: ${outputDirectory}`);
     const ipa = await buildAndDownload({ repository, ref, sourceCommit, outputDirectory, requestID,
-      cancelled: () => cancelled });
+      cancelled: () => cancelled, onProgress: message => console.error(message) });
     console.log(`Verified IPA: ${ipa}\nTemporary GitHub artifact and build run deleted.`);
   } finally { process.off('SIGINT', interrupt); }
 }

@@ -11,14 +11,14 @@ import { expectedScreenshotNames, replaceScreenshots, resolveScreenshotSelection
 
 export async function captureAndDownload({ repositoryRoot, repository, ref, sourceCommit,
   appearance = 'both', categories = '', screens = '', related = false,
-  requestID = randomUUID(), gh = ghCLI, sleep, cancelled }) {
+  requestID = randomUUID(), gh = ghCLI, sleep, cancelled, onProgress }) {
   const selection = await resolveScreenshotSelection({ appearance, categories, screens, related });
   const root = await realpath(repositoryRoot);
   const local = join(root, '.agent-local');
   await mkdir(local, { recursive: true });
   assert.equal(await realpath(local), local, 'Screenshot staging cannot use a linked directory');
   const stagingDirectory = join(local, `screenshots-${requestID}`);
-  await downloadWorkflowArtifact({ repository, ref, sourceCommit, requestID, gh, sleep, cancelled,
+  await downloadWorkflowArtifact({ repository, ref, sourceCommit, requestID, gh, sleep, cancelled, onProgress,
     outputDirectory: stagingDirectory, workflow: 'app-screenshots.yml', runNamePrefix: 'Screenshots',
     artifactName: 'app-ui-screenshots-transfer', workflowInputs: { appearance, categories, screens, related: String(related) },
     verifyDownload: (directory, commit) => verifyScreenshots(directory, commit, selection) });
@@ -55,7 +55,7 @@ async function main() {
   const root = await realpath(fileURLToPath(new URL('..', import.meta.url)));
   const execute = promisify(execFile);
   const git = async args => (await execute('git', args, { cwd: root, encoding: 'utf8' })).stdout.trim();
-  const gh = args => ghCLI(args, { cwd: root });
+  const gh = (args, options = {}) => ghCLI(args, { ...options, cwd: root });
   assert.equal(await git(['status', '--porcelain']), '', 'Commit and push local changes before taking screenshots');
   const sourceCommit = await git(['rev-parse', 'HEAD']);
   const ref = values.ref ?? await git(['branch', '--show-current']);
@@ -71,7 +71,7 @@ async function main() {
       `destination: ${join(root, 'AppUI_Screenshots')}`);
     console.log(names.join('\n'));
     const destination = await captureAndDownload({ ...values, repositoryRoot: root, repository, ref, sourceCommit, gh,
-      cancelled: () => cancelled });
+      cancelled: () => cancelled, onProgress: message => console.error(message) });
     console.log(`${names.length} screenshots updated: ${destination}\nTemporary GitHub artifact and workflow run deleted.`);
   } finally { process.off('SIGINT', interrupt); }
 }

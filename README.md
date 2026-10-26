@@ -42,6 +42,8 @@ xcodebuild -project LocalMinutes.xcodeproj -scheme LocalMinutes \
 
 The summary helper prepares the pinned llama.cpp framework. `--framework-only` downloads no model weights. Swift Package Manager resolves FluidAudio for Parakeet Core ML speech inference. [prepare-ios.sh](./scripts/prepare-ios.sh) prepares the framework and pinned XcodeGen automatically for hosted iOS workflows.
 
+IPA builds call `bash scripts/prepare-ios.sh --device-only` to use the verified prebuilt device framework without compiling a simulator slice. Screenshot and iOS test workflows use the default preparation, which also builds the simulator framework.
+
 The app requires a valid 40-character source commit stamp and numeric build number when initializing services. If building in Xcode's UI, set `LOCALMINUTES_SOURCE_COMMIT` in the app and extension build settings to the checkout's commit. A missing stamp can leave recording services unavailable.
 
 Signing is disabled in the checked-in project configuration. Running on a physical iPhone requires configuring signing for both the app and its Live Activity extension. An unsigned IPA is a packaging output, not an installable signed app.
@@ -82,6 +84,8 @@ node scripts/download-ipa.mjs
 [download-ipa.mjs](./scripts/download-ipa.mjs) dispatches the build for the current branch, waits for its uniquely identified run, downloads the IPA and receipts into a new folder under `Downloads/LocalMinutes`, verifies the source commit and checksum, and deletes the temporary artifact and build run. Use `--ref BRANCH_OR_TAG` or `--output NEW_DIRECTORY` to override the defaults. Existing output directories are never overwritten. GitHub authentication must permit workflow dispatch and Actions deletion in this repository.
 
 Keep the script running through cleanup. If the local handoff stops, the workflow deletes its transfer artifact after a 15-minute wait. GitHub's one-day artifact retention is a final fallback if workflow cleanup itself is interrupted; the script reports API cleanup failures rather than claiming the remote build was deleted. The test workflow retains its normal test logs, but no build artifacts.
+
+The downloader prints its GitHub run URL and retries transient status/discovery API failures up to five attempts, with a 30-second timeout per read. A persistent connection outage leaves the run intact and reports its URL instead of cancelling a healthy build. You can check that run and download its artifact in GitHub when connectivity returns; the normal transfer expiry still applies. Explicit cancellation and verification failures retain the existing cleanup behavior. Dispatch is never automatically retried, to avoid creating duplicate builds.
 
 If a build fails before producing an IPA, the download script saves `build-failure.log` and `build-failure.json` in that request's download directory before deleting the workflow run. It fetches full failed-job logs directly from the API so long compiler-command lines do not truncate the error that follows. The report also preserves job steps and check annotations, including runner failures; the terminal prints the first failures and compiler crash details. These diagnostics are not an IPA. If a log or annotation cannot be retrieved, the report records that limitation and retains the available evidence.
 

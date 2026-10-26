@@ -30,7 +30,7 @@ jobs:
         with:
           node-version: '22'
       - name: Prepare and generate iOS project
-        run: bash scripts/prepare-ios.sh
+        run: bash scripts/prepare-ios.sh --device-only
       - name: Build unsigned device app
         run: |
           if xcodebuild -project LocalMinutes.xcodeproj -scheme LocalMinutes -configuration Release \

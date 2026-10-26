@@ -101,6 +101,97 @@ test('successful handoff verifies locally before deleting the artifact and exact
   });
 });
 
+for (const endpoint of ['discovery', 'status', 'artifacts']) {
+  test(`a transient GitHub ${endpoint} timeout retries without cancelling the build`, async () => {
+    await withDirectory(async directory => {
+      const outputDirectory = join(directory, 'download');
+      const fixture = githubFixture({ outputDirectory });
+      let interrupted = false;
+      const waits = [], progress = [];
+      const gh = async (args, options = {}) => {
+        const matches = endpoint === 'discovery' ? args[0] === 'run' && args[1] === 'list'
+          : args[0] === 'api' && args[1].endsWith(endpoint === 'status' ? '/runs/17' : '/artifacts');
+        if (matches && !interrupted) {
+          assert.equal(options.timeout, 30_000, 'A lost read connection must not hang for ten minutes');
+          interrupted = true;
+          throw new Error('dial tcp 4.208.26.200:443: connectex: A connection attempt failed');
+        }
+        return fixture.gh(args);
+      };
+      const ipa = await buildAndDownload({ repository: 'owner/repository', ref: 'main',
+        sourceCommit: commit, outputDirectory, requestID, gh,
+        sleep: async milliseconds => waits.push(milliseconds), onProgress: message => progress.push(message) });
+      assert.equal(await verifyDownloadedIPA(outputDirectory, commit), ipa);
+      assert.equal(interrupted, true);
+      assert.ok(waits.some(milliseconds => milliseconds > 0));
+      assert.ok(progress.some(message => /retry/i.test(message)));
+      assert.equal(fixture.calls.some(call => call.startsWith('run cancel')), false);
+    });
+  });
+}
+
+test('an exhausted connection outage preserves the remote run instead of cancelling or deleting it', async () => {
+  await withDirectory(async directory => {
+    const outputDirectory = join(directory, 'download');
+    const fixture = githubFixture({ outputDirectory });
+    let reads = 0;
+    const gh = async args => {
+      if (args[0] === 'api' && args[1].endsWith('/runs/17')) {
+        reads++;
+        throw new Error('Get https://api.github.com: net/http: TLS handshake timeout');
+      }
+      return fixture.gh(args);
+    };
+    await assert.rejects(() => buildAndDownload({ repository: 'owner/repository', ref: 'main',
+      sourceCommit: commit, outputDirectory, requestID, gh, sleep: async () => {} }), error => {
+      assert.match(error.message, /connection|timeout/i);
+      assert.match(error.message, /left running|preserved/i);
+      assert.ok(error.message.includes('https://github.com/owner/repository/actions/runs/17'));
+      return true;
+    });
+    assert.equal(reads, 5, 'Reads have a bounded retry budget');
+    assert.equal(fixture.calls.some(call => call.startsWith('run cancel') || call.includes('DELETE')), false);
+  });
+});
+
+test('an explicit cancellation during retry still cancels and cleans the matching run', async () => {
+  await withDirectory(async directory => {
+    const outputDirectory = join(directory, 'download');
+    const fixture = githubFixture({ outputDirectory });
+    let interrupted = false, cancelled = false;
+    const gh = async args => {
+      if (args[0] === 'api' && args[1].endsWith('/runs/17') && !interrupted) {
+        interrupted = true;
+        throw new Error('read tcp: connection reset by peer');
+      }
+      return fixture.gh(args);
+    };
+    await assert.rejects(() => buildAndDownload({ repository: 'owner/repository', ref: 'main',
+      sourceCommit: commit, outputDirectory, requestID, gh,
+      cancelled: () => cancelled, sleep: async () => { cancelled = true; } }), /cancelled/i);
+    assert.ok(fixture.calls.some(call => call.startsWith('run cancel 17')));
+    assert.ok(fixture.calls.some(call => call.includes('DELETE repos/owner/repository/actions/runs/17')));
+  });
+});
+
+test('a timed-out dispatch is not retried or treated as permission to cancel a possibly accepted build', async () => {
+  await withDirectory(async directory => {
+    const calls = [];
+    await assert.rejects(() => buildAndDownload({ repository: 'owner/repository', ref: 'main',
+      sourceCommit: commit, outputDirectory: join(directory, 'download'), requestID,
+      gh: async args => {
+        calls.push(args);
+        throw Object.assign(new Error('Request connection timed out'), { code: 'ETIMEDOUT' });
+      }, sleep: async () => { throw new Error('Dispatch must not retry'); } }), error => {
+      assert.match(error.message, /Remote run preserved/);
+      assert.ok(error.message.includes(requestID));
+      return true;
+    });
+    assert.equal(calls.length, 1);
+    assert.deepEqual(calls[0].slice(0, 3), ['workflow', 'run', 'build-ipa.yml']);
+  });
+});
+
 test('a corrupt download fails and still cancels and removes its remote build', async () => {
   await withDirectory(async directory => {
     const outputDirectory = join(directory, 'download');

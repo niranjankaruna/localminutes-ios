@@ -11,6 +11,18 @@ export const ghCLI = async (args, options = {}) => (await execute('gh', args, {
   encoding: 'utf8', timeout: 10 * 60 * 1000, maxBuffer: 4 * 1024 * 1024, ...options
 })).stdout.trim();
 
+class GitHubConnectionError extends Error {}
+
+function transientGitHubFailure(error) {
+  if (error instanceof GitHubConnectionError) return true;
+  if (['ETIMEDOUT', 'ESOCKETTIMEDOUT', 'ECONNRESET', 'ECONNREFUSED', 'ECONNABORTED',
+    'EPIPE', 'EAI_AGAIN', 'ENETUNREACH', 'EHOSTUNREACH', 'ENETDOWN', 'ENOTFOUND'].includes(error.code)) return true;
+  if (error.killed && error.signal === 'SIGTERM') return true; // execFile timeout
+  const message = `${error.stderr ?? ''}\n${error.message ?? ''}`;
+  return /dial tcp|connectex:|TLS handshake timeout|i\/o timeout|context deadline exceeded|socket hang up|unexpected EOF|connection (?:reset|refused|timed out|closed)|temporary failure in name resolution|no such host|network is unreachable/i.test(message)
+    || /\bHTTP\s+(?:408|429|500|502|503|504)\b|(?:API |secondary )?rate limit exceeded/i.test(message);
+}
+
 async function fetchFailedJobDiagnostics(gh, repository, runID) {
   const jobs = [], errors = [], messages = [];
   const api = async (endpoint, paginate = false) => JSON.parse(await gh([
@@ -114,7 +126,7 @@ async function saveFailedBuild({ gh, repository, runID, run, workflow, sourceCom
 // The injected CLI and delay let lifecycle tests exercise failures without GitHub writes.
 export async function downloadWorkflowArtifact({ repository, ref, sourceCommit, outputDirectory,
   workflow, runNamePrefix, artifactName, verifyDownload, workflowInputs = {},
-  requestID = randomUUID(), gh = ghCLI, sleep = delay, cancelled = () => false }) {
+  requestID = randomUUID(), gh = ghCLI, sleep = delay, cancelled = () => false, onProgress = () => {} }) {
   assert.match(repository, /^[\w.-]+\/[\w.-]+$/);
   assert.match(sourceCommit, /^[0-9a-f]{40}$/);
   assert.match(requestID, /^[0-9a-f-]{36}$/);
@@ -130,12 +142,32 @@ export async function downloadWorkflowArtifact({ repository, ref, sourceCommit, 
     throw error;
   }), false, 'Choose a new output directory; existing downloads are never overwritten');
 
-  const api = async endpoint => JSON.parse(await gh(['api', endpoint]));
+  let cleaningUp = false;
+  // Retry only read-only requests. Repeating a timed-out workflow dispatch can
+  // create a second build, and retrying artifact extraction can overwrite files.
+  const read = async (args, options = {}) => {
+    for (let attempt = 0; attempt < 5; attempt++) {
+      if (!cleaningUp && cancelled()) throw new Error('Local download cancelled');
+      try { return await gh(args, { timeout: 30_000, ...options }); }
+      catch (error) {
+        if (!transientGitHubFailure(error)) throw error;
+        if (!cleaningUp && cancelled()) throw new Error('Local download cancelled');
+        if (attempt === 4) {
+          throw new GitHubConnectionError(`GitHub connection failed after 5 attempts: ${error.stderr ?? error.message}`,
+            { cause: error });
+        }
+        const wait = 2_000 * 2 ** attempt;
+        onProgress(`GitHub connection interrupted; retrying in ${wait / 1000}s (${attempt + 1}/4).`);
+        await sleep(wait);
+      }
+    }
+  };
+  const api = async endpoint => JSON.parse(await read(['api', endpoint]));
   const runBase = `repos/${repository}/actions/runs`;
   const failures = [];
   let runID, downloaded;
   const findRun = async () => {
-    const runs = JSON.parse(await gh(['run', 'list', '--repo', repository,
+    const runs = JSON.parse(await read(['run', 'list', '--repo', repository,
       '--workflow', workflow, '--event', 'workflow_dispatch', '--limit', '100',
       '--json', 'databaseId,displayTitle']));
     return runs.find(run => run.displayTitle === `${runNamePrefix} ${requestID}`)?.databaseId;
@@ -158,6 +190,7 @@ export async function downloadWorkflowArtifact({ repository, ref, sourceCommit, 
       runID = await findRun();
       if (!runID) await sleep(5000);
     }
+    onProgress(`GitHub build: https://github.com/${repository}/actions/runs/${runID}`);
     const runPath = `${runBase}/${runID}`;
     let artifact;
     while (!artifact) {
@@ -169,7 +202,7 @@ export async function downloadWorkflowArtifact({ repository, ref, sourceCommit, 
       if (!artifact && run.status === 'completed') {
         let details;
         try {
-          details = await saveFailedBuild({ gh, repository, runID, run, workflow, sourceCommit, requestID, outputDirectory });
+          details = await saveFailedBuild({ gh: read, repository, runID, run, workflow, sourceCommit, requestID, outputDirectory });
         } catch (error) { details = `Could not save build diagnostics: ${error.message}`; }
         throw new Error(`Build finished (${run.conclusion}) without a transferable artifact\n${details}`);
       }
@@ -192,9 +225,19 @@ export async function downloadWorkflowArtifact({ repository, ref, sourceCommit, 
     assert.equal(run.conclusion, 'success', 'Workflow did not finish successfully');
   } catch (error) {
     failures.push(error);
+    if (transientGitHubFailure(error) && !cancelled()) {
+      const runURL = runID ? `https://github.com/${repository}/actions/runs/${runID}`
+        : `https://github.com/${repository}/actions/workflows/${encodeURIComponent(workflow)}`;
+      failures.push(new Error(`Remote run preserved after the connection failure; no further cancellation or deletion will be attempted.\n` +
+        `Check the run and download its artifact when your connection recovers: ${runURL}\n` +
+        `Request: ${runNamePrefix} ${requestID}. The workflow's normal transfer expiry still applies.` +
+        (downloaded ? `\nVerified local download: ${typeof downloaded === 'string' ? downloaded : outputDirectory}` : '')));
+      throw new AggregateError(failures, failures.map(error => error.message).join('\n'));
+    }
   }
 
   // Clean up only this uniquely identified request, including on verification failure.
+  cleaningUp = true;
   try {
     runID ??= await findRun();
     if (runID) {

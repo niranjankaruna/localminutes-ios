@@ -1,8 +1,18 @@
 #!/bin/bash
 set -euo pipefail
 
+native_arguments=(--framework-only --with-simulator)
+if [[ $# -gt 0 ]]; then
+  if [[ $# -eq 1 && "$1" == "--device-only" ]]; then
+    native_arguments=(--framework-only)
+  else
+    printf '%s\n' 'Usage: bash scripts/prepare-ios.sh [--device-only]' >&2
+    exit 2
+  fi
+fi
+
 test -f project.yml && test -f Package.swift
-python3 scripts/fixtures/prepare_native_summary.py --framework-only --with-simulator
+python3 scripts/fixtures/prepare_native_summary.py "${native_arguments[@]}"
 
 mkdir -p .agent-local/tools
 curl --fail --location --proto '=https' --proto-redir '=https' --retry 2 --max-time 120 \
