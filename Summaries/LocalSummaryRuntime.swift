@@ -46,7 +46,8 @@ private final class SummaryNativeResources {
         _ = SummaryNativeBackend.initialized
         var modelParameters = llama_model_default_params()
         modelParameters.n_gpu_layers = 0
-        modelParameters.use_mmap = true
+        // b11900 replaces use_mmap/use_mlock with a single loading-mode enum.
+        modelParameters.load_mode = LLAMA_LOAD_MODE_MMAP
         guard let loadedModel = modelURL.path.withCString({ llama_model_load_from_file($0, modelParameters) }) else {
             throw LocalSummaryRuntimeError.invalidModel
         }
