@@ -52,6 +52,9 @@ struct ModelBrowserView: View {
                             .accessibilityIdentifier("models.parakeet.browse")
                         Button("Open a model pack…") { showingPackImport = true }
                             .accessibilityIdentifier("models.pack.import")
+                            .fileImporter(isPresented: $showingPackImport, allowedContentTypes: [.json]) { result in
+                                if case .success(let file) = result { controller.importParakeetPack(file) }
+                            }
                         Text("A model pack describes the files and decoder version. Open a compatible pack to add another model.")
                             .font(.footnote).foregroundStyle(.secondary)
                     }.disabled(controller.isWorking || controller.isInspecting)
@@ -94,9 +97,7 @@ struct ModelBrowserView: View {
                         }
                     }
                     compatibilitySection
-                        .screenshotAnchor("models.compatibility")
                     selectedResourcesSection
-                        .screenshotAnchor("models.requirements")
                     Section {
                         Button { controller.downloadSelected() } label: {
                             Label("Download selected model", systemImage: "arrow.down.circle")
@@ -109,6 +110,12 @@ struct ModelBrowserView: View {
                         }
                         .accessibilityIdentifier("models.import")
                         .disabled(!controller.canDownload || controller.isWorking || controller.isInspecting)
+                        .fileImporter(isPresented: $showingImport, allowedContentTypes: [.data, .folder],
+                                      allowsMultipleSelection: true) { result in
+                            guard let manifest = importManifest else { return }
+                            importManifest = nil
+                            if case .success(let files) = result { controller.importSelectedFiles(files, manifest: manifest) }
+                        }
                         if controller.isImporting {
                             ProgressView(controller.message ?? "Importing model…")
                             Button("Cancel import") { controller.cancelDownload() }
@@ -159,15 +166,6 @@ struct ModelBrowserView: View {
             }
             .refreshable { await controller.refresh() }
             .sheet(isPresented: $showingCard) { modelCard }
-            .fileImporter(isPresented: $showingPackImport, allowedContentTypes: [.json]) { result in
-                if case .success(let file) = result { controller.importParakeetPack(file) }
-            }
-            .fileImporter(isPresented: $showingImport, allowedContentTypes: [.data, .folder],
-                          allowsMultipleSelection: true) { result in
-                guard let manifest = importManifest else { return }
-                importManifest = nil
-                if case .success(let files) = result { controller.importSelectedFiles(files, manifest: manifest) }
-            }
             .confirmationDialog("Remove installed model?", isPresented: $showingRemoval,
                                 titleVisibility: .visible) {
                 if let manifest = pendingRemoval {
@@ -381,6 +379,7 @@ struct ModelBrowserView: View {
                 }
             } header: {
                 Text("Engine compatibility").accessibilityIdentifier("models.compatibility.heading")
+                    .screenshotAnchor("models.compatibility")
             }
         }
     }
@@ -401,6 +400,7 @@ struct ModelBrowserView: View {
                 }
             } header: {
                 Text("Selected model requirements").accessibilityIdentifier("models.requirements.heading")
+                    .screenshotAnchor("models.requirements")
             }
         }
     }

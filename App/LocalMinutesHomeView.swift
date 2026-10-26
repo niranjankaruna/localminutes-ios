@@ -361,7 +361,7 @@ private struct MeetingDetailView: View {
             }
             .screenshotAnchor("meeting.notes")
             .disabled(controller.isLoadingDetail)
-            Section("Transcript") {
+            Section {
                 if services.recoveringMeetingID == id {
                     ProgressView("Resuming transcript from saved audio…")
                     Button("Cancel transcript recovery", role: .cancel) { services.cancelTranscriptRecovery() }
@@ -389,7 +389,6 @@ private struct MeetingDetailView: View {
                 ForEach(search.isEmpty ? (recoveredTranscript ?? controller.transcript) : controller.matches) { segment in
                     VStack(alignment: .leading, spacing: 8) {
                         Text(segment.text).textSelection(.enabled)
-                            .accessibilityIdentifier("meeting.transcript.text.\(segment.id.uuidString)")
                         Button {
                             Task { await playSegment(at: segment.startSample) }
                         } label: {
@@ -407,8 +406,9 @@ private struct MeetingDetailView: View {
                 if services.playback != nil || application.playbackOwnership?.hasPlaybackOwnership == true {
                     Button("Stop playback") { stopPlayback() }
                 }
+            } header: {
+                Text("Transcript").screenshotAnchor("meeting.transcript")
             }
-            .screenshotAnchor("meeting.transcript")
             MeetingIntelligenceView(controller: intelligenceController, playCitation: { target in
                 guard target.meetingID == id,
                       (recoveredTranscript ?? controller.transcript).contains(where: { $0.id == target.segmentID && $0.meetingID == id }) else { return }

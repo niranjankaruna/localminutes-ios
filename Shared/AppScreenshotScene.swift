@@ -122,7 +122,7 @@ enum AppScreenshotScene: String, CaseIterable {
         case .meetingsBackup: "meeting.history.backup.share"
         case .meetingsRestore, .modelsImport, .modelsPack: "system.filePicker"
         case .meetingNotes: "meeting.notes.editor"
-        case .meetingTranscript, .meetingTranscriptSearch: "meeting.transcript.text.20000000-0000-0000-0000-000000000002"
+        case .meetingTranscript, .meetingTranscriptSearch: "meeting.transcript.segment.20000000-0000-0000-0000-000000000002"
         case .meetingSummary: "meeting.generatedSummary.editor"
         case .meetingSummaryReset: "meeting.summary.reset.confirm"
         case .meetingAnswers: "meeting.qa.answer.editor.30000000-0000-0000-0000-000000000002"

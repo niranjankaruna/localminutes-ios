@@ -51,9 +51,17 @@ final class AppScreenshotsUITests: XCTestCase {
             action.tap()
         }
         let target: XCUIElement
-        switch scene.target {
-        case "system.filePicker": target = app.buttons["Cancel"].firstMatch
-        case "system.shareSheet": target = app.buttons["Copy"].firstMatch
+        switch scene {
+        case .meetingsEmpty:
+            target = app.staticTexts.matching(identifier: scene.target)
+                .matching(NSPredicate(format: "label == %@", "No meetings yet")).firstMatch
+        case .meetingTranscript, .meetingTranscriptSearch:
+            target = app.staticTexts[scene.target]
+        case .meetingsRestore, .modelsImport, .modelsPack:
+            target = app.buttons["Cancel"].firstMatch
+        case .meetingShare:
+            target = app.otherElements["ActivityListView"].cells
+                .matching(NSPredicate(format: "label == %@", "Copy")).firstMatch
         default: target = element(scene.target, in: app)
         }
         try waitUntilVisible(target, description: scene.target)
