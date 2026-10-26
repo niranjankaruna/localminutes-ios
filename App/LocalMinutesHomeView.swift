@@ -1,23 +1,25 @@
-import AVFoundation
 import Foundation
 import SwiftUI
-import UniformTypeIdentifiers
+
+enum LocalMinutesTab: Hashable { case meetings, record, settings }
 
 @MainActor
 struct LocalMinutesHomeView: View {
     let application: RecordingApplication
     @Environment(\.scenePhase) private var scenePhase
     @State private var privacy: RecordingPrivacyController
-    @State private var selectedTab = 0
+    @State private var libraryActions: LibraryActionsController
+    @State private var selectedTab: LocalMinutesTab = .meetings
     @State private var meetingPath: [UUID] = []
     @State private var handledMeetingRequestID: UUID?
 
     init(application: RecordingApplication, privacy: RecordingPrivacyController? = nil) {
         self.application = application
         _privacy = State(initialValue: privacy ?? RecordingPrivacyController())
+        _libraryActions = State(initialValue: LibraryActionsController(application: application))
         #if DEBUG
         if let scene = AppScreenshotFixture.scene {
-            _selectedTab = State(initialValue: scene.isModels ? 2 : scene.isHistory || scene.isMeeting ? 1 : 0)
+            _selectedTab = State(initialValue: scene.isModels ? .settings : scene.isRecord ? .record : .meetings)
             _meetingPath = State(initialValue: scene.isMeeting ? [AppScreenshotFixture.detailMeetingID] : [])
         }
         #endif
@@ -25,49 +27,71 @@ struct LocalMinutesHomeView: View {
 
     var body: some View {
         RecordingPrivacyRoot(controller: privacy) {
-        TabView(selection: $selectedTab) {
-            RecordingControlsView(application: application)
-                .tabItem { Label("Record", systemImage: "mic") }
-                .tag(0)
-            if let services = application.services {
-                MeetingHistoryView(services: services, application: application, path: $meetingPath)
-                    .tabItem { Label("Meetings", systemImage: "text.book.closed") }
-                    .tag(1)
-                ModelBrowserView(controller: services.modelBrowser, application: application)
-                    .tabItem { Label("Models", systemImage: "internaldrive") }
-                    .tag(2)
+            TabView(selection: $selectedTab) {
+                Group {
+                    if let services = application.services {
+                        MeetingHistoryView(services: services, application: application, actions: libraryActions, path: $meetingPath,
+                                           startRecording: { selectedTab = .record })
+                    } else {
+                        ContentUnavailableView("Meetings unavailable", systemImage: "externaldrive.badge.exclamationmark",
+                            description: Text("Reopen LocalMinutes to try loading your library again."))
+                    }
+                }
+                .tabItem { Label("Meetings", systemImage: "text.book.closed") }.tag(LocalMinutesTab.meetings)
+                RecordingControlsView(application: application, openMeeting: { id in
+                    meetingPath = [id]; selectedTab = .meetings
+                })
+                .tabItem { Label("Record", systemImage: "mic") }.tag(LocalMinutesTab.record)
+                Group {
+                    if let services = application.services {
+                        LocalMinutesSettingsView(services: services, application: application, actions: libraryActions)
+                    } else {
+                        NavigationStack { MinutesPrivacyView() }
+                    }
+                }
+                .tabItem { Label("Settings", systemImage: "gearshape") }.tag(LocalMinutesTab.settings)
             }
-        }
-        .id(application.services.map { ObjectIdentifier($0) })
-        .disabled(application.isRestoringLibrary || application.services?.maintainingLibrary == true)
-        .tint(.blue)
-        .task(id: application.services.map { ObjectIdentifier($0) }) { await application.services?.initialize() }
-        .onChange(of: application.meetingNavigation?.requestID, initial: true) { _, requestID in
-            #if DEBUG
-            if AppScreenshotFixture.scene != nil { return }
-            #endif
-            guard requestID != nil, let id = application.meetingNavigation?.requestedMeetingID else {
-                meetingPath = []
-                handledMeetingRequestID = nil
-                return
-            }
-            guard handledMeetingRequestID != requestID else { return }
-            handledMeetingRequestID = requestID
-            selectedTab = 1
-            // Replace any previous detail path. A fresh request is observable
-            // even when the user has since popped this same meeting.
-            meetingPath = [id]
-        }
-        .onChange(of: scenePhase) { _, phase in
-            do {
-                try application.recordScenePhase(phase)
-                if phase == .background, let services = application.services {
-                    _ = try services.persistMetricsCheckpoint()
+            .id(application.services.map { ObjectIdentifier($0) })
+            .tint(MinutesStyle.accent)
+            .disabled(application.isRestoringLibrary || application.services?.maintainingLibrary == true)
+            .overlay {
+                if application.isRestoringLibrary {
+                    ZStack {
+                        MinutesStyle.background.ignoresSafeArea()
+                        MinutesProgress(title: "Preparing your library", detail: "Keep LocalMinutes open.").padding(24)
+                    }.accessibilityIdentifier("library.restoring")
                 }
             }
-            catch { application.services?.metrics?.recordError(.writeFailed) }
-            if phase == .background { application.services?.cancelCurrentIntelligence() }
+            .task(id: application.services.map { ObjectIdentifier($0) }) { await application.services?.initialize() }
+            .onChange(of: application.meetingNavigation?.requestID, initial: true) { _, requestID in
+                #if DEBUG
+                if AppScreenshotFixture.scene != nil { return }
+                #endif
+                guard let requestID, let id = application.meetingNavigation?.requestedMeetingID else {
+                    meetingPath = []; handledMeetingRequestID = nil
+                    return
+                }
+                guard handledMeetingRequestID != requestID else { return }
+                handledMeetingRequestID = requestID
+                meetingPath = [id]; selectedTab = .meetings
+            }
+            .onChange(of: scenePhase) { _, phase in
+                do {
+                    try application.recordScenePhase(phase)
+                    if phase == .background, let services = application.services {
+                        _ = try services.persistMetricsCheckpoint()
+                    }
+                } catch { application.services?.metrics?.recordError(.writeFailed) }
+                if phase == .background { application.services?.cancelCurrentIntelligence() }
+            }
         }
+        .onChange(of: application.services.map { ObjectIdentifier($0) }) { previous, current in
+            guard previous != nil, current != nil, previous != current else { return }
+            // A restore (including reopening the retained library on failure)
+            // invalidates detail controllers tied to the previous SQLite store.
+            meetingPath = []
+            handledMeetingRequestID = nil
+            selectedTab = .meetings
         }
     }
 }
@@ -77,558 +101,168 @@ private struct MeetingHistoryView: View {
     let services: LocalMinutesServices
     let application: RecordingApplication
     @Binding var path: [UUID]
+    let startRecording: () -> Void
     @State private var query = ""
     @State private var pendingDeletion: UUID?
     @State private var confirmingDeletion = false
-    @State private var choosingBackup = false
-    @State private var confirmingRestore = false
-    @State private var pendingRestore: URL?
-    @State private var backupURL: URL?
-    @State private var reportText: String?
-    @State private var working = false
-    @State private var actionMessage: String?
+    @State private var deleting = false
+    @State private var showingBackup = false
+    @State private var showingReport = false
     @State private var screenshotPrepared = false
+    @State private var actions: LibraryActionsController
 
-    private var unavailable: Bool { working || services.maintainingLibrary || application.isRestoringLibrary }
+    init(services: LocalMinutesServices, application: RecordingApplication, actions: LibraryActionsController,
+         path: Binding<[UUID]>, startRecording: @escaping () -> Void) {
+        self.services = services; self.application = application; _path = path
+        self.startRecording = startRecording
+        _actions = State(initialValue: actions)
+    }
+    private var unavailable: Bool { actions.unavailable || deleting }
+    private var days: [Date] {
+        Array(Set(services.library.meetings.map { Calendar.current.startOfDay(for: $0.createdAt) })).sorted(by: >)
+    }
 
     var body: some View {
         NavigationStack(path: $path) {
-            ScrollViewReader { screenshotScroll in
-            historyList
-            .screenshotReady(screenshotPrepared)
-            .screenshotScroll(screenshotScroll, ready: screenshotPrepared)
-            .task {
-                #if DEBUG
-                guard let scene = AppScreenshotFixture.scene, scene.isHistory else { return }
-                if scene == .meetingsSearch { query = "Alpha" }
-                await services.library.searchHistory(query)
-                if scene == .meetingsBackup {
-                    do { backupURL = try await application.exportLibraryBackup() }
-                    catch { actionMessage = "Screenshot backup preparation failed: \(error)" }
+            List {
+                if let error = services.library.errorMessage {
+                    Section { Text(error).foregroundStyle(MinutesStyle.recording) }
                 }
-                screenshotPrepared = true
-                #endif
+                if let message = actions.message ?? services.libraryMessage {
+                    Section { Text(message).font(.callout).foregroundStyle(.secondary) }
+                }
+                if services.library.meetings.isEmpty && !services.library.isLoadingHistory && services.library.errorMessage == nil {
+                    MinutesEmptyState(title: query.isEmpty ? "No meetings yet" : "No matching meetings",
+                        symbol: query.isEmpty ? "text.book.closed" : "magnifyingglass",
+                        detail: query.isEmpty ? "Record a conversation. Keep the details." : "Try a different meeting title.",
+                        actionTitle: query.isEmpty ? "Record a meeting" : "Clear search",
+                        action: { if query.isEmpty { startRecording() } else { query = "" } },
+                        identifier: "meeting.history.empty")
+                        .listRowBackground(Color.clear)
+                }
+                ForEach(days, id: \.self) { day in
+                    Section(dayTitle(day)) {
+                        ForEach(services.library.meetings.filter { Calendar.current.isDate($0.createdAt, inSameDayAs: day) }) { meeting in
+                            NavigationLink(value: meeting.id) {
+                                MeetingHistoryRow(meeting: meeting,
+                                    content: services.library.contentStatuses[meeting.id] ?? .unknown)
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button("Delete", role: .destructive) { askToDelete(meeting.id) }.disabled(unavailable)
+                            }
+                            .contextMenu {
+                                Button("Delete meeting", systemImage: "trash", role: .destructive) { askToDelete(meeting.id) }
+                                    .disabled(unavailable)
+                            }
+                        }
+                    }
+                }
+                if services.library.isLoadingHistory { ProgressView("Loading meetings…") }
+                if services.library.hasMoreMeetings {
+                    Button("Load more meetings") { Task { await services.library.loadMoreMeetings() } }
+                        .accessibilityIdentifier("meeting.history.loadMore")
+                        .disabled(unavailable || services.library.isLoadingHistory)
+                }
             }
-            .navigationTitle("Meetings")
-            .searchable(text: $query, prompt: "Search meeting titles")
+            .minutesList().navigationTitle("Meetings")
+            .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search meeting titles")
             .refreshable { await services.library.refresh() }
-            .task(id: query) {
-                #if DEBUG
-                if AppScreenshotFixture.scene != nil { return }
-                #endif
-                await services.library.searchHistory(query)
-            }
-            .onChange(of: path) { _, destinations in
-                if destinations.isEmpty { Task { await services.library.refresh() } }
-            }
+            .task(id: query) { await services.library.searchHistory(query) }
+            .onChange(of: path) { _, value in if value.isEmpty { Task { await services.library.refresh() } } }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
-                        Button("Create library backup", systemImage: "square.and.arrow.up") { createBackup() }
-                            .accessibilityLabel("Create library backup")
+                        if services.library.hasMoreMeetings {
+                            Button("Load more meetings") { Task { await services.library.loadMoreMeetings() } }
+                                .accessibilityIdentifier("meeting.history.loadMore.menu")
+                                .disabled(services.library.isLoadingHistory)
+                        }
+                        Button("Back up meetings", systemImage: "square.and.arrow.up") {
+                            actions.prepareNewBackup(); showingBackup = true
+                        }
                             .accessibilityIdentifier("meeting.history.backup.create")
-                        Button("Restore library backup…", systemImage: "square.and.arrow.down") { choosingBackup = true }
-                            .accessibilityLabel("Restore library backup…")
+                        Button("Restore backup", systemImage: "square.and.arrow.down") { actions.choosingBackup = true }
                             .accessibilityIdentifier("meeting.history.backup.restore")
-                        Button("Prepare recording report", systemImage: "chart.bar") { prepareReport() }
-                            .accessibilityLabel("Prepare recording report")
+                        Button("Recording report", systemImage: "chart.bar") { showingReport = true }
                             .accessibilityIdentifier("meeting.history.report.prepare")
-                    } label: { Label("Library actions", systemImage: "ellipsis.circle") }
-                    .accessibilityIdentifier("meeting.history.actions")
+                    } label: { Image(systemName: "ellipsis.circle").frame(minWidth: 44, minHeight: 44) }
+                    .accessibilityLabel("Library actions").accessibilityIdentifier("meeting.history.actions")
                     .disabled(unavailable)
                 }
             }
-            .navigationDestination(for: UUID.self) { id in
-                MeetingDetailView(services: services, application: application, id: id)
+            .navigationDestination(for: UUID.self) {
+                MeetingDetailView(services: services, application: application, id: $0)
             }
+            .navigationDestination(isPresented: $showingReport) { RecordingReportView(controller: actions) }
+            .sheet(isPresented: $showingBackup) { LibraryBackupView(controller: actions) }
+            .modifier(LibraryRestoreModifier(controller: actions))
             .confirmationDialog("Delete this meeting?", isPresented: $confirmingDeletion, titleVisibility: .visible) {
-                Button("Delete meeting and all its data", role: .destructive) {
+                Button("Delete meeting", role: .destructive) {
                     guard let id = pendingDeletion else { return }
-                    pendingDeletion = nil; working = true
-                    Task {
-                        let removed = await services.deleteMeeting(id: id)
-                        actionMessage = removed ? "Meeting deleted." : services.libraryMessage
-                        working = false
-                    }
+                    pendingDeletion = nil; deleting = true
+                    Task { _ = await services.deleteMeeting(id: id); deleting = false }
                 }
                 Button("Cancel", role: .cancel) { pendingDeletion = nil }
             } message: {
-                Text("Delete its audio, transcript, notes, summaries, answers and unfinished processing? This cannot be undone.")
+                Text("Its audio, transcript, notes, summaries, and answers will be permanently deleted.")
             }
-            .fileImporter(isPresented: $choosingBackup, allowedContentTypes: [.folder], allowsMultipleSelection: false) { result in
-                Task { @MainActor in
-                    switch result {
-                    case .success(let urls):
-                        pendingRestore = urls.first
-                        confirmingRestore = pendingRestore != nil
-                    case .failure:
-                        actionMessage = "The backup folder could not be opened."
-                    }
+            .screenshotReady(screenshotPrepared)
+            .task {
+                #if DEBUG
+                if let scene = AppScreenshotFixture.scene, scene.isHistory {
+                    if scene == .meetingsSearch { query = "Alpha" }
+                    await services.library.searchHistory(query)
+                    if scene == .meetingsBackup { showingBackup = true }
+                    screenshotPrepared = true
                 }
-            }
-            .confirmationDialog("Replace the current library?", isPresented: $confirmingRestore, titleVisibility: .visible) {
-                Button("Use this backup", role: .destructive) { restoreBackup() }
-                Button("Cancel", role: .cancel) { pendingRestore = nil }
-            } message: {
-                Text("Save edits and stop recording or playback first. This backup becomes the active library; the previous library is retained and installed models stay available.")
-            }
-            .disabled(services.maintainingLibrary || application.isRestoringLibrary)
+                #endif
             }
         }
     }
-
-    private var historyList: some View {
-        List {
-            historyPagingState
-            if let error = services.library.errorMessage { Text(error).foregroundStyle(.red) }
-            if let actionMessage { Text(actionMessage).foregroundStyle(.secondary) }
-            if let message = services.libraryMessage { Text(message).font(.caption).foregroundStyle(.secondary) }
-            if working { ProgressView("Preparing saved meetings…") }
-            if let backupURL {
-                Section("Backup ready") {
-                    ShareLink("Save or share library backup", item: backupURL)
-                        .accessibilityLabel("Save or share library backup")
-                        .accessibilityIdentifier("meeting.history.backup.share")
-                    Text("This backup includes meeting audio, transcripts, notes and generated content.")
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-                .screenshotAnchor("history.backup")
-            }
-            if let reportText {
-                Section("Recording report") {
-                    ShareLink("Share sampled recording report", item: reportText)
-                        .accessibilityLabel("Share sampled recording report")
-                        .accessibilityIdentifier("meeting.history.report.share")
-                    Text("Samples describe observed performance. Your locked-screen and long-meeting checks are still required.")
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-            }
-            if services.library.meetings.isEmpty && !services.library.isLoadingHistory && services.library.errorMessage == nil {
-                ContentUnavailableView(query.isEmpty ? "No meetings yet" : "No matching meetings", systemImage: "text.book.closed",
-                    description: Text(query.isEmpty ? "Install the speech model, then start your first meeting." : "Try another meeting title."))
-                    .accessibilityIdentifier("meeting.history.empty")
-                    .screenshotAnchor("history.top")
-            }
-            ForEach(services.library.meetings) { meeting in
-                NavigationLink(value: meeting.id) {
-                    MeetingHistoryRow(meeting: meeting,
-                        content: services.library.contentStatuses[meeting.id] ?? .unknown)
-                }
-                .screenshotAnchor(meeting.id.uuidString == "10000000-0000-0000-0000-000000000001" ? "history.top" : meeting.id.uuidString)
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button("Delete", role: .destructive) { askToDelete(meeting.id) }
-                        .disabled(unavailable)
-                }
-                .contextMenu {
-                    Button("Delete meeting", role: .destructive) { askToDelete(meeting.id) }
-                        .disabled(unavailable)
-                }
-            }
-        }
-    }
-
-    @ViewBuilder private var historyPagingState: some View {
-        if services.library.isLoadingHistory {
-            ProgressView("Loading meetings…").accessibilityIdentifier("meeting.history.loading")
-        } else if services.library.hasMoreMeetings {
-            Button("Load more meetings") { Task { await services.library.loadMoreMeetings() } }
-                .accessibilityIdentifier("meeting.history.loadMore")
-                .disabled(unavailable)
-        }
-    }
-
     private func askToDelete(_ id: UUID) {
         guard !unavailable else { return }
         pendingDeletion = id; confirmingDeletion = true
     }
-
-    private func createBackup() {
-        guard !unavailable else { return }
-        working = true; actionMessage = nil
-        Task {
-            defer { working = false }
-            do { backupURL = try await application.exportLibraryBackup() }
-            catch { actionMessage = "Stop recording, playback and local processing, then try creating the backup again." }
-        }
-    }
-
-    private func restoreBackup() {
-        guard !unavailable, let url = pendingRestore else { return }
-        pendingRestore = nil; working = true; actionMessage = nil
-        Task {
-            let access = url.startAccessingSecurityScopedResource()
-            defer { if access { url.stopAccessingSecurityScopedResource() }; working = false }
-            do { try await application.restoreLibrary(from: url) }
-            catch { actionMessage = "The backup could not be restored. The previous library remains available. Stop other work and check the selected backup folder." }
-        }
-    }
-
-    private func prepareReport() {
-        guard !unavailable else { return }
-        do {
-            let bytes = try services.exportEnduranceMetrics()
-            guard let text = String(data: bytes, encoding: .utf8) else { return }
-            reportText = text; actionMessage = nil
-        } catch { actionMessage = "The recording report could not be prepared yet." }
+    private func dayTitle(_ day: Date) -> String {
+        if Calendar.current.isDateInToday(day) { return "Today" }
+        if Calendar.current.isDateInYesterday(day) { return "Yesterday" }
+        return day.formatted(date: .abbreviated, time: .omitted)
     }
 }
 
-@MainActor
 private struct MeetingHistoryRow: View {
     let meeting: MeetingRecord
     let content: MeetingContentStatus
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             Text(meeting.title).font(.headline)
                 .accessibilityIdentifier("meeting.history.title.\(meeting.id.uuidString)")
-            Text(meeting.createdAt, format: .dateTime.month().day().hour().minute())
+            Text("\(meeting.createdAt.formatted(date: .omitted, time: .shortened)) · \(meeting.capturedSampleCount / 16_000 / 60) min")
                 .font(.subheadline).foregroundStyle(.secondary)
-            Text("\(meeting.capturedSampleCount / 16_000 / 60) min · \(meeting.recordingState == .recording ? "Unfinished" : meeting.recordingState.rawValue.capitalized)")
-                .font(.caption).foregroundStyle(.secondary)
-            Text(transcriptStatus)
-                .font(.caption).foregroundStyle(.secondary)
-                .accessibilityIdentifier("meeting.history.transcriptStatus")
-            Text(summaryStatus)
-                .font(.caption).foregroundStyle(.secondary)
-                .accessibilityIdentifier("meeting.history.summaryStatus")
+            if let attention {
+                Label(attention, systemImage: "info.circle")
+                    .font(.footnote).foregroundStyle(.secondary)
+                    .accessibilityIdentifier("meeting.history.attention")
+            }
         }
-        .padding(.vertical, 5)
+        .padding(.vertical, 9)
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("meeting.history.row.\(meeting.id.uuidString)")
+        .accessibilityValue(accessibleContentStatus)
     }
-
-    private var transcriptStatus: String {
-        switch content.transcript {
-        case .available: "Transcript available"
-        case .absent: "No transcript"
-        case .unknown: "Transcript status unavailable"
-        }
-    }
-
-    private var summaryStatus: String {
-        switch content.summary {
-        case .available: "Summary available"
-        case .absent: "Summary not generated"
-        case .unknown: "Summary status unavailable"
+    private var attention: String? {
+        switch meeting.recordingState {
+        case .recording: "Unfinished recording"
+        case .interrupted, .failed: "Recording needs review"
+        case .recovered: "Recovered audio"
+        case .completed: content.transcript == .absent ? "Transcript unavailable" : nil
         }
     }
-}
-
-@MainActor
-private struct MeetingDetailView: View {
-    let services: LocalMinutesServices
-    let application: RecordingApplication
-    let id: UUID
-    @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.dismiss) private var dismiss
-    @State private var title = ""
-    @State private var search = ""
-    @State private var controller: MeetingLibraryController
-    @State private var intelligenceController: MeetingIntelligenceController
-    @State private var playbackMessage: String?
-    @State private var playbackRequestID: UUID?
-    @State private var confirmingDeletion = false
-    @State private var deleting = false
-    @State private var deletionMessage: String?
-    @State private var recoveredTranscript: [StoredTranscriptSegment]?
-    @State private var selectedTranscriptSegmentID: UUID?
-    @State private var citationNavigationRequestID: UUID?
-    @State private var screenshotPrepared = false
-
-    private var unavailable: Bool { deleting || services.maintainingLibrary || application.isRestoringLibrary }
-
-    init(services: LocalMinutesServices, application: RecordingApplication, id: UUID) {
-        self.services = services; self.application = application; self.id = id
-        _controller = State(initialValue: MeetingLibraryController(store: services.store))
-        _intelligenceController = State(initialValue: MeetingIntelligenceController(services: services, meetingID: id))
-    }
-
-    var body: some View {
-        ScrollViewReader { transcriptScroll in
-        List {
-            if controller.isLoadingDetail {
-                ProgressView("Loading meeting…").accessibilityIdentifier("meeting.detail.loading")
-            }
-            if let error = controller.errorMessage { Text(error).foregroundStyle(.red) }
-            if let deletionMessage { Text(deletionMessage).foregroundStyle(.red) }
-            Section("Meeting name") {
-                TextField("Meeting name", text: $title)
-                    .onSubmit { Task { await controller.rename(title) } }
-                Button("Save name") { Task { await controller.rename(title) } }
-            }
-            .disabled(controller.isLoadingDetail)
-            Section("Original notes") {
-                MeetingNotesEditor(controller: controller)
-            }
-            .screenshotAnchor("meeting.notes")
-            .disabled(controller.isLoadingDetail)
-            Section {
-                if services.recoveringMeetingID == id {
-                    ProgressView("Resuming transcript from saved audio…")
-                    Button("Cancel transcript recovery", role: .cancel) { services.cancelTranscriptRecovery() }
-                } else {
-                    Button("Resume transcript from saved audio") {
-                        stopOwnedPlayback()
-                        services.resumeTranscript(meetingID: id)
-                    }
-                    .disabled(unavailable || intelligenceController.busy || services.recoveringMeetingID != nil)
-                }
-                if let message = services.libraryMessage { Text(message).font(.caption).foregroundStyle(.secondary) }
-                TextField("Find in this transcript", text: $search)
-                    .onChange(of: search) { _, query in
-                        #if DEBUG
-                        if AppScreenshotFixture.scene != nil { return }
-                        #endif
-                        Task { await controller.search(query) }
-                    }
-                    .disabled(controller.isLoadingDetail)
-                transcriptMoreMatches
-                if (recoveredTranscript ?? controller.transcript).isEmpty && !controller.isLoadingDetail {
-                    Text("No finalized transcript is available.").foregroundStyle(.secondary)
-                        .accessibilityIdentifier("meeting.transcript.empty")
-                }
-                ForEach(search.isEmpty ? (recoveredTranscript ?? controller.transcript) : controller.matches) { segment in
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(segment.text).textSelection(.enabled)
-                        Button {
-                            Task { await playSegment(at: segment.startSample) }
-                        } label: {
-                            Label("Play segment at \(timestamp(segment.startSample))", systemImage: "play.circle")
-                                .font(.caption)
-                        }
-                    }
-                    .padding(.vertical, 5)
-                    .id(segment.id)
-                    .listRowBackground(selectedTranscriptSegmentID == segment.id ? Color.accentColor.opacity(0.15) : Color.clear)
-                    .accessibilityIdentifier("meeting.transcript.segment.\(segment.id.uuidString)")
-                    .accessibilityAddTraits(selectedTranscriptSegmentID == segment.id ? .isSelected : [])
-                }
-                if let playbackMessage { Text(playbackMessage).font(.caption).foregroundStyle(.secondary) }
-                if services.playback != nil || application.playbackOwnership?.hasPlaybackOwnership == true {
-                    Button("Stop playback") { stopPlayback() }
-                }
-            } header: {
-                Text("Transcript").screenshotAnchor("meeting.transcript")
-            }
-            MeetingIntelligenceView(controller: intelligenceController, playCitation: { target in
-                guard target.meetingID == id,
-                      (recoveredTranscript ?? controller.transcript).contains(where: { $0.id == target.segmentID && $0.meetingID == id }) else { return }
-                search = ""
-                selectedTranscriptSegmentID = target.segmentID
-                citationNavigationRequestID = UUID()
-                await playSegment(at: target.startSample)
-            })
-            Section("Export") {
-                if let text = try? controller.export(markdown: false) {
-                    ShareLink("Share text", item: text)
-                        .accessibilityLabel("Share text")
-                        .accessibilityIdentifier("meeting.export.text")
-                }
-                if let markdown = try? controller.export(markdown: true) {
-                    ShareLink("Share Markdown", item: markdown)
-                        .accessibilityLabel("Share Markdown")
-                        .accessibilityIdentifier("meeting.export.markdown")
-                }
-                Text("Sharing sends the selected meeting to the app you choose.")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            .screenshotAnchor("meeting.export")
-            Section {
-                Button("Delete meeting", role: .destructive) { confirmingDeletion = true }
-                    .accessibilityIdentifier("meeting.delete")
-                    .disabled(unavailable || intelligenceController.busy || services.recoveringMeetingID != nil)
-            }
-            .screenshotAnchor("meeting.delete")
-        }
-        .screenshotReady(screenshotPrepared)
-        .screenshotScroll(transcriptScroll, ready: screenshotPrepared)
-        .onChange(of: citationNavigationRequestID) { _, _ in
-            // This runs after the cleared filter publishes the original row.
-            if let segmentID = selectedTranscriptSegmentID {
-                transcriptScroll.scrollTo(segmentID, anchor: .center)
-            }
-        }
-        }
-        .navigationTitle(controller.selected?.title ?? "Meeting")
-        .navigationBarTitleDisplayMode(.inline)
-        .task(id: id) {
-            await controller.open(id: id)
-            title = controller.selected?.title ?? ""
-            await intelligenceController.load()
-            #if DEBUG
-            intelligenceController.prepareScreenshotState()
-            if AppScreenshotFixture.scene == .meetingTranscriptSearch {
-                search = "shared-term"
-                await controller.search(search)
-            }
-            if AppScreenshotFixture.scene?.isMeeting == true { screenshotPrepared = true }
-            #endif
-        }
-        .onChange(of: services.recoveringMeetingID) { previous, current in
-            if previous == id, current == nil {
-                Task {
-                    // Refresh only transcript rows; keep the note editor and
-                    // any unsaved original note bound to its existing controller.
-                    recoveredTranscript = try? await services.store.transcript(meetingID: id)
-                    if !search.isEmpty { await controller.search(search) }
-                    await intelligenceController.load()
-                }
-            }
-        }
-        .confirmationDialog("Delete this meeting?", isPresented: $confirmingDeletion, titleVisibility: .visible) {
-            Button("Delete meeting and all its data", role: .destructive) {
-                deleting = true; stopOwnedPlayback()
-                Task {
-                    if await services.deleteMeeting(id: id) { dismiss() }
-                    else { deletionMessage = services.libraryMessage ?? "The meeting could not be deleted yet." }
-                    deleting = false
-                }
-            }
-            .accessibilityIdentifier("meeting.delete.confirm")
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Delete its audio, transcript, notes, summaries, answers and unfinished processing? This cannot be undone.")
-        }
-        .disabled(unavailable)
-        .onDisappear {
-            stopOwnedPlayback()
-            intelligenceController.leaveMeeting()
-        }
-        .onChange(of: scenePhase) { _, phase in
-            if phase == .background { intelligenceController.leaveMeeting() }
-        }
-        .privacySensitive()
-    }
-
-    @ViewBuilder private var transcriptMoreMatches: some View {
-        if !search.isEmpty && controller.hasMoreTranscriptMatches {
-            Button("Load more matches") { Task { await controller.loadMoreTranscriptMatches() } }
-                .accessibilityIdentifier("meeting.transcript.loadMore")
-                .disabled(unavailable || controller.isLoadingDetail)
-        }
-    }
-
-    private func timestamp(_ sample: Int64) -> String {
-        let seconds = sample / 16_000
-        return String(format: "%02lld:%02lld:%02lld", seconds / 3_600, (seconds / 60) % 60, seconds % 60)
-    }
-
-    private func playSegment(at sample: Int64) async {
-        let requestID = UUID()
-        playbackRequestID = requestID
-        if let state = await application.owner?.snapshot(),
-           state.cleanupPending || [.preparing, .recording, .stopping].contains(state.phase) {
-            guard playbackRequestID == requestID else { return }
-            playbackMessage = "Stop recording before playing meeting audio."
-            playbackRequestID = nil
-            return
-        }
-        guard playbackRequestID == requestID else { return }
-        do {
-            let directory = services.meetingsDirectory.appendingPathComponent(id.uuidString, isDirectory: true)
-            let manifest = try JSONDecoder().decode(AudioCaptureManifest.self,
-                from: Data(contentsOf: directory.appendingPathComponent("capture-manifest.json")))
-            guard let location = try MeetingPlaybackMapper.locate(globalSample: sample,
-                meetingID: id, manifest: manifest, meetingDirectory: directory) else {
-                playbackMessage = "Audio is unavailable at this time."
-                playbackRequestID = nil
-                return
-            }
-            let result = await application.playAudio(at: location, requestID: requestID)
-            guard playbackRequestID == requestID else { return }
-            switch result {
-            case .playing: playbackMessage = "Playing the selected audio segment."
-            case .blockedByRecording: playbackMessage = "Stop recording before playing meeting audio."
-            case .cleanupPending: playbackMessage = "Audio cleanup is pending. Tap Stop playback to retry."
-            default: playbackMessage = "This audio segment could not be played."
-            }
-        } catch {
-            guard playbackRequestID == requestID else { return }
-            stopOwnedPlayback()
-            playbackMessage = "This audio segment could not be played."
-        }
-    }
-
-    private func stopOwnedPlayback() {
-        guard let requestID = playbackRequestID else { return }
-        playbackRequestID = nil
-        playbackMessage = application.stopPlayback(expectedRequestID: requestID) == .cleanupPending
-            ? "Audio cleanup is pending. Tap Stop playback to retry." : nil
-    }
-
-    private func stopPlayback() {
-        playbackRequestID = nil
-        playbackMessage = application.stopPlayback() == .cleanupPending
-            ? "Audio cleanup is pending. Tap Stop playback to retry." : nil
-    }
-}
-
-@MainActor
-struct ActiveMeetingNotesView: View {
-    let id: UUID
-    @State private var controller: MeetingLibraryController
-    init(services: LocalMinutesServices, id: UUID) {
-        self.id = id
-        _controller = State(initialValue: MeetingLibraryController(store: services.store))
-    }
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Original notes").font(.headline)
-            MeetingNotesEditor(controller: controller)
-            if let error = controller.errorMessage { Text(error).font(.caption).foregroundStyle(.red) }
-        }
-        .task(id: id) { await controller.open(id: id) }
-    }
-}
-
-@MainActor
-struct MeetingNotesEditor: View {
-    let controller: MeetingLibraryController
-    @State private var text = ""
-    @State private var pending: Task<Void, Never>?
-    @State private var lastEdit: StoredManualNote?
-    @State private var saveError: String?
-    var body: some View {
-        VStack(alignment: .leading) {
-            TextEditor(text: $text)
-            .frame(minHeight: 120)
-            .accessibilityLabel("Original meeting notes")
-            .accessibilityIdentifier("meeting.notes.editor")
-            .task(id: controller.selected?.id) {
-                if let edit = lastEdit, edit.meetingID != controller.selected?.id {
-                    pending?.cancel()
-                    Task { await persist(edit) }
-                    lastEdit = nil
-                    saveError = nil
-                }
-                text = controller.note?.text ?? ""
-            }
-            .onChange(of: text) { _, value in
-                pending?.cancel()
-                guard let edit = controller.reserveManualNoteEdit(value) else { return }
-                lastEdit = edit
-                pending = Task {
-                    try? await Task.sleep(for: .milliseconds(300))
-                    guard !Task.isCancelled else { return }
-                    await persist(edit)
-                }
-            }
-            .onDisappear {
-                pending?.cancel()
-                if let edit = lastEdit { Task { await persist(edit) } }
-            }
-            if let saveError { Text(saveError).font(.caption).foregroundStyle(.red) }
-        }
-    }
-
-    private func persist(_ edit: StoredManualNote) async {
-        do {
-            try await controller.saveNotes(edit)
-            guard controller.selected?.id == edit.meetingID, lastEdit == edit else { return }
-            lastEdit = nil
-            saveError = nil
-        } catch {
-            guard controller.selected?.id == edit.meetingID, lastEdit == edit else { return }
-            saveError = "The latest note has not been saved. Keep this meeting open and try again."
-        }
+    private var accessibleContentStatus: String {
+        let transcript = content.transcript == .available ? "Transcript available" :
+            content.transcript == .absent ? "No transcript" : "Transcript status unavailable"
+        let summary = content.summary == .available ? "Summary available" :
+            content.summary == .absent ? "Summary not generated" : "Summary status unavailable"
+        return "\(transcript). \(summary)."
     }
 }

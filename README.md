@@ -4,9 +4,9 @@ LocalMinutes is an iPhone app for recording meetings, transcribing audio on the 
 
 The app has three tabs:
 
-- **Record:** microphone recording, live transcript, notes, recording status, and a Live Activity. Shortcuts support starting, stopping, and toggling a recording.
-- **Meetings:** history, rename, notes, transcript search and playback, summaries, cited answers, text/Markdown export, backup, and recovery of interrupted recordings.
-- **Models:** inspect public Hugging Face repositories, download or import supported model files, verify installations, and select speech and summary models.
+- **Meetings:** history and search, with focused Summary, Transcript, Notes, and Ask views. Meeting actions provide rename, recovery, export, and deletion.
+- **Record:** a single start/stop control, live transcript and notes, recording status, and a Live Activity. Shortcuts support starting, stopping, and toggling a recording.
+- **Settings:** speech and summary model selection, repository lookup, verified downloads/imports, library backup/restore, privacy, and diagnostics.
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for ownership, data flow, storage, recovery, and inference contracts.
 
@@ -48,8 +48,8 @@ Signing is disabled in the checked-in project configuration. Running on a physic
 
 ## Use the app
 
-1. Open **Models**, install a supported speech model, and select it for speech recognition. Speech recognition uses Parakeet TDT Core ML. Supported packs include v2 (about 464 MB) and v3 (about 483 MB); import or download the complete pack, then tap **Equip**.
-2. Optionally select a local GGUF summary model or an available Apple Intelligence provider. The local runtime supports reviewed Qwen2 and Phi3 architectures. A file being GGUF alone does not make it compatible.
+1. Open **Settings → Speech**, install a supported speech model, then choose **Use for recording**. The Record tab also opens setup when a model is missing. Speech recognition uses Parakeet TDT Core ML. Supported packs include v2 (about 464 MB) and v3 (about 483 MB); import or download the complete pack.
+2. In **Settings → Summaries & answers**, select a local GGUF model or an available Apple Intelligence provider. The local runtime supports reviewed Qwen2 and Phi3 architectures. A file being GGUF alone does not make it compatible. A repository and file selection are required before importing so the installer has the expected verification metadata.
 3. Start recording from **Record** or a recording Shortcut. Recording becomes active only after the audio session, microphone buffer, and Live Activity are ready. There is no recording-only fallback when speech preparation fails.
 4. Stop recording before requesting a summary or asking a question. Review generated content and its citations. Editable generated text is kept separately from the original output and transcript.
 

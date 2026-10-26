@@ -11,12 +11,14 @@ final class StoragePrivacyReportUITests: XCTestCase {
         app.launch()
         defer { app.terminate() }
 
-        let models = app.tabBars.buttons["Models"]
+        let models = app.tabBars.buttons["Settings"]
         XCTAssertTrue(models.waitForExistence(timeout: 10),
             "The existing fixture must initialize actual app services before inspecting their owned storage")
         guard models.exists else { return }
         models.tap()
-        XCTAssertTrue(app.navigationBars["Models"].waitForExistence(timeout: 5))
+        guard minutesTap(minutesElement("settings.about", in: app), in: app),
+              minutesTap(minutesElement("settings.storage", in: app), in: app) else { return }
+        XCTAssertTrue(app.navigationBars["Storage check"].waitForExistence(timeout: 5))
 
         let prepare = app.buttons["settings.storageAudit.prepare"]
         reveal(prepare, in: app)

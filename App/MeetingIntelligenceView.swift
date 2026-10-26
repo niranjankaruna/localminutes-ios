@@ -2,6 +2,7 @@
 import Foundation
 import Observation
 import SwiftUI
+import UIKit
 
 struct MeetingIntelligenceCitation: Identifiable {
     let id: String
@@ -56,6 +57,9 @@ final class MeetingIntelligenceController {
     }
 
     var busy: Bool { isRunning || cleanupPending || isResetting }
+    func modelSelectionChanged() {
+        if services.summaryInstalled { modelRequired = false }
+    }
     #if DEBUG
     func prepareScreenshotState() {
         if AppScreenshotFixture.scene == .meetingModelRequired { modelRequired = true }
@@ -430,153 +434,271 @@ final class MeetingIntelligenceController {
     }
 }
 
+
 @MainActor
 struct MeetingIntelligenceView: View {
     @Bindable var controller: MeetingIntelligenceController
+    let content: MeetingContentTab
+    let chooseModel: () -> Void
     let playCitation: @MainActor (MeetingCitationNavigationTarget) async -> Void
+    @State private var editingSummary = false
+    @State private var editingAnswer: StoredGeneratedDocument?
+    @State private var showingDetails = false
     @State private var confirmingFreshSummary = false
 
     var body: some View {
-        Group {
-            Section("Summary") {
-                if controller.summary != nil {
-                    TextEditor(text: $controller.summaryText)
-                        .frame(minHeight: 150)
-                        .accessibilityLabel("Generated meeting summary")
-                        .accessibilityIdentifier("meeting.generatedSummary.editor")
-                        .disabled(controller.busy)
-                        .onChange(of: controller.summaryText) { _, _ in controller.summaryChanged() }
-                    if controller.isSaving { Text("Saving summary…").font(.caption) }
-                    Button("Save summary") { Task { _ = await controller.flushSummaryEdits() } }
-                        .disabled(controller.busy || !controller.hasSummaryEdits || controller.isSaving)
-                    if controller.editConflict {
-                        Button("Reopen saved summary", role: .destructive) { controller.reopenSavedSummary() }
-                    }
-                    if let document = controller.summary {
-                        provenance(document)
-                        citationRows(document)
-                    }
-                } else {
-                    Text("Generate a local summary from this meeting's finalized transcript and original notes.")
-                        .foregroundStyle(.secondary)
-                }
-                Button(controller.summary == nil ? "Generate or resume summary" : "Generate or resume another summary") {
-                    controller.generateSummary()
-                }
-                .disabled(controller.busy || controller.editConflict)
-                .accessibilityIdentifier("meeting.generatedSummary.generate")
-                Button("Start a fresh summary…", role: .destructive) { confirmingFreshSummary = true }
-                    .accessibilityIdentifier("meeting.summary.reset")
-                    .screenshotAnchor("meeting.summary.reset")
-                    .disabled(controller.busy || controller.editConflict || controller.isSaving)
+        VStack(alignment: .leading, spacing: 24) {
+            if controller.busy {
+                MinutesProgress(title: content == .ask ? "Finding an answer" : "Summarizing",
+                    detail: controller.cleanupPending ? "Finishing the current operation…" : "Working on this iPhone.",
+                    cancel: controller.cancel)
+                    .accessibilityIdentifier("meeting.intelligence.running")
             }
-            .screenshotAnchor("meeting.summary")
-            Section("Ask this meeting") {
-                TextField("Ask a question about this meeting", text: $controller.question, axis: .vertical)
-                    .disabled(controller.busy)
-                    .accessibilityIdentifier("meeting.qa.question")
-                Button("Ask") { controller.ask() }
-                    .disabled(controller.busy || controller.question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    .accessibilityIdentifier("meeting.qa.ask")
-                ForEach(controller.answers) { answer in
-                    answerRow(answer)
-                }
-            }
-            .screenshotAnchor("meeting.answers")
-            Section {
-                if controller.isRunning {
-                    ProgressView(controller.message ?? "Working locally…")
-                        .accessibilityIdentifier("meeting.intelligence.running")
-                } else if let message = controller.message {
-                    Text(message).font(.caption).foregroundStyle(.secondary)
-                }
-                if controller.busy { Button("Cancel", role: .cancel) { controller.cancel() } }
-                if controller.modelRequired {
-                    Text("Download the summary model to summarize this meeting or ask questions.")
+            if controller.modelRequired {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Choose a model for summaries and answers.")
                         .accessibilityIdentifier("meeting.intelligence.modelRequired")
-                }
-                if let error = controller.errorMessage { Text(error).foregroundStyle(.red) }
-                if let text = controller.exportText {
-                    ShareLink("Share generated notes and answers", item: text)
-                        .accessibilityLabel("Share generated notes and answers")
-                        .accessibilityIdentifier("meeting.intelligence.share")
-                        .disabled(controller.hasSummaryEdits || controller.isSaving || controller.hasAnswerEdits
-                                  || !controller.savingAnswerIDs.isEmpty || !controller.answerEditConflicts.isEmpty)
-                }
-                Text("Generated content is separate from original notes and transcripts. Review it before sharing.")
-                    .font(.caption).foregroundStyle(.secondary)
+                    Button("Choose model", action: chooseModel)
+                        .buttonStyle(MinutesButtonStyle())
+                        .accessibilityIdentifier("meeting.intelligence.chooseModel")
+                }.minutesCard()
             }
-            .screenshotAnchor("meeting.intelligence")
+            if let error = controller.errorMessage { MinutesMessage(text: error, isError: true) }
+            if content == .summary { summaryContent } else { questionsContent }
         }
-        .confirmationDialog("Start summary from the beginning?", isPresented: $confirmingFreshSummary, titleVisibility: .visible) {
-            Button("Discard progress and generate", role: .destructive) { controller.startFreshSummary() }
+        .sheet(isPresented: $editingSummary) { SummaryEditorView(controller: controller) }
+        .sheet(item: $editingAnswer) { AnswerEditorView(controller: controller, answer: $0) }
+        .sheet(isPresented: $showingDetails) {
+            if let document = controller.summary { GeneratedDetailsView(document: document) }
+        }
+        .confirmationDialog("Start a fresh summary?", isPresented: $confirmingFreshSummary, titleVisibility: .visible) {
+            Button("Start fresh", role: .destructive) { controller.startFreshSummary() }
                 .accessibilityIdentifier("meeting.summary.reset.confirm")
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Discard unfinished summary progress for this meeting and generate again. Saved summaries, original notes and the transcript stay available.")
+            Text("Unfinished progress is discarded. Saved summaries, notes, and the transcript stay available.")
         }
     }
 
-    private func answerRow(_ answer: StoredGeneratedDocument) -> some View {
-        let changed = (controller.answerDrafts[answer.id] ?? answer.editedText) != answer.editedText
-        let saving = controller.savingAnswerIDs.contains(answer.id)
-        let conflict = controller.answerEditConflicts.contains(answer.id)
-        return VStack(alignment: .leading, spacing: 8) {
-            Text(answer.question ?? "Saved question").font(.headline).textSelection(.enabled)
-            TextEditor(text: Binding(
-                get: { controller.answerDrafts[answer.id] ?? answer.editedText },
-                set: { controller.answerDrafts[answer.id] = $0 }))
-                .frame(minHeight: 120)
-                .accessibilityLabel("Saved answer")
-                .accessibilityIdentifier("meeting.qa.answer.editor.\(answer.id.uuidString)")
-                .disabled(controller.busy)
-            Button("Save answer") {
-                Task { _ = await controller.flushAnswerEdits(documentID: answer.id) }
+    @ViewBuilder private var summaryContent: some View {
+        if let document = controller.summary {
+            SummaryReadingView(document: document, text: controller.summaryText)
+            citations(document)
+            HStack {
+                Button("Edit summary") { editingSummary = true }
+                    .frame(minHeight: 44).accessibilityIdentifier("meeting.summary.edit")
+                    .disabled(controller.busy)
+                Spacer()
+                Button("Details") { showingDetails = true }.frame(minHeight: 44)
             }
-            .disabled(controller.busy || !changed || saving || conflict)
-            .accessibilityIdentifier("meeting.qa.answer.save.\(answer.id.uuidString)")
-            if saving { Text("Saving answer…").font(.caption) }
-            if answer.editRevision > 0 && !changed && !saving && !conflict {
-                Text("Answer edit saved on this iPhone.")
-                    .font(.caption).foregroundStyle(.secondary)
-                    .accessibilityIdentifier("meeting.qa.answer.saved.\(answer.id.uuidString)")
+        } else if !controller.busy && !controller.modelRequired {
+            MinutesEmptyState(title: "No summary yet", symbol: "sparkles",
+                              detail: "Create a summary from this meeting.")
+            Button("Summarize meeting") { controller.generateSummary() }
+                .buttonStyle(MinutesButtonStyle()).accessibilityIdentifier("meeting.generatedSummary.generate")
+                .disabled(controller.editConflict)
+        }
+        Menu {
+            Button(controller.summary == nil ? "Generate or resume summary" : "Generate again") { controller.generateSummary() }
+                .accessibilityIdentifier(controller.summary == nil ? "meeting.summary.resume" : "meeting.generatedSummary.generate")
+            Button("Start from beginning…", role: .destructive) { confirmingFreshSummary = true }
+                .accessibilityIdentifier("meeting.summary.reset")
+        } label: { Label("Summary options", systemImage: "ellipsis.circle").frame(minHeight: 44) }
+        .accessibilityIdentifier("meeting.summary.options")
+        .disabled(controller.busy || controller.editConflict || controller.isSaving)
+    }
+
+    private var questionsContent: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            if controller.answers.isEmpty && !controller.busy && !controller.modelRequired {
+                MinutesEmptyState(title: "Ask this meeting", symbol: "bubble.left",
+                                  detail: "Find an answer in the conversation.")
             }
-            if let error = controller.answerSaveErrors[answer.id] {
-                Text(error).font(.caption).foregroundStyle(.red)
+            ForEach(controller.answers) { answer in
+                VStack(alignment: .leading, spacing: 16) {
+                    Text(answer.question ?? "Saved question").font(.title3.weight(.semibold)).textSelection(.enabled)
+                    Text(controller.answerDrafts[answer.id] ?? answer.editedText)
+                        .font(.body).lineSpacing(5).textSelection(.enabled)
+                        .accessibilityIdentifier("meeting.qa.answer.content.\(answer.id.uuidString)")
+                    citations(answer)
+                    Button("Edit answer") { editingAnswer = answer }
+                        .frame(minHeight: 44).disabled(controller.busy)
+                        .accessibilityIdentifier("meeting.qa.answer.edit.\(answer.id.uuidString)")
+                    if answer.editRevision > 0 {
+                        Text("Edited").font(.footnote).foregroundStyle(.secondary)
+                            .accessibilityIdentifier("meeting.qa.answer.saved.\(answer.id.uuidString)")
+                    }
+                }.minutesCard()
             }
-            if conflict {
-                Button("Reopen saved answer", role: .destructive) {
-                    Task { await controller.reopenSavedAnswer(documentID: answer.id) }
+        }
+    }
+
+    @ViewBuilder private func citations(_ document: StoredGeneratedDocument) -> some View {
+        let sources = controller.citations[document.id] ?? []
+        if !sources.isEmpty {
+            DisclosureGroup("Sources") {
+                VStack(alignment: .leading, spacing: 18) {
+                    ForEach(sources) { citation in
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("“\(citation.quote)”").font(.callout).foregroundStyle(.secondary).textSelection(.enabled)
+                            Button {
+                                guard let target = controller.citationNavigationTarget(documentID: document.id, citationID: citation.id) else { return }
+                                Task { await playCitation(target) }
+                            } label: {
+                                Label("View source · \(MinutesStyle.timestamp(samples: citation.startSample))", systemImage: "play.circle")
+                                    .font(.subheadline.weight(.semibold)).frame(minHeight: 44)
+                            }
+                            .accessibilityIdentifier("meeting.citation.\(citation.sourceID.uuidString)")
+                        }
+                    }
+                    if document.editRevision > 0 {
+                        Text("Sources refer to the original generated result.").font(.footnote).foregroundStyle(.secondary)
+                    }
+                }.padding(.top, 12)
+            }
+            .font(.subheadline.weight(.semibold))
+            .accessibilityIdentifier("meeting.sources.\(document.id.uuidString)")
+        }
+    }
+}
+
+struct MeetingQuestionComposer: View {
+    @Bindable var controller: MeetingIntelligenceController
+    @Environment(\.colorScheme) private var colorScheme
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if controller.busy { Text("Working on this iPhone…").font(.footnote).foregroundStyle(.secondary) }
+            HStack(alignment: .bottom, spacing: 12) {
+                TextField("Ask about this meeting", text: $controller.question, axis: .vertical)
+                    .font(.body).lineLimit(1...5).padding(14)
+                    .background(MinutesStyle.surface, in: RoundedRectangle(cornerRadius: 18))
+                    .accessibilityIdentifier("meeting.qa.question").disabled(controller.busy)
+                    .submitLabel(.send)
+                    .onSubmit { if !controller.busy { controller.ask() } }
+                Button {
+                    if controller.busy { controller.cancel() } else { controller.ask() }
+                } label: {
+                    Image(systemName: controller.busy ? "stop.fill" : "arrow.up")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(colorScheme == .dark ? Color.black : Color.white)
+                        .frame(width: 48, height: 48)
+                        .background(MinutesStyle.accent, in: Circle())
                 }
-                .disabled(controller.busy || saving)
-                .accessibilityIdentifier("meeting.qa.answer.reopen.\(answer.id.uuidString)")
+                .buttonStyle(MinutesPressStyle())
+                .accessibilityLabel(controller.busy ? "Cancel generation" : "Ask meeting")
+                .accessibilityIdentifier(controller.busy ? "meeting.intelligence.cancel" : "meeting.qa.ask")
+                .disabled(!controller.busy && controller.question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
-            provenance(answer)
-            citationRows(answer)
         }
-        .padding(.vertical, 5)
+        .padding(.horizontal, 20).padding(.vertical, 12)
+        .background(.bar)
     }
+}
 
-    private func provenance(_ document: StoredGeneratedDocument) -> some View {
-        VStack(alignment: .leading) {
-            Text("Model \(document.modelRevision) · \(document.promptVersion)")
-            if document.editRevision > 0 {
-                Text("Edited copy · citations describe the original generated result.")
+private struct SummaryEditorView: View {
+    @Bindable var controller: MeetingIntelligenceController
+    @Environment(\.dismiss) private var dismiss
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    TextEditor(text: $controller.summaryText)
+                        .font(.body).lineSpacing(5).frame(minHeight: 380)
+                        .scrollContentBackground(.hidden)
+                        .accessibilityLabel("Generated meeting summary")
+                        .accessibilityIdentifier("meeting.generatedSummary.editor")
+                        .onChange(of: controller.summaryText) { _, _ in controller.summaryChanged() }
+                    if controller.isSaving { ProgressView("Saving…") }
+                    if let error = controller.errorMessage { MinutesMessage(text: error, isError: true) }
+                    if controller.editConflict {
+                        Button("Copy my draft") { UIPasteboard.general.string = controller.summaryText }
+                            .buttonStyle(MinutesButtonStyle(kind: .secondary))
+                        Button("Reopen saved summary", role: .destructive) { controller.reopenSavedSummary() }
+                            .frame(minHeight: 44)
+                    }
+                    Text("Edits change this copy. Your original notes and transcript are preserved.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }.padding(24)
             }
-        }.font(.caption2).foregroundStyle(.secondary)
+            .background(MinutesStyle.background)
+            .navigationTitle("Edit summary").navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { Task { if await controller.flushSummaryEdits() { dismiss() } } }
+                        .accessibilityIdentifier("meeting.summary.save")
+                        .disabled(controller.busy || controller.isSaving || controller.editConflict)
+                }
+            }
+        }
+        .interactiveDismissDisabled(controller.hasSummaryEdits || controller.isSaving || controller.editConflict)
     }
+}
 
-    @ViewBuilder
-    private func citationRows(_ document: StoredGeneratedDocument) -> some View {
-        ForEach(controller.citations[document.id] ?? []) { citation in
-            VStack(alignment: .leading, spacing: 4) {
-                Text("“\(citation.quote)”").font(.callout).textSelection(.enabled)
-                Button("Play source at \(citation.time)") {
-                    guard let target = controller.citationNavigationTarget(documentID: document.id, citationID: citation.id) else { return }
-                    Task { await playCitation(target) }
-                }.font(.caption)
-                Text("Transcript source \(citation.sourceID.uuidString)").font(.caption2).foregroundStyle(.secondary)
+private struct AnswerEditorView: View {
+    @Bindable var controller: MeetingIntelligenceController
+    let answer: StoredGeneratedDocument
+    @Environment(\.dismiss) private var dismiss
+    private var changed: Bool { (controller.answerDrafts[answer.id] ?? answer.editedText) != (controller.answers.first { $0.id == answer.id }?.editedText ?? answer.editedText) }
+    private var saving: Bool { controller.savingAnswerIDs.contains(answer.id) }
+    private var conflict: Bool { controller.answerEditConflicts.contains(answer.id) }
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    Text(answer.question ?? "Saved question").font(.title2.weight(.semibold))
+                    TextEditor(text: Binding(get: { controller.answerDrafts[answer.id] ?? answer.editedText },
+                                            set: { controller.answerDrafts[answer.id] = $0 }))
+                        .font(.body).lineSpacing(5).frame(minHeight: 300)
+                        .scrollContentBackground(.hidden)
+                        .accessibilityLabel("Saved answer")
+                        .accessibilityIdentifier("meeting.qa.answer.editor.\(answer.id.uuidString)")
+                    if saving { ProgressView("Saving…") }
+                    if let error = controller.answerSaveErrors[answer.id] { MinutesMessage(text: error, isError: true) }
+                    if conflict {
+                        Button("Copy my draft") { UIPasteboard.general.string = controller.answerDrafts[answer.id] ?? answer.editedText }
+                            .buttonStyle(MinutesButtonStyle(kind: .secondary))
+                        Button("Reopen saved answer", role: .destructive) {
+                            Task { await controller.reopenSavedAnswer(documentID: answer.id) }
+                        }.accessibilityIdentifier("meeting.qa.answer.reopen.\(answer.id.uuidString)")
+                    }
+                    Text("Sources refer to the original answer.").font(.footnote).foregroundStyle(.secondary)
+                }.padding(24)
             }
+            .background(MinutesStyle.background)
+            .navigationTitle("Edit answer").navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        Task { if await controller.flushAnswerEdits(documentID: answer.id) { dismiss() } }
+                    }
+                    .accessibilityIdentifier("meeting.qa.answer.save.\(answer.id.uuidString)")
+                    .disabled(controller.busy || saving || conflict)
+                }
+            }
+        }.interactiveDismissDisabled(changed || saving || conflict)
+    }
+}
+
+private struct GeneratedDetailsView: View {
+    let document: StoredGeneratedDocument
+    @Environment(\.dismiss) private var dismiss
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    LabeledContent("Version", value: document.editRevision > 0 ? "Edited copy" : "Original")
+                    Text("Review generated content against its sources before sharing.").foregroundStyle(.secondary)
+                }
+                Section("Technical details") {
+                    LabeledContent("Prompt", value: document.promptVersion)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Model revision").font(.subheadline).foregroundStyle(.secondary)
+                        Text(document.modelRevision).font(.footnote.monospaced()).textSelection(.enabled)
+                    }
+                }
+            }
+            .minutesList().navigationTitle("Generation details").navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }
     }
 }

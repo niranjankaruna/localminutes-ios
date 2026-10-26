@@ -145,7 +145,7 @@ final class ModelBrowserController {
         do { manifest = try Self.manifest(repository, assessment: assessment, purpose: purpose) }
         catch { errorMessage = Self.describe(error); return }
         guard !installed.contains(where: { $0 == manifest }) else {
-            message = "This model is already downloaded. Tap Equip to use it."; return
+            message = "This model is installed. Select it to use it."; return
         }
         isWorking = true; isDownloading = true; errorMessage = nil
         downloadProgress = nil
@@ -160,8 +160,8 @@ final class ModelBrowserController {
                 _ = try await services.models.download(manifest, progress: { event in
                     _ = updates.continuation.yield(event)
                 })
-                message = "Downloaded and verified. Tap Equip to use this model."
-            } catch is CancellationError { message = "Download paused. Choose the same file and tap Download to resume its verified saved prefix." }
+                message = "Model verified. Ready to select."
+            } catch is CancellationError { message = "Download paused. Your progress is saved." }
             catch { errorMessage = Self.describe(error) }
             updates.continuation.finish()
             await consumer.value
@@ -263,7 +263,7 @@ final class ModelBrowserController {
             guard let self else { return }
             do {
                 _ = try await services.filesImporter.importFiles(files, manifest: manifest)
-                message = "Imported and verified. Tap Equip to use this model."
+                message = "Model verified. Ready to select."
             } catch is CancellationError { message = "Import cancelled. Existing installed models were preserved." }
             catch { errorMessage = Self.describe(error) }
             isImporting = false; isWorking = false; download = nil
@@ -279,7 +279,7 @@ final class ModelBrowserController {
             guard let profile = Self.profile(manifest) else { throw ModelSelectionError.unavailableRuntime }
             _ = try await services.modelSelections.select(manifest: manifest, profile: profile, for: manifest.purpose)
             await services.refreshModels(); await refresh()
-            message = "Equipped for \(manifest.purpose == .speechRecognition ? "speech" : "summary and Q&A")."
+            message = "Selected for \(manifest.purpose == .speechRecognition ? "recording" : "summaries and answers")."
         } catch { errorMessage = Self.describe(error) }
     }
 
@@ -365,7 +365,7 @@ final class ModelBrowserController {
             switch value {
             case .selectionInUse: return "Stop recording or local inference before changing equipped models."
             case .unavailableRuntime: return "This model's inference engine is not available in this build."
-            default: return "The model did not pass installation or selection checks. Download and equip a verified compatible file."
+            default: return "The model did not pass verification. Install and select a compatible model."
             }
         }
         return "The model operation failed. Check connection, free storage and whether the model is in use."

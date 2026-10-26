@@ -99,9 +99,9 @@ enum AppScreenshotScene: String, CaseIterable {
         switch self {
         case .meetingsActions: ["meeting.history.actions"]
         case .meetingsRestore: ["meeting.history.actions", "meeting.history.backup.restore"]
-        case .meetingSummaryReset: ["meeting.summary.reset"]
+        case .meetingSummaryReset: ["meeting.summary.options", "meeting.summary.reset"]
         case .meetingShare: ["meeting.export.text"]
-        case .meetingDelete: ["meeting.delete"]
+        case .meetingDelete: ["meeting.actions", "meeting.delete"]
         case .modelsImport: ["models.import"]
         case .modelsPack: ["models.pack.import"]
         case .modelsRemove: ["models.remove.ui-model-alpha"]
@@ -117,16 +117,16 @@ enum AppScreenshotScene: String, CaseIterable {
         case .recordTranscript: "recording.liveTranscript.20000000-0000-0000-0000-000000000001"
         case .recordNotes: "meeting.notes.editor"
         case .meetingsEmpty: "meeting.history.empty"
-        case .meetingsHistory, .meetingsSearch: "meeting.history.title.10000000-0000-0000-0000-000000000001"
+        case .meetingsHistory, .meetingsSearch: "meeting.history.row.10000000-0000-0000-0000-000000000001"
         case .meetingsActions: "meeting.history.backup.create"
         case .meetingsBackup: "meeting.history.backup.share"
         case .meetingsRestore, .modelsImport, .modelsPack: "system.filePicker"
-        case .meetingNotes: "meeting.notes.editor"
+        case .meetingNotes: "meeting.notes.content"
         case .meetingTranscript, .meetingTranscriptSearch: "meeting.transcript.segment.20000000-0000-0000-0000-000000000002"
-        case .meetingSummary: "meeting.generatedSummary.editor"
+        case .meetingSummary: "meeting.generatedSummary.content"
         case .meetingSummaryReset: "meeting.summary.reset.confirm"
-        case .meetingAnswers: "meeting.qa.answer.editor.30000000-0000-0000-0000-000000000002"
-        case .meetingExport: "meeting.export.markdown"
+        case .meetingAnswers: "meeting.qa.answer.content.30000000-0000-0000-0000-000000000002"
+        case .meetingExport: "meeting.export.format"
         case .meetingShare: "system.shareSheet"
         case .meetingDelete: "meeting.delete.confirm"
         case .meetingNoTranscript: "meeting.transcript.empty"
@@ -145,8 +145,7 @@ enum AppScreenshotScene: String, CaseIterable {
         case .modelsInstalled: "models.title.ui-model-alpha"
         case .modelsDetails: "models.runtime.ui-model-alpha"
         case .modelsRemove: "models.remove.confirm"
-        case .modelsDownloading: "models.download.resumed"
-        case .modelsVerifying: "models.download.filename"
+        case .modelsDownloading, .modelsVerifying: "models.download.stage"
         case .modelsCard: "models.card.content"
         }
     }

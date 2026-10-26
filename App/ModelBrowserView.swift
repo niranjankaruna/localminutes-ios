@@ -2,238 +2,555 @@ import Foundation
 import SwiftUI
 import UniformTypeIdentifiers
 
-@MainActor
-struct ModelBrowserView: View {
-    @Bindable var controller: ModelBrowserController
-    let application: RecordingApplication?
-    @State private var showingCard = false
-    @State private var pendingRemoval: ModelManifest?
-    @State private var showingRemoval = false
-    @State private var showingImport = false
-    @State private var showingPackImport = false
-    @State private var importManifest: ModelManifest?
-    @State private var sourceExpanded = false
-    @State private var expandedModels = Set<String>()
-    @State private var screenshotPrepared = false
+enum ModelDisplay {
+    static func name(_ manifest: ModelManifest) -> String {
+        if let pack = try? ParakeetModelPack.configuration(for: manifest) {
+            return pack.decoderContract == "parakeet-tdt-v3" ? "Parakeet TDT v3" : "Parakeet TDT v2"
+        }
+        return manifest.upstreamRepository.lastPathComponent.replacingOccurrences(of: "-", with: " ")
+    }
+    static func engine(_ manifest: ModelManifest) -> String {
+        switch manifest.runtimeVersion {
+        case ParakeetCoreMLModel.runtimeVersion, ParakeetModelPack.runtimeVersion: "Core ML"
+        case "llama.cpp-b5046": "GGUF"
+        default: manifest.runtimeVersion
+        }
+    }
+}
 
-    init(controller: ModelBrowserController, application: RecordingApplication? = nil) {
-        self.controller = controller; self.application = application
+enum ModelScreen: Hashable, Identifiable {
+    case repository, lookup, source, compatibility, requirements, download, transfer, files, card, apple
+    case installed(String)
+    var id: Self { self }
+}
+
+/// Standalone host used by the owned native UI fixture. Production model setup
+/// lives in Settings or a contextual setup sheet, using the same views.
+struct ModelBrowserView: View {
+    let controller: ModelBrowserController
+    var application: RecordingApplication? = nil
+    var body: some View {
+        NavigationStack {
+            ModelPurposeView(controller: controller, purpose: controller.purpose, application: application)
+        }.tint(MinutesStyle.accent)
+    }
+}
+
+struct ModelSetupSheet: View {
+    let controller: ModelBrowserController
+    let application: RecordingApplication?
+    let purpose: ModelPurpose
+    @Environment(\.dismiss) private var dismiss
+    var body: some View {
+        NavigationStack {
+            ModelPurposeView(controller: controller, purpose: purpose, application: application,
+                             onSelected: { dismiss() })
+                .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+        }.tint(MinutesStyle.accent)
+    }
+}
+
+@MainActor
+struct ModelPurposeView: View {
+    @Bindable var controller: ModelBrowserController
+    let purpose: ModelPurpose
+    var application: RecordingApplication? = nil
+    var onSelected: (() -> Void)? = nil
+    @State private var captureRoute: ModelScreen?
+    @State private var showingTransfer = false
+    @State private var showingPackImport = false
+    @State private var showingImport = false
+    @State private var importManifest: ModelManifest?
+    @State private var pendingRemoval: ModelManifest?
+    @State private var confirmingRemoval = false
+    @State private var confirmingDiscard = false
+    @State private var modelDetailsExpanded = false
+    @State private var transferDetails = false
+    @State private var screenshotPrepared = false
+    @State private var appleAvailability: AppleSummaryAvailability
+
+    init(controller: ModelBrowserController, purpose: ModelPurpose, application: RecordingApplication? = nil,
+         onSelected: (() -> Void)? = nil) {
+        self.controller = controller; self.purpose = purpose
+        self.application = application; self.onSelected = onSelected
+        _appleAvailability = State(initialValue: controller.appleAvailability)
         #if DEBUG
         if let scene = AppScreenshotFixture.scene {
-            _sourceExpanded = State(initialValue: [.modelsSource, .modelsCard].contains(scene))
-            _expandedModels = State(initialValue: scene == .modelsDetails
-                ? Set(controller.installed.filter { $0.modelID == "ui-model-alpha" }.map { InstalledModelRow(manifest: $0).id }) : [])
+            _modelDetailsExpanded = State(initialValue: scene == .modelsDetails)
+            let route: ModelScreen?
+            switch scene {
+            case .modelsRepository: route = .repository
+            case .modelsSource, .modelsCard: route = .source
+            case .modelsCompatibility: route = .compatibility
+            case .modelsRequirements: route = .requirements
+            case .modelsDownload, .modelsImport: route = .download
+            case .modelsDownloading, .modelsVerifying: route = .transfer
+            case .modelsDetails, .modelsRemove: route = .installed("ui-model-alpha")
+            default: route = nil
+            }
+            _captureRoute = State(initialValue: route)
+        } else if controller.downloadProgress != nil {
+            _captureRoute = State(initialValue: .transfer)
         }
         #endif
     }
 
+    private var busy: Bool { controller.isWorking || controller.isInspecting || controller.isPreparingStorageCheck }
+    private var installed: [ModelManifest] { controller.installed.filter { $0.purpose == purpose } }
+    private var title: String { purpose == .speechRecognition ? "Speech model" : "Summary model" }
+    private var selectionTitle: String { purpose == .speechRecognition ? "Use for recording" : "Use for summaries" }
+    private var repositoryTitle: String {
+        if let manifest = controller.repository?.parakeetManifest { return ModelDisplay.name(manifest) }
+        return controller.repository?.id.rawValue.split(separator: "/").last.map(String.init)?
+            .replacingOccurrences(of: "-", with: " ") ?? "Model"
+    }
+
     var body: some View {
-        NavigationStack {
-            ScrollViewReader { screenshotScroll in
-            Form {
-                Section {
-                    Picker("Model purpose", selection: $controller.purpose) {
-                        Text("Speech").tag(ModelPurpose.speechRecognition)
-                        Text("Summary").tag(ModelPurpose.summary)
-                    }
-                    .pickerStyle(.segmented)
-                    .disabled(controller.isWorking)
-                }
-                .screenshotAnchor("models.top")
-
-                transferProgressSection
-                    .screenshotAnchor("models.progress")
-
-                installedSection
-
-                if controller.purpose == .speechRecognition {
-                    Section("Parakeet Core ML") {
-                        Button("Browse Parakeet TDT v3") { controller.loadBundledParakeetV3() }
-                            .accessibilityIdentifier("models.parakeet.browse")
-                        Button("Open a model pack…") { showingPackImport = true }
-                            .accessibilityIdentifier("models.pack.import")
-                            .fileImporter(isPresented: $showingPackImport, allowedContentTypes: [.json]) { result in
-                                if case .success(let file) = result { controller.importParakeetPack(file) }
-                            }
-                        Text("A model pack describes the files and decoder version. Open a compatible pack to add another model.")
-                            .font(.footnote).foregroundStyle(.secondary)
-                    }.disabled(controller.isWorking || controller.isInspecting)
-                }
-
-                Section("Hugging Face repository") {
-                    TextField("owner/repository or Hugging Face URL", text: $controller.repositoryInput)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .keyboardType(.URL)
-                        .submitLabel(.search)
-                        .accessibilityLabel("Hugging Face repository")
-                        .disabled(controller.isInspecting || controller.isWorking)
-                        .onSubmit { inspect() }
-                    Button { inspect() } label: {
-                        if controller.isInspecting { ProgressView("Reading repository…") }
-                        else { Label("Look up repository", systemImage: "magnifyingglass") }
-                    }
-                    .disabled(controller.repositoryInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                              || controller.isInspecting || controller.isWorking)
-                    Text("Find a model, choose a compatible version, then download it to this iPhone.")
-                        .font(.footnote).foregroundStyle(.secondary)
-                }
-
-                if let repository = controller.repository {
-                    repositorySection(repository)
-                        .screenshotAnchor("models.repository")
-                    if !variants.isEmpty {
-                        Section("File variant") {
-                            Picker("Model file", selection: $controller.selectedFileName) {
-                                Text("Choose a variant").tag(Optional<String>.none)
-                                ForEach(variants, id: \.fileName) { file in
-                                    Text(verbatim: "\(file.fileName) · \(bytes(file.byteCount))")
-                                        .tag(Optional(file.fileName))
+        List {
+            if controller.purpose != purpose && busy {
+                Section { Text("Finish the current model operation before changing model purpose.") }
+            } else {
+                Section("On this iPhone") {
+                    ForEach(installed, id: \.modelID) { manifest in
+                        NavigationLink(value: ModelScreen.installed(manifest.modelID)) {
+                            HStack(spacing: 16) {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text(ModelDisplay.name(manifest)).font(.headline)
+                                        .accessibilityIdentifier("models.title.\(manifest.modelID)")
+                                    Text("\(controller.isEquipped(manifest) ? "Selected · " : "")\(bytes(installedBytes(manifest))) · \(ModelDisplay.engine(manifest))")
+                                        .font(.subheadline).foregroundStyle(.secondary)
                                 }
-                            }
-                            .disabled(controller.isWorking || controller.isInspecting)
-                            Text("Only the selected file is downloaded; other variants stay on Hugging Face.")
-                                .font(.caption).foregroundStyle(.secondary)
+                                Spacer(minLength: 0)
+                                if controller.isEquipped(manifest) {
+                                    Image(systemName: "checkmark").foregroundStyle(MinutesStyle.accent).accessibilityLabel("Selected")
+                                }
+                            }.padding(.vertical, 8)
                         }
+                        .accessibilityIdentifier("models.open.\(manifest.modelID)")
                     }
-                    compatibilitySection
-                    selectedResourcesSection
-                    Section {
-                        Button { controller.downloadSelected() } label: {
-                            Label("Download selected model", systemImage: "arrow.down.circle")
-                        }
-                        .accessibilityIdentifier("models.download.selected")
-                        .disabled(!controller.canDownload || controller.isWorking || controller.isInspecting)
-                        Button("Import selected model from Files") {
-                            importManifest = controller.selectedImportManifest()
-                            showingImport = importManifest != nil
-                        }
-                        .accessibilityIdentifier("models.import")
-                        .disabled(!controller.canDownload || controller.isWorking || controller.isInspecting)
-                        .fileImporter(isPresented: $showingImport, allowedContentTypes: [.data, .folder],
-                                      allowsMultipleSelection: true) { result in
-                            guard let manifest = importManifest else { return }
-                            importManifest = nil
-                            if case .success(let files) = result { controller.importSelectedFiles(files, manifest: manifest) }
-                        }
-                        if controller.isImporting {
-                            ProgressView(controller.message ?? "Importing model…")
-                            Button("Cancel import") { controller.cancelDownload() }
-                        }
-                        Button("Remove unfinished download", role: .destructive) { controller.discardSelectedDownload() }
-                            .disabled(controller.selectedImportManifest() == nil || controller.isWorking)
-                        Text("Import a complete Parakeet Core ML folder for speech, or a GGUF file for summaries. Downloads and imports are checked before installation.")
-                            .font(.footnote).foregroundStyle(.secondary)
+                    if installed.isEmpty && purpose == .speechRecognition {
+                        Text("No speech model installed.").foregroundStyle(.secondary)
+                            .accessibilityIdentifier("models.empty")
                     }
-                    .screenshotAnchor("models.download")
+                    if purpose == .summary {
+                        NavigationLink(value: ModelScreen.apple) {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Apple Intelligence").font(.headline).accessibilityIdentifier("models.apple.title")
+                                Text(controller.appleEquipped ? "Selected · Managed by iOS" : controller.appleAvailability.explanation)
+                                    .font(.subheadline).foregroundStyle(.secondary)
+                                    .accessibilityIdentifier("models.apple.availability")
+                            }.padding(.vertical, 8)
+                        }.accessibilityIdentifier("models.apple.open")
+                    }
                 }
+                if purpose == .speechRecognition {
+                    Section("Add a speech model") {
+                        Button {
+                            controller.loadBundledParakeetV3()
+                            if controller.errorMessage == nil { captureRoute = .repository }
+                        } label: { Label("Get Parakeet TDT v3", systemImage: "waveform") }
+                        .frame(minHeight: 44).accessibilityIdentifier("models.parakeet.browse")
+                        .disabled(busy)
+                        Button("Open model pack", systemImage: "folder") { showingPackImport = true }
+                            .frame(minHeight: 44).accessibilityIdentifier("models.pack.import")
+                            .disabled(busy)
+                    }
+                }
+                Section {
+                    NavigationLink(value: ModelScreen.lookup) { Label("Find a repository", systemImage: "magnifyingglass") }
+                        .accessibilityIdentifier("models.repository.open").disabled(busy)
+                    if controller.downloadProgress != nil {
+                        NavigationLink("Current transfer", value: ModelScreen.transfer)
+                            .accessibilityIdentifier("models.transfer.open")
+                    }
+                }
+                if let error = controller.errorMessage { Section { Text(error).foregroundStyle(MinutesStyle.recording) } }
+            }
+        }
+        .minutesList().navigationTitle(title)
+        .navigationDestination(for: ModelScreen.self, destination: page)
+        .navigationDestination(item: $captureRoute, destination: page)
+        .fileImporter(isPresented: $showingPackImport, allowedContentTypes: [.json]) { result in
+            if case .success(let file) = result {
+                controller.importParakeetPack(file)
+                if controller.errorMessage == nil { captureRoute = .repository }
+            }
+        }
+        .task {
+            if !busy { controller.purpose = purpose }
+            await controller.refresh()
+            screenshotPrepared = true
+        }
+        .refreshable { await controller.refresh() }
+        .screenshotReady(screenshotPrepared)
+    }
 
-                if let message = controller.message, !controller.isDownloading {
-                    Section { Text(verbatim: message).accessibilityIdentifier("model-browser-status") }
+    @ViewBuilder private func page(_ route: ModelScreen) -> some View {
+        Group {
+            switch route {
+            case .lookup: lookupPage
+            case .repository: repositoryPage
+            case .source: sourcePage
+            case .compatibility:
+                Form { compatibilitySection }.minutesList().navigationTitle("Compatibility")
+            case .requirements:
+                Form {
+                    requirementsSection
+                    Section { NavigationLink("This iPhone") { ModelDeviceView(controller: controller) } }
+                }.minutesList().navigationTitle("Requirements")
+            case .download: downloadPage
+            case .transfer: transferPage
+            case .files: filesPage
+            case .card:
+                ScrollView {
+                    Text(verbatim: controller.repository?.cardMarkdown ?? "Model card unavailable.")
+                        .font(.body).textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading).padding(24)
+                        .accessibilityIdentifier("models.card.content")
+                }.background(MinutesStyle.background).navigationTitle("Model card")
+            case .apple: applePage
+            case .installed(let id):
+                if let manifest = installed.first(where: { $0.modelID == id }) { installedPage(manifest) }
+                else {
+                    MinutesEmptyState(title: "Model removed", symbol: "internaldrive",
+                                      detail: "Your meetings stay on this iPhone.")
+                        .background(MinutesStyle.background)
                 }
-                if let error = controller.errorMessage {
-                    Section("Could not complete this action") {
-                        Text(verbatim: error).foregroundStyle(.red)
-                            .accessibilityIdentifier("model-browser-error")
-                    }
+            }
+        }
+        .navigationBarTitleDisplayMode(.inline)
+        .tint(MinutesStyle.accent)
+        .screenshotReady(true)
+    }
+
+    private var lookupPage: some View {
+        Form {
+            Section("Hugging Face repository") {
+                TextField("owner/repository or URL", text: $controller.repositoryInput)
+                    .textInputAutocapitalization(.never).autocorrectionDisabled().keyboardType(.URL)
+                    .submitLabel(.search).accessibilityLabel("Hugging Face repository")
+                    .onSubmit { inspect() }
+                Button { inspect() } label: {
+                    if controller.isInspecting { ProgressView("Reading repository…") }
+                    else { Label("Look up repository", systemImage: "magnifyingglass") }
+                }.frame(minHeight: 44)
+                    .disabled(busy || controller.repositoryInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            } footer: { Text("Public repositories only.") }
+            if let error = controller.errorMessage { Section { Text(error).foregroundStyle(MinutesStyle.recording) } }
+        }.minutesList().navigationTitle("Add a model")
+    }
+
+    private var repositoryPage: some View {
+        Form {
+            Section {
+                Label(repositoryTitle, systemImage: purpose == .speechRecognition ? "waveform" : "sparkles")
+                    .font(.title2.weight(.semibold)).accessibilityIdentifier("models.repository.title")
+                if let resource = controller.resourceAssessment {
+                    Text("\(bytes(resource.requiredDiskBytes)) · \(purpose == .speechRecognition ? "Core ML" : "GGUF")")
+                        .foregroundStyle(.secondary)
                 }
-                storageCheckSection
-                    .screenshotAnchor("models.storage")
-                Section("About LocalMinutes") {
-                    if let identity = AppBuildIdentity.current() {
-                        Text(verbatim: "Version \(identity.version) (build \(identity.build))")
-                            .accessibilityIdentifier("settings.appBuildIdentity")
-                    } else {
-                        Text("Version and build information unavailable")
-                            .accessibilityIdentifier("settings.appBuildIdentity")
-                    }
+                if !variants.isEmpty {
+                    Picker("Model file", selection: $controller.selectedFileName) {
+                        Text("Choose a file").tag(Optional<String>.none)
+                        ForEach(variants, id: \.fileName) { file in
+                            Text("\(file.fileName) · \(bytes(file.byteCount))").tag(Optional(file.fileName))
+                        }
+                    }.disabled(busy).accessibilityIdentifier("models.variant")
                 }
-                .screenshotAnchor("models.about")
-                deviceResourcesSection
-                    .screenshotAnchor("models.device")
             }
-            .screenshotReady(screenshotPrepared)
-            .screenshotScroll(screenshotScroll, ready: screenshotPrepared)
-            .formStyle(.grouped)
-            .tint(.blue)
-            .disabled(controller.isPreparingStorageCheck)
-            .navigationTitle("Models")
-            .task {
-                await controller.refresh()
-                #if DEBUG
-                screenshotPrepared = AppScreenshotFixture.scene?.isModels == true
-                #endif
+            Section {
+                NavigationLink("Compatibility", value: ModelScreen.compatibility)
+                NavigationLink("Requirements", value: ModelScreen.requirements)
+                NavigationLink("Source & license", value: ModelScreen.source)
             }
-            .refreshable { await controller.refresh() }
-            .sheet(isPresented: $showingCard) { modelCard }
-            .confirmationDialog("Remove installed model?", isPresented: $showingRemoval,
-                                titleVisibility: .visible) {
-                if let manifest = pendingRemoval {
-                    Button("Remove model", role: .destructive) {
-                        pendingRemoval = nil
-                        Task { await controller.remove(manifest) }
-                    }
-                    .accessibilityIdentifier("models.remove.confirm")
+            Section {
+                NavigationLink("Download or import", value: ModelScreen.download)
+                    .disabled(!controller.canDownload)
+                if let status = controller.compatibility, status.status != .supported {
+                    Label(compatibilityTitle(status.status), systemImage: "info.circle").foregroundStyle(.secondary)
                 }
-                Button("Cancel", role: .cancel) { pendingRemoval = nil }
-            } message: {
-                Text("The model can be downloaded again. Your meetings remain stored separately.")
+                if let resource = controller.resourceAssessment, resource.status != .sufficient {
+                    Text(resourceTitle(resource.status)).font(.callout).foregroundStyle(.secondary)
+                }
             }
+        }.minutesList().navigationTitle("Model")
+    }
+
+    private var sourcePage: some View {
+        Form {
+            if let repository = controller.repository {
+                Section("Repository") {
+                    Text(repository.id.rawValue).font(.headline).textSelection(.enabled)
+                    LabeledContent("License", value: repository.licenseIdentifier ?? "Unknown")
+                    LabeledContent("Task", value: repository.pipelineTag ?? "Unknown")
+                    LabeledContent("Architecture", value: repository.modelType ?? repository.architectures.joined(separator: ", "))
+                    LabeledContent("Library", value: repository.libraryName ?? "Unknown")
+                }
+                Section("Pinned revision") {
+                    Text(repository.revision).font(.footnote.monospaced()).textSelection(.enabled)
+                        .accessibilityIdentifier("models.repository.revision")
+                }
+                Section {
+                    NavigationLink("Read model card", value: ModelScreen.card)
+                        .accessibilityIdentifier("models.card.open").disabled(repository.cardMarkdown == nil)
+                    NavigationLink("Model files", value: ModelScreen.files)
+                }
+                if let notice = repository.parakeetManifest?.licenseNotice {
+                    Section("Attribution") { Text(notice).font(.footnote).textSelection(.enabled) }
+                }
             }
+        }.minutesList().navigationTitle("Source & license")
+    }
+
+    @ViewBuilder private var compatibilitySection: some View {
+        if let result = controller.compatibility {
+            Section {
+                Label(compatibilityTitle(result.status), systemImage: result.status == .supported ? "checkmark.shield" : "exclamationmark.circle")
+                if let profile = result.profile { LabeledContent("Engine", value: profileTitle(profile)) }
+                ForEach(Array(result.reasons.enumerated()), id: \.offset) { _, reason in Text(reason).font(.callout) }
+                ForEach(result.suggestedRepositories, id: \.self) { repository in
+                    Button("Look up \(repository)") { controller.repositoryInput = repository; inspect() }.disabled(busy)
+                }
+                NavigationLink("\(result.selectedFiles.count) model files", value: ModelScreen.files)
+                if let error = controller.errorMessage { Text(error).foregroundStyle(MinutesStyle.recording) }
+            } header: { Text("Compatibility").accessibilityIdentifier("models.compatibility.heading") }
         }
     }
 
-    @ViewBuilder private var transferProgressSection: some View {
-        if let progress = controller.downloadProgress {
-            Section("Model download") {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Text(transferStageTitle(progress.stage)).font(.headline)
-                            .accessibilityIdentifier("models.download.stage")
-                        Spacer()
-                        Text((progress.stage == .downloading ? progress.overallFractionCompleted : progress.fractionCompleted)
-                            .formatted(.percent.precision(.fractionLength(0))))
-                            .monospacedDigit().foregroundStyle(.secondary)
-                            .accessibilityIdentifier("models.download.percent")
+    @ViewBuilder private var requirementsSection: some View {
+        if let result = controller.resourceAssessment {
+            Section {
+                LabeledContent("Model files", value: bytes(result.requiredDiskBytes))
+                LabeledContent("Free storage", value: bytes(controller.resources.freeDiskBytes))
+                LabeledContent("Estimated memory", value: ramRange(result))
+                if purpose == .summary {
+                    LabeledContent("Requested context", value: "\(result.requestedContextTokens.formatted()) tokens")
+                    LabeledContent("Context capacity", value: result.maximumContextTokens.map { "\($0.formatted()) tokens" } ?? "Unknown")
+                }
+                Text(resourceTitle(result.status)).font(.callout).foregroundStyle(.secondary)
+                ForEach(Array(result.notes.enumerated()), id: \.offset) { _, note in
+                    Text(note).font(.footnote).foregroundStyle(.secondary)
+                }
+            } header: { Text("Before you install").accessibilityIdentifier("models.requirements.heading") }
+        }
+    }
+
+    private var downloadPage: some View {
+        Form {
+            Section {
+                Text(repositoryTitle).font(.title2.weight(.semibold))
+                LabeledContent("Model files", value: bytes(controller.resourceAssessment?.requiredDiskBytes))
+                Text("Files are checked before installation.").foregroundStyle(.secondary)
+            }
+            Section {
+                Button {
+                    controller.downloadSelected()
+                    showingTransfer = controller.isDownloading || controller.downloadProgress != nil
+                } label: { Label("Download selected model", systemImage: "arrow.down.circle") }
+                .frame(minHeight: 44).accessibilityIdentifier("models.download.selected")
+                .disabled(!controller.canDownload)
+                Button("Import from Files", systemImage: "folder") {
+                    importManifest = controller.selectedImportManifest()
+                    showingImport = importManifest != nil
+                }
+                .frame(minHeight: 44).accessibilityIdentifier("models.import").disabled(!controller.canDownload)
+                .fileImporter(isPresented: $showingImport, allowedContentTypes: [.data, .folder], allowsMultipleSelection: true) { result in
+                    guard let manifest = importManifest else { return }
+                    importManifest = nil
+                    if case .success(let urls) = result {
+                        controller.importSelectedFiles(urls, manifest: manifest)
+                        showingTransfer = controller.isImporting
                     }
-                    ProgressView(value: progress.stage == .downloading ? progress.overallFractionCompleted : progress.fractionCompleted)
-                        .accessibilityIdentifier("models.download.progress")
-                    Text("\(bytes(progress.overallCompletedBytes)) of \(bytes(progress.overallTotalBytes))")
-                        .font(.subheadline).monospacedDigit()
-                        .accessibilityIdentifier("models.download.bytes")
-                    if progress.stage == .downloading {
-                        if let speed = progress.bytesPerSecond, speed.isFinite, speed > 0 {
-                            Text("\(bytes(Int64(min(speed, Double(Int64.max / 2)))))/s")
+                }
+                Button("Remove unfinished download", role: .destructive) { confirmingDiscard = true }
+                    .frame(minHeight: 44).disabled(controller.selectedImportManifest() == nil || busy)
+            }
+            if let error = controller.errorMessage { Section { Text(error).foregroundStyle(MinutesStyle.recording) } }
+        }
+        .minutesList().navigationTitle("Get model")
+        .navigationDestination(isPresented: $showingTransfer) { page(.transfer) }
+        .confirmationDialog("Remove partial download?", isPresented: $confirmingDiscard, titleVisibility: .visible) {
+            Button("Remove download", role: .destructive) { controller.discardSelectedDownload() }
+            Button("Cancel", role: .cancel) {}
+        } message: { Text("Downloaded files for this model will be removed. Installed models stay available.") }
+    }
+
+    private var transferPage: some View {
+        List {
+            if controller.isImporting {
+                Section {
+                    MinutesProgress(title: "Checking selected files", detail: "Verifying this model.",
+                                    cancel: controller.cancelDownload)
+                }
+            } else if let progress = controller.downloadProgress {
+                Section {
+                    VStack(alignment: .leading, spacing: 18) {
+                        HStack {
+                            Text(stageTitle(progress.stage)).font(.title2.weight(.semibold))
+                                .accessibilityIdentifier("models.download.stage")
+                            Spacer()
+                            Text((progress.stage == .downloading ? progress.overallFractionCompleted : progress.fractionCompleted)
+                                .formatted(.percent.precision(.fractionLength(0))))
+                                .monospacedDigit().accessibilityIdentifier("models.download.percent")
+                        }
+                        ProgressView(value: progress.stage == .downloading ? progress.overallFractionCompleted : progress.fractionCompleted)
+                            .accessibilityIdentifier("models.download.progress")
+                        Text("\(bytes(progress.overallCompletedBytes)) of \(bytes(progress.overallTotalBytes))")
+                            .font(.subheadline).foregroundStyle(.secondary).accessibilityIdentifier("models.download.bytes")
+                        if controller.isDownloading {
+                            Button("Pause download") { controller.cancelDownload() }.frame(minHeight: 44)
+                                .accessibilityIdentifier("models.download.pause")
+                        } else if progress.stage == .paused || progress.stage == .failed {
+                            Button("Resume download") { controller.downloadSelected() }.frame(minHeight: 44)
+                                .disabled(!controller.canDownload).accessibilityIdentifier("models.download.resume")
+                        }
+                    }.padding(.vertical, 12)
+                }
+                Section {
+                    DisclosureGroup("Transfer details", isExpanded: $transferDetails) {
+                        Text("File \(progress.fileIndex) of \(progress.fileCount)").accessibilityIdentifier("models.download.file")
+                        Text(progress.fileName).font(.footnote).textSelection(.enabled)
+                            .accessibilityIdentifier("models.download.filename")
+                        if progress.stage == .downloading {
+                            Text(transferSpeed(progress.bytesPerSecond))
                                 .accessibilityIdentifier("models.download.speed")
-                        } else {
-                            Text("Measuring speed…").foregroundStyle(.secondary)
+                            Text(timeRemaining(progress.remainingSeconds)).accessibilityIdentifier("models.download.remaining")
                         }
-                        Text(transferTimeRemaining(progress.remainingSeconds))
-                            .accessibilityIdentifier("models.download.remaining")
-                    }
-                    Text("File \(progress.fileIndex) of \(progress.fileCount)")
-                        .font(.caption).foregroundStyle(.secondary)
-                        .accessibilityIdentifier("models.download.file")
-                    Text(verbatim: progress.fileName).font(.caption).foregroundStyle(.secondary)
-                        .lineLimit(2).truncationMode(.middle)
-                        .accessibilityIdentifier("models.download.filename")
-                    if progress.resumedBytes > 0 {
-                        Text("Resumed \(bytes(progress.resumedBytes))")
-                            .font(.caption).foregroundStyle(.secondary)
-                            .accessibilityIdentifier("models.download.resumed")
-                    }
-                    if controller.isDownloading {
-                        Button("Pause download") { controller.cancelDownload() }
-                            .frame(minHeight: 44)
-                    }
+                        if progress.resumedBytes > 0 {
+                            Text("Resumed \(bytes(progress.resumedBytes))").accessibilityIdentifier("models.download.resumed")
+                        }
+                    }.accessibilityIdentifier("models.download.details")
                 }
-                .padding(.vertical, 6)
-                .accessibilityElement(children: .contain)
             }
-        }
+            if !controller.isWorking, let manifest = controller.selectedImportManifest(),
+               controller.installed.contains(manifest) {
+                Section { useButton(manifest) }
+            }
+            if let error = controller.errorMessage { Section { Text(error).foregroundStyle(MinutesStyle.recording) } }
+            else if let message = controller.message, !controller.isWorking {
+                Section { Text(message).foregroundStyle(.secondary) }
+            }
+        }.minutesList().navigationTitle("Model transfer")
     }
 
-    private func transferStageTitle(_ stage: ModelTransferStage) -> String {
+    private var filesPage: some View {
+        List {
+            ForEach(controller.compatibility?.selectedFiles ?? [], id: \.fileName) { file in
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(file.fileName).font(.subheadline).textSelection(.enabled)
+                    Text("\(bytes(file.byteCount)) · \(file.sha256 == nil ? "Checksum unavailable" : "Expected checksum available")")
+                        .font(.footnote).foregroundStyle(.secondary)
+                    if let digest = file.sha256 { Text(digest).font(.caption.monospaced()).textSelection(.enabled) }
+                }.padding(.vertical, 6)
+            }
+        }.minutesList().navigationTitle("Model files")
+    }
+
+    private var applePage: some View {
+        Form {
+            Section {
+                Label("Apple Intelligence", systemImage: "sparkles").font(.title2.weight(.semibold))
+                    .accessibilityIdentifier("models.apple.title")
+                Text("Managed by iOS").foregroundStyle(.secondary)
+                Text(appleAvailability.explanation).accessibilityIdentifier("models.apple.availability")
+                Button(controller.appleEquipped ? "Selected" : "Use Apple Intelligence") {
+                    Task {
+                        await controller.equipAppleIntelligence()
+                        if controller.appleEquipped { onSelected?() }
+                    }
+                }
+                .frame(minHeight: 44).accessibilityIdentifier("models.apple.equip")
+                .disabled(busy || controller.appleEquipped || appleAvailability != .available)
+                if appleAvailability != .available {
+                    Button("Check again") { appleAvailability = controller.appleAvailability }
+                        .frame(minHeight: 44).accessibilityIdentifier("models.apple.refresh")
+                }
+                if let error = controller.errorMessage { Text(error).foregroundStyle(MinutesStyle.recording) }
+            }
+        }.minutesList().navigationTitle("Apple Intelligence")
+            .onAppear { appleAvailability = controller.appleAvailability }
+    }
+
+    private func installedPage(_ manifest: ModelManifest) -> some View {
+        Form {
+            Section {
+                Text(ModelDisplay.name(manifest)).font(.title2.weight(.semibold))
+                    .accessibilityIdentifier("models.title.\(manifest.modelID)")
+                Text(controller.isEquipped(manifest) ? "Selected" : "Installed").foregroundStyle(.secondary)
+                LabeledContent("Storage", value: bytes(installedBytes(manifest)))
+                LabeledContent("Format", value: ModelDisplay.engine(manifest))
+                useButton(manifest)
+            }
+            Section {
+                DisclosureGroup("Source & files", isExpanded: $modelDetailsExpanded) {
+                    Text(manifest.upstreamRepository.path.trimmingCharacters(in: CharacterSet(charactersIn: "/")))
+                        .font(.subheadline).textSelection(.enabled)
+                    Text(manifest.runtimeVersion).font(.footnote).accessibilityIdentifier("models.runtime.\(manifest.modelID)")
+                    Text(manifest.revision).font(.caption.monospaced()).textSelection(.enabled)
+                    LabeledContent("License", value: manifest.licenseIdentifier)
+                    DisclosureGroup("\(manifest.artifacts.count) verified files") {
+                        ForEach(manifest.artifacts, id: \.fileName) {
+                            Text("\($0.fileName) · \(bytes($0.byteCount))").font(.footnote).textSelection(.enabled)
+                        }
+                    }
+                    DisclosureGroup("Attribution") { Text(manifest.licenseNotice).font(.footnote).textSelection(.enabled) }
+                }.accessibilityIdentifier("models.details.\(manifest.modelID)")
+            }
+            Section {
+                Button("Remove model…", role: .destructive) {
+                    pendingRemoval = manifest; confirmingRemoval = true
+                }
+                .frame(minWidth: 44, minHeight: 44).disabled(busy)
+                .accessibilityLabel("Remove \(modelActionIdentity(manifest))")
+                .accessibilityIdentifier("models.remove.\(manifest.modelID)")
+            }
+            if let error = controller.errorMessage {
+                Section { Text(error).foregroundStyle(MinutesStyle.recording) }
+            }
+        }
+        .minutesList().navigationTitle("Model details")
+        .confirmationDialog("Remove this model?", isPresented: $confirmingRemoval, titleVisibility: .visible) {
+            Button("Remove model", role: .destructive) {
+                guard let model = pendingRemoval else { return }
+                pendingRemoval = nil
+                Task { await controller.remove(model) }
+            }.accessibilityIdentifier("models.remove.confirm")
+            Button("Cancel", role: .cancel) { pendingRemoval = nil }
+        } message: { Text("Your meetings stay on this iPhone. You can download the model again.") }
+    }
+
+    private func useButton(_ manifest: ModelManifest) -> some View {
+        Button(controller.isEquipped(manifest) ? "Selected" : selectionTitle) {
+            Task {
+                await controller.equip(manifest)
+                if controller.isEquipped(manifest) { onSelected?() }
+            }
+        }
+        .frame(minWidth: 44, minHeight: 44)
+        .accessibilityLabel(controller.isEquipped(manifest) ? "Selected \(modelActionIdentity(manifest))" : "Use \(modelActionIdentity(manifest))")
+        .accessibilityIdentifier("models.equip.\(manifest.modelID)")
+        .disabled(busy || controller.isEquipped(manifest))
+    }
+
+    private func modelActionIdentity(_ manifest: ModelManifest) -> String {
+        "\(manifest.purpose == .speechRecognition ? "speech" : "summary") model \(manifest.upstreamRepository.path.trimmingCharacters(in: CharacterSet(charactersIn: "/")))"
+    }
+    private var variants: [HuggingFaceModelFile] {
+        guard purpose == .summary else { return [] }
+        return (controller.repository?.files ?? []).filter {
+            let name = $0.fileName.lowercased()
+            return name.hasSuffix(".gguf") && !name.contains("mmproj")
+                && name.range(of: "-[0-9]{5}-of-[0-9]{5}\\.gguf$", options: .regularExpression) == nil
+        }.sorted { $0.fileName.localizedStandardCompare($1.fileName) == .orderedAscending }
+    }
+    private func inspect() {
+        guard !busy, !controller.repositoryInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        Task {
+            await controller.inspect()
+            if controller.repository != nil && controller.errorMessage == nil { captureRoute = .repository }
+        }
+    }
+    private func stageTitle(_ stage: ModelTransferStage) -> String {
         switch stage {
         case .preparing: "Preparing download"
         case .downloading: "Downloading"
@@ -241,308 +558,20 @@ struct ModelBrowserView: View {
         case .installing: "Installing"
         case .completed: "Ready to use"
         case .paused: "Download paused"
-        case .failed: "Download could not complete"
+        case .failed: "Download interrupted"
         }
     }
-
-    private func transferTimeRemaining(_ seconds: Double?) -> String {
+    private func timeRemaining(_ seconds: Double?) -> String {
         guard let seconds, seconds.isFinite, seconds >= 0 else { return "Estimating time remaining…" }
-        let bounded = min(seconds, 86_400 * 365)
         let formatter = DateComponentsFormatter()
-        formatter.allowedUnits = bounded >= 60 ? [.hour, .minute, .second] : [.second]
+        formatter.allowedUnits = [.hour, .minute, .second]
         formatter.unitsStyle = .abbreviated; formatter.maximumUnitCount = 2
-        return "About \(formatter.string(from: max(1, bounded)) ?? "1s") remaining"
+        return "About \(formatter.string(from: max(1, min(seconds, 86_400 * 365))) ?? "1s") remaining"
     }
 
-    private var storageCheckSection: some View {
-        Section("Storage check") {
-            Button("Prepare storage check") {
-                Task { await controller.prepareStorageCheck(recordingOwner: application?.owner) }
-            }
-            .accessibilityIdentifier("settings.storageAudit.prepare")
-            .disabled(application?.owner == nil || controller.isWorking || controller.isInspecting)
-            if controller.isPreparingStorageCheck { ProgressView("Reading storage metadata…") }
-            if let report = controller.storageCheckReport {
-                if report.audit.status == .complete {
-                    Text("Storage check ready").accessibilityIdentifier("settings.storageAudit.ready")
-                } else {
-                    Text("Storage check incomplete: \(report.audit.status.rawValue)")
-                        .accessibilityIdentifier("settings.storageAudit.status")
-                }
-                Text("Environment: \(storageEnvironment(report.audit.environment))")
-                    .accessibilityIdentifier("settings.storageAudit.environment")
-                Text("Inspected items: \(report.audit.inspectedItemCount)")
-                    .accessibilityIdentifier("settings.storageAudit.itemCount")
-                Text("Metadata groups: \(report.audit.groups.count)")
-                    .accessibilityIdentifier("settings.storageAudit.groupCount")
-                if let json = controller.storageCheckJSON {
-                    ShareLink("Share storage check", item: json)
-                        .accessibilityLabel("Share storage check")
-                        .accessibilityIdentifier("settings.storageAudit.share")
-                }
-            }
-            if let error = controller.storageCheckError {
-                Text(error).foregroundStyle(.red).accessibilityIdentifier("settings.storageAudit.error")
-            }
-            Text("This metadata snapshot does not verify locked-screen access or renewal. Sharing includes no meeting content or file paths.")
-                .font(.caption).foregroundStyle(.secondary)
-        }
-    }
-
-    private func storageEnvironment(_ environment: StorageAuditEnvironment) -> String {
-        switch environment {
-        case .iOSDevice: "iOS Device"
-        case .iOSSimulator: "iOS Simulator"
-        case .macOS: "macOS"
-        case .other: "Other"
-        }
-    }
-
-    private func inspect() {
-        guard !controller.isInspecting, !controller.isWorking,
-              !controller.repositoryInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        Task { await controller.inspect() }
-    }
-
-    private var variants: [HuggingFaceModelFile] {
-        guard let repository = controller.repository else { return [] }
-        return repository.files.filter { file in
-            let name = file.fileName.lowercased()
-            if controller.purpose == .summary {
-                return name.hasSuffix(".gguf") && !name.contains("mmproj")
-                    && name.range(of: "-[0-9]{5}-of-[0-9]{5}\\.gguf$", options: .regularExpression) == nil
-            }
-            return false
-        }.sorted { $0.fileName.localizedStandardCompare($1.fileName) == .orderedAscending }
-    }
-
-    private func repositorySection(_ repository: HuggingFaceModelRepository) -> some View {
-        Section("Repository details") {
-            Text(verbatim: repository.id.rawValue).font(.headline).textSelection(.enabled)
-                .accessibilityIdentifier("models.repository.title")
-            if controller.usingPackDescriptor {
-                Text("Details from the model pack. Files will be verified against its checksums when installed.")
-                    .font(.footnote).foregroundStyle(.secondary)
-            }
-            LabeledContent("License", value: repository.licenseIdentifier ?? "Unknown — review required")
-            DisclosureGroup("Source details", isExpanded: $sourceExpanded) {
-                LabeledContent("Task", value: repository.pipelineTag ?? "Unknown")
-                LabeledContent("Architecture", value: repository.modelType
-                    ?? (repository.architectures.isEmpty ? "Unknown" : repository.architectures.joined(separator: ", ")))
-                LabeledContent("Library", value: repository.libraryName ?? "Unknown")
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Pinned revision").font(.caption).foregroundStyle(.secondary)
-                        .accessibilityIdentifier("models.repository.revision")
-                    Text(verbatim: repository.revision).font(.caption.monospaced()).textSelection(.enabled)
-                }
-                Button("Read full model card") { showingCard = true }
-                    .accessibilityIdentifier("models.card.open")
-                    .screenshotAnchor("models.card")
-                    .disabled(repository.cardMarkdown == nil)
-                if repository.cardMarkdown == nil {
-                    Text("No public model card was available at this revision.")
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-            }
-            .screenshotAnchor("models.source")
-        }
-    }
-
-    @ViewBuilder private var compatibilitySection: some View {
-        if let result = controller.compatibility {
-            Section {
-                Label(compatibilityTitle(result.status), systemImage: compatibilitySymbol(result.status))
-                if let profile = result.profile {
-                    LabeledContent("Engine", value: profileTitle(profile))
-                }
-                ForEach(Array(result.reasons.enumerated()), id: \.offset) { _, reason in
-                    Text(verbatim: reason).font(.callout)
-                }
-                if !result.suggestedRepositories.isEmpty {
-                    ForEach(result.suggestedRepositories, id: \.self) { repository in
-                        Button("Look up " + repository) {
-                            controller.repositoryInput = repository
-                            inspect()
-                        }.disabled(controller.isWorking || controller.isInspecting)
-                    }
-                }
-                if !result.selectedFiles.isEmpty {
-                    DisclosureGroup("\(result.selectedFiles.count) model files") {
-                        ForEach(result.selectedFiles, id: \.fileName) { file in
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(verbatim: file.fileName).font(.caption).textSelection(.enabled)
-                                Text("\(bytes(file.byteCount)) · \(file.sha256 == nil ? "SHA-256 unavailable" : "Expected SHA-256 available")")
-                                    .font(.caption).foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                }
-            } header: {
-                Text("Engine compatibility").accessibilityIdentifier("models.compatibility.heading")
-                    .screenshotAnchor("models.compatibility")
-            }
-        }
-    }
-
-    @ViewBuilder private var selectedResourcesSection: some View {
-        if let result = controller.resourceAssessment {
-            Section {
-                LabeledContent("Model files", value: bytes(result.requiredDiskBytes))
-                LabeledContent("Estimated RAM", value: ramRange(result))
-                if controller.purpose == .summary {
-                    LabeledContent("Requested context", value: "\(result.requestedContextTokens.formatted()) tokens")
-                    LabeledContent("Context capacity", value: result.maximumContextTokens.map { "\($0.formatted()) tokens" } ?? "Unknown")
-                }
-                Text(resourceTitle(result.status))
-                    .foregroundStyle(resourceColor(result.status))
-                ForEach(Array(result.notes.enumerated()), id: \.offset) { _, note in
-                    Text(verbatim: note).font(.caption).foregroundStyle(.secondary)
-                }
-            } header: {
-                Text("Selected model requirements").accessibilityIdentifier("models.requirements.heading")
-                    .screenshotAnchor("models.requirements")
-            }
-        }
-    }
-
-    private var deviceResourcesSection: some View {
-        Section {
-            LabeledContent("Free storage", value: bytes(controller.resources.freeDiskBytes))
-            LabeledContent("Total RAM", value: bytes(controller.resources.totalMemoryBytes, memory: true))
-            LabeledContent("Available to this app") {
-                Text(bytes(controller.resources.availableAppMemoryBytes, memory: true))
-                    .accessibilityIdentifier("models.device.availableMemory")
-            }
-            Text("Available memory changes as the phone runs. Model estimates are guidance; actual use can be higher.")
-                .font(.caption).foregroundStyle(.secondary)
-        } header: {
-            Text("This iPhone").accessibilityIdentifier("models.device.heading")
-        }
-    }
-
-    private var installedSection: some View {
-        let installed = controller.installed.filter { $0.purpose == controller.purpose }
-        return Section(controller.purpose == .speechRecognition ? "Installed speech models" : "Summary models") {
-            if controller.purpose == .summary { appleSummaryRow }
-            if installed.isEmpty && controller.purpose == .speechRecognition {
-                Text("No verified model installed for this purpose.").foregroundStyle(.secondary)
-            }
-            ForEach(installed.map { InstalledModelRow(manifest: $0) }) { entry in
-                let manifest = entry.manifest
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(alignment: .firstTextBaseline) {
-                        Text(installedTitle(manifest)).font(.headline)
-                            .accessibilityIdentifier("models.title.\(manifest.modelID)")
-                        Spacer(minLength: 8)
-                        if controller.isEquipped(manifest) {
-                            Image(systemName: "checkmark").foregroundStyle(.blue)
-                                .accessibilityLabel("Equipped")
-                        }
-                    }
-                    Text(verbatim: manifest.upstreamRepository.path.trimmingCharacters(in: CharacterSet(charactersIn: "/")))
-                        .font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
-                    Text("\(bytes(installedBytes(manifest))) · \(installedEngine(manifest))")
-                        .font(.subheadline).foregroundStyle(.secondary)
-                    HStack {
-                        if controller.isEquipped(manifest) {
-                            Text("Equipped").font(.subheadline).foregroundStyle(.secondary)
-                        } else {
-                            Button("Equip") { Task { await controller.equip(manifest) } }
-                                .buttonStyle(.borderless)
-                                .frame(minWidth: 44, minHeight: 44)
-                                .accessibilityLabel("Equip \(modelActionIdentity(manifest))")
-                                .disabled(controller.isWorking || controller.isInspecting)
-                        }
-                        Spacer()
-                        Button("Remove", role: .destructive) {
-                            pendingRemoval = manifest; showingRemoval = true
-                        }
-                        .buttonStyle(.borderless)
-                        .frame(minWidth: 44, minHeight: 44)
-                        .accessibilityLabel("Remove \(modelActionIdentity(manifest))")
-                        .accessibilityIdentifier("models.remove.\(manifest.modelID)")
-                        .disabled(controller.isWorking || controller.isInspecting)
-                    }
-                    DisclosureGroup("Model details", isExpanded: Binding(
-                        get: { expandedModels.contains(entry.id) },
-                        set: { if $0 { expandedModels.insert(entry.id) } else { expandedModels.remove(entry.id) } })) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(verbatim: manifest.runtimeVersion).font(.caption)
-                                .accessibilityIdentifier("models.runtime.\(manifest.modelID)")
-                            Text(verbatim: manifest.revision).font(.caption.monospaced())
-                                .textSelection(.enabled)
-                            Text("\(manifest.artifacts.count) verified files · \(manifest.licenseIdentifier)")
-                                .font(.caption).foregroundStyle(.secondary)
-                            ForEach(manifest.artifacts, id: \.fileName) { artifact in
-                                Text(verbatim: "\(artifact.fileName) · \(bytes(artifact.byteCount))")
-                                    .font(.caption).foregroundStyle(.secondary)
-                            }
-                        }.padding(.top, 6)
-                    }.font(.subheadline)
-                }
-                .padding(.vertical, 6)
-                .screenshotAnchor(manifest.modelID == "ui-model-alpha" ? "models.installed" : manifest.modelID)
-            }
-        }
-    }
-
-    private var appleSummaryRow: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("Apple Intelligence").font(.headline)
-                    .accessibilityIdentifier("models.apple.title")
-                Spacer(minLength: 8)
-                if controller.appleEquipped {
-                    Image(systemName: "checkmark").foregroundStyle(.blue).accessibilityLabel("Equipped")
-                }
-            }
-            Text("Built into iPhone · Managed by iOS").font(.subheadline).foregroundStyle(.secondary)
-            Text(controller.appleAvailability.explanation).font(.footnote).foregroundStyle(.secondary)
-                .accessibilityIdentifier("models.apple.availability")
-            Button(controller.appleEquipped ? "Equipped" : "Equip") {
-                Task { await controller.equipAppleIntelligence() }
-            }
-            .buttonStyle(.borderless).frame(minWidth: 44, minHeight: 44)
-            .accessibilityIdentifier("models.apple.equip")
-            .disabled(controller.appleEquipped || controller.appleAvailability != .available
-                      || controller.isWorking || controller.isInspecting)
-        }.padding(.vertical, 6)
-    }
-
-    private func installedTitle(_ manifest: ModelManifest) -> String {
-        if let pack = try? ParakeetModelPack.configuration(for: manifest) {
-            return pack.decoderContract == "parakeet-tdt-v3" ? "Parakeet TDT v3" : "Parakeet TDT v2"
-        }
-        return manifest.upstreamRepository.lastPathComponent
-            .replacingOccurrences(of: "-", with: " ")
-    }
-
-    private func installedEngine(_ manifest: ModelManifest) -> String {
-        switch manifest.runtimeVersion {
-        case ParakeetCoreMLModel.runtimeVersion, ParakeetModelPack.runtimeVersion: "Core ML"
-        case "llama.cpp-b5046": "GGUF"
-        default: manifest.runtimeVersion
-        }
-    }
-
-    private func modelActionIdentity(_ manifest: ModelManifest) -> String {
-        let purpose = manifest.purpose == .speechRecognition ? "speech" : "summary"
-        let repository = manifest.upstreamRepository.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-        return "\(purpose) model \(repository)"
-    }
-
-    private var modelCard: some View {
-        NavigationStack {
-            ScrollView {
-                // Verbatim Text treats card code/HTML/images as inert content.
-                Text(verbatim: controller.repository?.cardMarkdown ?? "Model card unavailable.")
-                    .textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading).padding()
-                    .accessibilityIdentifier("models.card.content")
-            }
-            .navigationTitle("Model card")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showingCard = false } } }
-        }
+    private func transferSpeed(_ value: Double?) -> String {
+        guard let value, value.isFinite, value > 0 else { return "Measuring speed…" }
+        return "\(bytes(Int64(min(value, Double(Int64.max / 2)))))/s"
     }
 
     private func bytes(_ value: Int64?, memory: Bool = false) -> String {
@@ -615,9 +644,4 @@ struct ModelBrowserView: View {
         case .sufficient: .primary
         }
     }
-}
-
-private struct InstalledModelRow: Identifiable {
-    let manifest: ModelManifest
-    var id: String { manifest.modelID + "@" + manifest.revision }
 }

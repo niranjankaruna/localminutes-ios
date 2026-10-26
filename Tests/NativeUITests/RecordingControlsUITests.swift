@@ -36,22 +36,18 @@ final class RecordingControlsUITests: XCTestCase {
     }
 
     func testStartExplainsMissingSpeechModelWithoutClaimingRecording() {
-        let app = XCUIApplication()
-        app.launch()
-        let start = app.buttons["recording.start"]
-        XCTAssertTrue(start.waitForExistence(timeout: 5),
-                      "The app must expose its recording command")
-        guard start.exists else { return }
-        XCTAssertTrue(start.isEnabled)
-        start.tap()
-        let required = app.staticTexts["recording.modelRequired"]
-        XCTAssertTrue(required.waitForExistence(timeout: 5),
-                      "Missing real ASR must explain the block before microphone use")
-        XCTAssertEqual(required.label, "A verified speech model is required before recording.")
-        XCTAssertFalse(app.staticTexts["recording.active"].exists,
-                       "A denied model preflight cannot publish recording success")
-        let stop = app.buttons["recording.stop"]
-        XCTAssertTrue(stop.exists)
-        XCTAssertFalse(stop.isEnabled)
+        let app = minutesLibraryApp()
+        app.launch(); defer { app.terminate() }
+        let record = app.tabBars.buttons["Record"]
+        XCTAssertTrue(record.waitForExistence(timeout: 10))
+        guard minutesTap(record, in: app) else { return }
+        XCTAssertTrue(minutesElement("recording.modelRequired", in: app).waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["recording.start"].exists,
+            "A missing speech model offers setup before microphone use.")
+        XCTAssertFalse(app.buttons["recording.stop"].exists,
+            "The new design only shows a Stop control for an active session.")
+        XCTAssertFalse(app.staticTexts["recording.active"].exists)
+        guard minutesTap(app.buttons["Choose speech model"], in: app) else { return }
+        XCTAssertTrue(app.buttons["models.parakeet.browse"].waitForExistence(timeout: 5))
     }
 }

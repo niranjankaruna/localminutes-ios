@@ -107,7 +107,7 @@ final class AppScreenshotsUITests: XCTestCase {
         }
         if scene == .meetingNotes || scene == .recordNotes {
             let text = scene == .meetingNotes ? "Original Beta manual note." : "Original Alpha manual note."
-            let loaded = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", text), object: target)
+            let loaded = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@ OR label == %@", text, text), object: target)
             guard XCTWaiter.wait(for: [loaded], timeout: 15) == .completed else {
                 throw CaptureError.notReady("Original notes did not finish loading")
             }
@@ -129,12 +129,12 @@ final class AppScreenshotsUITests: XCTestCase {
     private func contentViewport(of scrollView: XCUIElement, in app: XCUIApplication) throws -> CGRect {
         let navigationBar = app.navigationBars.firstMatch
         let tabBar = app.tabBars.firstMatch
-        guard scrollView.exists, navigationBar.exists, tabBar.exists else {
+        guard scrollView.exists, navigationBar.exists else {
             throw CaptureError.notReady("Missing section scroll view or navigation bars")
         }
         let frame = scrollView.frame.intersection(app.windows.firstMatch.frame)
         let top = max(frame.minY, navigationBar.frame.maxY)
-        let bottom = min(frame.maxY, tabBar.frame.minY)
+        let bottom = tabBar.exists ? min(frame.maxY, tabBar.frame.minY) : frame.maxY
         guard !frame.isEmpty, top < bottom else {
             throw CaptureError.notReady("No visible content area for the section heading")
         }
