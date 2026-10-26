@@ -89,9 +89,22 @@ final class AppScreenshotsUITests: XCTestCase {
         case .meetingShare:
             target = app.otherElements["ActivityListView"].cells
                 .matching(NSPredicate(format: "label == %@", "Copy")).firstMatch
+        case .modelsCompatibility, .modelsRequirements:
+            target = app.staticTexts[scene.target]
         default: target = element(scene.target, in: app)
         }
+        let isSectionHeader = scene == .modelsCompatibility || scene == .modelsRequirements
+        if isSectionHeader {
+            try uncoverSectionHeader(target, in: prepared, app: app)
+        }
         try waitUntilVisible(target, description: scene.target)
+        if isSectionHeader {
+            let viewport = try contentViewport(of: prepared, in: app)
+            guard viewport.contains(target.frame) else {
+                throw CaptureError.notReady("Section heading is clipped: \(target.frame), visible content: \(viewport)")
+            }
+            print("APPUI_HEADER_VISIBLE \(scene.rawValue): \(target.frame)")
+        }
         if scene == .meetingNotes || scene == .recordNotes {
             let text = scene == .meetingNotes ? "Original Beta manual note." : "Original Alpha manual note."
             let loaded = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", text), object: target)
@@ -111,6 +124,46 @@ final class AppScreenshotsUITests: XCTestCase {
     private func element(_ identifier: String, in app: XCUIApplication) -> XCUIElement {
         app.descendants(matching: .any)
             .matching(NSPredicate(format: "identifier == %@", identifier)).firstMatch
+    }
+
+    private func contentViewport(of scrollView: XCUIElement, in app: XCUIApplication) throws -> CGRect {
+        let navigationBar = app.navigationBars.firstMatch
+        let tabBar = app.tabBars.firstMatch
+        guard scrollView.exists, navigationBar.exists, tabBar.exists else {
+            throw CaptureError.notReady("Missing section scroll view or navigation bars")
+        }
+        let frame = scrollView.frame.intersection(app.windows.firstMatch.frame)
+        let top = max(frame.minY, navigationBar.frame.maxY)
+        let bottom = min(frame.maxY, tabBar.frame.minY)
+        guard !frame.isEmpty, top < bottom else {
+            throw CaptureError.notReady("No visible content area for the section heading")
+        }
+        return CGRect(x: frame.minX, y: top, width: frame.width, height: bottom - top)
+    }
+
+    private func uncoverSectionHeader(_ header: XCUIElement, in scrollView: XCUIElement,
+                                      app: XCUIApplication) throws {
+        guard header.waitForExistence(timeout: 20) else {
+            throw CaptureError.notReady("Missing requested section heading")
+        }
+        let viewport = try contentViewport(of: scrollView, in: app)
+        let frame = header.frame
+        guard !frame.isEmpty else { throw CaptureError.notReady("Section heading has no layout frame") }
+        guard frame.minY < viewport.minY else { return }
+
+        // Form can align its first row while leaving the section header behind the navigation bar.
+        // Clear the measured overlap with one header-height of space, then verify the full heading.
+        let distance = viewport.minY - frame.minY + frame.height
+        guard distance < viewport.height / 2 else {
+            throw CaptureError.notReady("Section is not at its requested anchor: \(frame), visible content: \(viewport)")
+        }
+        print("APPUI_HEADER_REPOSITION \(header.identifier): frame=\(frame), viewport=\(viewport), distance=\(distance)")
+        let window = app.windows.firstMatch
+        let origin = window.coordinate(withNormalizedOffset: .zero)
+        let start = origin.withOffset(CGVector(dx: viewport.midX - window.frame.minX,
+                                              dy: viewport.midY - distance / 2 - window.frame.minY))
+        let end = start.withOffset(CGVector(dx: 0, dy: distance))
+        start.press(forDuration: 0.05, thenDragTo: end, withVelocity: .slow, thenHoldForDuration: 0.2)
     }
 
     private func waitUntilVisible(_ element: XCUIElement, description: String) throws {
