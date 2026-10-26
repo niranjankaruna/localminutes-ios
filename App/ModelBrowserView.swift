@@ -372,7 +372,13 @@ struct ModelPurposeView: View {
             if let error = controller.errorMessage { Section { Text(error).foregroundStyle(MinutesStyle.recording) } }
         }
         .minutesList().navigationTitle("Get model")
-        .navigationDestination(isPresented: $showingTransfer) { page(.transfer) }
+        .navigationDestination(isPresented: $showingTransfer) {
+            // Calling page here would make its opaque return type recursive through downloadPage.
+            transferPage
+                .navigationBarTitleDisplayMode(.inline)
+                .tint(MinutesStyle.accent)
+                .screenshotReady(true)
+        }
         .confirmationDialog("Remove partial download?", isPresented: $confirmingDiscard, titleVisibility: .visible) {
             Button("Remove download", role: .destructive) { controller.discardSelectedDownload() }
             Button("Cancel", role: .cancel) {}

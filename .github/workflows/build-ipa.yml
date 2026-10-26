@@ -33,10 +33,20 @@ jobs:
         run: bash scripts/prepare-ios.sh
       - name: Build unsigned device app
         run: |
-          xcodebuild -quiet -project LocalMinutes.xcodeproj -scheme LocalMinutes -configuration Release \
+          if xcodebuild -project LocalMinutes.xcodeproj -scheme LocalMinutes -configuration Release \
             -destination 'generic/platform=iOS' -derivedDataPath build/device \
             -clonedSourcePackagesDirPath .agent-local/source-packages \
-            CODE_SIGNING_ALLOWED=NO LOCALMINUTES_SOURCE_COMMIT="$GITHUB_SHA" build
+            -resultBundlePath .agent-local/ipa-build.xcresult \
+            CODE_SIGNING_ALLOWED=NO LOCALMINUTES_SOURCE_COMMIT="$GITHUB_SHA" build; then
+            exit 0
+          else
+            build_status=$?
+            # Keep diagnostic output in this failed step so --log-failed saves it locally.
+            if [[ -d .agent-local/ipa-build.xcresult ]]; then
+              xcrun xcresulttool get build-results --path .agent-local/ipa-build.xcresult || true
+            fi
+            exit "$build_status"
+          fi
       - name: Package IPA and checksum receipt
         run: |
           node --input-type=module <<'JS'

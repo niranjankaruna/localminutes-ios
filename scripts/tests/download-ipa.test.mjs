@@ -151,13 +151,18 @@ test('an existing local directory is preserved without dispatching a build', asy
   });
 });
 
-for (const logsUnavailable of [false, true]) {
-  test(`failed builds preserve local diagnostics before deleting the run (logs unavailable: ${logsUnavailable})`, async () => {
+for (const failureKind of ['source error', 'large compiler failure log', 'logs unavailable']) {
+  test(`failed builds preserve local diagnostics before deleting the run (${failureKind})`, async () => {
     await withDirectory(async directory => {
       const outputDirectory = join(directory, 'failed-build');
       const calls = [];
-      const compilerError = '/runner/App/MeetingView.swift:42:12: error: no exact matches in call to initializer';
-      const gh = async args => {
+      const logsUnavailable = failureKind === 'logs unavailable';
+      const largeLog = failureKind === 'large compiler failure log';
+      const compilerError = largeLog ? 'Command SwiftCompile failed with a nonzero exit code' :
+        '/runner/App/MeetingView.swift:42:12: error: no exact matches in call to initializer';
+      const failedLog = (largeLog ? 'compiler progress\n'.repeat(300_000) : '') +
+        `build\tBuild unsigned device app\t2026-10-26T12:00:00Z ${compilerError}\n** BUILD FAILED **\n`;
+      const gh = async (args, options = {}) => {
         calls.push(args.join(' '));
         if (args[0] === 'workflow') return '';
         if (args[0] === 'run' && args[1] === 'list') return JSON.stringify([
@@ -168,7 +173,10 @@ for (const logsUnavailable of [false, true]) {
           assert.equal(args[2], '17');
           assert.ok(args.includes('--log-failed'));
           if (logsUnavailable) throw new Error('Logs unavailable');
-          return `build\tBuild unsigned device app\t2026-10-26T12:00:00Z ${compilerError}\n** BUILD FAILED **\n`;
+          if (Buffer.byteLength(failedLog) > (options.maxBuffer ?? 4 * 1024 * 1024)) {
+            throw new Error('stdout maxBuffer length exceeded');
+          }
+          return failedLog;
         }
         if (args[0] === 'api' && args[1].endsWith('/artifacts')) return JSON.stringify({ artifacts: [] });
         if (args[0] === 'api' && args[1].endsWith('/runs/17')) return JSON.stringify({
@@ -179,7 +187,8 @@ for (const logsUnavailable of [false, true]) {
           assert.equal(args[3], 'repos/owner/repository/actions/runs/17');
           // The diagnostics must already be durable before their source is removed.
           const log = await readFile(join(outputDirectory, 'build-failure.log'), 'utf8');
-          assert.match(log, logsUnavailable ? /Failed-job log unavailable: Logs unavailable/ : /no exact matches/);
+          if (logsUnavailable) assert.match(log, /Failed-job log unavailable: Logs unavailable/);
+          else assert.equal(log, failedLog);
           const report = JSON.parse(await readFile(join(outputDirectory, 'build-failure.json'), 'utf8'));
           assert.equal(report.sourceCommit, commit);
           assert.equal(report.runID, 17);
@@ -193,7 +202,8 @@ for (const logsUnavailable of [false, true]) {
         sourceCommit: commit, outputDirectory, requestID, gh, sleep: async () => {} }), error => {
         assert.match(error.message, /without a transferable artifact/);
         assert.ok(error.message.includes(join(outputDirectory, 'build-failure.log')));
-        assert.match(error.message, logsUnavailable ? /Failed-job log unavailable/ : /no exact matches in call/);
+        if (logsUnavailable) assert.match(error.message, /Failed-job log unavailable/);
+        else assert.ok(error.message.includes(compilerError));
         return true;
       });
       assert.ok(calls.findIndex(call => call.startsWith('run view 17')) <

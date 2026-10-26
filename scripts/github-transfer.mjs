@@ -15,7 +15,11 @@ export const ghCLI = async (args, options = {}) => (await execute('gh', args, {
 // logs and check annotations. These files deliberately are not an IPA receipt.
 async function saveFailedBuild({ gh, repository, runID, run, workflow, sourceCommit, requestID, outputDirectory }) {
   let log, logError;
-  try { log = await gh(['run', 'view', String(runID), '--repo', repository, '--log-failed']); }
+  try {
+    log = await gh(['run', 'view', String(runID), '--repo', repository, '--log-failed'], {
+      maxBuffer: 32 * 1024 * 1024
+    });
+  }
   catch (error) { logError = error.stderr ?? error.message; }
   if (!log?.trim()) logError ??= 'GitHub returned no failed-job log.';
   await mkdir(dirname(outputDirectory), { recursive: true });
@@ -28,7 +32,7 @@ async function saveFailedBuild({ gh, repository, runID, run, workflow, sourceCom
     logFile: 'build-failure.log', logError: logError ?? null
   }, null, 2) + '\n', { flag: 'wx' });
   const errors = [...new Set((log ?? '').split(/\r?\n/)
-    .filter(line => /(?:\berror:|fatal error|##\[error\]|BUILD FAILED)/i.test(line))
+    .filter(line => /(?:\berror:|fatal error|##\[error\]|BUILD FAILED|Command .* failed|Failed frontend command:)/i.test(line))
     .map(line => line.split('\t').at(-1).replace(/^\d{4}-\d{2}-\d{2}T\S+\s*/, '').trim()))].slice(0, 8);
   return `Diagnostics saved to: ${logPath}` +
     (logError ? `\nFailed-job log unavailable: ${logError}` : '') +

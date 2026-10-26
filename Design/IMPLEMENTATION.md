@@ -26,12 +26,15 @@ No domain recording, inference, transfer, or storage engine was replaced with si
 
 Completed locally on Windows:
 
-- 91 repository Node tests passed using node --test scripts/tests/*.test.mjs, including failed-build diagnostic preservation.
+- 92 repository Node tests passed using node --test scripts/tests/*.test.mjs, including preservation of failed-build logs larger than 4 MB and compiler failures without a source diagnostic.
 - Swift grammar comparison found no additional errors in changed/new Swift files. Two existing files have baseline parser limitations around conditional/concurrent syntax; this check is not Swift type-checking.
 - Whitespace/diff checks passed.
+- The IPA workflow's Bash build step passed syntax checking and four mocked success/failure paths, including an unavailable result bundle and a failing diagnostic command. These checks verify that diagnostic collection preserves the original build exit status; they do not run Xcode.
 - Added native regression tests for notes saved after navigation, rapid edits, failed saves, original-versus-edited summary presentation, and citation navigation. Existing UI tests were updated for the new screen structure.
 
-**Native build follow-up:** GitHub Actions reproduced the Release build failure at commit 79c5e82c5bf535f2991731ee6d554b0703ba175a. Xcode reported an invalid SwiftUI Section initializer in the repository lookup view. The local correction uses explicit content, header, and footer closures. The corrected working tree has not yet been built by Xcode because the hosted workflow builds pushed commits. The download helper now saves failed-job logs locally before remote cleanup.
+**Native build follow-up:** The invalid SwiftUI Section initializer reported at commit 79c5e82c5bf535f2991731ee6d554b0703ba175a was corrected using explicit content, header, and footer closures. The next Release build, at b4fad5b1d58ae83af8d9544993afb553006ecce9, failed in SwiftCompile without a specific source diagnostic. Inspection found a recursive opaque view type in [ModelBrowserView.swift](../App/ModelBrowserView.swift): the route builder included the download page, whose transfer destination called the same route builder. That destination now creates the transfer page directly, preserving its styling. This is a likely cause of the compiler failure, not a confirmed successful native build.
+
+The [IPA workflow](../.github/workflows/build-ipa.yml) now emits full Xcode build output and prints result-bundle diagnostics in the failed step. The [download helper](../scripts/github-transfer.mjs) saves these logs before remote cleanup, allows larger logs, and surfaces compiler-command failures in its console excerpt. The corrected working tree has not yet been built by Xcode because the hosted workflow requires pushed commits; no commit or push was made by the agent.
 
 **Not run:** app-hosted XCTest, simulator UI tests, native screenshot capture, VoiceOver, or on-device recording. This environment is Windows and has no Xcode/iOS SDK. Editor diagnostics and grammar parsing do not establish that the corrected native build passes.
 
