@@ -70,7 +70,7 @@ final class ActualPromptTokenizationTests: XCTestCase {
                 _ = try await runtime.generateJSON(prompt: nearBudget, schema: schema,
                                                     maximumTokens: exactRemaining)
                 XCTFail("Input plus reserved output equal to context must be rejected")
-            } catch { XCTAssertEqual(error as? LocalSummaryRuntimeError, .generationFailed) }
+            } catch { XCTAssertEqual(error as? LocalSummaryRuntimeError, .contextExceeded) }
             let output = try await runtime.generateJSON(prompt: nearBudget, schema: schema,
                                                         maximumTokens: exactRemaining - 1)
             let object = try XCTUnwrap(try JSONSerialization.jsonObject(with: Data(output.utf8)) as? [String: Any])

@@ -32,4 +32,22 @@ final class AppleGeneratedJSONTests: XCTestCase {
         XCTAssertThrowsError(try AppleGeneratedJSON.completeOptionalFields("not JSON", schema: schema))
         XCTAssertThrowsError(try AppleGeneratedJSON.completeOptionalFields(String(repeating: " ", count: 65_537), schema: schema))
     }
+
+    func testNullOnlyActionMetadataIsRestoredAcrossCorrelatedBranches() throws {
+        let schema = StructuredJSONSchema(fields: [.init(name: "actions", type: .array(element: .alternatives([
+            .object([.init(name: "task", type: .stringEnumeration(["The checklist needs review."])),
+                     .init(name: "owner", type: .null), .init(name: "due", type: .null)]),
+            .object([.init(name: "task", type: .stringEnumeration(["Leo: I will write the guide by Thursday."])),
+                     .init(name: "owner", type: .nullable(.stringEnumeration(["Leo"]))),
+                     .init(name: "due", type: .nullable(.stringEnumeration(["Thursday"])))]),
+        ]), maximumItems: 2))])
+        let json = #"{"actions":[{"task":"The checklist needs review."},{"task":"Leo: I will write the guide by Thursday.","owner":"Leo","due":"Thursday"}]}"#
+        let result = try AppleGeneratedJSON.completeOptionalFields(json, schema: schema)
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(result.utf8)) as? [String: Any])
+        let actions = try XCTUnwrap(object["actions"] as? [[String: Any]])
+        XCTAssertTrue(actions[0]["owner"] is NSNull)
+        XCTAssertTrue(actions[0]["due"] is NSNull)
+        XCTAssertEqual(actions[1]["owner"] as? String, "Leo")
+        XCTAssertEqual(actions[1]["due"] as? String, "Thursday")
+    }
 }

@@ -153,9 +153,12 @@ struct MeetingDetailView: View {
                 }
             }
         }
-        .onDisappear { stopOwnedPlayback(); intelligenceController.leaveMeeting() }
+        .onDisappear {
+            stopOwnedPlayback()
+            intelligenceController.leaveMeeting(cancelGeneration: scenePhase == .active)
+        }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .background { intelligenceController.leaveMeeting() }
+            if phase == .background { intelligenceController.leaveMeeting(cancelGeneration: false) }
         }
         .screenshotReady(screenshotPrepared)
         .privacySensitive()

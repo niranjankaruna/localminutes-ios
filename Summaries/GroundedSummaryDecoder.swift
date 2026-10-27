@@ -5,7 +5,8 @@ import Foundation
 public enum GroundedSummaryDecoder {
     public static func decode(_ data: Data, selectedMeetingID: UUID, source: GroundedSummarySource,
                               provenance: SummaryGenerationProvenance,
-                              limits: GroundedSummaryLimits = .init()) throws -> GroundedSummary {
+                              limits: GroundedSummaryLimits = .init(),
+                              mergingRepeatedItems: Bool = false) throws -> GroundedSummary {
         let validation = try GroundedSummaryValidation(selectedMeetingID: selectedMeetingID, source: source, limits: limits)
         try validation.provenance(provenance)
         guard data.count <= limits.maximumJSONBytes else { throw GroundedSummaryError.limitExceeded }
@@ -18,6 +19,20 @@ public enum GroundedSummaryDecoder {
             summaryPoints: raw.summary_points.map { $0.point(provenance) },
             decisions: raw.decisions.map { $0.point(provenance) },
             actions: raw.actions.map { $0.action(provenance) })
+        if mergingRepeatedItems {
+            // Validate every item before deduplicating. Reuse the existing
+            // deterministic merger so invalid citations and conflicting owners
+            // or dates still fail; harmless repetition no longer loses a meeting.
+            let items = output.summaryPoints.map {
+                GroundedSummary(meetingID: raw.meeting_id, summaryPoints: [$0], decisions: [], actions: [])
+            } + output.decisions.map {
+                GroundedSummary(meetingID: raw.meeting_id, summaryPoints: [], decisions: [$0], actions: [])
+            } + output.actions.map {
+                GroundedSummary(meetingID: raw.meeting_id, summaryPoints: [], decisions: [], actions: [$0])
+            }
+            return try GroundedSummaryMerger.merge(items, selectedMeetingID: selectedMeetingID,
+                                                   source: source, limits: limits)
+        }
         return try validation.summary(output)
     }
 }

@@ -171,7 +171,7 @@ private struct ResumeVariant: Sendable {
     var modelRevision = String(repeating: "a", count: 40)
     var modelSHA256 = String(repeating: "2", count: 64)
     var runtimeVersion = "llama.cpp-b5046"
-    var promptVersion = "grounded-map-v1"
+    var promptVersion = SummaryPipeline.currentPromptVersion
     var contextTokenLimit = 4_096
     var reservedOutputTokens = 1_024
     var singleTokenCount = 3_000
@@ -220,7 +220,7 @@ private struct SummaryResumeFixture: Sendable {
         return .init(jobID: jobID, meetingID: meetingID, sourceSHA256: resumeDigest(sourceBytes),
             planSHA256: resumeDigest(planBytes), modelID: "synthetic-summary-model",
             modelRevision: String(repeating: "a", count: 40), modelSHA256: String(repeating: "2", count: 64),
-            runtimeVersion: "llama.cpp-b5046", promptVersion: "grounded-map-v1",
+            runtimeVersion: "llama.cpp-b5046", promptVersion: SummaryPipeline.currentPromptVersion,
             contextTokenLimit: 4_096, reservedOutputTokens: 1_024, totalChunks: requests.count)
     }
 

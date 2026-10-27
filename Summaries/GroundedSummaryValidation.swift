@@ -224,6 +224,33 @@ struct GroundedSummaryValidation {
         return bytes.endIndex
     }
 
+    /// Candidate domains for an exact, whole-sentence task. These use the same
+    /// literal commitment/deadline boundaries as action(_:). The model can still
+    /// choose null; a missing speaker or date must never become invented text.
+    static func actionAttributeCandidates(in sentence: String) -> (owner: String?, due: String?) {
+        let bytes = Data(sentence.utf8)
+        var owner: String?
+        if let divider = bytes.range(of: Data(": ".utf8)) {
+            let label = bytes.subdata(in: bytes.startIndex..<divider.lowerBound)
+            let body = bytes.subdata(in: divider.upperBound..<bytes.endIndex)
+            if !label.isEmpty, label.count <= 1_024, !label.contains(10), !label.contains(13),
+               body.starts(with: Data("I will ".utf8)),
+               sentenceEnd(in: body, from: body.startIndex) == body.endIndex {
+                owner = String(data: label, encoding: .utf8)
+            }
+        }
+        var due: String?
+        let end = sentenceEnd(in: bytes, from: bytes.startIndex)
+        let firstSentence = bytes.subdata(in: bytes.startIndex..<end)
+        if let marker = firstSentence.range(of: Data(" by ".utf8), options: .backwards) {
+            var dateEnd = firstSentence.endIndex
+            while dateEnd > marker.upperBound, terminal(firstSentence[dateEnd - 1]) { dateEnd -= 1 }
+            let date = firstSentence.subdata(in: marker.upperBound..<dateEnd)
+            if !date.isEmpty, date.count <= 1_024 { due = String(data: date, encoding: .utf8) }
+        }
+        return (owner, due)
+    }
+
     static func evidenceLess(_ first: GroundedSummaryEvidence, _ second: GroundedSummaryEvidence) -> Bool {
         if first.startSample != second.startSample { return first.startSample < second.startSample }
         if first.endSample != second.endSample { return first.endSample < second.endSample }

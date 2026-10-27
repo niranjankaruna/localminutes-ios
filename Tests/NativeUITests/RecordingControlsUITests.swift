@@ -3,6 +3,57 @@ import XCTest
 /// Simulator UI contract only; not physical microphone or locked-ASR evidence.
 @MainActor
 final class RecordingControlsUITests: XCTestCase {
+    func testNewFinalizedTranscriptScrollsIntoViewWhileStopAndTimerStayAtTheTop() async throws {
+        let app = transcriptApp(stream: "finalized")
+        app.launch(); defer { app.terminate() }
+        let stop = app.buttons["recording.stop"]
+        XCTAssertTrue(stop.waitForExistence(timeout: 15))
+        guard stop.exists else { return }
+        let initialStopFrame = stop.frame
+        let latest = app.staticTexts["recording.liveTranscript.20000000-0000-0000-0000-000000000025"]
+        try await waitForTranscriptEnd(latest, in: app)
+        XCTAssertTrue(latest.isHittable, "New speech should be visible without a manual swipe.")
+        XCTAssertTrue(stop.isHittable)
+        XCTAssertEqual(stop.frame.minY, initialStopFrame.minY, accuracy: 1)
+        let timer = app.staticTexts["recording.elapsed"]
+        XCTAssertTrue(timer.isHittable)
+        XCTAssertLessThanOrEqual(stop.frame.maxY, timer.frame.minY)
+    }
+
+    func testGrowingPartialTranscriptScrollsItsLastLineIntoView() async throws {
+        let app = transcriptApp(stream: "partial")
+        app.launch(); defer { app.terminate() }
+        let partial = app.staticTexts["recording.liveTranscript.partial"]
+        try await waitForTranscriptEnd(partial, in: app)
+        XCTAssertTrue(partial.label.hasSuffix("Latest partial words."))
+        XCTAssertTrue(app.buttons["recording.stop"].isHittable)
+    }
+
+    private func transcriptApp(stream: String) -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-test-library-fixture", "--ui-screenshots",
+                               "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launchEnvironment["LOCALMINUTES_UI_LIBRARY_TOKEN"] = UUID().uuidString
+        app.launchEnvironment["LOCALMINUTES_SCREENSHOT_SCENE"] = "record_live_transcript"
+        app.launchEnvironment["LOCALMINUTES_UI_TRANSCRIPT_STREAM"] = stream
+        return app
+    }
+
+    private func waitForTranscriptEnd(_ element: XCUIElement, in app: XCUIApplication) async throws {
+        let deadline = Date().addingTimeInterval(15)
+        while Date() < deadline {
+            if element.exists, app.tabBars.firstMatch.exists {
+                let frame = element.frame
+                let lowerEdge = app.tabBars.firstMatch.frame.minY
+                let tabs = app.segmentedControls["recording.content.tabs"]
+                if !frame.isEmpty, tabs.exists,
+                   frame.maxY > tabs.frame.maxY, frame.maxY <= lowerEdge + 1 { return }
+            }
+            try await Task.sleep(for: .milliseconds(100))
+        }
+        XCTFail("The newest transcript text did not scroll above the tab bar: \(element.debugDescription)")
+    }
+
     func testSharedActivityStopControlDispatchesItsExactSessionToTheApplicationOwner() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-test-activity-controls"]

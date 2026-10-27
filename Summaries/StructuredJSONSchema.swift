@@ -3,6 +3,7 @@ import Foundation
 public indirect enum StructuredJSONType: Equatable, Sendable {
     case string
     case boolean
+    case null
     case stringEnumeration([String])
     case stringArray(allowedValues: [String])
     case object([StructuredJSONField])
@@ -34,10 +35,15 @@ public enum StructuredJSONSchemaError: Error, Equatable, Sendable {
 public struct StructuredJSONSchema: Equatable, Sendable {
     public let fields: [StructuredJSONField]
     public let maximumGrammarUTF8Bytes: Int
+    /// The prompt already describes every response field and supplies its JSON
+    /// shape. Runtimes need not inject a second, potentially much larger schema.
+    public let promptIncludesSchema: Bool
 
-    public init(fields: [StructuredJSONField], maximumGrammarUTF8Bytes: Int = 65_536) {
+    public init(fields: [StructuredJSONField], maximumGrammarUTF8Bytes: Int = 65_536,
+                promptIncludesSchema: Bool = false) {
         self.fields = fields
         self.maximumGrammarUTF8Bytes = maximumGrammarUTF8Bytes
+        self.promptIncludesSchema = promptIncludesSchema
     }
 
     public func grammar() throws -> String {
@@ -98,6 +104,7 @@ public struct StructuredJSONSchema: Equatable, Sendable {
             switch value {
             case .string: try append(name, "string")
             case .boolean: try append(name, "boolean")
+            case .null: try append(name, "\"null\" ws")
             case .stringEnumeration(let values):
                 guard !values.isEmpty else { throw StructuredJSONSchemaError.emptyEnumeration }
                 let alternatives = try StructuredJSONSchema.enumAlternatives(values, maximumBytes: maximumBytes)
@@ -177,6 +184,7 @@ public struct StructuredJSONSchema: Equatable, Sendable {
                 switch type {
                 case .string: return atom("string")
                 case .boolean: return atom("boolean")
+                case .null: return atom("null")
                 case .stringEnumeration(let values), .stringArray(let values):
                     guard values.count <= 256 else { return false }
                     let tag: String

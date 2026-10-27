@@ -28,7 +28,9 @@ export function validateDeviceBundles(bundleSet) {
   const info = bundleSet.app.info;
   assert.ok(typeof info.NSMicrophoneUsageDescription === 'string'
     && info.NSMicrophoneUsageDescription.trim().length > 0, 'A microphone purpose is required');
-  assert.deepEqual(info.UIBackgroundModes, ['audio'], 'Only the audio background mode is allowed');
+  assert.deepEqual(info.UIBackgroundModes, ['audio', 'processing'], 'Audio capture and background processing modes are required');
+  assert.deepEqual(info.BGTaskSchedulerPermittedIdentifiers, [`${appID}.intelligence.*`],
+    'The background intelligence task identifier must match the app');
   assert.equal(info.NSSupportsLiveActivities, true, 'Live Activity support is required');
   assert.equal(bundleSet.extension.info.NSExtension?.NSExtensionPointIdentifier,
     'com.apple.widgetkit-extension', 'The extension must use WidgetKit');

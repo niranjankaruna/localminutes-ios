@@ -114,7 +114,7 @@ final class ActualSummaryPipelineTests: XCTestCase {
             + output.actions.flatMap(\.provenance)
         XCTAssertFalse(provenance.isEmpty)
         XCTAssertTrue(provenance.allSatisfy {
-            $0.modelRevision == revision && $0.promptVersion == "grounded-map-v1" && $0.mapIndex >= 0
+            $0.modelRevision == revision && $0.promptVersion == SummaryPipeline.currentPromptVersion && $0.mapIndex >= 0
         })
     }
 }

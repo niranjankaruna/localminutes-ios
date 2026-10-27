@@ -3,6 +3,15 @@ import XCTest
 @testable import LocalMinutesSummary
 
 final class StructuredJSONSchemaTests: XCTestCase {
+    func testUnknownMetadataCompilesAsNullOnlyInsteadOfAnUnconstrainedString() throws {
+        let grammar = try StructuredJSONSchema(fields: [
+            .init(name: "owner", type: .null), .init(name: "due", type: .null)
+        ]).grammar()
+        XCTAssertTrue(grammar.contains("field-0 ::= \"null\" ws"))
+        XCTAssertTrue(grammar.contains("field-1 ::= field-0"), "Identical null domains may share a rule")
+        XCTAssertFalse(grammar.contains("field-0 ::= string"))
+    }
+
     func testRepeatedCorrelatedChoiceDomainsFitTheExistingGrammarBudgetWithoutLosingBranches() throws {
         let branches: [StructuredJSONType] = (0..<64).map { index in
             let text = "Exact source sentence \(index)."

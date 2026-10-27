@@ -10,6 +10,38 @@ import XCTest
 /// boundary supplies fixed synthetic JSON; this does not claim Apple inference.
 @MainActor
 final class NativeAppleSummaryTests: XCTestCase {
+    func testAvailableAppleModelGeneratesFromAnUnlabeledRecordedTranscriptOnDevice() async throws {
+        #if targetEnvironment(simulator)
+        throw XCTSkip("Actual Apple Intelligence inference requires an eligible physical device")
+        #else
+        guard #available(iOS 26.0, *), AppleFoundationRuntime.availability() == .available else {
+            throw XCTSkip("Enable Apple Intelligence and finish downloading its model before this device test")
+        }
+        let runtime = try await AppleFoundationRuntime.makeRuntime()
+        let meeting = UUID()
+        let source = GroundedSummarySource(meetingID: meeting, segments: [
+            .init(id: UUID().uuidString, startSample: 0, endSample: 80_000,
+                  text: "The download icon is missing from the blue button."),
+            .init(id: UUID().uuidString, startSample: 80_000, endSample: 160_000,
+                  text: "We decided to fix the download screen in the next release."),
+            .init(id: UUID().uuidString, startSample: 160_000, endSample: 240_000,
+                  text: "The checklist needs review. No owner or deadline was agreed.")
+        ], originalManualNotes: "")
+        do {
+            let pipeline = SummaryPipeline(modelRevision: AppleSummaryModel.currentSystemRevision,
+                tokenizer: { try await runtime.promptTokenCount(prompt: $0) },
+                generator: { try await runtime.generateJSON(prompt: $0, schema: $1, maximumTokens: $2) })
+            let summary = try await pipeline.summarize(selectedMeetingID: meeting, source: source)
+            XCTAssertFalse(summary.summaryPoints.isEmpty)
+            XCTAssertTrue(summary.actions.allSatisfy { $0.owner == nil && $0.due == nil })
+            await runtime.unload()
+        } catch {
+            await runtime.unload()
+            throw error
+        }
+        #endif
+    }
+
     func testPersistedAppleSelectionBindsSystemSessionOnFreshStartupWithoutDefaultWeights() async throws {
         let parent = FileManager.default.temporaryDirectory.resolvingSymlinksInPath()
         let root = parent.appendingPathComponent("localminutes-apple-startup-\(UUID().uuidString)", isDirectory: true)

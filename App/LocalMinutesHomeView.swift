@@ -82,7 +82,6 @@ struct LocalMinutesHomeView: View {
                         _ = try services.persistMetricsCheckpoint()
                     }
                 } catch { application.services?.metrics?.recordError(.writeFailed) }
-                if phase == .background { application.services?.cancelCurrentIntelligence() }
             }
         }
         .onChange(of: application.services.map { ObjectIdentifier($0) }) { previous, current in

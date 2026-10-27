@@ -44,7 +44,7 @@ public struct IntelligenceSnapshot: Equatable, Sendable {
 }
 
 public enum IntelligenceSessionError: Error, Equatable, Sendable {
-    case busy, staleRequest, meetingMissing, invalidModel
+    case busy, staleRequest, meetingMissing, invalidModel, transcriptMissing
 }
 
 private final class IntelligenceCancellation: @unchecked Sendable {
@@ -62,6 +62,7 @@ public final class IntelligenceSession {
     private final class Use: HeavyModelResourceLifecycle {
         let request: IntelligenceRequest
         let models: ModelInstallationManager
+        let progress: IntelligenceProgressReporter?
         let cancellation = GeneratedDocumentCommitAdmission()
         var admissionLease: HeavyModelUseLease?
         var modelLease: ModelLease?
@@ -73,8 +74,8 @@ public final class IntelligenceSession {
         var cleanupBlocked = false
         var committed = false
 
-        init(request: IntelligenceRequest, models: ModelInstallationManager) {
-            self.request = request; self.models = models
+        init(request: IntelligenceRequest, models: ModelInstallationManager, progress: IntelligenceProgressReporter?) {
+            self.request = request; self.models = models; self.progress = progress
         }
 
         func requestCancellation() { work?.cancel() }
@@ -228,10 +229,10 @@ public final class IntelligenceSession {
         }
     }
 
-    public func run(_ request: IntelligenceRequest) async throws -> StoredGeneratedDocument {
+    public func run(_ request: IntelligenceRequest, progress: IntelligenceProgressReporter? = nil) async throws -> StoredGeneratedDocument {
         try Task.checkCancellation()
         guard current == nil else { throw IntelligenceSessionError.busy }
-        let use = Use(request: request, models: models)
+        let use = Use(request: request, models: models, progress: progress)
         let purpose: HeavyModelPurpose
         switch request.operation { case .summary: purpose = .summary; case .question: purpose = .questionAnswering }
         // Reserve the one shared heavy claim before any model/store suspension.
@@ -284,6 +285,7 @@ public final class IntelligenceSession {
 
     private func generate(_ use: Use) async throws -> StoredGeneratedDocument {
         try check(use)
+        use.progress?(.preparing)
         let request = use.request
         guard request.createdAt.timeIntervalSince1970.isFinite else { throw GeneratedDocumentStoreError.invalidInput }
         guard let meeting = try await store.meeting(id: request.meetingID) else { throw IntelligenceSessionError.meetingMissing }
@@ -291,6 +293,9 @@ public final class IntelligenceSession {
         guard meeting.recordingState != .recording else { throw IntelligenceSessionError.busy }
         let segments = try await store.transcript(meetingID: request.meetingID)
         try check(use)
+        if case .summary = request.operation, segments.isEmpty {
+            throw IntelligenceSessionError.transcriptMissing
+        }
         let note = try await store.manualNote(meetingID: request.meetingID)
         try check(use)
         let runtime: any IntelligenceRuntime
@@ -331,15 +336,19 @@ public final class IntelligenceSession {
                     modelSHA256: artifact.sha256, runtimeVersion: runtimeVersion,
                     checkpoints: summaryCheckpoints)
             } else { resume = nil }
+            let report = use.progress
             let pipeline = SummaryPipeline(modelRevision: modelRevision,
                 tokenizer: { try await runtime.promptTokenCount(prompt: $0) },
                 generator: { prompt, schema, maximum in
                     try await runtime.generateJSON(prompt: prompt, schema: schema, maximumTokens: maximum)
-                }, resume: resume)
+                }, resume: resume, mapProgress: { completed, total in
+                    report?(.summaryChunks(completed: completed, total: total))
+                })
             let summary = try await pipeline.summarize(selectedMeetingID: request.meetingID, source: source)
             try check(use)
             return try Self.document(summary: summary, request: request, revision: modelRevision)
         case .question(let question):
+            use.progress?(.answering)
             let answerer = MeetingQuestionAnswerer(store: store, modelRevision: modelRevision,
                 tokenCounter: { try await runtime.promptTokenCount(prompt: $0) },
                 generator: { try await runtime.generateJSON(prompt: $0.prompt, schema: $0.schema,
@@ -371,6 +380,7 @@ public final class IntelligenceSession {
             throw error
         }
         project(use, phase: .saving)
+        use.progress?(.saving)
         do {
             // This one committed SQLite write is the saved-result boundary.
             // Cancellation after accepted commit cannot erase an editable row.
@@ -449,7 +459,7 @@ public final class IntelligenceSession {
                 "Action: " + action.task + (action.owner.map { " — " + $0 } ?? "") + (action.due.map { " (" + $0 + ")" } ?? "")
             }).joined(separator: "\n")
         return try document(payload: payload, text: text, request: request, kind: .summary,
-                            revision: revision, prompt: "grounded-map-v1", question: nil)
+                            revision: revision, prompt: SummaryPipeline.currentPromptVersion, question: nil)
     }
 
     private static func document(answer: MeetingQuestionAnswer, request: IntelligenceRequest) throws -> StoredGeneratedDocument {

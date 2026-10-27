@@ -27,6 +27,7 @@ final class LocalMinutesServices: PlaybackHardware {
     private var intelligenceManifest: ModelManifest?
     private var intelligenceUsesApple = false
     @ObservationIgnored private(set) var intelligenceMemoryPressureMonitor: IntelligenceMemoryPressureMonitor?
+    let intelligenceBackgroundExecution: IntelligenceBackgroundExecution
     @ObservationIgnored private var summaryStartupBinding: Task<Void, Never>?
     @ObservationIgnored private var summaryStartupBound = false
     let modelSelections: ModelSelectionStore
@@ -122,7 +123,6 @@ final class LocalMinutesServices: PlaybackHardware {
     private(set) var modelError: String?
     private(set) var playback: AVAudioPlayer?
     @ObservationIgnored private var ownsPlaybackSession = false
-    @ObservationIgnored private var intelligenceCleanup: (id: UUID, task: Task<Void, Never>)?
 
     static let summaryManifest = ModelCatalog.variant(id: "phi3-mini-4k-instruct-q4")?.manifest
         ?? legacySummaryManifest
@@ -142,7 +142,10 @@ final class LocalMinutesServices: PlaybackHardware {
 
     /// Explicit roots are an internal storage boundary for owned native test
     /// fixtures. Production nil keeps the same persistent ApplicationSupport path.
-    init(rootURL: URL? = nil, modelConfiguration: URLSessionConfiguration = .ephemeral) throws {
+    init(rootURL: URL? = nil, modelConfiguration: URLSessionConfiguration = .ephemeral,
+         backgroundProvider: (any IntelligenceBackgroundProviding)? = nil) throws {
+        intelligenceBackgroundExecution = IntelligenceBackgroundExecution(
+            provider: backgroundProvider ?? SystemIntelligenceBackgroundProvider())
         let root: URL
         if let rootURL {
             guard rootURL.isFileURL else { throw PersistentFilePolicyError.invalidRoot }
@@ -210,23 +213,6 @@ final class LocalMinutesServices: PlaybackHardware {
         intelligenceMemoryPressureMonitor = IntelligenceMemoryPressureMonitor(activeSession: { [weak self] in
             self?.intelligence
         })
-    }
-
-    /// Retain cancellation independently of the scene/view that requested it.
-    /// The captured request identity can never cancel a later meeting's work.
-    func cancelCurrentIntelligence() {
-        guard let intelligence else { return }
-        let snapshot = intelligence.snapshot()
-        guard let id = snapshot.requestID,
-              [.loading, .generating, .saving, .draining, .failed].contains(snapshot.phase),
-              intelligenceCleanup?.id != id else { return }
-        let task = Task { @MainActor [weak self] in
-            do { try await intelligence.cancelAndDrain(requestID: id) }
-            catch IntelligenceSessionError.staleRequest { }
-            catch { self?.modelError = "Local model cleanup is pending. Return to the meeting and tap Cancel to retry." }
-            if self?.intelligenceCleanup?.id == id { self?.intelligenceCleanup = nil }
-        }
-        intelligenceCleanup = (id, task)
     }
 
     /// The retained coordinator coalesces callers and finishes admitted recovery

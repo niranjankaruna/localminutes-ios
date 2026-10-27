@@ -1,7 +1,7 @@
 import XCTest
 
 /// Real verified synthetic installations. The redesigned list opens focused
-/// details; selection/removal still announce the actual purpose and repository.
+/// details; selection/removal announce the family, variant and model purpose.
 @MainActor
 final class ModelBrowserAccessibilityUITests: XCTestCase {
     func testCatalogueOffersNamedFamiliesAndNoRepositoryLookupOrImport() {
@@ -22,7 +22,8 @@ final class ModelBrowserAccessibilityUITests: XCTestCase {
     func testRemovingOneDownloadedVariantReturnsItsDownloadActionAndPreservesTheOther() {
         let app = launchModels(largestText: false)
         defer { app.terminate() }
-        guard minutesTap(app.buttons["models.remove.ui-model-alpha"], in: app),
+        guard minutesTap(minutesElement("models.family.qwen25", in: app), in: app),
+              minutesTap(app.buttons["models.remove.ui-model-alpha"], in: app),
               minutesTap(app.buttons["models.remove.confirm"], in: app) else { return }
         XCTAssertTrue(app.buttons["models.download.ui-model-alpha"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["models.remove.ui-model-alpha"].exists)
@@ -50,6 +51,7 @@ final class ModelBrowserAccessibilityUITests: XCTestCase {
     func testInstalledModelSpokenActionsIncludePurposeAndDistinctModelIdentity() {
         let app = launchModels(largestText: false)
         defer { app.terminate() }
+        guard minutesTap(minutesElement("models.family.qwen25", in: app), in: app) else { return }
         var spoken: Set<String> = []
         for name in ["alpha", "beta"] {
             guard minutesTap(minutesElement("models.open.ui-model-\(name)", in: app), in: app) else { return }
@@ -58,7 +60,8 @@ final class ModelBrowserAccessibilityUITests: XCTestCase {
                 minutesReveal(button, in: app)
                 XCTAssertTrue(button.exists)
                 XCTAssertTrue(button.label.localizedCaseInsensitiveContains("summary"))
-                XCTAssertTrue(button.label.contains("example/ui-model-\(name)"))
+                XCTAssertTrue(button.label.contains("Qwen 2.5"))
+                XCTAssertTrue(button.label.contains(name == "alpha" ? "0.5B" : "1.5B"))
                 XCTAssertTrue(spoken.insert(button.label).inserted)
             }
             app.navigationBars.buttons.element(boundBy: 0).tap()
@@ -69,6 +72,7 @@ final class ModelBrowserAccessibilityUITests: XCTestCase {
     func testInstalledModelActionsRemainReachableWith44PointTargetsAtLargestAccessibilityText() {
         let app = launchModels(largestText: true)
         defer { app.terminate() }
+        guard minutesTap(minutesElement("models.family.qwen25", in: app), in: app) else { return }
         for name in ["alpha", "beta"] {
             guard minutesTap(minutesElement("models.open.ui-model-\(name)", in: app), in: app) else { return }
             for id in ["models.equip.ui-model-\(name)", "models.remove.ui-model-\(name)"] {

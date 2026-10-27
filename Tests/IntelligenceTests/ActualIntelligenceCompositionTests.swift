@@ -3,6 +3,7 @@ import XCTest
 import LocalMinutesCore
 import LocalMinutesModels
 import LocalMinutesPersistence
+import LocalMinutesSummary
 @testable import LocalMinutesIntelligence
 
 /// Dedicated actual-model job only. No runtime injection, skipped environment,
@@ -31,7 +32,7 @@ final class ActualIntelligenceCompositionTests: XCTestCase {
             let action = try XCTUnwrap(actions.first { ($0["task"] as? String)?.contains("guide") == true })
             XCTAssertEqual(action["owner"] as? String, "Leo"); XCTAssertEqual(action["due"] as? String, "Thursday")
             XCTAssertEqual(summary.modelRevision, "91cad51170dc346986eccefdc2dd33a9da36ead9")
-            XCTAssertEqual(summary.promptVersion, "grounded-map-v1")
+            XCTAssertEqual(summary.promptVersion, SummaryPipeline.currentPromptVersion)
             stage = "question-answer"
             let answer = try await session.run(h.request(.question("Who will write the guide?")))
             let answerJSON = try XCTUnwrap(try JSONSerialization.jsonObject(with: answer.originalJSON) as? [String: Any])

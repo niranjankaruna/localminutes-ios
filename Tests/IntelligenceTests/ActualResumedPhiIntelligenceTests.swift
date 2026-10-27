@@ -124,7 +124,7 @@ final class ActualResumedPhiIntelligenceTests: XCTestCase {
             XCTAssertEqual(durable, saved)
             XCTAssertEqual(saved.kind, .summary)
             XCTAssertEqual(saved.modelRevision, revision)
-            XCTAssertEqual(saved.promptVersion, "grounded-map-v1")
+            XCTAssertEqual(saved.promptVersion, SummaryPipeline.currentPromptVersion)
             try validatePhiSummary(saved, fixture: h, revision: revision)
             XCTAssertNil(try readPhiCheckpoint(directory, meetingID: h.selected))
             XCTAssertEqual(next.snapshot().phase, .completed)
@@ -170,7 +170,7 @@ final class ActualResumedPhiIntelligenceTests: XCTestCase {
                 XCTAssertFalse(provenance.isEmpty)
                 for value in provenance {
                     XCTAssertEqual(value["model_revision"] as? String, revision)
-                    XCTAssertEqual(value["prompt_version"] as? String, "grounded-map-v1")
+                    XCTAssertEqual(value["prompt_version"] as? String, SummaryPipeline.currentPromptVersion)
                     XCTAssertEqual((value["map_index"] as? NSNumber)?.intValue, 0)
                 }
             }

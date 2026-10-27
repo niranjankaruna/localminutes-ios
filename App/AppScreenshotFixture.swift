@@ -64,6 +64,29 @@ enum AppScreenshotFixture {
                   modelRevision: ParakeetCoreMLModel.manifest.revision)
         ], receivedSampleCount: 1_960_000)
     }
+
+    enum TranscriptStream: String { case finalized, partial }
+    static var transcriptStream: TranscriptStream? {
+        guard scene == .recordTranscript,
+              let value = ProcessInfo.processInfo.environment["LOCALMINUTES_UI_TRANSCRIPT_STREAM"] else { return nil }
+        return TranscriptStream(rawValue: value)
+    }
+
+    /// Long display-only input for the actual recording scroll view. It never
+    /// changes capture state, writes transcript rows or invokes speech inference.
+    static func scrollingTranscript(finalCount: Int, partial: String = "") -> LiveTranscriptSnapshot {
+        let segments = (0..<min(25, max(0, finalCount))).map { index in
+            StoredTranscriptSegment(
+                id: UUID(uuidString: String(format: "20000000-0000-0000-0000-%012d", index + 1))!,
+                meetingID: meetingID, sequence: index,
+                startSample: Int64(index) * 80_000, endSample: Int64(index + 1) * 80_000,
+                text: index == 24 ? "Newest finalized transcript segment." :
+                    "Transcript segment \(index + 1). " + String(repeating: "We are reviewing the meeting notes and next steps. ", count: 4),
+                modelRevision: ParakeetCoreMLModel.manifest.revision)
+        }
+        return .init(sessionID: meetingID, partial: partial, finalized: segments,
+                     receivedSampleCount: Int64(segments.count) * 80_000)
+    }
 }
 #endif
 

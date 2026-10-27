@@ -49,6 +49,35 @@ final class ActualCatalogAdapterIntegrationTests: XCTestCase {
                     XCTAssertEqual(object["owner"] as? String, "Leo")
                     XCTAssertEqual(object["due"] as? String, "Thursday")
                 }
+                // Recorded Parakeet chunks have no speaker labels. Exercise a
+                // longer, unlabeled transcript instead of only two named lines.
+                let meeting = UUID()
+                let sentences = [
+                    "We are reviewing the mobile app today.",
+                    "The download icon is missing from the blue button.",
+                    "The summary fails when Apple Intelligence is selected.",
+                    "The other model loads and then shows the same error.",
+                    "We need to inspect the prompt and model output.",
+                    "The recording was two minutes long and the transcript is saved.",
+                    "We need to check the prompt budget and add a regression test.",
+                    "We decided to fix the download icon in this release.",
+                    "Please keep all meeting data on the device.",
+                    "The final test should use the actual downloaded model.",
+                    "We need to test summaries while the phone is locked.",
+                    "No owner or deadline was assigned for these tasks."
+                ]
+                let source = GroundedSummarySource(meetingID: meeting,
+                    segments: sentences.enumerated().map { index, text in
+                        .init(id: UUID().uuidString, startSample: Int64(index * 80_000),
+                              endSample: Int64((index + 1) * 80_000), text: text)
+                    }, originalManualNotes: "")
+                let pipeline = SummaryPipeline(modelRevision: variant.manifest.revision,
+                    tokenizer: { try await runtime.promptTokenCount(prompt: $0) },
+                    generator: { try await runtime.generateJSON(prompt: $0, schema: $1, maximumTokens: $2) })
+                let recordedSummary = try await pipeline.summarize(selectedMeetingID: meeting, source: source)
+                XCTAssertFalse(recordedSummary.summaryPoints.isEmpty)
+                XCTAssertTrue(recordedSummary.actions.allSatisfy { $0.owner == nil && $0.due == nil },
+                    "Unknown metadata must remain null, not fail the entire meeting after hallucinated assignments")
                 await runtime.unload()
                 do { _ = try await runtime.promptTokenCount(prompt: prompt); XCTFail("Unloaded adapter retained the model") }
                 catch { XCTAssertEqual(error as? LocalSummaryRuntimeError, .modelUnavailable) }

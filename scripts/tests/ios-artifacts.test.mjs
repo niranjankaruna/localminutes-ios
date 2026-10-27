@@ -13,7 +13,8 @@ function bundles() {
         CFBundleIdentifier: appID, CFBundleExecutable: 'LocalMinutes', CFBundlePackageType: 'APPL',
         CFBundleSupportedPlatforms: ['iPhoneOS'], MinimumOSVersion: '18.0',
         NSMicrophoneUsageDescription: 'Record meetings you explicitly start.',
-        UIBackgroundModes: ['audio'], NSSupportsLiveActivities: true
+        UIBackgroundModes: ['audio', 'processing'], NSSupportsLiveActivities: true,
+        BGTaskSchedulerPermittedIdentifiers: [`${appID}.intelligence.*`]
       }, architectures: ['arm64'], platforms: ['IOS']
     },
     extension: {
@@ -93,6 +94,15 @@ test('rejects unexpected background modes and wrong extension configuration', ()
   assert.throws(() => validateDeviceBundles(background), /background|audio/i);
   const extension = bundles(); extension.extension.info.NSExtension.NSExtensionPointIdentifier = 'wrong';
   assert.throws(() => validateDeviceBundles(extension), /extension/i);
+});
+
+test('requires the exact background summary task identifier and processing mode', () => {
+  for (const identifiers of [undefined, [], ['com.unrelated.app.*'], [`${appID}.intelligence`]]) {
+    const value = bundles(); value.app.info.BGTaskSchedulerPermittedIdentifiers = identifiers;
+    assert.throws(() => validateDeviceBundles(value), /background intelligence/i);
+  }
+  const value = bundles(); value.app.info.UIBackgroundModes = ['audio'];
+  assert.throws(() => validateDeviceBundles(value), /processing/i);
 });
 
 test('requires the pinned deployment target and device supported-platform metadata', () => {

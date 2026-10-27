@@ -3,6 +3,7 @@ import XCTest
 import LocalMinutesCore
 import LocalMinutesModels
 import LocalMinutesPersistence
+import LocalMinutesSummary
 @testable import LocalMinutesIntelligence
 
 /// Mandatory real selected-model composition. The default loader must accept
@@ -41,7 +42,7 @@ final class ActualSelectedModelIntelligenceTests: XCTestCase {
                     XCTAssertFalse(String(decoding: saved.originalJSON, as: UTF8.self).contains("telescope"))
                     if stage == "summary" {
                         XCTAssertEqual(saved.kind, .summary)
-                        XCTAssertEqual(saved.promptVersion, "grounded-map-v1")
+                        XCTAssertEqual(saved.promptVersion, SummaryPipeline.currentPromptVersion)
                         let decisions = try XCTUnwrap(object["decisions"] as? [[String: Any]])
                         XCTAssertTrue(decisions.contains { ($0["text"] as? String)?.lowercased().contains("prototype") == true
                             && ($0["text"] as? String)?.contains("Friday") == true })
@@ -56,7 +57,7 @@ final class ActualSelectedModelIntelligenceTests: XCTestCase {
                                 XCTAssertFalse(provenance.isEmpty)
                                 for source in provenance {
                                     XCTAssertEqual(source["model_revision"] as? String, revision)
-                                    XCTAssertEqual(source["prompt_version"] as? String, "grounded-map-v1")
+                                    XCTAssertEqual(source["prompt_version"] as? String, SummaryPipeline.currentPromptVersion)
                                     XCTAssertGreaterThanOrEqual((source["map_index"] as? NSNumber)?.intValue ?? -1, 0)
                                 }
                             }

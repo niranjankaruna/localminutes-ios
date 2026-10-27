@@ -19,9 +19,11 @@ struct MeetingIntelligenceCitation: Identifiable {
 }
 
 /// One detail screen owns one immutable meeting identity. Model work is retained
-/// by app services; leaving this screen requests only this controller's work stop.
+/// by app services. Backgrounding preserves generation; foreground navigation
+/// can still cancel this controller's work explicitly.
 @MainActor @Observable
 final class MeetingIntelligenceController {
+    private enum PreparationError: Error { case stopped }
     let meetingID: UUID
     private let services: LocalMinutesServices
     private(set) var summary: StoredGeneratedDocument?
@@ -278,29 +280,22 @@ final class MeetingIntelligenceController {
         message = "Preparing local generation…"
         operation = Task { @MainActor in
             do {
-                guard await self.flushSummaryEdits() else {
-                    self.finish(owned)
-                    return
+                let saved = try await self.services.intelligenceBackgroundExecution.run(owned) { progress in
+                    guard await self.flushSummaryEdits(), await self.flushAllAnswerEdits() else { throw PreparationError.stopped }
+                    await self.services.initialize()
+                    try Task.checkCancellation()
+                    guard self.services.startup.state == .ready else {
+                        self.errorMessage = "Saved meetings are not ready. Reopen LocalMinutes and try again."
+                        throw PreparationError.stopped
+                    }
+                    guard let intelligence = self.services.intelligence else {
+                        self.modelRequired = true
+                        self.message = nil
+                        throw PreparationError.stopped
+                    }
+                    self.message = "Working locally on this meeting…"
+                    return try await intelligence.run(owned, progress: progress)
                 }
-                guard await self.flushAllAnswerEdits() else {
-                    self.finish(owned)
-                    return
-                }
-                await self.services.initialize()
-                try Task.checkCancellation()
-                guard self.services.startup.state == .ready else {
-                    self.errorMessage = "Saved meetings are not ready. Reopen LocalMinutes and try again."
-                    self.finish(owned)
-                    return
-                }
-                guard let intelligence = self.services.intelligence else {
-                    self.modelRequired = true
-                    self.message = nil
-                    self.finish(owned)
-                    return
-                }
-                self.message = "Working locally on this meeting…"
-                let saved = try await intelligence.run(owned)
                 guard self.request?.id == owned.id, saved.meetingID == self.meetingID else { return }
                 if saved.kind == .summary {
                     self.summary = saved
@@ -309,6 +304,12 @@ final class MeetingIntelligenceController {
                 }
                 self.message = "Saved on this iPhone. Review generated content against its sources."
                 await self.load()
+            } catch PreparationError.stopped {
+                self.message = nil
+            } catch IntelligenceBackgroundError.expired {
+                self.message = "iOS stopped background processing. Generate again to resume any saved summary progress."
+            } catch IntelligenceBackgroundError.busy {
+                self.errorMessage = "Wait for the current summary or answer to finish."
             } catch is CancellationError {
                 self.message = "Generation cancelled."
             } catch ModelInstallationError.modelMissing {
@@ -324,8 +325,8 @@ final class MeetingIntelligenceController {
             } catch SummaryCheckpointError.identityMismatch {
                 self.errorMessage = "Saved summary progress uses different notes, model or settings. Choose Start a fresh summary to discard that progress and use this meeting's current content."
             } catch {
-                // Model output and database paths never appear in diagnostics.
-                self.errorMessage = "A supported result could not be generated. Check that the model is installed and this meeting has a finalized transcript, then try again."
+                self.message = nil
+                self.errorMessage = IntelligenceFailureMessage.message(for: error)
             }
             self.finish(owned)
         }
@@ -369,9 +370,9 @@ final class MeetingIntelligenceController {
         }
     }
 
-    func leaveMeeting() {
+    func leaveMeeting(cancelGeneration: Bool = true) {
         debounce?.cancel()
-        cancel()
+        if cancelGeneration { cancel() }
         // Unstructured save survives view removal and remains bound to this UUID.
         Task {
             _ = await flushSummaryEdits()

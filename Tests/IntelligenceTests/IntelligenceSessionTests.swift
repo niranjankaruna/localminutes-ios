@@ -4,10 +4,34 @@ import XCTest
 import LocalMinutesCore
 import LocalMinutesModels
 import LocalMinutesPersistence
+import LocalMinutesSummary
 @testable import LocalMinutesIntelligence
 
 @MainActor
 final class IntelligenceSessionTests: XCTestCase {
+    func testMissingTranscriptIsReportedBeforeLoadingAHeavyModel() async throws {
+        let fixture = try await IntelligenceFixture.create()
+        do {
+            let meeting = UUID()
+            try await fixture.store.createMeeting(.init(id: meeting, title: "Empty meeting",
+                createdAt: Date(timeIntervalSince1970: 1), recordingState: .completed, capturedSampleCount: 0))
+            let session = IntelligenceSession(store: fixture.store, models: fixture.models,
+                admission: fixture.admission, manifest: fixture.manifest, runtimeLoader: { _ in
+                    XCTFail("A summary without transcript evidence must fail before loading a model")
+                    throw IntelligenceSessionError.invalidModel
+                })
+            do {
+                _ = try await session.run(.init(meetingID: meeting, operation: .summary))
+                XCTFail("An empty transcript must not produce a successful empty summary")
+            } catch { XCTAssertEqual(error as? IntelligenceSessionError, .transcriptMissing) }
+            XCTAssertEqual(fixture.admission.snapshot().phase, .idle)
+            try await fixture.closeAndRemove()
+        } catch {
+            try? await fixture.closeAndRemove()
+            throw error
+        }
+    }
+
     func testSummaryAndQASaveSelectedValidatedDocumentsAndProvenanceWithoutChangingOriginals() async throws {
         let h = try await IntelligenceFixture.create()
         do {
@@ -29,10 +53,10 @@ final class IntelligenceSessionTests: XCTestCase {
             XCTAssertEqual(evidence.first?["source_id"] as? String, h.segments[0].id.uuidString)
             let provenance = try XCTUnwrap(points.first?["provenance"] as? [[String: Any]])
             XCTAssertEqual(provenance.first?["model_revision"] as? String, h.manifest.revision)
-            XCTAssertEqual(provenance.first?["prompt_version"] as? String, "grounded-map-v1")
+            XCTAssertEqual(provenance.first?["prompt_version"] as? String, SummaryPipeline.currentPromptVersion)
             XCTAssertEqual(provenance.first?["map_index"] as? Int, 0)
             XCTAssertEqual(summary.kind, .summary); XCTAssertNil(summary.question)
-            XCTAssertEqual(summary.promptVersion, "grounded-map-v1")
+            XCTAssertEqual(summary.promptVersion, SummaryPipeline.currentPromptVersion)
             XCTAssertEqual(answer.kind, .questionAnswer); XCTAssertEqual(answer.question, "Who will write the guide?")
             XCTAssertEqual(answer.promptVersion, "meeting-qa-v1")
             XCTAssertEqual(summary.modelRevision, h.manifest.revision); XCTAssertEqual(answer.modelRevision, h.manifest.revision)

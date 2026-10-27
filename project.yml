@@ -41,7 +41,9 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LocalMinutesSourceCommit: $(LOCALMINUTES_SOURCE_COMMIT)
         NSMicrophoneUsageDescription: Record meetings you explicitly start and transcribe them on this iPhone.
-        UIBackgroundModes: [audio]
+        UIBackgroundModes: [audio, processing]
+        BGTaskSchedulerPermittedIdentifiers:
+          - $(PRODUCT_BUNDLE_IDENTIFIER).intelligence.*
         NSSupportsLiveActivities: true
         UILaunchStoryboardName: LaunchScreen
     settings:

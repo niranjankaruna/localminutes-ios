@@ -71,10 +71,11 @@ final class SummaryPipelineTests: XCTestCase {
                 XCTAssertEqual(quotes.map { Data($0.utf8) }, [Data(text.utf8)],
                     "A different allowed sentence cannot be paired with this claim")
                 if category == "actions" {
-                    for attribute in ["owner", "due"] {
-                        XCTAssertEqual(itemFields.first { $0.name == attribute }?.type, .nullable(.string),
-                            "Correlation must not hardcode assignments or infer unknown attributes")
-                    }
+                    let commitment = expected.id == segments[1].id
+                    XCTAssertEqual(itemFields.first { $0.name == "owner" }?.type,
+                        commitment ? .nullable(.stringEnumeration(["Ren"])) : .null)
+                    XCTAssertEqual(itemFields.first { $0.name == "due" }?.type,
+                        commitment ? .nullable(.stringEnumeration(["Friday"])) : .null)
                 }
             }
             XCTAssertEqual(foundSources, Set(segments.map { Data($0.id.utf8) }))
@@ -171,14 +172,10 @@ final class SummaryPipelineTests: XCTestCase {
             let points = try fields(inArray: category, fields: request.schema.fields)
             try exactChoices("text", fields: points)
         }
-        for name in ["owner", "due"] {
-            let attributes = actions.filter { $0.name == name }
-            XCTAssertFalse(attributes.isEmpty)
-            for field in attributes {
-                XCTAssertEqual(field.type, .nullable(.string),
-                    "The grammar must leave model-selected attributes unknown or independently validated")
-            }
-        }
+        XCTAssertEqual(actions.filter { $0.name == "owner" }.map(\.type),
+            [.nullable(.stringEnumeration(["Ari"])), .null, .null])
+        XCTAssertEqual(actions.filter { $0.name == "due" }.map(\.type),
+            [.nullable(.stringEnumeration(["Wednesday"])), .null, .null])
         XCTAssertEqual(output.actions.first?.task, sentences[0])
         XCTAssertEqual(output.actions.first?.owner, "Ari")
         XCTAssertEqual(output.actions.first?.due, "Wednesday")
@@ -216,16 +213,14 @@ final class SummaryPipelineTests: XCTestCase {
                 return XCTFail("Missing bounded correlated action schema")
             }
             XCTAssertTrue((1...128).contains(count))
-            guard let owner = fields.first(where: { $0.name == "owner" }),
-                  case .nullable(.string) = owner.type else { return XCTFail("Unknown owner must permit actual JSON null") }
-            guard let due = fields.first(where: { $0.name == "due" }),
-                  case .nullable(.string) = due.type else { return XCTFail("Unknown deadline must permit actual JSON null") }
+            XCTAssertEqual(fields.first { $0.name == "owner" }?.type, .null)
+            XCTAssertEqual(fields.first { $0.name == "due" }?.type, .null)
         }
         XCTAssertEqual(output.summaryPoints.count, 2)
         XCTAssertEqual(output.summaryPoints.flatMap(\.evidence).map(\.sourceID), [h.first.id, h.second.id])
         XCTAssertEqual(output.summaryPoints.flatMap(\.provenance).map(\.mapIndex), [0, 1])
         XCTAssertTrue(output.summaryPoints.flatMap(\.provenance).allSatisfy {
-            $0.modelRevision == h.revision && $0.promptVersion == "grounded-map-v1"
+            $0.modelRevision == h.revision && $0.promptVersion == SummaryPipeline.currentPromptVersion
         })
         let snapshot = await pipeline.snapshot()
         XCTAssertEqual(snapshot.phase, .completed)

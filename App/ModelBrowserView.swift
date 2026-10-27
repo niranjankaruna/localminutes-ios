@@ -59,6 +59,8 @@ struct ModelPurposeView: View {
     var application: RecordingApplication? = nil
     var onSelected: (() -> Void)? = nil
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var expandedFamilies: Set<String> = []
     @State private var captureRoute: ModelScreen?
     @State private var pendingRemoval: ModelManifest?
     @State private var confirmingRemoval = false
@@ -134,14 +136,24 @@ struct ModelPurposeView: View {
             if purpose == .summary { appleCatalogSection }
             ForEach(families, id: \.id) { family in
                 Section {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Label(family.title, systemImage: purpose == .speechRecognition ? "waveform" : "text.bubble")
-                            .font(.title3.weight(.semibold)).foregroundStyle(.primary)
-                            .accessibilityIdentifier("models.family.\(family.id)")
-                        Text(family.detail).font(.subheadline).foregroundStyle(.secondary)
-                    }.padding(.vertical, 8)
-                    ForEach(family.variants, id: \.id) { variant in
-                        variantRow(variant)
+                    DisclosureGroup(isExpanded: familyExpansion(family.id)) {
+                        Text(family.detail)
+                            .font(.subheadline).foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.vertical, 8)
+                        ForEach(family.variants, id: \.id) { variant in
+                            variantRow(variant)
+                        }
+                    } label: {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Label(family.title, systemImage: purpose == .speechRecognition ? "waveform" : "text.bubble")
+                                .font(.title3.weight(.semibold)).foregroundStyle(.primary)
+                            Text(familySubtitle(family)).font(.subheadline).foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .frame(minHeight: 44, alignment: .leading).padding(.vertical, 8)
+                        .accessibilityElement(children: .combine)
+                        .accessibilityIdentifier("models.family.\(family.id)")
                     }
                 }
             }
@@ -166,6 +178,26 @@ struct ModelPurposeView: View {
         }
         .refreshable { await controller.refresh() }
         .screenshotReady(screenshotPrepared)
+    }
+
+    private func familyExpansion(_ id: String) -> Binding<Bool> {
+        Binding(get: { expandedFamilies.contains(id) }, set: { expanded in
+            withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 1)) {
+                if expanded { expandedFamilies.insert(id) }
+                else { expandedFamilies.remove(id) }
+            }
+        })
+    }
+
+    private func familySubtitle(_ family: ModelCatalogFamily) -> String {
+        let count = family.variants.count
+        let variants = count == 1 ? "1 variant" : "\(count) variants"
+        if let equipped = family.variants.first(where: { variant in
+            controller.installedManifest(for: variant.manifest).map { controller.isEquipped($0) } ?? false
+        }) {
+            return "\(variants) · \(equipped.title) equipped"
+        }
+        return variants
     }
 
     private var appleCatalogSection: some View {
@@ -197,9 +229,6 @@ struct ModelPurposeView: View {
                 }
             }
             Text(variant.detail).font(.subheadline).foregroundStyle(.secondary)
-            Text(repositoryName(variant.manifest)).font(.footnote).foregroundStyle(.secondary)
-                .textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("models.repository.\(variant.id)")
             Text("\(bytes(ModelBrowserController.downloadBytes(variant.manifest))) · \(ModelDisplay.engine(variant.manifest))")
                 .font(.footnote).foregroundStyle(.secondary)
             if controller.transferManifest?.modelID == variant.id, controller.isDownloading {
@@ -243,8 +272,17 @@ struct ModelPurposeView: View {
                 .accessibilityLabel("Pause downloading \(modelActionIdentity(variant.manifest))")
                 .accessibilityIdentifier("models.pause.\(variant.id)")
         } else {
-            Button(controller.hasPartialDownload(variant.manifest) ? "Resume" : "Download", systemImage: "arrow.down") {
+            Button {
                 controller.download(variant)
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.down")
+                        .symbolRenderingMode(.monochrome)
+                        .foregroundStyle(.white)
+                        .accessibilityHidden(true)
+                    Text(controller.hasPartialDownload(variant.manifest) ? "Resume" : "Download")
+                }
+                .foregroundStyle(.white)
             }
             .buttonStyle(.borderedProminent).frame(minWidth: 44, minHeight: 44)
             .accessibilityLabel("\(controller.hasPartialDownload(variant.manifest) ? "Resume downloading" : "Download") \(modelActionIdentity(variant.manifest))")
@@ -326,7 +364,6 @@ struct ModelPurposeView: View {
             if let manifest = controller.transferManifest {
                 Section {
                     Text(ModelDisplay.name(manifest)).font(.headline)
-                    Text(repositoryName(manifest)).font(.footnote).foregroundStyle(.secondary)
                 }
             }
             if let progress = controller.downloadProgress {
@@ -415,7 +452,13 @@ struct ModelPurposeView: View {
         manifest.upstreamRepository.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
     }
     private func modelActionIdentity(_ manifest: ModelManifest) -> String {
-        "\(manifest.purpose == .speechRecognition ? "speech" : "summary") model \(repositoryName(manifest))"
+        let purpose = manifest.purpose == .speechRecognition ? "speech" : "summary"
+        for family in families {
+            if let variant = family.variants.first(where: { $0.matches(manifest) }) {
+                return "\(purpose) model \(family.title) \(variant.title)"
+            }
+        }
+        return "\(purpose) model \(ModelDisplay.name(manifest))"
     }
     private func stageTitle(_ stage: ModelTransferStage) -> String {
         switch stage {

@@ -1,10 +1,11 @@
 import Foundation
 import llama
 
-// Foreground, post-recording CPU inference. Callers retain their verified model
+// Post-recording CPU inference under the app's execution allowance. Callers retain their verified model
 // lease until unload; installation alone never establishes runtime readiness.
 public enum LocalSummaryRuntimeError: Error, Equatable, Sendable {
     case modelUnavailable, invalidModel, contextUnavailable, generationFailed
+    case contextExceeded, outputLimitExceeded
 }
 
 private enum SummaryGenerationFailureStage: String {
@@ -260,7 +261,11 @@ public actor LocalSummaryRuntime: SummaryModelRuntime {
         // the failure stage stranded in stdout buffering. No stream redirection.
         try? FileHandle.standardError.write(contentsOf: Data(metadata.utf8))
         #endif
-        return .generationFailed
+        switch stage {
+        case .contextCapacity: return .contextExceeded
+        case .outputTokenLimit: return .outputLimitExceeded
+        default: return .generationFailed
+        }
     }
 
     private func checkCancellation(_ cancellation: SummaryCancellation) throws {
