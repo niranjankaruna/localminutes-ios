@@ -18,9 +18,9 @@ struct MeetingIntelligenceCitation: Identifiable {
     }
 }
 
-/// One detail screen owns one immutable meeting identity. Model work is retained
-/// by app services. Backgrounding preserves generation; foreground navigation
-/// can still cancel this controller's work explicitly.
+/// One immutable meeting identity, shared with recreated detail screens. Model
+/// work survives screen locking and navigation; only explicit cancellation,
+/// resource pressure or expiration stops it.
 @MainActor @Observable
 final class MeetingIntelligenceController {
     private enum PreparationError: Error { case stopped }
@@ -34,6 +34,7 @@ final class MeetingIntelligenceController {
     private(set) var errorMessage: String?
     private(set) var modelRequired = false
     private(set) var isRunning = false
+    private(set) var summaryPaused = false
     private(set) var isSaving = false
     private(set) var cleanupPending = false
     private(set) var isResetting = false
@@ -47,6 +48,7 @@ final class MeetingIntelligenceController {
     @ObservationIgnored private var loadID: UUID?
     @ObservationIgnored private var request: IntelligenceRequest?
     @ObservationIgnored private var operation: Task<Void, Never>?
+    @ObservationIgnored private var acceptsProgress = false
     @ObservationIgnored private var cancellation: Task<Void, Never>?
     @ObservationIgnored private var debounce: Task<Void, Never>?
     @ObservationIgnored private var resetSummaryTask: Task<Void, Never>?
@@ -149,11 +151,19 @@ final class MeetingIntelligenceController {
             let savedAnswers = try await services.store.generatedDocuments(meetingID: meetingID, kind: .questionAnswer, limit: 50)
             let rows = summaries + savedAnswers
             let transcript = try await services.store.transcript(meetingID: meetingID)
+            let savedMaps: Int?
+            if summaries.isEmpty {
+                savedMaps = try? await services.summaryCheckpoints.savedMapCount(jobID: meetingID, meetingID: meetingID)
+            } else { savedMaps = nil }
             guard loadID == token else { return }
             sources = Dictionary(uniqueKeysWithValues: transcript.map { ($0.id, $0) })
             if !hasSummaryEdits && !isSaving {
                 summary = rows.first { $0.kind == .summary }
                 summaryText = summary?.editedText ?? ""
+            }
+            if !isRunning, summary == nil, let savedMaps, savedMaps > 0 {
+                summaryPaused = true
+                if message == nil { message = "Previous summary progress is saved. Tap Resume summary to continue." }
             }
             let retained = answers.filter { document in
                 savingAnswerIDs.contains(document.id) || answerEditConflicts.contains(document.id)
@@ -275,9 +285,11 @@ final class MeetingIntelligenceController {
             createdAt: Date(timeIntervalSince1970: Date().timeIntervalSince1970))
         request = owned
         isRunning = true
+        acceptsProgress = true
         modelRequired = false
         errorMessage = nil
-        message = "Preparing local generation…"
+        message = "Waiting for iOS to start generation…"
+        if case .summary = kind { summaryPaused = false }
         operation = Task { @MainActor in
             do {
                 let saved = try await self.services.intelligenceBackgroundExecution.run(owned) { progress in
@@ -294,8 +306,15 @@ final class MeetingIntelligenceController {
                         throw PreparationError.stopped
                     }
                     self.message = "Working locally on this meeting…"
-                    return try await intelligence.run(owned, progress: progress)
+                    return try await intelligence.run(owned, progress: { [weak self] value in
+                        progress(value)
+                        Task { @MainActor in
+                            guard let self, self.request?.id == owned.id, self.acceptsProgress else { return }
+                            self.message = value.message
+                        }
+                    })
                 }
+                self.acceptsProgress = false
                 guard self.request?.id == owned.id, saved.meetingID == self.meetingID else { return }
                 if saved.kind == .summary {
                     self.summary = saved
@@ -307,7 +326,12 @@ final class MeetingIntelligenceController {
             } catch PreparationError.stopped {
                 self.message = nil
             } catch IntelligenceBackgroundError.expired {
-                self.message = "iOS stopped background processing. Generate again to resume any saved summary progress."
+                if case .summary = kind {
+                    self.summaryPaused = true
+                    self.message = "Summary paused because iOS stopped background processing. Tap Resume summary to continue. Saved progress is reused when available."
+                } else {
+                    self.message = "iOS stopped background processing. Ask your question again to retry."
+                }
             } catch IntelligenceBackgroundError.busy {
                 self.errorMessage = "Wait for the current summary or answer to finish."
             } catch is CancellationError {
@@ -334,7 +358,9 @@ final class MeetingIntelligenceController {
 
     private func finish(_ owned: IntelligenceRequest) {
         guard request?.id == owned.id else { return }
+        acceptsProgress = false
         isRunning = false
+        if errorMessage != nil { message = nil }
         operation = nil
         cleanupPending = services.heavyAdmission?.snapshot().lease?.requestID == owned.id
         if cleanupPending {
@@ -370,7 +396,7 @@ final class MeetingIntelligenceController {
         }
     }
 
-    func leaveMeeting(cancelGeneration: Bool = true) {
+    func leaveMeeting(cancelGeneration: Bool = false) {
         debounce?.cancel()
         if cancelGeneration { cancel() }
         // Unstructured save survives view removal and remains bound to this UUID.
@@ -451,7 +477,7 @@ struct MeetingIntelligenceView: View {
         VStack(alignment: .leading, spacing: 24) {
             if controller.busy {
                 MinutesProgress(title: content == .ask ? "Finding an answer" : "Summarizing",
-                    detail: controller.cleanupPending ? "Finishing the current operation…" : "Working on this iPhone.",
+                    detail: controller.cleanupPending ? "Finishing the current operation…" : (controller.message ?? "Working on this iPhone."),
                     cancel: controller.cancel)
                     .accessibilityIdentifier("meeting.intelligence.running")
             }
@@ -465,6 +491,7 @@ struct MeetingIntelligenceView: View {
                 }.minutesCard()
             }
             if let error = controller.errorMessage { MinutesMessage(text: error, isError: true) }
+            if !controller.busy, let message = controller.message { MinutesMessage(text: message) }
             if content == .summary { summaryContent } else { questionsContent }
         }
         .sheet(isPresented: $editingSummary) { SummaryEditorView(controller: controller) }
@@ -493,9 +520,9 @@ struct MeetingIntelligenceView: View {
                 Button("Details") { showingDetails = true }.frame(minHeight: 44)
             }
         } else if !controller.busy && !controller.modelRequired {
-            MinutesEmptyState(title: "No summary yet", symbol: "sparkles",
-                              detail: "Create a summary from this meeting.")
-            Button("Summarize meeting") { controller.generateSummary() }
+            MinutesEmptyState(title: controller.summaryPaused ? "Summary paused" : "No summary yet", symbol: "sparkles",
+                              detail: controller.summaryPaused ? "Continue summarizing this meeting." : "Create a summary from this meeting.")
+            Button(controller.summaryPaused ? "Resume summary" : "Summarize meeting") { controller.generateSummary() }
                 .buttonStyle(MinutesButtonStyle()).accessibilityIdentifier("meeting.generatedSummary.generate")
                 .disabled(controller.editConflict)
         }

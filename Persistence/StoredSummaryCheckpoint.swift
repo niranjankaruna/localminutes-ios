@@ -134,6 +134,16 @@ public actor SummaryCheckpointStore {
         return checkpoint
     }
 
+    /// Presentation metadata only. Resuming still requires the pipeline's full
+    /// identity and evidence validation before any saved map can be reused.
+    public func savedMapCount(jobID: UUID, meetingID: UUID) throws -> Int {
+        try Task.checkCancellation()
+        try validateDirectory()
+        guard let checkpoint = try read(jobID: jobID) else { return 0 }
+        guard checkpoint.identity.meetingID == meetingID else { throw SummaryCheckpointError.identityMismatch }
+        return checkpoint.maps.count
+    }
+
     public func remove(jobID: UUID, meetingID: UUID) throws {
         try Task.checkCancellation()
         try validateDirectory()

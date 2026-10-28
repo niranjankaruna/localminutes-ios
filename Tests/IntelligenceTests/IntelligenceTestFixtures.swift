@@ -178,6 +178,13 @@ actor IntelligenceBoundaryRuntime: IntelligenceRuntime {
         self.replies = replies; self.holdGeneration = holdGeneration; self.holdUnload = holdUnload
     }
     func promptTokenCount(prompt: String) async throws -> Int { try Task.checkCancellation(); return 500 }
+    func generateJSON(prompt: String, schema: StructuredJSONSchema, maximumTokens: Int,
+                      progress: SummaryGenerationProgressReporter?) async throws -> String {
+        progress?(.promptTokens(completed: 128, total: 500))
+        progress?(.promptTokens(completed: 500, total: 500))
+        progress?(.responseTokens(completed: 1, limit: maximumTokens))
+        return try await generateJSON(prompt: prompt, schema: schema, maximumTokens: maximumTokens)
+    }
     func generateJSON(prompt: String, schema: StructuredJSONSchema, maximumTokens: Int) async throws -> String {
         generating = true; events.append("work.begin")
         defer { generating = false; events.append("work.drained") }

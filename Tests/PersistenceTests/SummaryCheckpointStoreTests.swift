@@ -6,6 +6,22 @@ import XCTest
 /// These cases prove neither inference nor semantic grounding of stored JSON.
 @MainActor
 final class SummaryCheckpointStoreTests: XCTestCase {
+    func testPresentationFindsSavedProgressAfterReopenWithoutAcceptingAnotherMeeting() async throws {
+        try await withSummaryCheckpointFixture { fixture in
+            let identity = fixture.identity()
+            let missing = try await fixture.checkpoints.savedMapCount(jobID: identity.jobID, meetingID: identity.meetingID)
+            XCTAssertEqual(missing, 0)
+            try await fixture.checkpoints.save(fixture.map(0), matching: identity)
+            let reopened = try SummaryCheckpointStore(directoryURL: fixture.directory)
+            let count = try await reopened.savedMapCount(jobID: identity.jobID, meetingID: identity.meetingID)
+            XCTAssertEqual(count, 1)
+            await expectSummaryCheckpointError(.identityMismatch) {
+                _ = try await reopened.savedMapCount(jobID: identity.jobID, meetingID: fixture.otherMeetingID)
+            }
+            try await fixture.assertOriginalsUnchanged()
+        }
+    }
+
     func testContiguousMapsSurviveReopenAndIdenticalReplayWithoutPublishingGeneratedDocument() async throws {
         try await withSummaryCheckpointFixture { fixture in
             let first = fixture.map(0)

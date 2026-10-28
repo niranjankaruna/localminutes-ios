@@ -143,11 +143,12 @@ private final class ContinuedIntelligenceActivity: IntelligenceBackgroundActivit
     private var assertion: IntelligenceBackgroundAssertion?
     private var task: BGContinuedProcessingTask?
     private var waiter: CheckedContinuation<Void, Error>?
-    private var launchTimeout: Task<Void, Never>?
     private var pending = true
+    private var submitted = false
     private var finished = false
     private var expired = false
-    private var saving = false
+    private var progress = IntelligenceBackgroundProgress()
+    private var displayedDetail: String?
 
     init(identifier: String, operation: IntelligenceOperation,
          expiration: @escaping @MainActor @Sendable () -> Void) {
@@ -156,7 +157,15 @@ private final class ContinuedIntelligenceActivity: IntelligenceBackgroundActivit
         case .summary: title = "Summarizing meeting"
         case .question: title = "Answering meeting question"
         }
-        assertion = IntelligenceBackgroundAssertion { [weak self] in self?.expire() }
+        assertion = IntelligenceBackgroundAssertion { [weak self] in
+            // A bridge expiration can already be queued when the continued
+            // task arrives. It must never expire the replacement allowance.
+            guard let self, !self.finished, self.task == nil else { return }
+            self.assertion?.end(); self.assertion = nil
+            // An accepted queued continued task owns its future launch. The
+            // short UIKit bridge expiring must not cancel that queued request.
+            if !(self.pending && self.submitted) { self.expire() }
+        }
         let scheduler = BGTaskScheduler.shared
         // Concrete unique identifiers avoid wildcard-handler matching ambiguity;
         // the permitted identifier in Info.plist supplies the wildcard prefix.
@@ -170,21 +179,10 @@ private final class ContinuedIntelligenceActivity: IntelligenceBackgroundActivit
         }) else { pending = false; return }
         let request = BGContinuedProcessingTaskRequest(identifier: identifier,
             title: title, subtitle: "Preparing on this iPhone")
-        request.strategy = .fail
+        request.strategy = .queue
         // Local inference is CPU-only: no background GPU entitlement is needed.
-        do { try scheduler.submit(request) }
+        do { try scheduler.submit(request); submitted = true }
         catch { pending = false }
-        if pending {
-            launchTimeout = Task { @MainActor [weak self] in
-                do { try await Task.sleep(for: .seconds(5)) } catch { return }
-                guard let self, self.pending, !self.finished else { return }
-                // Some OS versions can accept a request without calling its
-                // handler. Keep foreground generation usable with UIKit fallback.
-                BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: self.identifier)
-                self.pending = false
-                self.waiter?.resume(); self.waiter = nil
-            }
-        }
     }
 
     func waitUntilReady() async throws {
@@ -199,9 +197,8 @@ private final class ContinuedIntelligenceActivity: IntelligenceBackgroundActivit
     private func receive(_ task: BGContinuedProcessingTask) {
         guard pending, !finished, !expired else { task.setTaskCompleted(success: false); return }
         self.task = task; pending = false
-        launchTimeout?.cancel(); launchTimeout = nil
-        task.progress.totalUnitCount = 1
-        task.progress.completedUnitCount = 0
+        task.progress.totalUnitCount = progress.totalUnitCount
+        task.progress.completedUnitCount = progress.completedUnitCount
         task.expirationHandler = { [weak self] in
             Task { @MainActor in self?.expire() }
         }
@@ -219,41 +216,24 @@ private final class ContinuedIntelligenceActivity: IntelligenceBackgroundActivit
     func cancelPendingStart() {
         guard pending else { return }
         pending = false
-        launchTimeout?.cancel(); launchTimeout = nil
         BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: identifier)
         waiter?.resume(throwing: CancellationError()); waiter = nil
     }
 
     func report(_ value: IntelligenceProgress) {
-        guard let task, !finished, !expired else { return }
-        let detail: String
-        switch value {
-        case .preparing:
-            guard task.progress.completedUnitCount == 0, !saving else { return }
-            detail = "Preparing on this iPhone"
-        case .summaryChunks(let completed, let total):
-            guard !saving, total >= 0, total <= Int.max - 2, completed >= 0, completed <= total,
-                  Int64(completed) + 1 >= task.progress.completedUnitCount else { return }
-            task.progress.totalUnitCount = Int64(total) + 2
-            task.progress.completedUnitCount = max(task.progress.completedUnitCount, Int64(completed) + 1)
-            detail = "Summarized \(completed) of \(total) sections"
-        case .answering:
-            guard !saving else { return }
-            task.progress.totalUnitCount = 3; task.progress.completedUnitCount = 1
-            detail = "Reading meeting evidence"
-        case .saving:
-            saving = true
-            task.progress.completedUnitCount = max(0, task.progress.totalUnitCount - 1)
-            detail = "Saving on this iPhone"
+        guard let task, !finished, !expired, progress.report(value) else { return }
+        task.progress.completedUnitCount = progress.completedUnitCount
+        // Counters may advance per token; update the title only on stage changes.
+        if displayedDetail != progress.detail {
+            displayedDetail = progress.detail
+            task.updateTitle(title, subtitle: progress.detail)
         }
-        task.updateTitle(title, subtitle: detail)
     }
 
     func finish(success: Bool) {
         guard !finished else { return }
         finished = true
         cancelPendingStart()
-        launchTimeout?.cancel(); launchTimeout = nil
         if let task {
             task.expirationHandler = nil
             if success { task.progress.completedUnitCount = task.progress.totalUnitCount }

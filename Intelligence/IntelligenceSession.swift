@@ -100,7 +100,7 @@ public final class IntelligenceSession {
     private let manifest: ModelManifest?
     private let systemModelRevision: String?
     private let systemRuntimeLoader: (@Sendable () async throws -> any IntelligenceRuntime)?
-    private let runtimeLoader: IntelligenceRuntimeLoader
+    private let runtimeLoader: IntelligenceRuntimeLoader?
     // App-owned progress survives a request/view/session; the stable active
     // summary job belongs to the selected meeting until commit or explicit reset.
     private let summaryCheckpoints: SummaryCheckpointStore?
@@ -108,9 +108,7 @@ public final class IntelligenceSession {
     private var state = IntelligenceSnapshot(phase: .idle, requestID: nil, meetingID: nil, document: nil)
     public init(store: SQLiteMeetingStore, models: ModelInstallationManager, admission: HeavyModelAdmission,
                 manifest: ModelManifest,
-                runtimeLoader: @escaping IntelligenceRuntimeLoader = { model in
-                    try await IntelligenceSession.loadPinnedRuntime(model)
-                }, summaryCheckpoints: SummaryCheckpointStore? = nil) {
+                runtimeLoader: IntelligenceRuntimeLoader? = nil, summaryCheckpoints: SummaryCheckpointStore? = nil) {
         self.store = store; self.models = models; self.admission = admission
         self.manifest = manifest; self.runtimeLoader = runtimeLoader
         self.summaryCheckpoints = summaryCheckpoints
@@ -125,12 +123,13 @@ public final class IntelligenceSession {
         self.store = store; self.models = models; self.admission = admission
         self.manifest = nil; self.systemModelRevision = appleSystemRevision
         self.systemRuntimeLoader = systemRuntimeLoader; self.summaryCheckpoints = nil
-        self.runtimeLoader = { model in try await IntelligenceSession.loadPinnedRuntime(model) }
+        self.runtimeLoader = nil
     }
 
     /// Validate the reviewed local artifact, then construct the CPU runtime
     /// explicitly off MainActor. Cancellation joins loading before releasing it.
-    public nonisolated static func loadPinnedRuntime(_ model: VerifiedModel) async throws -> any IntelligenceRuntime {
+    public nonisolated static func loadPinnedRuntime(_ model: VerifiedModel,
+        progress: IntelligenceProgressReporter? = nil) async throws -> any IntelligenceRuntime {
         try Task.checkCancellation()
         let manifest = model.manifest
         let configuration: SummaryModelConfiguration?
@@ -190,6 +189,8 @@ public final class IntelligenceSession {
                 defer { try? input.close() }
                 var hash = SHA256()
                 var readCount: Int64 = 0
+                var reportedBytes: Int64 = 0
+                progress?(.loadingModel(completedBytes: 0, totalBytes: byteCount))
                 try ModelFileIO.forEachChunk(in: input) { bytes in
                     try Task.checkCancellation()
                     if readCount == 0, !bytes.starts(with: [0x47, 0x47, 0x55, 0x46]) {
@@ -199,11 +200,17 @@ public final class IntelligenceSession {
                     readCount += Int64(bytes.count)
                     guard readCount <= byteCount else { throw IntelligenceSessionError.invalidModel }
                     hash.update(data: bytes)
+                    // Avoid one MainActor hop for each 64 KB read of a GB model.
+                    if readCount - reportedBytes >= 4_194_304 {
+                        progress?(.loadingModel(completedBytes: readCount, totalBytes: byteCount))
+                        reportedBytes = readCount
+                    }
                 }
                 guard readCount == byteCount,
                       hash.finalize().map({ String(format: "%02x", $0) }).joined() == digest else {
                     throw IntelligenceSessionError.invalidModel
                 }
+                progress?(.loadingModel(completedBytes: readCount, totalBytes: byteCount))
             } catch is CancellationError { throw CancellationError() }
             catch { throw IntelligenceSessionError.invalidModel }
             try Task.checkCancellation()
@@ -306,7 +313,11 @@ public final class IntelligenceSession {
             try check(use)
             guard lease.model.manifest == manifest, manifest.purpose == .summary,
                   lease.model.files[.summary] != nil else { throw IntelligenceSessionError.invalidModel }
-            runtime = try await runtimeLoader(lease.model)
+            if let runtimeLoader {
+                runtime = try await runtimeLoader(lease.model)
+            } else {
+                runtime = try await Self.loadPinnedRuntime(lease.model, progress: use.progress)
+            }
             modelRevision = manifest.revision
         } else {
             guard let systemModelRevision, AppleSummaryModel.isSystemRevision(systemModelRevision),
@@ -340,7 +351,8 @@ public final class IntelligenceSession {
             let pipeline = SummaryPipeline(modelRevision: modelRevision,
                 tokenizer: { try await runtime.promptTokenCount(prompt: $0) },
                 generator: { prompt, schema, maximum in
-                    try await runtime.generateJSON(prompt: prompt, schema: schema, maximumTokens: maximum)
+                    try await runtime.generateJSON(prompt: prompt, schema: schema, maximumTokens: maximum,
+                        progress: { report?(.generating($0)) })
                 }, resume: resume, mapProgress: { completed, total in
                     report?(.summaryChunks(completed: completed, total: total))
                 })
@@ -349,10 +361,11 @@ public final class IntelligenceSession {
             return try Self.document(summary: summary, request: request, revision: modelRevision)
         case .question(let question):
             use.progress?(.answering)
+            let report = use.progress
             let answerer = MeetingQuestionAnswerer(store: store, modelRevision: modelRevision,
                 tokenCounter: { try await runtime.promptTokenCount(prompt: $0) },
                 generator: { try await runtime.generateJSON(prompt: $0.prompt, schema: $0.schema,
-                                                            maximumTokens: $0.maximumOutputTokens) })
+                    maximumTokens: $0.maximumOutputTokens, progress: { report?(.generating($0)) }) })
             let answer = try await answerer.answer(meetingID: request.meetingID, question: question)
             try check(use)
             return try Self.document(answer: answer, request: request)

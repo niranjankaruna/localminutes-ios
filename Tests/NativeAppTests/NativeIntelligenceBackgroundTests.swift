@@ -50,6 +50,58 @@ final class NativeIntelligenceBackgroundTests: XCTestCase {
         XCTAssertEqual(provider.activities.first?.finished, [false])
     }
 
+    func testNativeCountersAdvanceSystemProgressInsideTheFirstUnfinishedSection() {
+        var progress = IntelligenceBackgroundProgress()
+        progress.report(.loadingModel(completedBytes: 128, totalBytes: 256))
+        let loading = progress.completedUnitCount
+        progress.report(.loadingModel(completedBytes: 256, totalBytes: 256))
+        progress.report(.summaryChunks(completed: 0, total: 2))
+        let planned = progress.completedUnitCount
+        progress.report(.generating(.promptTokens(completed: 128, total: 512)))
+        let reading = progress.completedUnitCount
+        progress.report(.generating(.promptTokens(completed: 512, total: 512)))
+        let read = progress.completedUnitCount
+        progress.report(.generating(.responseTokens(completed: 1, limit: 1_024)))
+        let writing = progress.completedUnitCount
+        progress.report(.generating(.responseTokens(completed: 512, limit: 1_024)))
+        let written = progress.completedUnitCount
+        progress.report(.summaryChunks(completed: 1, total: 2))
+        let checkpointed = progress.completedUnitCount
+        XCTAssertEqual([loading, planned, reading, read, writing, written, checkpointed],
+                       [loading, planned, reading, read, writing, written, checkpointed].sorted())
+        XCTAssertGreaterThan(reading, planned)
+        XCTAssertGreaterThan(written, writing)
+        XCTAssertGreaterThan(checkpointed, written, "Native work must leave room for validation and checkpointing")
+        progress.report(.generating(.promptTokens(completed: 128, total: 512)))
+        XCTAssertGreaterThan(progress.completedUnitCount, checkpointed, "The next section must keep advancing")
+        progress.report(.summaryChunks(completed: 2, total: 2))
+        progress.report(.saving)
+        XCTAssertLessThan(progress.completedUnitCount, progress.totalUnitCount, "Only committed success may finish the system task")
+        let saving = progress.completedUnitCount
+        XCTAssertFalse(progress.report(.generating(.responseTokens(completed: 900, limit: 1_024))))
+        XCTAssertFalse(progress.report(.preparing))
+        XCTAssertEqual(progress.completedUnitCount, saving)
+        XCTAssertEqual(progress.detail, IntelligenceProgress.saving.message)
+    }
+
+    func testQuestionCountersAdvanceAndInvalidOrRegressingReportsAreIgnored() {
+        var progress = IntelligenceBackgroundProgress()
+        progress.report(.answering)
+        progress.report(.generating(.promptTokens(completed: 128, total: 512)))
+        let reading = progress.completedUnitCount
+        progress.report(.generating(.responseTokens(completed: 12, limit: 192)))
+        let writing = progress.completedUnitCount
+        XCTAssertGreaterThan(writing, reading)
+        for invalid in [IntelligenceProgress.generating(.responseTokens(completed: 0, limit: 192)),
+                        .generating(.responseTokens(completed: 193, limit: 192)),
+                        .generating(.promptTokens(completed: -1, total: 512)),
+                        .generating(.promptTokens(completed: 512, total: 512)),
+                        .summaryChunks(completed: 0, total: 0), .loadingModel(completedBytes: 0, totalBytes: 0)] {
+            XCTAssertFalse(progress.report(invalid))
+            XCTAssertEqual(progress.completedUnitCount, writing)
+        }
+    }
+
     func testOldExpirationCannotCancelAReplacementRequest() async throws {
         let provider = BackgroundTestProvider()
         let runner = IntelligenceBackgroundExecution(provider: provider)
@@ -69,17 +121,59 @@ final class NativeIntelligenceBackgroundTests: XCTestCase {
         let root = parent.appendingPathComponent("background-intelligence-\(UUID().uuidString)", isDirectory: true)
         let provider = BackgroundTestProvider(ready: false)
         let services = try LocalMinutesServices(rootURL: root, backgroundProvider: provider)
+        let meetingID = UUID()
+        var controller: MeetingIntelligenceController? = services.intelligenceController(for: meetingID)
+        weak var retained = controller
+        do {
+            controller?.generateSummary()
+            try await eventually { provider.activities.first?.waiting == true }
+            controller?.leaveMeeting()
+            controller = nil
+            for _ in 0..<8 { await Task.yield() }
+            XCTAssertEqual(retained?.isRunning, true)
+            XCTAssertTrue(provider.activities[0].finished.isEmpty)
+            let reopened = services.intelligenceController(for: meetingID)
+            XCTAssertTrue(reopened === retained, "Reopening after lock must rejoin the running controller")
+            XCTAssertTrue(reopened.isRunning)
+            XCTAssertTrue(services.intelligenceController(for: UUID()) !== reopened)
+            reopened.cancel()
+            try await eventually { !reopened.isRunning }
+            XCTAssertEqual(provider.activities[0].finished, [false])
+            try await services.store.close()
+        } catch {
+            retained?.cancel()
+            try? await services.store.close()
+            try? removeRoot(root, parent: parent)
+            throw error
+        }
+        try removeRoot(root, parent: parent)
+    }
+
+    func testExpiredSummaryRemainsResumableWithAnExplanationInsteadOfReturningToTheInitialState() async throws {
+        let parent = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().standardizedFileURL
+        let root = parent.appendingPathComponent("background-intelligence-\(UUID().uuidString)", isDirectory: true)
+        let provider = BackgroundTestProvider(ready: false)
+        let services = try LocalMinutesServices(rootURL: root, backgroundProvider: provider)
         let controller = MeetingIntelligenceController(services: services, meetingID: UUID())
         do {
             controller.generateSummary()
             try await eventually { provider.activities.first?.waiting == true }
             controller.leaveMeeting(cancelGeneration: false)
-            for _ in 0..<8 { await Task.yield() }
+            provider.expirations[0]()
+            try await eventually { !controller.isRunning }
+            XCTAssertTrue(controller.summaryPaused)
+            XCTAssertTrue(controller.message?.contains("Resume summary") == true)
+            XCTAssertNil(controller.errorMessage)
+            XCTAssertEqual(provider.activities[0].finished, [false])
+            // A retry is a fresh system allowance for the same meeting, and an
+            // old expiration cannot cancel it or reset the resumed presentation.
+            controller.generateSummary()
+            try await eventually { provider.activities.count == 2 && provider.activities[1].waiting }
+            XCTAssertFalse(controller.summaryPaused)
+            provider.expirations[0]()
             XCTAssertTrue(controller.isRunning)
-            XCTAssertTrue(provider.activities[0].finished.isEmpty)
             controller.cancel()
             try await eventually { !controller.isRunning }
-            XCTAssertEqual(provider.activities[0].finished, [false])
             try await services.store.close()
         } catch {
             controller.cancel()

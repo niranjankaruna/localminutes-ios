@@ -32,7 +32,7 @@ struct MeetingDetailView: View {
     init(services: LocalMinutesServices, application: RecordingApplication, id: UUID) {
         self.services = services; self.application = application; self.id = id
         _controller = State(initialValue: MeetingLibraryController(store: services.store))
-        _intelligenceController = State(initialValue: MeetingIntelligenceController(services: services, meetingID: id))
+        _intelligenceController = State(initialValue: services.intelligenceController(for: id))
         #if DEBUG
         switch AppScreenshotFixture.scene {
         case .meetingNotes: _section = State(initialValue: .notes)
@@ -155,7 +155,9 @@ struct MeetingDetailView: View {
         }
         .onDisappear {
             stopOwnedPlayback()
-            intelligenceController.leaveMeeting(cancelGeneration: scenePhase == .active)
+            // View disappearance can precede scene-phase delivery on locking.
+            // It is never an instruction to cancel app-owned generation.
+            intelligenceController.leaveMeeting()
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .background { intelligenceController.leaveMeeting(cancelGeneration: false) }

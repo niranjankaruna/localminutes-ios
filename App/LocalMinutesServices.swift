@@ -12,6 +12,23 @@ private struct AppMetricsClock: MetricsMonotonicClock {
 /// in-place signing refresh; preservation still requires physical verification.
 @MainActor @Observable
 final class LocalMinutesServices: PlaybackHardware {
+    @MainActor private final class IntelligenceControllerReference {
+        weak var value: MeetingIntelligenceController?
+        init(_ value: MeetingIntelligenceController) { self.value = value }
+    }
+    @ObservationIgnored private var intelligenceControllers: [UUID: IntelligenceControllerReference] = [:]
+
+    /// A running controller is retained by its operation. Recreated detail views
+    /// rejoin it instead of presenting a second idle Summarize button. Weak
+    /// references avoid retaining every opened meeting or a services cycle.
+    func intelligenceController(for meetingID: UUID) -> MeetingIntelligenceController {
+        if let controller = intelligenceControllers[meetingID]?.value { return controller }
+        intelligenceControllers = intelligenceControllers.filter { $0.value.value != nil }
+        let controller = MeetingIntelligenceController(services: self, meetingID: meetingID)
+        intelligenceControllers[meetingID] = IntelligenceControllerReference(controller)
+        return controller
+    }
+
     @MainActor private final class DeletionResources: HeavyModelResourceLifecycle {
         var work: Task<Bool, Never>?
         var settled = false

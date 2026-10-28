@@ -43,7 +43,17 @@ final class ActualCatalogAdapterIntegrationTests: XCTestCase {
                 catch is CancellationError { }
                 // Reuse after cancellation exercises native memory clearing.
                 for _ in 0..<2 {
-                    let json = try await runtime.generateJSON(prompt: prompt, schema: schema, maximumTokens: 192)
+                    let progress = CatalogAdapterProgress()
+                    let json = try await runtime.generateJSON(prompt: prompt, schema: schema, maximumTokens: 192,
+                        progress: { progress.record($0) })
+                    XCTAssertEqual(progress.values.first, .promptTokens(completed: 0, total: count))
+                    XCTAssertTrue(progress.values.contains(.promptTokens(completed: count, total: count)))
+                    let responseCounts = progress.values.compactMap { value -> Int? in
+                        if case .responseTokens(let completed, _) = value { return completed }
+                        return nil
+                    }
+                    XCTAssertGreaterThan(responseCounts.count, 1)
+                    XCTAssertEqual(responseCounts, (0..<responseCounts.count).map { $0 + 1 })
                     let object = try XCTUnwrap(try JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any])
                     XCTAssertEqual(Set(object.keys), ["owner", "due"])
                     XCTAssertEqual(object["owner"] as? String, "Leo")
@@ -110,4 +120,11 @@ final class ActualCatalogAdapterIntegrationTests: XCTestCase {
             throw error
         }
     }
+}
+
+private final class CatalogAdapterProgress: @unchecked Sendable {
+    private let lock = NSLock()
+    private var events: [SummaryGenerationProgress] = []
+    func record(_ value: SummaryGenerationProgress) { lock.withLock { events.append(value) } }
+    var values: [SummaryGenerationProgress] { lock.withLock { events } }
 }

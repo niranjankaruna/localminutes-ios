@@ -9,6 +9,33 @@ import LocalMinutesSummary
 
 @MainActor
 final class IntelligenceSessionTests: XCTestCase {
+    func testNativeCountersReachTheCallerBeforeSummaryOrAnswerCompletes() async throws {
+        let h = try await IntelligenceFixture.create()
+        do {
+            for kind in [IntelligenceOperation.summary, .question("Who will write the guide?")] {
+                let reply = try (kind == .summary ? h.rawSummary() : h.rawAnswer())
+                let runtime = IntelligenceBoundaryRuntime(replies: [reply], holdGeneration: true)
+                let session = IntelligenceSession(store: h.store, models: h.models, admission: h.admission,
+                    manifest: h.manifest, runtimeLoader: { _ in runtime })
+                let progress = IntelligenceProgressEvents()
+                let running = Task { try await session.run(h.request(kind), progress: { progress.record($0) }) }
+                let started = await intelligenceEventually { await runtime.generating }
+                guard started else {
+                    running.cancel(); await runtime.releaseGeneration(); _ = await running.result
+                    XCTFail("Generation did not start"); throw IntelligenceDraftError.neverStarted
+                }
+                XCTAssertTrue(progress.values.contains(.generating(.promptTokens(completed: 128, total: 500))))
+                XCTAssertTrue(progress.values.contains { if case .generating(.responseTokens) = $0 { true } else { false } })
+                XCTAssertFalse(progress.values.contains(.saving))
+                XCTAssertEqual(session.snapshot().phase, .generating)
+                await runtime.releaseGeneration()
+                _ = try await running.value
+                XCTAssertEqual(progress.values.last, .saving)
+            }
+            try await h.closeAndRemove()
+        } catch { try? await h.closeAndRemove(); throw error }
+    }
+
     func testMissingTranscriptIsReportedBeforeLoadingAHeavyModel() async throws {
         let fixture = try await IntelligenceFixture.create()
         do {
@@ -309,6 +336,13 @@ final class IntelligenceSessionTests: XCTestCase {
         do { try await h.models.remove(modelID: h.manifest.modelID); XCTFail("Service released its file lease before cleanup") }
         catch { XCTAssertEqual(error as? ModelInstallationError, .modelInUse) }
     }
+}
+
+private final class IntelligenceProgressEvents: @unchecked Sendable {
+    private let lock = NSLock()
+    private var events: [IntelligenceProgress] = []
+    func record(_ value: IntelligenceProgress) { lock.withLock { events.append(value) } }
+    var values: [IntelligenceProgress] { lock.withLock { events } }
 }
 
 private enum IntelligenceDraftError: Error { case neverStarted }

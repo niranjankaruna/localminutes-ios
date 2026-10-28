@@ -9,7 +9,17 @@ import LocalMinutesModels
 public protocol SummaryModelRuntime: Sendable {
     func promptTokenCount(prompt: String) async throws -> Int
     func generateJSON(prompt: String, schema: StructuredJSONSchema, maximumTokens: Int) async throws -> String
+    func generateJSON(prompt: String, schema: StructuredJSONSchema, maximumTokens: Int,
+                      progress: SummaryGenerationProgressReporter?) async throws -> String
     func unload() async
+}
+
+extension SummaryModelRuntime {
+    /// Runtimes without native work counters still support the same contract.
+    public func generateJSON(prompt: String, schema: StructuredJSONSchema, maximumTokens: Int,
+                             progress: SummaryGenerationProgressReporter?) async throws -> String {
+        try await generateJSON(prompt: prompt, schema: schema, maximumTokens: maximumTokens)
+    }
 }
 
 /// The composition boundary is the only place that selects a model adapter.
@@ -64,6 +74,10 @@ public struct Qwen25SummaryAdapter: SummaryModelRuntime {
     public func generateJSON(prompt: String, schema: StructuredJSONSchema, maximumTokens: Int) async throws -> String {
         try await engine.generateJSON(prompt: prompt, schema: schema, maximumTokens: maximumTokens)
     }
+    public func generateJSON(prompt: String, schema: StructuredJSONSchema, maximumTokens: Int,
+                             progress: SummaryGenerationProgressReporter?) async throws -> String {
+        try await engine.generateJSON(prompt: prompt, schema: schema, maximumTokens: maximumTokens, progress: progress)
+    }
     public func unload() async { await engine.unload() }
 }
 
@@ -77,6 +91,10 @@ public struct Qwen3SummaryAdapter: SummaryModelRuntime {
     public func generateJSON(prompt: String, schema: StructuredJSONSchema, maximumTokens: Int) async throws -> String {
         try await engine.generateJSON(prompt: prompt, schema: schema, maximumTokens: maximumTokens)
     }
+    public func generateJSON(prompt: String, schema: StructuredJSONSchema, maximumTokens: Int,
+                             progress: SummaryGenerationProgressReporter?) async throws -> String {
+        try await engine.generateJSON(prompt: prompt, schema: schema, maximumTokens: maximumTokens, progress: progress)
+    }
     public func unload() async { await engine.unload() }
 }
 
@@ -89,6 +107,10 @@ public struct Phi3SummaryAdapter: SummaryModelRuntime {
     public func promptTokenCount(prompt: String) async throws -> Int { try await engine.promptTokenCount(prompt: prompt) }
     public func generateJSON(prompt: String, schema: StructuredJSONSchema, maximumTokens: Int) async throws -> String {
         try await engine.generateJSON(prompt: prompt, schema: schema, maximumTokens: maximumTokens)
+    }
+    public func generateJSON(prompt: String, schema: StructuredJSONSchema, maximumTokens: Int,
+                             progress: SummaryGenerationProgressReporter?) async throws -> String {
+        try await engine.generateJSON(prompt: prompt, schema: schema, maximumTokens: maximumTokens, progress: progress)
     }
     public func unload() async { await engine.unload() }
 }
@@ -104,6 +126,10 @@ public struct Phi4SummaryAdapter: SummaryModelRuntime {
     public func generateJSON(prompt: String, schema: StructuredJSONSchema, maximumTokens: Int) async throws -> String {
         try await engine.generateJSON(prompt: prompt, schema: schema, maximumTokens: maximumTokens)
     }
+    public func generateJSON(prompt: String, schema: StructuredJSONSchema, maximumTokens: Int,
+                             progress: SummaryGenerationProgressReporter?) async throws -> String {
+        try await engine.generateJSON(prompt: prompt, schema: schema, maximumTokens: maximumTokens, progress: progress)
+    }
     public func unload() async { await engine.unload() }
 }
 
@@ -116,6 +142,10 @@ public struct Gemma3SummaryAdapter: SummaryModelRuntime {
     public func generateJSON(prompt: String, schema: StructuredJSONSchema, maximumTokens: Int) async throws -> String {
         try await engine.generateJSON(prompt: prompt, schema: schema, maximumTokens: maximumTokens)
     }
+    public func generateJSON(prompt: String, schema: StructuredJSONSchema, maximumTokens: Int,
+                             progress: SummaryGenerationProgressReporter?) async throws -> String {
+        try await engine.generateJSON(prompt: prompt, schema: schema, maximumTokens: maximumTokens, progress: progress)
+    }
     public func unload() async { await engine.unload() }
 }
 
@@ -127,6 +157,10 @@ public struct Gemma4SummaryAdapter: SummaryModelRuntime {
     public func promptTokenCount(prompt: String) async throws -> Int { try await engine.promptTokenCount(prompt: prompt) }
     public func generateJSON(prompt: String, schema: StructuredJSONSchema, maximumTokens: Int) async throws -> String {
         try await engine.generateJSON(prompt: prompt, schema: schema, maximumTokens: maximumTokens)
+    }
+    public func generateJSON(prompt: String, schema: StructuredJSONSchema, maximumTokens: Int,
+                             progress: SummaryGenerationProgressReporter?) async throws -> String {
+        try await engine.generateJSON(prompt: prompt, schema: schema, maximumTokens: maximumTokens, progress: progress)
     }
     public func unload() async { await engine.unload() }
 }

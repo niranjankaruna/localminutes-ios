@@ -135,13 +135,18 @@ public actor LocalSummaryRuntime: SummaryModelRuntime {
 
     public func generateJSON(prompt: String, schema: StructuredJSONSchema,
                              maximumTokens: Int = 192) async throws -> String {
+        try await generateJSON(prompt: prompt, schema: schema, maximumTokens: maximumTokens, progress: nil)
+    }
+
+    public func generateJSON(prompt: String, schema: StructuredJSONSchema, maximumTokens: Int = 192,
+                             progress: SummaryGenerationProgressReporter?) async throws -> String {
         try Task.checkCancellation()
         let grammar = try schema.grammar()
         try Task.checkCancellation()
         let cancellation = SummaryCancellation()
         return try await withTaskCancellationHandler {
             try generate(prompt: prompt, maximumTokens: maximumTokens,
-                         cancellation: cancellation, grammar: grammar)
+                         cancellation: cancellation, grammar: grammar, progress: progress)
         } onCancel: {
             cancellation.cancel()
         }
@@ -158,7 +163,7 @@ public actor LocalSummaryRuntime: SummaryModelRuntime {
     public func unload() { resources = nil }
 
     private func generate(prompt: String, maximumTokens: Int, cancellation: SummaryCancellation,
-                          grammar: String) throws -> String {
+                          grammar: String, progress: SummaryGenerationProgressReporter? = nil) throws -> String {
         guard let resources else { throw LocalSummaryRuntimeError.modelUnavailable }
         var diagnosticInputTokens = 0
         var diagnosticGeneratedTokens = 0
@@ -190,9 +195,12 @@ public actor LocalSummaryRuntime: SummaryModelRuntime {
             throw failure(.contextCapacity)
         }
         var offset = 0
+        progress?(.promptTokens(completed: 0, total: inputCount))
         while offset < inputCount {
             try checkCancellation(cancellation)
-            let count = min(512, inputCount - offset)
+            // Bound uninterrupted CPU work so cancellation and real progress
+            // reach iOS while a large section is still being processed.
+            let count = min(128, inputCount - offset)
             let status = tokens.withUnsafeMutableBufferPointer { buffer in
                 llama_decode(context, llama_batch_get_one(buffer.baseAddress!.advanced(by: offset), Int32(count)))
             }
@@ -201,6 +209,7 @@ public actor LocalSummaryRuntime: SummaryModelRuntime {
                 throw failure(.prefillDecode, status: status)
             }
             offset += count
+            progress?(.promptTokens(completed: offset, total: inputCount))
         }
 
         guard let sampler = llama_sampler_chain_init(llama_sampler_chain_default_params()) else {
@@ -233,6 +242,7 @@ public actor LocalSummaryRuntime: SummaryModelRuntime {
             }
             guard count >= 0 else { throw failure(.tokenPieceDecode, status: count) }
             output.append(contentsOf: piece.prefix(Int(count)).map { UInt8(bitPattern: $0) })
+            progress?(.responseTokens(completed: diagnosticGeneratedTokens, limit: maximumTokens))
             if let object = try? JSONSerialization.jsonObject(with: output), object is [String: Any],
                let result = String(data: output, encoding: .utf8) {
                 try checkCancellation(cancellation)
