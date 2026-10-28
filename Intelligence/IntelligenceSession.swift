@@ -351,10 +351,20 @@ public final class IntelligenceSession {
             let pipeline = SummaryPipeline(modelRevision: modelRevision,
                 tokenizer: { try await runtime.promptTokenCount(prompt: $0) },
                 generator: { prompt, schema, maximum in
-                    try await runtime.generateJSON(prompt: prompt, schema: schema, maximumTokens: maximum,
-                        progress: { report?(.generating($0)) })
+                    report?(.generationStarted)
+                    do {
+                        return try await runtime.generateJSON(prompt: prompt, schema: schema, maximumTokens: maximum,
+                            progress: { report?(.generating($0)) })
+                    } catch LocalSummaryRuntimeError.outputLimitExceeded {
+                        report?(.recoveringSummary)
+                        throw LocalSummaryRuntimeError.outputLimitExceeded
+                    }
                 }, resume: resume, mapProgress: { completed, total in
                     report?(.summaryChunks(completed: completed, total: total))
+                }, consolidationProgress: { completed, total in
+                    report?(.consolidatingSummary(completed: completed, total: total))
+                }, planningProgress: { completed, total, pass in
+                    report?(.planningSummary(completed: completed, total: total, pass: pass))
                 })
             let summary = try await pipeline.summarize(selectedMeetingID: request.meetingID, source: source)
             try check(use)

@@ -29,7 +29,7 @@ let package = Package(
         .target(name: "LocalMinutesTranscription", dependencies: [
             .product(name: "FluidAudio", package: "FluidAudio"),
             "LocalMinutesCore", "LocalMinutesRecording", "LocalMinutesModels", "LocalMinutesPersistence", "LocalMinutesMeetingLibrary"
-        ], path: "Transcription"),
+        ], path: "Transcription", linkerSettings: [.linkedFramework("Accelerate")]),
         .target(name: "LocalMinutesMeetingLibrary", dependencies: ["LocalMinutesCore", "LocalMinutesPersistence", "LocalMinutesRecording"], path: "MeetingLibrary"),
         .target(name: "LocalMinutesSummary", dependencies: ["llama", "LocalMinutesModels", "LocalMinutesPersistence"], path: "Summaries",
                 linkerSettings: [.linkedLibrary("c++"), .linkedFramework("Accelerate"), .linkedFramework("Metal")]),

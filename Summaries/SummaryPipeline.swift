@@ -45,7 +45,7 @@ public enum SummaryPipelineError: Error, Equatable, Sendable { case invalidConfi
 /// Release closures must call the leased real runtime; unit tests double only
 /// tokenizer/generated JSON edges. Intermediate maps are never published.
 public actor SummaryPipeline {
-    public static let currentPromptVersion = "grounded-map-v2"
+    public static let currentPromptVersion = "grounded-map-v3"
     private let modelRevision: String
     private let promptVersion: String
     private let contextTokenLimit: Int
@@ -54,18 +54,27 @@ public actor SummaryPipeline {
     private let generator: SummaryMapJSONGenerator
     private let resume: SummaryPipelineResumeConfiguration?
     private let mapProgress: (@Sendable (Int, Int) -> Void)?
+    private let meetingContextEnabled: Bool?
+    private let consolidationProgress: (@Sendable (Int, Int) -> Void)?
+    private let planningProgress: (@Sendable (Int, Int, Int) -> Void)?
     private var state = SummaryPipelineSnapshot(phase: .idle, meetingID: nil, result: nil)
 
     public init(modelRevision: String, promptVersion: String = SummaryPipeline.currentPromptVersion,
                 contextTokenLimit: Int = 4_096, reservedOutputTokens: Int = 1_024,
                 tokenizer: @escaping SummaryTokenCounter, generator: @escaping SummaryMapJSONGenerator,
                 resume: SummaryPipelineResumeConfiguration? = nil,
-                mapProgress: (@Sendable (Int, Int) -> Void)? = nil) {
+                mapProgress: (@Sendable (Int, Int) -> Void)? = nil,
+                meetingContextEnabled: Bool? = nil,
+                consolidationProgress: (@Sendable (Int, Int) -> Void)? = nil,
+                planningProgress: (@Sendable (Int, Int, Int) -> Void)? = nil) {
         self.modelRevision = modelRevision; self.promptVersion = promptVersion
         self.contextTokenLimit = contextTokenLimit; self.reservedOutputTokens = reservedOutputTokens
         self.tokenizer = tokenizer; self.generator = generator
         self.resume = resume
         self.mapProgress = mapProgress
+        self.meetingContextEnabled = meetingContextEnabled
+        self.consolidationProgress = consolidationProgress
+        self.planningProgress = planningProgress
     }
 
     public func summarize(selectedMeetingID: UUID, source: GroundedSummarySource) async throws -> GroundedSummary {
@@ -94,10 +103,23 @@ public actor SummaryPipeline {
                 + "\nSELECTED_MEETING_ID: " + selectedMeetingID.uuidString
                 + "\n\nMANUAL_NOTES_JSON:\n" + notes
             let planner = SummaryChunkPlanner(contextTokenLimit: contextTokenLimit,
-                reservedOutputTokens: reservedOutputTokens, promptPrefix: prefix, tokenizer: tokenizer)
-            let chunks = try await planner.plan(source.segments)
+                reservedOutputTokens: reservedOutputTokens, promptPrefix: prefix, maximumSegmentsPerChunk: 256,
+                splitOversizedSegments: true,
+                planningProgress: { [planningProgress] in planningProgress?($0, $1, 1) }, tokenizer: tokenizer)
+            var chunks = try await planner.plan(source.segments)
+            let carriesContext = meetingContextEnabled ?? (chunks.count > 8)
+            if carriesContext {
+                // Reserve room before packing evidence, rather than appending
+                // earlier context to an already-full model request.
+                let reservation = min(512, max(0, min((contextTokenLimit - reservedOutputTokens) / 4, contextTokenLimit - 64)))
+                let contextualPlanner = SummaryChunkPlanner(contextTokenLimit: contextTokenLimit - reservation,
+                    reservedOutputTokens: reservedOutputTokens, promptPrefix: prefix, maximumSegmentsPerChunk: 256,
+                    splitOversizedSegments: true,
+                    planningProgress: { [planningProgress] in planningProgress?($0, $1, 2) }, tokenizer: tokenizer)
+                chunks = try await contextualPlanner.plan(source.segments)
+            }
             try Task.checkCancellation()
-            guard chunks.count <= limits.maximumItems else { throw GroundedSummaryError.limitExceeded }
+            guard chunks.count <= SummaryCheckpointStore.maximumMaps else { throw GroundedSummaryError.limitExceeded }
             mapProgress?(0, chunks.count)
             let identity = try resumeIdentity(selectedMeetingID: selectedMeetingID, source: source, chunks: chunks)
             var recovered: [SummaryMapCheckpoint] = []
@@ -107,31 +129,54 @@ public actor SummaryPipeline {
                     throw SummaryCheckpointError.identityMismatch
                 }
                 // A protocol boundary is not a trust boundary. Validate the
-                // entire contiguous plan binding before making any new call.
+                // contiguous prefix before making any new call. Context-bound
+                // hashes are checked below as earlier validated maps rebuild it.
                 for (index, saved) in checkpoint.maps.enumerated() {
-                    guard saved.index == index,
-                          saved.chunkSHA256 == Self.digest(Data(chunks[index].prompt.utf8)) else {
+                    guard saved.index == index else {
                         throw SummaryCheckpointError.identityMismatch
                     }
                 }
                 recovered = checkpoint.maps
             }
             var maps: [GroundedSummary] = []
-            var mappedItemCount = 0
+            var meetingContext = SummaryMeetingContext()
             for (index, chunk) in chunks.enumerated() {
                 try Task.checkCancellation()
-                let schema = try Self.mapSchema(meetingID: selectedMeetingID, segments: chunk.segments,
-                                                outputItemLimit: sourceLimit)
-                // Compile before crossing the generator boundary so invalid
-                // domains fail even when a caller supplies its own transport.
-                _ = try schema.grammar()
+                let contextJSON: String?
+                if carriesContext {
+                    contextJSON = try await meetingContext.json(for: chunk, contextTokenLimit: contextTokenLimit, tokenizer: tokenizer)
+                } else { contextJSON = nil }
+                let generationPrompt = SummaryMeetingContext.add(contextJSON, to: chunk.prompt)
+                let chunkSHA256 = Self.digest(Data(generationPrompt.utf8))
                 let bytes: Data
                 let isRecovered = index < recovered.count
                 if isRecovered {
+                    guard recovered[index].chunkSHA256 == chunkSHA256 else { throw SummaryCheckpointError.identityMismatch }
                     bytes = recovered[index].mapJSON
                 } else {
-                    let json = try await generator(chunk.prompt, schema, chunk.reservedOutputTokens)
-                    bytes = Data(json.utf8)
+                    let compact = SummarySelectionRecovery(tokenizer: tokenizer, generator: generator,
+                        contextTokenLimit: contextTokenLimit)
+                    if carriesContext || chunk.segments.contains(where: { $0.text.utf8.count > 1_024 }) {
+                        // The full-quote grammar becomes unconstrained for long
+                        // ASR paragraphs. Select references before spending an
+                        // entire response budget copying those paragraphs twice.
+                        bytes = try await compact.generate(chunk: chunk, meetingID: selectedMeetingID,
+                            notes: source.originalManualNotes, itemLimit: sourceLimit, meetingContext: contextJSON)
+                    } else {
+                        let schema = try Self.mapSchema(meetingID: selectedMeetingID, segments: chunk.segments,
+                                                        outputItemLimit: sourceLimit)
+                        _ = try schema.grammar()
+                        do {
+                            let json = try await generator(generationPrompt, schema, chunk.reservedOutputTokens)
+                            bytes = Data(json.utf8)
+                        } catch LocalSummaryRuntimeError.outputLimitExceeded {
+                            try Task.checkCancellation()
+                            // One bounded recovery, never a loop or a truncated
+                            // JSON result. Earlier validated checkpoints survive.
+                            bytes = try await compact.generate(chunk: chunk, meetingID: selectedMeetingID,
+                                notes: source.originalManualNotes, itemLimit: sourceLimit, meetingContext: contextJSON)
+                        }
+                    }
                 }
                 try Task.checkCancellation()
                 guard bytes.count <= limits.maximumJSONBytes else { throw GroundedSummaryError.limitExceeded }
@@ -140,22 +185,29 @@ public actor SummaryPipeline {
                 let map = try GroundedSummaryDecoder.decode(bytes, selectedMeetingID: selectedMeetingID,
                     source: chunkSource, provenance: .init(modelRevision: modelRevision,
                         promptVersion: promptVersion, mapIndex: index), limits: limits, mergingRepeatedItems: true)
-                let newItems = map.summaryPoints.count + map.decisions.count + map.actions.count
-                guard newItems <= limits.maximumItems - mappedItemCount else { throw GroundedSummaryError.limitExceeded }
-                mappedItemCount += newItems
                 if !isRecovered, let resume, let identity {
-                    // Save only after full grounding and aggregate admission.
+                    // Save only after full grounding. The final consolidation
+                    // has its own bounded output, independent of section count.
                     // A failed/cancelled save cannot publish a partial result.
                     try await resume.checkpoints.save(.init(index: index,
-                        chunkSHA256: Self.digest(Data(chunk.prompt.utf8)), mapJSON: bytes), matching: identity)
+                        chunkSHA256: chunkSHA256, mapJSON: bytes), matching: identity)
                     try Task.checkCancellation()
                 }
                 maps.append(map)
+                if carriesContext { meetingContext.observe(map) }
                 mapProgress?(index + 1, chunks.count)
             }
             try Task.checkCancellation()
-            let result = try GroundedSummaryMerger.merge(maps, selectedMeetingID: selectedMeetingID,
+            let itemCount = maps.reduce(0) { $0 + $1.summaryPoints.count + $1.decisions.count + $1.actions.count }
+            let result: GroundedSummary
+            if carriesContext || itemCount > limits.maximumItems || maps.count > limits.maximumItems {
+                result = try await SummaryConsolidator(tokenizer: tokenizer, generator: generator,
+                    contextTokenLimit: contextTokenLimit, report: consolidationProgress)
+                    .combine(maps, meetingID: selectedMeetingID, source: source)
+            } else {
+                result = try GroundedSummaryMerger.merge(maps, selectedMeetingID: selectedMeetingID,
                                                         source: source, limits: limits)
+            }
             try Task.checkCancellation()
             state = .init(phase: .completed, meetingID: selectedMeetingID, result: result)
             return result

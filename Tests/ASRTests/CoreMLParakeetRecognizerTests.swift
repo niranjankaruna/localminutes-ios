@@ -47,11 +47,28 @@ final class CoreMLParakeetRecognizerTests: XCTestCase {
         XCTAssertTrue(words(result.finalized.map(\.text).joined(separator: " ")).contains("returned"))
         let observed = calls.read()
         XCTAssertTrue(observed.contains { $0.0 == .load })
+        XCTAssertTrue(observed.contains { $0.0 == .denoise }, "Default transcription must run gentle enhancement on its worker")
         XCTAssertTrue(observed.contains { $0.0 == .decode })
         XCTAssertTrue(observed.allSatisfy { !$0.1 && $0.2 && $0.3 == .cpuOnly }, "Each actual Core ML load/decode must run on the dedicated serial worker")
         await recognizer.unload()
         let unloaded = await recognizer.snapshot()
         XCTAssertEqual(unloaded.phase, .unloaded); XCTAssertNil(unloaded.computePolicy)
+    }
+
+    func testDisablingNoiseReductionFeedsOriginalPCMThroughActualRecognition() async throws {
+        let fixture = try CoreMLParakeetFixture.load()
+        let calls = CoreMLParakeetExecutionRecords()
+        let recognizer = CoreMLParakeetRecognizer(files: fixture.files, computePolicy: .cpuOnly,
+            noiseReduction: .off) { op, main, worker, policy in calls.append(op, main, worker, policy) }
+        do {
+            try await recognizer.load()
+            try await recognizer.start(epochID: UUID())
+            _ = try await recognizer.accept(fixture.samples, at: 0)
+            let result = try await recognizer.finish()
+            XCTAssertTrue(words(result.finalized.map(\.text).joined(separator: " ")).contains("returned"))
+            XCTAssertFalse(calls.read().contains { $0.0 == .denoise })
+            await recognizer.unload()
+        } catch { await recognizer.unload(); throw error }
     }
 
     func testDisjointWindowsPublishRealSpeechBeforeStopAndFlushTailExactlyOnce() async throws {

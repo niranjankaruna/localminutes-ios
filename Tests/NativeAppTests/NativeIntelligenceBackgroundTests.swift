@@ -11,15 +11,19 @@ final class NativeIntelligenceBackgroundTests: XCTestCase {
     func testAllowanceStaysOwnedThroughWorkAndProgressUntilCompletion() async throws {
         let provider = BackgroundTestProvider()
         let runner = IntelligenceBackgroundExecution(provider: provider)
+        let progress = IntelligenceProgressTracker(operation: .summary)
         let gate = BackgroundTestWork()
-        let task = Task { try await runner.run(request()) { report in try await gate.perform(report) } }
+        let task = Task { try await runner.run(request(), progress: progress) { report in try await gate.perform(report) } }
         try await eventually { gate.started && provider.activities.first?.reports.isEmpty == false }
         let activity = try XCTUnwrap(provider.activities.first)
         XCTAssertTrue(activity.finished.isEmpty)
+        XCTAssertTrue(provider.trackers.first === progress, "Screen and system activity must share one tracker")
+        XCTAssertLessThan(progress.display().percentage, 100)
         gate.release()
         let result = try await task.value
         XCTAssertEqual(result, 42)
         XCTAssertEqual(activity.finished, [true])
+        XCTAssertEqual(progress.display().percentage, 100)
     }
 
     func testExpirationCancelsOnlyOwnedWorkAndWaitsForDrainBeforeFinishingAllowance() async throws {
@@ -227,11 +231,13 @@ private enum BackgroundTestError: Error { case timeout, unsafeRoot }
 @MainActor private final class BackgroundTestProvider: IntelligenceBackgroundProviding {
     let ready: Bool
     var activities: [BackgroundTestActivity] = []
+    var trackers: [IntelligenceProgressTracker] = []
     var expirations: [@MainActor @Sendable () -> Void] = []
     init(ready: Bool = true) { self.ready = ready }
-    func start(request: IntelligenceRequest,
+    func start(request: IntelligenceRequest, progress: IntelligenceProgressTracker,
                expiration: @escaping @MainActor @Sendable () -> Void) -> any IntelligenceBackgroundActivity {
         let activity = BackgroundTestActivity(ready: ready)
+        trackers.append(progress)
         activities.append(activity); expirations.append(expiration)
         return activity
     }

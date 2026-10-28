@@ -46,7 +46,7 @@ public struct CoreMLParakeetSnapshot: Equatable, Sendable {
     }
 }
 
-enum CoreMLParakeetNativeOperation: Equatable, Sendable { case load, decode }
+enum CoreMLParakeetNativeOperation: Equatable, Sendable { case load, denoise, decode }
 typealias CoreMLParakeetExecutionObserver = @Sendable
     (CoreMLParakeetNativeOperation, Bool, Bool, CoreMLParakeetComputePolicy) -> Void
 
@@ -66,7 +66,9 @@ public actor ParakeetSpeechAdapter: SpeechModelRuntime {
     private nonisolated let cancellationRouter = CoreMLParakeetCancellationRouter()
     private let files: CoreMLParakeetModelFiles
     private let computePolicy: CoreMLParakeetComputePolicy
+    private let noiseReduction: SpeechNoiseReduction
     private let executionObserver: CoreMLParakeetExecutionObserver?
+    private var denoiser: GentleSpeechDenoiser?
     private var manager: AsrManager?
     private var phase: SpeechRecognitionPhase = .unloaded
     private var epochID: UUID?
@@ -79,12 +81,16 @@ public actor ParakeetSpeechAdapter: SpeechModelRuntime {
     private var teardown: Task<Void, Never>?
 
     public init(files: CoreMLParakeetModelFiles,
-                computePolicy: CoreMLParakeetComputePolicy = .cpuOnly) {
-        self.files = files; self.computePolicy = computePolicy; executionObserver = nil
+                computePolicy: CoreMLParakeetComputePolicy = .cpuOnly,
+                noiseReduction: SpeechNoiseReduction = .gentle) {
+        self.files = files; self.computePolicy = computePolicy
+        self.noiseReduction = noiseReduction; executionObserver = nil
     }
     init(files: CoreMLParakeetModelFiles, computePolicy: CoreMLParakeetComputePolicy,
+         noiseReduction: SpeechNoiseReduction = .gentle,
          executionObserver: @escaping CoreMLParakeetExecutionObserver) {
-        self.files = files; self.computePolicy = computePolicy; self.executionObserver = executionObserver
+        self.files = files; self.computePolicy = computePolicy; self.noiseReduction = noiseReduction
+        self.executionObserver = executionObserver
     }
 
     public func load() async throws {
@@ -123,6 +129,10 @@ public actor ParakeetSpeechAdapter: SpeechModelRuntime {
         phase = .streaming
         acceptedSamples = 0; windowStart = 0
         pcm = []; pcm.reserveCapacity(Self.stepSamples)
+        if noiseReduction == .gentle {
+            if let denoiser { denoiser.reset() }
+            else { denoiser = GentleSpeechDenoiser() }
+        }
         cancellation = CoreMLParakeetCancellation()
         cancellationRouter.select(epochID, flag: cancellation)
     }
@@ -186,6 +196,7 @@ public actor ParakeetSpeechAdapter: SpeechModelRuntime {
         guard self.epochID == epochID, cancellation === flag else { return }
         decodeTask = nil; decodeID = nil
         pcm.removeAll(keepingCapacity: true); windowStart = acceptedSamples
+        denoiser?.reset()
     }
 
     public nonisolated func unload() async {
@@ -214,6 +225,7 @@ public actor ParakeetSpeechAdapter: SpeechModelRuntime {
         }
         manager = nil; decodeTask = nil; decodeID = nil
         pcm = []; acceptedSamples = 0; windowStart = 0; epochID = nil
+        denoiser = nil
         phase = .unloaded
         cancellationRouter.select(nil, flag: nil)
         teardown = nil
@@ -250,7 +262,10 @@ public actor ParakeetSpeechAdapter: SpeechModelRuntime {
         guard let manager, decodeTask == nil, teardown == nil else { throw SpeechRecognitionError.noActiveStream }
         let start = windowStart
         let end = start + Int64(pcm.count)
-        var input = pcm
+        // Enhancement runs on the owned inference worker, after the original
+        // PCM was persisted. Never train on the decoder's synthetic tail padding.
+        if denoiser != nil { observe(.denoise) }
+        var input = try denoiser?.process(pcm, isCancelled: { flag.isCancelled || Task.isCancelled }) ?? pcm
         // FluidAudio rejects very short clips. Decoder padding never advances
         // source counters or the range of the resulting genuine audio segment.
         let minimum = ASRConstants.minimumRequiredSamples(forSampleRate: Self.sampleRate)

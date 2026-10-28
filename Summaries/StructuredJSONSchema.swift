@@ -38,12 +38,16 @@ public struct StructuredJSONSchema: Equatable, Sendable {
     /// The prompt already describes every response field and supplies its JSON
     /// shape. Runtimes need not inject a second, potentially much larger schema.
     public let promptIncludesSchema: Bool
+    /// Compact reference responses also bound whitespace so a model cannot
+    /// spend its entire output allowance generating blank lines between fields.
+    public let compactWhitespace: Bool
 
     public init(fields: [StructuredJSONField], maximumGrammarUTF8Bytes: Int = 65_536,
-                promptIncludesSchema: Bool = false) {
+                promptIncludesSchema: Bool = false, compactWhitespace: Bool = false) {
         self.fields = fields
         self.maximumGrammarUTF8Bytes = maximumGrammarUTF8Bytes
         self.promptIncludesSchema = promptIncludesSchema
+        self.compactWhitespace = compactWhitespace
     }
 
     public func grammar() throws -> String {
@@ -53,7 +57,10 @@ public struct StructuredJSONSchema: Equatable, Sendable {
         var compiler = Compiler(maximumBytes: maximumGrammarUTF8Bytes)
         let body = try compiler.object(fields, path: "field", depth: 0)
         let root = "root ::= ws " + body
-        let grammar = ([root] + compiler.rules + [Self.sharedRules]).joined(separator: "\n")
+        let sharedRules = compactWhitespace
+            ? Self.sharedRules.replacingOccurrences(of: #"ws ::= [ \t\n\r]*"#, with: #"ws ::= [ \t\n\r]?"#)
+            : Self.sharedRules
+        let grammar = ([root] + compiler.rules + [sharedRules]).joined(separator: "\n")
         guard grammar.utf8.count <= maximumGrammarUTF8Bytes else {
             throw StructuredJSONSchemaError.grammarTooLarge
         }

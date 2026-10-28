@@ -15,7 +15,7 @@ protocol IntelligenceBackgroundActivity: AnyObject, Sendable {
 
 @MainActor
 protocol IntelligenceBackgroundProviding: AnyObject, Sendable {
-    func start(request: IntelligenceRequest,
+    func start(request: IntelligenceRequest, progress: IntelligenceProgressTracker,
                expiration: @escaping @MainActor @Sendable () -> Void) -> any IntelligenceBackgroundActivity
 }
 
@@ -34,13 +34,14 @@ final class IntelligenceBackgroundExecution {
 
     init(provider: any IntelligenceBackgroundProviding) { self.provider = provider }
 
-    func run<Value: Sendable>(_ request: IntelligenceRequest,
+    func run<Value: Sendable>(_ request: IntelligenceRequest, progress: IntelligenceProgressTracker? = nil,
         operation: @escaping @MainActor @Sendable (@escaping IntelligenceProgressReporter) async throws -> Value) async throws -> Value {
         try Task.checkCancellation()
         guard current == nil else { throw IntelligenceBackgroundError.busy }
+        let tracker = progress ?? IntelligenceProgressTracker(operation: request.operation)
         let use = Use(id: request.id)
         current = use
-        let activity = provider.start(request: request) { [weak self, weak use] in
+        let activity = provider.start(request: request, progress: tracker) { [weak self, weak use] in
             guard let self, let use, self.current === use else { return }
             use.expired = true
             use.cancelWork?()
@@ -52,7 +53,7 @@ final class IntelligenceBackgroundExecution {
             return try await operation { [weak self, weak use] progress in
                 Task { @MainActor in
                     guard let self, let use, self.current === use, !use.expired else { return }
-                    activity.report(progress)
+                    if tracker.report(progress) { activity.report(progress) }
                 }
             }
         }
@@ -62,10 +63,12 @@ final class IntelligenceBackgroundExecution {
             do {
                 let result = try await work.value
                 // The operation includes native drain, unload, and persistence.
+                tracker.finish(success: true)
                 activity.finish(success: true)
                 use.cancelWork = nil; current = nil
                 return result
             } catch {
+                tracker.finish(success: false)
                 activity.finish(success: false)
                 use.cancelWork = nil; current = nil
                 if use.expired { throw IntelligenceBackgroundError.expired }
@@ -82,14 +85,14 @@ final class IntelligenceBackgroundExecution {
 
 @MainActor
 final class SystemIntelligenceBackgroundProvider: IntelligenceBackgroundProviding {
-    func start(request: IntelligenceRequest,
+    func start(request: IntelligenceRequest, progress: IntelligenceProgressTracker,
                expiration: @escaping @MainActor @Sendable () -> Void) -> any IntelligenceBackgroundActivity {
         if #available(iOS 26.0, *), UIApplication.shared.applicationState == .active,
            let bundleID = Bundle.main.bundleIdentifier {
             // The OS registration must be unique even if a caller retries the
             // same application request object after an earlier failure.
             return ContinuedIntelligenceActivity(identifier: bundleID + ".intelligence." + UUID().uuidString,
-                operation: request.operation, expiration: expiration)
+                progress: progress, expiration: expiration)
         }
         return LimitedIntelligenceActivity(expiration: expiration)
     }
@@ -147,16 +150,15 @@ private final class ContinuedIntelligenceActivity: IntelligenceBackgroundActivit
     private var submitted = false
     private var finished = false
     private var expired = false
-    private var progress = IntelligenceBackgroundProgress()
+    private let progress: IntelligenceProgressTracker
     private var displayedDetail: String?
+    private var displayedAt: ContinuousClock.Instant?
+    private var displayUpdates: Task<Void, Never>?
 
-    init(identifier: String, operation: IntelligenceOperation,
+    init(identifier: String, progress: IntelligenceProgressTracker,
          expiration: @escaping @MainActor @Sendable () -> Void) {
-        self.identifier = identifier; self.expiration = expiration
-        switch operation {
-        case .summary: title = "Summarizing meeting"
-        case .question: title = "Answering meeting question"
-        }
+        self.identifier = identifier; self.expiration = expiration; self.progress = progress
+        title = progress.title
         assertion = IntelligenceBackgroundAssertion { [weak self] in
             // A bridge expiration can already be queued when the continued
             // task arrives. It must never expire the replacement allowance.
@@ -178,7 +180,7 @@ private final class ContinuedIntelligenceActivity: IntelligenceBackgroundActivit
             }
         }) else { pending = false; return }
         let request = BGContinuedProcessingTaskRequest(identifier: identifier,
-            title: title, subtitle: "Preparing on this iPhone")
+            title: title, subtitle: progress.display().notificationSubtitle)
         request.strategy = .queue
         // Local inference is CPU-only: no background GPU entitlement is needed.
         do { try scheduler.submit(request); submitted = true }
@@ -197,18 +199,29 @@ private final class ContinuedIntelligenceActivity: IntelligenceBackgroundActivit
     private func receive(_ task: BGContinuedProcessingTask) {
         guard pending, !finished, !expired else { task.setTaskCompleted(success: false); return }
         self.task = task; pending = false
-        task.progress.totalUnitCount = progress.totalUnitCount
-        task.progress.completedUnitCount = progress.completedUnitCount
+        task.progress.totalUnitCount = progress.progress.totalUnitCount
+        task.progress.completedUnitCount = progress.progress.completedUnitCount
         task.expirationHandler = { [weak self] in
             Task { @MainActor in self?.expire() }
         }
         assertion?.end(); assertion = nil
+        updateDisplay(at: .now)
+        displayUpdates = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                do { try await Task.sleep(for: .seconds(1)) } catch { return }
+                guard let self, !self.finished, !self.expired else { return }
+                // Refresh elapsed/ETA text only. Completed work is still
+                // changed exclusively by actual inference progress reports.
+                self.updateDisplay(at: .now)
+            }
+        }
         waiter?.resume(); waiter = nil
     }
 
     private func expire() {
         guard !finished, !expired else { return }
         expired = true
+        displayUpdates?.cancel(); displayUpdates = nil
         expiration()
         cancelPendingStart()
     }
@@ -221,22 +234,31 @@ private final class ContinuedIntelligenceActivity: IntelligenceBackgroundActivit
     }
 
     func report(_ value: IntelligenceProgress) {
-        guard let task, !finished, !expired, progress.report(value) else { return }
-        task.progress.completedUnitCount = progress.completedUnitCount
-        // Counters may advance per token; update the title only on stage changes.
-        if displayedDetail != progress.detail {
+        guard let task, !finished, !expired else { return }
+        task.progress.completedUnitCount = progress.progress.completedUnitCount
+        updateDisplay(at: .now)
+    }
+
+    private func updateDisplay(at now: ContinuousClock.Instant) {
+        guard let task else { return }
+        // Work counters are reported immediately. Text updates are bounded to
+        // once per second, with immediate stage changes; no fake work heartbeat.
+        if displayedDetail != progress.detail || displayedAt.map({ $0.duration(to: now) >= .seconds(1) }) != false {
             displayedDetail = progress.detail
-            task.updateTitle(title, subtitle: progress.detail)
+            displayedAt = now
+            task.updateTitle(title, subtitle: progress.display(at: now).notificationSubtitle)
         }
     }
 
     func finish(success: Bool) {
         guard !finished else { return }
         finished = true
+        displayUpdates?.cancel(); displayUpdates = nil
         cancelPendingStart()
         if let task {
             task.expirationHandler = nil
             if success { task.progress.completedUnitCount = task.progress.totalUnitCount }
+            task.updateTitle(title, subtitle: progress.display().notificationSubtitle)
             task.setTaskCompleted(success: success && !expired)
             self.task = nil
         }

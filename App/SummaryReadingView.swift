@@ -15,7 +15,7 @@ struct SummaryPresentation {
 
     init?(document: StoredGeneratedDocument, text: String) {
         guard document.kind == .summary, document.editRevision == 0, text == document.editedText,
-              document.originalJSON.count <= 65_536,
+              document.originalJSON.count <= 1_048_576,
               let payload = try? JSONSerialization.jsonObject(with: document.originalJSON) as? [String: Any],
               payload["schema_version"] as? Int == 1,
               let meeting = payload["meeting_id"] as? String, UUID(uuidString: meeting) == document.meetingID,

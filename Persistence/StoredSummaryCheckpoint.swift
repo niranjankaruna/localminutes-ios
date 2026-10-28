@@ -68,11 +68,11 @@ public actor SummaryCheckpointStore {
         let checkpoint: StoredSummaryCheckpoint
     }
 
-    private static let maximumMaps = 128
+    public static let maximumMaps = 1_024
     private static let maximumMapBytes = 65_536
     // Codable represents map Data as base64. This bound covers every allowed
     // map plus bounded identity/framing overhead without unbounded disk reads.
-    private static let maximumEnvelopeBytes = 12 * 1_048_576
+    private static let maximumEnvelopeBytes = 96 * 1_048_576
     private let directoryURL: URL
     private let canonicalDirectoryPath: String
 

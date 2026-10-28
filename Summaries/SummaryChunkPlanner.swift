@@ -33,21 +33,26 @@ public enum SummaryChunkPlannerError: Error, Equatable, Sendable {
 /// Doubles are permitted in unit tests only; app composition uses the real model.
 public typealias SummaryTokenCounter = @Sendable (String) async throws -> Int
 
-/// Atomic source segments retain all sentence text and global sample positions.
-/// An oversized segment is an explicit error, never a silently truncated input.
+/// Whole-source packing is the default. Optional splitting keeps all text bytes
+/// and original citation ranges when one source exceeds the model's window.
 public struct SummaryChunkPlanner: Sendable {
     public let contextTokenLimit: Int
     public let reservedOutputTokens: Int
     public let promptPrefix: String
     public let maximumSegmentsPerChunk: Int?
+    public let splitOversizedSegments: Bool
     private let tokenizer: SummaryTokenCounter
+    private let planningProgress: (@Sendable (Int, Int) -> Void)?
 
     public init(contextTokenLimit: Int = 4_096, reservedOutputTokens: Int = 512,
-                promptPrefix: String, maximumSegmentsPerChunk: Int? = nil,
+                promptPrefix: String, maximumSegmentsPerChunk: Int? = nil, splitOversizedSegments: Bool = false,
+                planningProgress: (@Sendable (Int, Int) -> Void)? = nil,
                 tokenizer: @escaping SummaryTokenCounter) {
         self.contextTokenLimit = contextTokenLimit; self.reservedOutputTokens = reservedOutputTokens
         self.promptPrefix = promptPrefix; self.maximumSegmentsPerChunk = maximumSegmentsPerChunk
+        self.splitOversizedSegments = splitOversizedSegments
         self.tokenizer = tokenizer
+        self.planningProgress = planningProgress
     }
 
     public func plan(_ segments: [SummaryEvidenceSegment]) async throws -> [SummaryInputChunk] {
@@ -61,6 +66,7 @@ public struct SummaryChunkPlanner: Sendable {
         var identities: Set<Data> = []
         var previousEnd: Int64?
         // Validate the complete selected source before building any output.
+        planningProgress?(0, segments.count)
         for segment in segments {
             try Task.checkCancellation()
             guard !segment.id.isEmpty, segment.id.utf8.count <= 256,
@@ -75,7 +81,7 @@ public struct SummaryChunkPlanner: Sendable {
                 throw SummaryChunkPlannerError.invalidSource
             }
             previousEnd = segment.endSample
-            guard segment.text.utf8.count <= 65_536 else {
+            guard segment.text.utf8.count <= (splitOversizedSegments ? 1_048_576 : 65_536) else {
                 throw SummaryChunkPlannerError.oversizedSegment(segment.id)
             }
         }
@@ -83,7 +89,13 @@ public struct SummaryChunkPlanner: Sendable {
         var pending: [SummaryEvidenceSegment] = []
         var pendingPrompt = ""
         var pendingTokens = 0
-        for segment in segments {
+        let progressStride = max(1, segments.count / 100)
+        func report(_ completed: Int) {
+            if completed == segments.count || completed % progressStride == 0 {
+                planningProgress?(completed, segments.count)
+            }
+        }
+        for (index, segment) in segments.enumerated() {
             try Task.checkCancellation()
             if let maximumSegmentsPerChunk, pending.count == maximumSegmentsPerChunk {
                 chunks.append(SummaryInputChunk(segments: pending, prompt: pendingPrompt,
@@ -98,18 +110,27 @@ public struct SummaryChunkPlanner: Sendable {
                 pending = candidate
                 pendingPrompt = candidatePrompt
                 pendingTokens = count
+                report(index + 1)
                 continue
             }
-            guard !pending.isEmpty else { throw SummaryChunkPlannerError.oversizedSegment(segment.id) }
-            chunks.append(SummaryInputChunk(segments: pending, prompt: pendingPrompt,
-                promptTokenCount: pendingTokens, reservedOutputTokens: reservedOutputTokens))
-            let singlePrompt = try makePrompt([segment])
-            guard let count = try await acceptedTokenCount(singlePrompt) else {
-                throw SummaryChunkPlannerError.oversizedSegment(segment.id)
+            if !pending.isEmpty {
+                chunks.append(SummaryInputChunk(segments: pending, prompt: pendingPrompt,
+                    promptTokenCount: pendingTokens, reservedOutputTokens: reservedOutputTokens))
             }
-            pending = [segment]
-            pendingPrompt = singlePrompt
-            pendingTokens = count
+            let singlePrompt = try makePrompt([segment])
+            if let count = try await acceptedTokenCount(singlePrompt) {
+                pending = [segment]
+                pendingPrompt = singlePrompt
+                pendingTokens = count
+            } else {
+                guard splitOversizedSegments else { throw SummaryChunkPlannerError.oversizedSegment(segment.id) }
+                let pieces = try await split(segment)
+                // Fragments of one source are separate model requests. They
+                // retain the original ID and audio range, never invented times.
+                chunks += pieces
+                pending = []; pendingPrompt = ""; pendingTokens = 0
+            }
+            report(index + 1)
         }
         if !pending.isEmpty {
             chunks.append(SummaryInputChunk(segments: pending, prompt: pendingPrompt,
@@ -120,6 +141,31 @@ public struct SummaryChunkPlanner: Sendable {
     }
 
     private static let evidenceMarker = "\n\nEVIDENCE_JSON:\n"
+
+    private func split(_ segment: SummaryEvidenceSegment) async throws -> [SummaryInputChunk] {
+        try Task.checkCancellation()
+        let prompt = try makePrompt([segment])
+        if let count = try await acceptedTokenCount(prompt) {
+            return [.init(segments: [segment], prompt: prompt, promptTokenCount: count,
+                          reservedOutputTokens: reservedOutputTokens)]
+        }
+        let bytes = Data(segment.text.utf8)
+        var middle = bytes.count / 2
+        while middle > 0, middle < bytes.count, bytes[middle] & 0xC0 == 0x80 { middle -= 1 }
+        guard middle > 0, middle < bytes.count else { throw SummaryChunkPlannerError.oversizedSegment(segment.id) }
+        let sentence = bytes[..<middle].lastIndex(where: { $0 == 10 || $0 == 13 || $0 == 46 || $0 == 33 || $0 == 63 })
+        let word = bytes[..<middle].lastIndex(of: 32)
+        if let boundary = [sentence, word].compactMap({ $0 }).first(where: { $0 > middle / 2 }) {
+            middle = boundary + 1
+        }
+        func part(_ data: Data.SubSequence) -> SummaryEvidenceSegment {
+            .init(id: segment.id, startSample: segment.startSample, endSample: segment.endSample,
+                  text: String(decoding: data, as: UTF8.self))
+        }
+        let left = try await split(part(bytes[..<middle]))
+        let right = try await split(part(bytes[middle...]))
+        return left + right
+    }
 
     private func makePrompt(_ segments: [SummaryEvidenceSegment]) throws -> String {
         let encoder = JSONEncoder()

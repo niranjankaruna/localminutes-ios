@@ -4,8 +4,8 @@ import Foundation
 import XCTest
 @testable import LocalMinutesTranscription
 
-/// Fixed 45.85-second public audiobook corpus, doubled by a controlled-noise
-/// condition. This is not representative accent, technical-meeting, or device
+/// Fixed 45.85-second public audiobook corpus with controlled-noise and quiet
+/// conditions. This is not representative accent, technical-meeting, or device
 /// validation. Missing assets/models fail; no skip or fake generation exists.
 @MainActor
 final class ASRCorpusQualityTests: XCTestCase {
@@ -32,6 +32,82 @@ final class ASRCorpusQualityTests: XCTestCase {
             }
             await recognizer.unload()
         } catch { await recognizer.unload(); throw error }
+    }
+
+    func testActualGentleNoiseReductionComparedWithUnfilteredQuietSpeech() async throws {
+        let model = try CoreMLParakeetFixture.load()
+        let corpus = try ASRQualityCorpus.load()
+        var totals: [String: [String: CorpusWordErrors]] = [:]
+        var records: [[String: Any]] = []
+        // -24 dB relative to each real source clip, with and without controlled
+        // room noise. No artificial initial silence calibrates the filter.
+        let quietGain: Float = 0.0630957344
+        for mode in [SpeechNoiseReduction.off, .gentle] {
+            let recognizer = CoreMLParakeetRecognizer(files: model.files, noiseReduction: mode)
+            do {
+                try await recognizer.load()
+                var modeTotals: [String: CorpusWordErrors] = [:]
+                for clip in corpus.manifest.clips {
+                    let clean = try corpus.decode(clip)
+                    let noisy = try corpusNoise(clean, sourceSHA256: clip.sha256)
+                    for (condition, source) in [("quiet", clean), ("quietNoise15dB", noisy.samples)] {
+                        let samples = source.map { $0 * quietGain }
+                        try await recognizer.start(epochID: UUID())
+                        let started = ContinuousClock.now
+                        var text: [String] = []
+                        for offset in stride(from: 0, to: samples.count, by: 3_200) {
+                            let output = try await recognizer.accept(
+                                Array(samples[offset..<min(offset + 3_200, samples.count)]), at: Int64(offset))
+                            text += output.finalized.map(\.text)
+                            for segment in output.finalized {
+                                XCTAssertGreaterThanOrEqual(segment.startSample, 0)
+                                XCTAssertLessThanOrEqual(segment.endSample, Int64(samples.count))
+                            }
+                        }
+                        let tail = try await recognizer.finish()
+                        text += tail.finalized.map(\.text)
+                        for segment in tail.finalized {
+                            XCTAssertGreaterThanOrEqual(segment.startSample, 0)
+                            XCTAssertLessThanOrEqual(segment.endSample, Int64(samples.count))
+                        }
+                        let snapshot = await recognizer.snapshot()
+                        XCTAssertEqual(snapshot.acceptedSampleCount, Int64(samples.count))
+                        let hypothesis = corpusWords(text.joined(separator: " "))
+                        XCTAssertFalse(hypothesis.isEmpty, "Quiet real speech must not disappear: \(clip.id)/\(mode)/\(condition)")
+                        guard hypothesis.count <= 4_096 else { throw CorpusQualityError.invalidHypothesis }
+                        let errors = corpusWordErrors(corpusWords(clip.text), hypothesis)
+                        modeTotals[condition, default: .init()].add(errors)
+                        let elapsed = started.duration(to: .now)
+                        let record: [String: Any] = ["clip": clip.id, "condition": condition,
+                            "noiseReduction": mode.rawValue, "modelRevision": model.files.revision,
+                            "runtimeVersion": model.files.runtimeVersion, "sourceSHA256": clip.sha256,
+                            "inputFloat32LESHA256": corpusFloatDigest(samples), "inputGainDB": -24,
+                            "sampleFrames": samples.count, "referenceWords": errors.referenceWords,
+                            "substitutions": errors.substitutions, "deletions": errors.deletions,
+                            "insertions": errors.insertions, "wer": errors.wer,
+                            "elapsedSeconds": Double(elapsed.components.seconds)
+                                + Double(elapsed.components.attoseconds) / 1e18]
+                        records.append(record)
+                        try corpusLog("ASR_QUIET_COMPARISON", record)
+                    }
+                }
+                totals[mode.rawValue] = modeTotals
+                await recognizer.unload()
+            } catch { await recognizer.unload(); throw error }
+        }
+        let data = try JSONSerialization.data(withJSONObject: records, options: [.sortedKeys, .prettyPrinted])
+        try data.write(to: corpus.directory.appendingPathComponent("parakeet-quiet-noise-comparison.json"), options: .atomic)
+        for (condition, ceiling) in [("quiet", 0.15), ("quietNoise15dB", 0.25)] {
+            let baseline = try XCTUnwrap(totals[SpeechNoiseReduction.off.rawValue]?[condition])
+            let enhanced = try XCTUnwrap(totals[SpeechNoiseReduction.gentle.rawValue]?[condition])
+            XCTAssertEqual(baseline.referenceWords, 116)
+            XCTAssertEqual(enhanced.referenceWords, baseline.referenceWords)
+            XCTAssertLessThanOrEqual(enhanced.wer, ceiling)
+            XCTAssertLessThanOrEqual(enhanced.distance, baseline.distance + 2,
+                "Noise reduction must stay within two word errors of the unfiltered 116-word corpus")
+            // Prefer preserving soft words over a cleaner-sounding signal.
+            XCTAssertLessThanOrEqual(enhanced.deletions, baseline.deletions + 1)
+        }
     }
 
     private func evaluate(engine: String, modelRevision: String, runtimeVersion: String,

@@ -76,6 +76,69 @@ final class ActualSummaryPipelineTests: XCTestCase {
             try assertAllQuotesAndProvenance(negative, source: unknown, revision: revision)
             XCTAssertTrue((negative.summaryPoints.flatMap(\.evidence) + negative.actions.flatMap(\.evidence))
                 .allSatisfy { $0.sourceID == "unassigned-source" })
+            // Four minutes of original, unlabeled speech in minute-long ASR
+            // paragraphs. Long quoted output must not consume 1024 tokens per
+            // call before failing; the real model selects compact references.
+            let paragraph = """
+            We reviewed the mobile application and the meeting recording workflow during today's planning discussion.
+            People need the recorded audio and transcript to remain available while they review the generated notes.
+            The team examined several examples of longer conversations and checked that no source material was lost.
+            There was a detailed discussion about making the progress display understandable during a slow operation.
+            The display should include elapsed time, an approximate remaining time, and the current progress percentage.
+            We decided to show the same progress information in the application and on the phone's lock screen.
+            We also reviewed the cancellation behavior and the way saved progress is restored after an interruption.
+            The next test should verify that every quote still points to the exact original transcript and sample range.
+            No owner or deadline was assigned for that test, and the meeting did not settle a release date.
+            The group agreed that the original meeting notes and transcript must remain unchanged during generation.
+            """
+            XCTAssertGreaterThan(paragraph.utf8.count, 1_024)
+            let longID = UUID()
+            let longerSource = GroundedSummarySource(meetingID: longID, segments: (0..<4).map { index in
+                .init(id: "four-minute-\(index)", startSample: Int64(index) * 960_000,
+                      endSample: Int64(index + 1) * 960_000, text: paragraph)
+            }, originalManualNotes: "Original four-minute test notes.")
+            let longerCalls = ActualPipelineCallCounter()
+            let longerPipeline = SummaryPipeline(modelRevision: revision,
+                tokenizer: { try await runtime.promptTokenCount(prompt: $0) },
+                generator: { prompt, schema, maximum in
+                    XCTAssertLessThanOrEqual(maximum, 256, "Long speech must use a compact response from the first call")
+                    let output = try await runtime.generateJSON(prompt: prompt, schema: schema, maximumTokens: maximum)
+                    await longerCalls.generated(output)
+                    return output
+                })
+            let longer = try await longerPipeline.summarize(selectedMeetingID: longID, source: longerSource)
+            XCTAssertFalse(longer.summaryPoints.isEmpty)
+            try assertAllQuotesAndProvenance(longer, source: longerSource, revision: revision)
+            XCTAssertTrue(longer.actions.allSatisfy { $0.owner == nil && $0.due == nil })
+            let longerObserved = await longerCalls.snapshot()
+            XCTAssertGreaterThan(longerObserved.generated, 0)
+            // Real cross-section context and final selection, using the same
+            // already hash-verified model. Scale is covered separately by the
+            // full two-hour boundary test, not inferred from this short case.
+            let relatedID = UUID()
+            let background = Array(repeating: paragraph, count: 4).joined(separator: " ")
+            let related = GroundedSummarySource(meetingID: relatedID, segments: [
+                .init(id: "opening-decision", startSample: 0, endSample: 960_000,
+                      text: "Maya: We decided to launch Project Alpha on Monday. " + background),
+                .init(id: "security-update", startSample: 960_000, endSample: 1_920_000,
+                      text: "Leo: I will finish the Project Alpha security review by Thursday. " + background),
+                .init(id: "revised-decision", startSample: 1_920_000, endSample: 2_880_000,
+                      text: "We changed the Project Alpha launch from Monday to Friday. " + background)
+            ], originalManualNotes: "Focus on Project Alpha's launch date and security review. Keep any changes visible.")
+            let relatedCalls = ActualPipelineCallCounter()
+            let relatedPipeline = SummaryPipeline(modelRevision: revision,
+                tokenizer: { try await runtime.promptTokenCount(prompt: $0) },
+                generator: { prompt, schema, maximum in
+                    if prompt.contains("MEETING_CONTEXT_JSON:\n[{") { await relatedCalls.usedContext() }
+                    let json = try await runtime.generateJSON(prompt: prompt, schema: schema, maximumTokens: maximum)
+                    await relatedCalls.generated(json)
+                    return json
+                }, meetingContextEnabled: true)
+            let relatedSummary = try await relatedPipeline.summarize(selectedMeetingID: relatedID, source: related)
+            let contextCalls = await relatedCalls.contextCount()
+            XCTAssertGreaterThan(contextCalls, 0, "A later native request must receive the validated running brief")
+            XCTAssertFalse(relatedSummary.summaryPoints.isEmpty)
+            try assertAllQuotesAndProvenance(relatedSummary, source: related, revision: revision)
             let observed = await calls.snapshot()
             XCTAssertGreaterThan(observed.tokenized, 0)
             XCTAssertGreaterThanOrEqual(observed.generated, 2,
@@ -123,11 +186,14 @@ private actor ActualPipelineCallCounter {
     private var tokenizedCount = 0
     private var generatedCount = 0
     private var outputs: [String] = []
+    private var contexts = 0
     func tokenized() { tokenizedCount += 1 }
     func generated(_ json: String) {
         generatedCount += 1
         if outputs.count < 4 { outputs.append(String(json.prefix(4_096))) }
     }
     func failureOutputs() -> [String] { outputs }
+    func usedContext() { contexts += 1 }
+    func contextCount() -> Int { contexts }
     func snapshot() -> (tokenized: Int, generated: Int) { (tokenizedCount, generatedCount) }
 }

@@ -34,6 +34,8 @@ final class MeetingIntelligenceController {
     private(set) var errorMessage: String?
     private(set) var modelRequired = false
     private(set) var isRunning = false
+    private(set) var isCancelling = false
+    private(set) var generationProgress: IntelligenceProgressTracker?
     private(set) var summaryPaused = false
     private(set) var isSaving = false
     private(set) var cleanupPending = false
@@ -48,7 +50,6 @@ final class MeetingIntelligenceController {
     @ObservationIgnored private var loadID: UUID?
     @ObservationIgnored private var request: IntelligenceRequest?
     @ObservationIgnored private var operation: Task<Void, Never>?
-    @ObservationIgnored private var acceptsProgress = false
     @ObservationIgnored private var cancellation: Task<Void, Never>?
     @ObservationIgnored private var debounce: Task<Void, Never>?
     @ObservationIgnored private var resetSummaryTask: Task<Void, Never>?
@@ -285,14 +286,15 @@ final class MeetingIntelligenceController {
             createdAt: Date(timeIntervalSince1970: Date().timeIntervalSince1970))
         request = owned
         isRunning = true
-        acceptsProgress = true
+        let progress = IntelligenceProgressTracker(operation: kind)
+        generationProgress = progress
         modelRequired = false
         errorMessage = nil
         message = "Waiting for iOS to start generation…"
         if case .summary = kind { summaryPaused = false }
         operation = Task { @MainActor in
             do {
-                let saved = try await self.services.intelligenceBackgroundExecution.run(owned) { progress in
+                let saved = try await self.services.intelligenceBackgroundExecution.run(owned, progress: progress) { report in
                     guard await self.flushSummaryEdits(), await self.flushAllAnswerEdits() else { throw PreparationError.stopped }
                     await self.services.initialize()
                     try Task.checkCancellation()
@@ -306,15 +308,8 @@ final class MeetingIntelligenceController {
                         throw PreparationError.stopped
                     }
                     self.message = "Working locally on this meeting…"
-                    return try await intelligence.run(owned, progress: { [weak self] value in
-                        progress(value)
-                        Task { @MainActor in
-                            guard let self, self.request?.id == owned.id, self.acceptsProgress else { return }
-                            self.message = value.message
-                        }
-                    })
+                    return try await intelligence.run(owned, progress: report)
                 }
-                self.acceptsProgress = false
                 guard self.request?.id == owned.id, saved.meetingID == self.meetingID else { return }
                 if saved.kind == .summary {
                     self.summary = saved
@@ -358,7 +353,7 @@ final class MeetingIntelligenceController {
 
     private func finish(_ owned: IntelligenceRequest) {
         guard request?.id == owned.id else { return }
-        acceptsProgress = false
+        generationProgress?.finish(success: false) // Idempotent after committed success.
         isRunning = false
         if errorMessage != nil { message = nil }
         operation = nil
@@ -374,9 +369,10 @@ final class MeetingIntelligenceController {
         resetSummaryTask?.cancel()
         guard let owned = request, cancellation == nil else { return }
         operation?.cancel()
+        isCancelling = true
         message = "Cancelling and releasing the local model…"
         cancellation = Task { @MainActor in
-            defer { self.cancellation = nil }
+            defer { self.cancellation = nil; self.isCancelling = false }
             do {
                 try await self.services.intelligence?.cancelAndDrain(requestID: owned.id)
                 if self.request?.id == owned.id && !self.isRunning {
@@ -476,10 +472,23 @@ struct MeetingIntelligenceView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
             if controller.busy {
-                MinutesProgress(title: content == .ask ? "Finding an answer" : "Summarizing",
-                    detail: controller.cleanupPending ? "Finishing the current operation…" : (controller.message ?? "Working on this iPhone."),
-                    cancel: controller.cancel)
-                    .accessibilityIdentifier("meeting.intelligence.running")
+                if let progress = controller.generationProgress, !controller.isResetting {
+                    TimelineView(.periodic(from: .now, by: 1)) { _ in
+                        IntelligenceProgressView(title: progress.runningTitle,
+                            detail: controller.isCancelling ? "Cancelling and releasing the local model…"
+                                : controller.cleanupPending ? "Finishing the current operation…" : progress.detail,
+                            display: progress.display(), cancel: controller.cancel)
+                    }.accessibilityIdentifier("meeting.intelligence.running")
+                } else {
+                    MinutesProgress(title: "Preparing summary", detail: controller.message, cancel: controller.cancel)
+                        .accessibilityIdentifier("meeting.intelligence.running")
+                }
+            } else if let progress = controller.generationProgress {
+                let display = progress.display()
+                Text(progress.succeeded == true ? "Completed · 100% · \(display.elapsedText) elapsed"
+                     : "\(display.percentage)% · \(display.elapsedText) elapsed")
+                    .font(.footnote).monospacedDigit().foregroundStyle(.secondary)
+                    .accessibilityIdentifier("meeting.intelligence.finishedTiming")
             }
             if controller.modelRequired {
                 VStack(alignment: .leading, spacing: 16) {
