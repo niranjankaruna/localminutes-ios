@@ -1,4 +1,7 @@
 import Foundation
+#if SWIFT_PACKAGE
+import LocalMinutesModels
+#endif
 
 /// Hierarchical selection over validated section findings. The model selects
 /// references; full original claims, evidence, and provenance stay app-owned.
@@ -38,8 +41,19 @@ struct SummaryConsolidator: Sendable {
     let tokenizer: SummaryTokenCounter
     let generator: SummaryMapJSONGenerator
     let contextTokenLimit: Int
+    let outputTokenLimit: Int
     let report: (@Sendable (Int, Int) -> Void)?
-    private var maximumOutputTokens: Int { min(256, max(1, contextTokenLimit / 4)) }
+    private var maximumItems: Int { SummaryOutputBudget.consolidatedItems(outputTokens: outputTokenLimit) }
+    private var maximumOutputTokens: Int {
+        min(SummaryOutputBudget.referenceTokens(itemCount: maximumItems, outputTokens: outputTokenLimit),
+            max(1, contextTokenLimit / 4))
+    }
+
+    init(tokenizer: @escaping SummaryTokenCounter, generator: @escaping SummaryMapJSONGenerator,
+         contextTokenLimit: Int, outputTokenLimit: Int = 256, report: (@Sendable (Int, Int) -> Void)?) {
+        self.tokenizer = tokenizer; self.generator = generator
+        self.contextTokenLimit = contextTokenLimit; self.outputTokenLimit = outputTokenLimit; self.report = report
+    }
 
     func combine(_ maps: [GroundedSummary], meetingID: UUID, source: GroundedSummarySource) async throws -> GroundedSummary {
         let validation = try GroundedSummaryValidation(selectedMeetingID: meetingID, source: source, limits: .init())
@@ -59,11 +73,11 @@ struct SummaryConsolidator: Sendable {
         // groups and repeat until every surviving group fits one final pass.
         while true {
             try Task.checkCancellation()
-            if candidates.count <= 64 {
-                let global = try Self.prompt(candidates, keep: min(48, candidates.count))
+            if candidates.count <= max(64, maximumItems) {
+                let global = try Self.prompt(candidates, keep: min(maximumItems, candidates.count))
                 if try await fits(global) {
                     report?(completed, maximumCalls)
-                    candidates = try await select(candidates, prompt: global, keep: min(48, candidates.count))
+                    candidates = try await select(candidates, prompt: global, keep: min(maximumItems, candidates.count))
                     completed += 1
                     report?(completed, maximumCalls)
                     break
@@ -95,14 +109,14 @@ struct SummaryConsolidator: Sendable {
             candidates = reduced
         }
         guard !candidates.isEmpty else { throw GroundedSummaryError.invalidJSON }
-        // At most 48 original items reach the existing strict deterministic
-        // merge, including its conflicting-attribute and source checks.
+        // Retained original items fit the existing strict deterministic merge,
+        // including its conflicting-attribute and source checks.
         return try GroundedSummaryMerger.merge(candidates.map { $0.summary(meetingID: meetingID) },
             selectedMeetingID: meetingID, source: source)
     }
 
     private func fits(_ prompt: String) async throws -> Bool {
-        guard prompt.utf8.count <= 65_536 else { return false }
+        guard prompt.utf8.count <= SummaryContextWindow.maximumPromptUTF8Bytes else { return false }
         let count = try await tokenizer(prompt)
         try Task.checkCancellation()
         guard count > 0 else { throw SummaryChunkPlannerError.invalidTokenCount }

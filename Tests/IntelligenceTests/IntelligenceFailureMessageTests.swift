@@ -9,8 +9,7 @@ final class IntelligenceFailureMessageTests: XCTestCase {
         let errors: [any Error] = [IntelligenceSessionError.transcriptMissing,
             LocalSummaryRuntimeError.invalidModel, LocalSummaryRuntimeError.contextUnavailable,
             LocalSummaryRuntimeError.contextExceeded, LocalSummaryRuntimeError.outputLimitExceeded,
-            GroundedSummaryError.unsupportedClaim, AppleFoundationRuntimeError.rateLimited,
-            AppleFoundationRuntimeError.refused, AppleFoundationRuntimeError.unsupportedLanguage]
+            GroundedSummaryError.unsupportedClaim, LocalSummaryRuntimeError.generationFailed]
         let messages = errors.map { IntelligenceFailureMessage.message(for: $0) }
         XCTAssertEqual(Set(messages).count, errors.count)
         XCTAssertTrue(messages.allSatisfy { !$0.isEmpty })

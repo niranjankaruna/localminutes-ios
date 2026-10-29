@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "verifiedAt": "2026-10-26",
+  "contextVerifiedAt": "2026-10-29",
   "families": [
     {
       "id": "qwen25",
@@ -9,6 +10,8 @@
       "variants": [
         {
           "id": "qwen2.5-0.5b-instruct-q4_k_m",
+          "contextWindow": { "maximumTokens": 32768, "maximumOutputTokens": 8192 },
+          "contextSourceURL": "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF",
           "title": "0.5B",
           "detail": "Q4_K_M · Small download",
           "family": "qwen25",
@@ -22,6 +25,8 @@
         },
         {
           "id": "qwen2.5-1.5b-instruct-q4_k_m",
+          "contextWindow": { "maximumTokens": 32768, "maximumOutputTokens": 8192 },
+          "contextSourceURL": "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF",
           "title": "1.5B",
           "detail": "Q4_K_M · More capacity for detailed meetings",
           "family": "qwen25",
@@ -42,6 +47,8 @@
       "variants": [
         {
           "id": "qwen3-0.6b-q8_0",
+          "contextWindow": { "maximumTokens": 32768, "maximumOutputTokens": 16384 },
+          "contextSourceURL": "https://huggingface.co/Qwen/Qwen3-0.6B-GGUF",
           "title": "0.6B",
           "detail": "Q8_0 · Small download",
           "family": "qwen3",
@@ -55,6 +62,8 @@
         },
         {
           "id": "qwen3-1.7b-q8_0",
+          "contextWindow": { "maximumTokens": 32768, "maximumOutputTokens": 16384 },
+          "contextSourceURL": "https://huggingface.co/Qwen/Qwen3-1.7B-GGUF",
           "title": "1.7B",
           "detail": "Q8_0 · Compact text model",
           "family": "qwen3",
@@ -68,6 +77,8 @@
         },
         {
           "id": "qwen3-4b-q4_k_m",
+          "contextWindow": { "maximumTokens": 131072, "yarnOriginalContextTokens": 32768, "maximumOutputTokens": 16384 },
+          "contextSourceURL": "https://huggingface.co/Qwen/Qwen3-4B-GGUF",
           "title": "4B",
           "detail": "Q4_K_M · Higher memory use",
           "family": "qwen3",
@@ -81,6 +92,8 @@
         },
         {
           "id": "qwen3-4b-instruct-2507-q4_k_m",
+          "contextWindow": { "maximumTokens": 262144, "maximumOutputTokens": 16384 },
+          "contextSourceURL": "https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507",
           "title": "4B Instruct 2507",
           "detail": "Q4_K_M · Dedicated non-thinking model",
           "family": "qwen3",
@@ -103,6 +116,8 @@
       "variants": [
         {
           "id": "phi3-mini-4k-instruct-q4",
+          "contextWindow": { "maximumTokens": 4096, "maximumOutputTokens": 2048 },
+          "contextSourceURL": "https://huggingface.co/microsoft/Phi-3-mini-4k-instruct",
           "title": "Mini 3.8B · 4K",
           "detail": "Q4 · Microsoft release",
           "family": "phi3",
@@ -123,6 +138,8 @@
       "variants": [
         {
           "id": "phi4-mini-instruct-q4_k_m",
+          "contextWindow": { "maximumTokens": 131072, "maximumOutputTokens": 16384 },
+          "contextSourceURL": "https://huggingface.co/microsoft/Phi-4-mini-instruct",
           "title": "Mini 3.8B",
           "detail": "Q4_K_M · Text-only instruction model",
           "family": "phi4",
@@ -144,6 +161,8 @@
       "variants": [
         {
           "id": "gemma3-1b-it-qat-q4_0",
+          "contextWindow": { "maximumTokens": 32768, "maximumOutputTokens": 8192 },
+          "contextSourceURL": "https://developers.googleblog.com/gemma-explained-whats-new-in-gemma-3/",
           "title": "1B",
           "detail": "QAT Q4_0 · Compact text model",
           "family": "gemma3",
@@ -158,6 +177,8 @@
         },
         {
           "id": "gemma3-4b-it-qat-q4_0",
+          "contextWindow": { "maximumTokens": 131072, "maximumOutputTokens": 8192 },
+          "contextSourceURL": "https://developers.googleblog.com/gemma-explained-whats-new-in-gemma-3/",
           "title": "4B",
           "detail": "QAT Q4_0 · Higher memory use",
           "family": "gemma3",
@@ -179,6 +200,8 @@
       "variants": [
         {
           "id": "gemma4-e2b-it-qat-q4_0",
+          "contextWindow": { "maximumTokens": 131072, "maximumOutputTokens": 16384 },
+          "contextSourceURL": "https://huggingface.co/google/gemma-4-E2B-it-qat-q4_0-gguf",
           "title": "E2B",
           "detail": "QAT Q4_0 · Text generation",
           "family": "gemma4",
@@ -192,6 +215,8 @@
         },
         {
           "id": "gemma4-e4b-it-qat-q4_0",
+          "contextWindow": { "maximumTokens": 131072, "maximumOutputTokens": 16384 },
+          "contextSourceURL": "https://huggingface.co/google/gemma-4-E4B-it-qat-q4_0-gguf",
           "title": "E4B",
           "detail": "QAT Q4_0 · Highest memory use",
           "family": "gemma4",

@@ -2,6 +2,7 @@ import Foundation
 #if SWIFT_PACKAGE
 import LocalMinutesPersistence
 import LocalMinutesSummary
+import LocalMinutesModels
 #endif
 
 public enum MeetingQuestionStatus: String, Codable, Equatable, Sendable {
@@ -109,7 +110,7 @@ public struct MeetingQuestionAnswerer: Sendable {
         }
 
         let prompt = try makePrompt(question: question, evidence: evidence)
-        guard prompt.utf8.count <= 65_536 else { throw MeetingQuestionError.evidenceExceedsBudget }
+        guard prompt.utf8.count <= SummaryContextWindow.maximumPromptUTF8Bytes else { throw MeetingQuestionError.evidenceExceedsBudget }
         let count = try await tokenCounter(prompt)
         try Task.checkCancellation()
         // Subtraction avoids overflow even if an invalid boundary reports Int.max.
@@ -137,7 +138,7 @@ public struct MeetingQuestionAnswerer: Sendable {
               (1...8_192).contains(limits.maximumQuestionUTF8Bytes),
               (1...20).contains(limits.maximumEvidenceCount),
               (1...65_536).contains(limits.maximumExcerptUTF8Bytes),
-              (512...32_768).contains(limits.contextTokenLimit),
+              (512...SummaryContextWindow.maximumSupportedTokens).contains(limits.contextTokenLimit),
               (1...1_024).contains(limits.reservedOutputTokens),
               limits.reservedOutputTokens < limits.contextTokenLimit else {
             throw MeetingQuestionError.invalidConfiguration

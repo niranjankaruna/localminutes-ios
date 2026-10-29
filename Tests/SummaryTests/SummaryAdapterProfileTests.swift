@@ -4,6 +4,20 @@ import LocalMinutesModels
 @testable import LocalMinutesSummary
 
 final class SummaryAdapterProfileTests: XCTestCase {
+    func testInstalledContextOnlyProfilesPickUpTheCatalogOutputBudget() throws {
+        for variant in ModelCatalog.summaryFamilies.flatMap(\.variants) {
+            var object = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(variant.manifest)) as? [String: Any])
+            var configuration = try XCTUnwrap(object["summaryConfiguration"] as? [String: Any])
+            var context = try XCTUnwrap(configuration["contextWindow"] as? [String: Any])
+            context.removeValue(forKey: "maximumOutputTokens")
+            configuration["contextWindow"] = context; object["summaryConfiguration"] = configuration
+            let old = try JSONDecoder().decode(ModelManifest.self, from: JSONSerialization.data(withJSONObject: object))
+            XCTAssertEqual(old.summaryConfiguration?.contextWindow?.outputTokenLimit, 1_024)
+            let resolved = try XCTUnwrap(SummaryAdapterRegistry.configuration(for: old))
+            XCTAssertEqual(resolved.contextWindow?.outputTokenLimit, variant.contextWindow?.outputTokenLimit)
+        }
+    }
+
     func testEachFamilyUsesItsReviewedTextEnvelope() throws {
         let expected: [(LocalSummaryChatFormat, String)] = [
             (.qwen, "<|im_start|>system\npolicy<|im_end|>\n<|im_start|>user\nevidence<|im_end|>\n<|im_start|>assistant\n"),

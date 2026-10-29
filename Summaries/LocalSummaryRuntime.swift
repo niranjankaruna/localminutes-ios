@@ -1,5 +1,8 @@
 import Foundation
 import llama
+#if SWIFT_PACKAGE
+import LocalMinutesModels
+#endif
 
 // Post-recording CPU inference under the app's execution allowance. Callers retain their verified model
 // lease until unload; installation alone never establishes runtime readiness.
@@ -36,11 +39,15 @@ private final class SummaryCancellation: @unchecked Sendable {
 // without isolated deinit, keeping the deployment floor at iOS18/macOS15.
 private final class SummaryNativeResources {
     let model: OpaquePointer
-    let context: OpaquePointer
+    private var context: OpaquePointer?
+    private var allocatedTokens = 0
+    private let contextWindow: SummaryContextWindow
+    private let threads: Int32
     let vocabulary: OpaquePointer
     let chatFormat: LocalSummaryChatFormat
 
-    init(modelURL: URL, contextSize: UInt32, threads: Int32, chatFormat: LocalSummaryChatFormat) throws {
+    init(modelURL: URL, contextSize: UInt32, threads: Int32, chatFormat: LocalSummaryChatFormat,
+         yarnOriginalContextTokens: Int? = nil) throws {
         guard modelURL.isFileURL, FileManager.default.isReadableFile(atPath: modelURL.path) else {
             throw LocalSummaryRuntimeError.modelUnavailable
         }
@@ -57,28 +64,43 @@ private final class SummaryNativeResources {
             resolvedFormat = try Self.resolveChatFormat(loadedModel, requested: chatFormat)
         }
         catch { llama_model_free(loadedModel); throw error }
+        guard let vocabulary = llama_model_get_vocab(loadedModel) else {
+            llama_model_free(loadedModel)
+            throw LocalSummaryRuntimeError.invalidModel
+        }
+        model = loadedModel
+        contextWindow = .init(maximumTokens: Int(contextSize), yarnOriginalContextTokens: yarnOriginalContextTokens)
+        self.threads = threads
+        self.vocabulary = vocabulary
+        self.chatFormat = resolvedFormat
+    }
+
+    func prepareContext(requiredTokens: Int) throws -> OpaquePointer {
+        guard let capacity = contextWindow.allocationTokens(requiredTokens: requiredTokens) else {
+            throw LocalSummaryRuntimeError.contextExceeded
+        }
+        if let context, allocatedTokens >= capacity { return context }
+        if let context { llama_free(context) }
+        context = nil; allocatedTokens = 0
         var parameters = llama_context_default_params()
-        parameters.n_ctx = contextSize
-        parameters.n_batch = min(contextSize, 512)
-        parameters.n_ubatch = min(contextSize, 512)
+        parameters.n_ctx = UInt32(capacity)
+        if let original = contextWindow.yarnOriginalContextTokens {
+            parameters.rope_scaling_type = LLAMA_ROPE_SCALING_TYPE_YARN
+            parameters.rope_freq_scale = Float(original) / Float(contextWindow.maximumTokens)
+            parameters.yarn_orig_ctx = UInt32(original)
+        }
+        parameters.n_batch = min(UInt32(capacity), 512)
+        parameters.n_ubatch = min(UInt32(capacity), 512)
         parameters.n_threads = threads
         parameters.n_threads_batch = threads
         parameters.offload_kqv = false
         parameters.op_offload = false
         parameters.no_perf = true
-        guard let loadedContext = llama_init_from_model(loadedModel, parameters) else {
-            llama_model_free(loadedModel)
+        guard let loaded = llama_init_from_model(model, parameters) else {
             throw LocalSummaryRuntimeError.contextUnavailable
         }
-        guard let vocabulary = llama_model_get_vocab(loadedModel) else {
-            llama_free(loadedContext)
-            llama_model_free(loadedModel)
-            throw LocalSummaryRuntimeError.invalidModel
-        }
-        model = loadedModel
-        context = loadedContext
-        self.vocabulary = vocabulary
-        self.chatFormat = resolvedFormat
+        context = loaded; allocatedTokens = capacity
+        return loaded
     }
 
     private static func metadata(_ key: String, model: OpaquePointer, maximumBytes: Int) throws -> String {
@@ -100,7 +122,7 @@ private final class SummaryNativeResources {
     }
 
     deinit {
-        llama_free(context)
+        if let context { llama_free(context) }
         llama_model_free(model)
     }
 }
@@ -108,18 +130,34 @@ private final class SummaryNativeResources {
 public actor LocalSummaryRuntime: SummaryModelRuntime {
     private var resources: SummaryNativeResources?
     private let contextSize: UInt32
+    public nonisolated var contextTokenLimit: Int { Int(contextSize) }
+    public nonisolated let outputTokenLimit: Int
     nonisolated let chatFormat: LocalSummaryChatFormat
 
     public init(modelURL: URL, contextSize: UInt32 = 2_048, threads: Int32 = 4,
-                chatFormat: LocalSummaryChatFormat = .qwen) throws {
-        guard contextSize >= 512, contextSize <= 32_768, threads >= 1, threads <= 8 else {
+                chatFormat: LocalSummaryChatFormat = .qwen, yarnOriginalContextTokens: Int? = nil,
+                maximumOutputTokens: Int? = nil) throws {
+        let window = SummaryContextWindow(maximumTokens: Int(contextSize), yarnOriginalContextTokens: yarnOriginalContextTokens,
+                                          maximumOutputTokens: maximumOutputTokens)
+        guard window.isSupported, threads >= 1, threads <= 8,
+              yarnOriginalContextTokens == nil || chatFormat == .qwen3 else {
             throw LocalSummaryRuntimeError.contextUnavailable
         }
         self.contextSize = contextSize
+        self.outputTokenLimit = window.outputTokenLimit
         let loaded = try SummaryNativeResources(modelURL: modelURL, contextSize: contextSize,
-                                                threads: threads, chatFormat: chatFormat)
+                                                threads: threads, chatFormat: chatFormat,
+                                                yarnOriginalContextTokens: yarnOriginalContextTokens)
         self.chatFormat = loaded.chatFormat
         resources = loaded
+    }
+
+    public init(modelURL: URL, contextWindow: SummaryContextWindow, threads: Int32 = 4,
+                chatFormat: LocalSummaryChatFormat = .qwen) throws {
+        guard contextWindow.isSupported else { throw LocalSummaryRuntimeError.contextUnavailable }
+        try self.init(modelURL: modelURL, contextSize: UInt32(contextWindow.maximumTokens), threads: threads,
+                      chatFormat: chatFormat, yarnOriginalContextTokens: contextWindow.yarnOriginalContextTokens,
+                      maximumOutputTokens: contextWindow.outputTokenLimit)
     }
 
     public func generateJSON(prompt: String, maximumTokens: Int = 192) async throws -> String {
@@ -173,11 +211,19 @@ public actor LocalSummaryRuntime: SummaryModelRuntime {
             Self.generationFailure(stage, inputTokens: diagnosticInputTokens, maximumOutput: maximumTokens,
                 generatedTokens: diagnosticGeneratedTokens, outputBytes: output.count, nativeStatus: status)
         }
-        guard maximumTokens > 0, maximumTokens <= 1_024, prompt.utf8.count <= 65_536 else {
+        guard maximumTokens > 0, maximumTokens <= outputTokenLimit,
+              prompt.utf8.count <= SummaryContextWindow.maximumPromptUTF8Bytes else {
             throw failure(.requestBounds)
         }
         try checkCancellation(cancellation)
-        let context = resources.context
+        var tokens = try tokenizedPrompt(prompt, vocabulary: resources.vocabulary)
+        let inputCount = tokens.count
+        diagnosticInputTokens = inputCount
+        guard inputCount + maximumTokens < Int(contextSize) else {
+            throw failure(.contextCapacity)
+        }
+        try checkCancellation(cancellation)
+        let context = try resources.prepareContext(requiredTokens: inputCount + maximumTokens + 1)
         llama_memory_clear(llama_get_memory(context), true)
         llama_set_abort_callback(context, { data in
             guard let data else { return false }
@@ -188,12 +234,6 @@ public actor LocalSummaryRuntime: SummaryModelRuntime {
             llama_memory_clear(llama_get_memory(context), true)
         }
 
-        var tokens = try tokenizedPrompt(prompt, vocabulary: resources.vocabulary)
-        let inputCount = tokens.count
-        diagnosticInputTokens = inputCount
-        guard inputCount + maximumTokens < Int(contextSize) else {
-            throw failure(.contextCapacity)
-        }
         var offset = 0
         progress?(.promptTokens(completed: 0, total: inputCount))
         while offset < inputCount {
@@ -242,6 +282,7 @@ public actor LocalSummaryRuntime: SummaryModelRuntime {
             }
             guard count >= 0 else { throw failure(.tokenPieceDecode, status: count) }
             output.append(contentsOf: piece.prefix(Int(count)).map { UInt8(bitPattern: $0) })
+            guard output.count <= GroundedSummaryLimits().maximumJSONBytes else { throw failure(.outputTokenLimit) }
             progress?(.responseTokens(completed: diagnosticGeneratedTokens, limit: maximumTokens))
             if let object = try? JSONSerialization.jsonObject(with: output), object is [String: Any],
                let result = String(data: output, encoding: .utf8) {
@@ -284,14 +325,15 @@ public actor LocalSummaryRuntime: SummaryModelRuntime {
 
     private func tokenizedPrompt(_ prompt: String, vocabulary: OpaquePointer) throws -> [llama_token] {
         try Task.checkCancellation()
-        guard prompt.utf8.count <= 65_536 else {
+        guard prompt.utf8.count <= SummaryContextWindow.maximumPromptUTF8Bytes else {
             throw Self.generationFailure(.inputByteBounds, inputTokens: 0, maximumOutput: 0, generatedTokens: 0, outputBytes: 0)
         }
         // Counting and generation share the exact policy, canonical envelope,
         // escaping and native tokenizer flags. Source byte length is no estimate.
         let formatted: String
         do {
-            formatted = try chatFormat.format(systemPrompt: Self.systemPolicy, userPrompt: prompt)
+            formatted = try chatFormat.format(systemPrompt: Self.systemPolicy, userPrompt: prompt,
+                maximumUTF8Bytes: SummaryContextWindow.maximumPromptUTF8Bytes)
         }
         catch {
             throw Self.generationFailure(.promptEnvelope, inputTokens: 0, maximumOutput: 0, generatedTokens: 0, outputBytes: 0)

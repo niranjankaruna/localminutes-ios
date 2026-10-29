@@ -22,8 +22,6 @@ final class ModelBrowserController {
     private(set) var downloadProgress: ModelTransferProgress?
     private(set) var transferManifest: ModelManifest?
     private(set) var partialDownloadIDs: Set<String> = []
-    var appleAvailability: AppleSummaryAvailability { AppleFoundationRuntime.availability() }
-    var appleEquipped: Bool { equippedSummaryID == AppleSummaryModel.identifier }
     @ObservationIgnored private weak var services: LocalMinutesServices?
     @ObservationIgnored private var transferTask: Task<Void, Never>?
     #if DEBUG
@@ -106,7 +104,6 @@ final class ModelBrowserController {
     }
 
     private func selectionID(for purpose: ModelPurpose, services: LocalMinutesServices) async throws -> String? {
-        if purpose == .summary, try services.modelSelections.isAppleIntelligenceSelected() { return AppleSummaryModel.identifier }
         if try await services.modelSelections.hasSelectionRecord(for: purpose) {
             return try await services.modelSelections.selected(for: purpose)?.manifest.modelID
         }
@@ -172,17 +169,6 @@ final class ModelBrowserController {
             _ = try await services.modelSelections.select(manifest: installed, profile: variant.profile, for: installed.purpose)
             await services.refreshModels(); await refresh()
             message = "Equipped for \(manifest.purpose == .speechRecognition ? "recording" : "summaries and answers")."
-        } catch { errorMessage = Self.describe(error) }
-    }
-
-    func equipAppleIntelligence() async {
-        guard !isWorking, !isPreparingStorageCheck, let services else { return }
-        isWorking = true; errorMessage = nil
-        defer { isWorking = false }
-        do {
-            try await services.modelSelections.selectAppleIntelligence(available: appleAvailability == .available)
-            await services.refreshModels(); await refresh()
-            message = "Apple Intelligence equipped for on-device summaries and questions."
         } catch { errorMessage = Self.describe(error) }
     }
 

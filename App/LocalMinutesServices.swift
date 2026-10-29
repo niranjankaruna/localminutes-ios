@@ -42,7 +42,6 @@ final class LocalMinutesServices: PlaybackHardware {
     let recordingAdmission: RecordingHeavyModelAdmission?
     private(set) var intelligence: IntelligenceSession?
     private var intelligenceManifest: ModelManifest?
-    private var intelligenceUsesApple = false
     @ObservationIgnored private(set) var intelligenceMemoryPressureMonitor: IntelligenceMemoryPressureMonitor?
     let intelligenceBackgroundExecution: IntelligenceBackgroundExecution
     @ObservationIgnored private var summaryStartupBinding: Task<Void, Never>?
@@ -262,15 +261,9 @@ final class LocalMinutesServices: PlaybackHardware {
             guard self.heavyAdmission?.snapshot().phase == .idle else {
                 self.intelligence = nil
                 self.intelligenceManifest = nil
-                self.intelligenceUsesApple = false
                 return
             }
             do {
-                if try self.modelSelections.isAppleIntelligenceSelected() {
-                    self.bindAppleSummary()
-                    self.summaryStartupBound = true
-                    return
-                }
                 let chosen: ModelManifest?
                 if try await self.modelSelections.hasSelectionRecord(for: .summary) {
                     chosen = try await self.modelSelections.resolve(for: .summary)?.manifest
@@ -288,7 +281,6 @@ final class LocalMinutesServices: PlaybackHardware {
                 guard self.heavyAdmission?.snapshot().phase == .idle else {
                     self.intelligence = nil
                     self.intelligenceManifest = nil
-                    self.intelligenceUsesApple = false
                     return
                 }
                 if let chosen, let admission = self.heavyAdmission {
@@ -298,12 +290,10 @@ final class LocalMinutesServices: PlaybackHardware {
                     self.intelligence = nil
                 }
                 self.intelligenceManifest = chosen
-                self.intelligenceUsesApple = false
                 self.summaryStartupBound = true
             } catch {
                 self.intelligence = nil
                 self.intelligenceManifest = nil
-                self.intelligenceUsesApple = false
                 self.summaryInstalled = false
                 self.modelError = "An installed model did not pass verification. Download it again before use."
                 self.summaryStartupBound = true
@@ -312,18 +302,6 @@ final class LocalMinutesServices: PlaybackHardware {
         summaryStartupBinding = binding
         await binding.value
         summaryStartupBinding = nil
-    }
-
-    /// A system selection is a provider binding, not an installed artifact.
-    /// Keep the chosen provider when temporarily unavailable; generation reports
-    /// its actual availability instead of silently selecting a downloaded model.
-    private func bindAppleSummary() {
-        guard let admission = heavyAdmission, admission.snapshot().phase == .idle else { return }
-        intelligence = IntelligenceSession(store: store, models: models, admission: admission,
-            appleSystemRevision: AppleSummaryModel.currentSystemRevision)
-        intelligenceManifest = nil
-        intelligenceUsesApple = true
-        summaryInstalled = AppleFoundationRuntime.availability() == .available
     }
 
     func deleteMeeting(id: UUID) async -> Bool {
@@ -426,13 +404,6 @@ final class LocalMinutesServices: PlaybackHardware {
             } else {
                 speechInstalled = try await models.current(modelID: ParakeetCoreMLModel.manifest.modelID) != nil
             }
-            if try modelSelections.isAppleIntelligenceSelected() {
-                summaryInstalled = AppleFoundationRuntime.availability() == .available
-                if heavyAdmission?.snapshot().phase == .idle, !intelligenceUsesApple || intelligence == nil {
-                    bindAppleSummary()
-                }
-                return
-            }
             let chosen: ModelManifest?
             if try await modelSelections.hasSelectionRecord(for: .summary) {
                 chosen = try await modelSelections.resolve(for: .summary)?.manifest
@@ -440,13 +411,12 @@ final class LocalMinutesServices: PlaybackHardware {
                 chosen = try await models.current(modelID: Self.summaryManifest.modelID)?.manifest
             }
             summaryInstalled = chosen != nil
-            if heavyAdmission?.snapshot().phase == .idle, intelligenceUsesApple || intelligenceManifest != chosen {
+            if heavyAdmission?.snapshot().phase == .idle, intelligenceManifest != chosen {
                 if let chosen, let admission = heavyAdmission {
                     intelligence = IntelligenceSession(store: store, models: models, admission: admission,
                         manifest: chosen, summaryCheckpoints: summaryCheckpoints)
                 } else { intelligence = nil }
                 intelligenceManifest = chosen
-                intelligenceUsesApple = false
             }
         } catch {
             speechInstalled = false; summaryInstalled = false

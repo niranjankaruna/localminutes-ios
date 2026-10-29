@@ -334,9 +334,6 @@ final class MeetingIntelligenceController {
             } catch ModelInstallationError.modelMissing {
                 self.modelRequired = true
                 self.message = nil
-            } catch AppleFoundationRuntimeError.unavailable(let availability) {
-                self.message = nil
-                self.errorMessage = availability.explanation
             } catch HeavyModelAdmissionError.busy {
                 self.errorMessage = "Stop recording or wait for the current local model task to finish."
             } catch IntelligenceSessionError.busy {

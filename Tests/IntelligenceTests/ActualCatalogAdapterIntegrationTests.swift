@@ -19,6 +19,8 @@ final class ActualCatalogAdapterIntegrationTests: XCTestCase {
         do {
             let lease = try await fixture.models.acquire(modelID: variant.manifest.modelID)
             let runtime = try await IntelligenceSession.loadPinnedRuntime(lease.model)
+            XCTAssertEqual(runtime.contextTokenLimit, try XCTUnwrap(variant.contextWindow).maximumTokens)
+            XCTAssertEqual(runtime.outputTokenLimit, try XCTUnwrap(variant.contextWindow).outputTokenLimit)
             let expectedType: String
             switch configuration.family {
             case .qwen25: expectedType = "Qwen25SummaryAdapter"
@@ -36,7 +38,7 @@ final class ActualCatalogAdapterIntegrationTests: XCTestCase {
                 ])
                 let count = try await runtime.promptTokenCount(prompt: prompt)
                 XCTAssertGreaterThan(count, 0)
-                XCTAssertLessThan(count, 4_096 - 192)
+                XCTAssertLessThan(count, runtime.contextTokenLimit - 192)
                 let cancelled = Task { try await runtime.generateJSON(prompt: prompt, schema: schema, maximumTokens: 192) }
                 cancelled.cancel()
                 do { _ = try await cancelled.value; XCTFail("Cancelled adapter generated output") }
@@ -59,13 +61,26 @@ final class ActualCatalogAdapterIntegrationTests: XCTestCase {
                     XCTAssertEqual(object["owner"] as? String, "Leo")
                     XCTAssertEqual(object["due"] as? String, "Thursday")
                 }
+                if id == "qwen2.5-0.5b-instruct-q4_k_m" {
+                    // Real tokenizer + native allocation/generation beyond both
+                    // previous input caps. This checks capacity, not answer quality.
+                    let longer = String(repeating: "Original meeting evidence. ", count: 3_000)
+                        + "\nReturn a JSON object with status."
+                    XCTAssertGreaterThan(longer.utf8.count, 65_536)
+                    let longCount = try await runtime.promptTokenCount(prompt: longer)
+                    XCTAssertGreaterThan(longCount, 4_096)
+                    XCTAssertLessThan(longCount + 64, runtime.contextTokenLimit)
+                    let bounded = StructuredJSONSchema(fields: [.init(name: "status", type: .stringEnumeration(["processed"]))])
+                    let response = try await runtime.generateJSON(prompt: longer, schema: bounded, maximumTokens: 64)
+                    XCTAssertNotNil(try JSONSerialization.jsonObject(with: Data(response.utf8)) as? [String: Any])
+                }
                 // Recorded Parakeet chunks have no speaker labels. Exercise a
                 // longer, unlabeled transcript instead of only two named lines.
                 let meeting = UUID()
                 let sentences = [
                     "We are reviewing the mobile app today.",
                     "The download icon is missing from the blue button.",
-                    "The summary fails when Apple Intelligence is selected.",
+                    "The summary fails when the larger model is selected.",
                     "The other model loads and then shows the same error.",
                     "We need to inspect the prompt and model output.",
                     "The recording was two minutes long and the transcript is saved.",
@@ -82,6 +97,8 @@ final class ActualCatalogAdapterIntegrationTests: XCTestCase {
                               endSample: Int64((index + 1) * 80_000), text: text)
                     }, originalManualNotes: "")
                 let pipeline = SummaryPipeline(modelRevision: variant.manifest.revision,
+                    contextTokenLimit: runtime.contextTokenLimit,
+                    reservedOutputTokens: runtime.outputTokenLimit,
                     tokenizer: { try await runtime.promptTokenCount(prompt: $0) },
                     generator: { try await runtime.generateJSON(prompt: $0, schema: $1, maximumTokens: $2) })
                 let recordedSummary = try await pipeline.summarize(selectedMeetingID: meeting, source: source)

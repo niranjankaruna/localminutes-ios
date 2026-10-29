@@ -1,4 +1,7 @@
 import Foundation
+#if SWIFT_PACKAGE
+import LocalMinutesModels
+#endif
 
 public struct SummaryEvidenceSegment: Codable, Equatable, Sendable {
     public let id: String
@@ -57,10 +60,11 @@ public struct SummaryChunkPlanner: Sendable {
 
     public func plan(_ segments: [SummaryEvidenceSegment]) async throws -> [SummaryInputChunk] {
         try Task.checkCancellation()
-        guard (64...4_096).contains(contextTokenLimit), (1...1_024).contains(reservedOutputTokens),
+        guard (64...SummaryContextWindow.maximumSupportedTokens).contains(contextTokenLimit),
+              (1...SummaryContextWindow.maximumSupportedOutputTokens).contains(reservedOutputTokens),
               reservedOutputTokens < contextTokenLimit,
               maximumSegmentsPerChunk.map({ (1...256).contains($0) }) ?? true,
-              promptPrefix.utf8.count <= 65_536 - Self.evidenceMarker.utf8.count - 2 else {
+              promptPrefix.utf8.count <= SummaryContextWindow.maximumPromptUTF8Bytes - Self.evidenceMarker.utf8.count - 2 else {
             throw SummaryChunkPlannerError.invalidConfiguration
         }
         var identities: Set<Data> = []
@@ -81,7 +85,7 @@ public struct SummaryChunkPlanner: Sendable {
                 throw SummaryChunkPlannerError.invalidSource
             }
             previousEnd = segment.endSample
-            guard segment.text.utf8.count <= (splitOversizedSegments ? 1_048_576 : 65_536) else {
+            guard segment.text.utf8.count <= (splitOversizedSegments ? 1_048_576 : SummaryContextWindow.maximumPromptUTF8Bytes) else {
                 throw SummaryChunkPlannerError.oversizedSegment(segment.id)
             }
         }
@@ -180,7 +184,7 @@ public struct SummaryChunkPlanner: Sendable {
         try Task.checkCancellation()
         // This is the runtime's input-byte admission limit, not a token estimate.
         // Even a small byte payload still requires actual canonical tokenization.
-        guard prompt.utf8.count <= 65_536 else { return nil }
+        guard prompt.utf8.count <= SummaryContextWindow.maximumPromptUTF8Bytes else { return nil }
         let count = try await tokenizer(prompt)
         try Task.checkCancellation()
         guard count > 0 else { throw SummaryChunkPlannerError.invalidTokenCount }

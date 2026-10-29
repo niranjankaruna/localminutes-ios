@@ -1,4 +1,7 @@
 import Foundation
+#if SWIFT_PACKAGE
+import LocalMinutesModels
+#endif
 
 /// Long source quotations can exceed the model's output budget when emitted
 /// twice, under several categories. Let the model select bounded sentence IDs;
@@ -22,7 +25,7 @@ struct SummarySelectionRecovery: Sendable {
     let contextTokenLimit: Int
 
     func generate(chunk: SummaryInputChunk, meetingID: UUID, notes: String, itemLimit: Int,
-                  meetingContext: String? = nil) async throws -> Data {
+                  provenance: SummaryGenerationProvenance, meetingContext: String? = nil) async throws -> Data {
         var choices: [Choice] = []
         for segment in chunk.segments {
             for sentence in Self.sentences(segment.text) {
@@ -30,19 +33,22 @@ struct SummarySelectionRecovery: Sendable {
             }
         }
         guard !choices.isEmpty else { throw GroundedSummaryError.invalidSource }
-        var points: [[String: Any]] = [], decisions: [[String: Any]] = [], actions: [[String: Any]] = []
+        let source = GroundedSummarySource(meetingID: meetingID, segments: chunk.segments, originalManualNotes: notes)
+        var maps: [GroundedSummary] = []
+        var firstJSON: Data?
         var offset = 0
         while offset < choices.count {
             try Task.checkCancellation()
             var count = min(128, choices.count - offset)
-            let maximumTokens = min(256, chunk.reservedOutputTokens)
+            let maximumTokens = SummaryOutputBudget.referenceTokens(itemCount: itemLimit * 3,
+                outputTokens: chunk.reservedOutputTokens)
             var prompt: String
             // Every candidate is retained. Split input when the compact table
             // adds enough framing to exceed the original input allowance.
             while true {
                 let batch = Array(choices[offset..<(offset + count)])
                 prompt = try Self.prompt(choices: batch, notes: notes, itemLimit: itemLimit, meetingContext: meetingContext)
-                if prompt.utf8.count <= 65_536 {
+                if prompt.utf8.count <= SummaryContextWindow.maximumPromptUTF8Bytes {
                     let tokens = try await tokenizer(prompt)
                     guard tokens > 0 else { throw SummaryChunkPlannerError.invalidTokenCount }
                     if tokens < contextTokenLimit - maximumTokens { break }
@@ -85,13 +91,48 @@ struct SummarySelectionRecovery: Sendable {
                     return item
                 }
             }
-            points += try expand(selected.summary_points)
-            decisions += try expand(selected.decisions)
-            actions += try expand(selected.actions, action: true)
+            let bytes = try JSONSerialization.data(withJSONObject: ["meeting_id": meetingID.uuidString,
+                "summary_points": try expand(selected.summary_points),
+                "decisions": try expand(selected.decisions),
+                "actions": try expand(selected.actions, action: true)], options: [.sortedKeys])
+            maps.append(try GroundedSummaryDecoder.decode(bytes, selectedMeetingID: meetingID,
+                source: source, provenance: provenance, mergingRepeatedItems: true))
+            if firstJSON == nil { firstJSON = bytes }
             offset += count
         }
-        return try JSONSerialization.data(withJSONObject: ["meeting_id": meetingID.uuidString,
-            "summary_points": points, "decisions": decisions, "actions": actions], options: [.sortedKeys])
+        guard let firstJSON else { throw GroundedSummaryError.invalidJSON }
+        if maps.count == 1 { return firstJSON }
+        // Larger budgets can select many items across compact batches. Validate
+        // each batch, then consolidate all of them instead of truncating the tail
+        // or producing a map that cannot pass checkpoint/result limits.
+        let limits = GroundedSummaryLimits()
+        let itemCount = maps.reduce(0) { $0 + $1.summaryPoints.count + $1.decisions.count + $1.actions.count }
+        let merged: GroundedSummary
+        if itemCount > limits.maximumItems || maps.count > limits.maximumItems {
+            merged = try await SummaryConsolidator(tokenizer: tokenizer, generator: generator,
+                contextTokenLimit: contextTokenLimit, outputTokenLimit: chunk.reservedOutputTokens, report: nil)
+                .combine(maps, meetingID: meetingID, source: source)
+        } else {
+            merged = try GroundedSummaryMerger.merge(maps, selectedMeetingID: meetingID, source: source)
+        }
+        return try Self.mapJSON(merged)
+    }
+
+    private static func mapJSON(_ summary: GroundedSummary) throws -> Data {
+        func evidence(_ values: [GroundedSummaryEvidence]) -> [[String: Any]] {
+            values.map { ["source_id": $0.sourceID, "start_sample": $0.startSample,
+                          "end_sample": $0.endSample, "quote": $0.quote] }
+        }
+        func point(_ value: GroundedSummaryPoint) -> [String: Any] {
+            ["text": value.text, "evidence": evidence(value.evidence)]
+        }
+        let actions: [[String: Any]] = summary.actions.map {
+            ["task": $0.task, "owner": $0.owner.map { $0 as Any } ?? NSNull(),
+             "due": $0.due.map { $0 as Any } ?? NSNull(), "evidence": evidence($0.evidence)]
+        }
+        return try JSONSerialization.data(withJSONObject: ["meeting_id": summary.meetingID.uuidString,
+            "summary_points": summary.summaryPoints.map(point), "decisions": summary.decisions.map(point),
+            "actions": actions], options: [.sortedKeys])
     }
 
     private static func prompt(choices: [Choice], notes: String, itemLimit: Int, meetingContext: String?) throws -> String {

@@ -10,6 +10,23 @@ import XCTest
 @MainActor
 final class NativeSummarySelectionStartupTests: XCTestCase {
     private var openedStores: [SQLiteMeetingStore] = []
+    func testRetiredSystemSelectionReopensAsUnequippedWithoutBlockingStartup() async throws {
+        try await fixture { root, original in
+            try await original.modelSelections.clear(for: .summary)
+            let pointer = root.appendingPathComponent("ModelSelections/summary.json")
+            try Data(#"{"schemaVersion":1,"purpose":"summary","provider":"apple-intelligence-on-device"}"#.utf8).write(to: pointer)
+            try await original.store.close()
+            let reopened = try self.reopen(root)
+            await reopened.initialize()
+            await reopened.modelBrowser.refresh()
+            XCTAssertEqual(reopened.startup.state, .ready)
+            XCTAssertNil(reopened.intelligence)
+            XCTAssertFalse(reopened.summaryInstalled)
+            XCTAssertNil(reopened.modelError)
+            XCTAssertNil(reopened.modelBrowser.equippedSummaryID)
+        }
+    }
+
     func testFreshServicesInitializeBindsPersistedAlternativeSummaryInsteadOfDefaultPhi() async throws {
         try await fixture { root, original in
             let selected = try await self.installAndSelect(in: original, root: root)

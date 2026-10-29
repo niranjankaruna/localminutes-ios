@@ -7,6 +7,8 @@ import LocalMinutesModels
 /// supplies evidence and a schema; each adapter owns model-specific prompting,
 /// native token accounting, generation and teardown.
 public protocol SummaryModelRuntime: Sendable {
+    var contextTokenLimit: Int { get }
+    var outputTokenLimit: Int { get }
     func promptTokenCount(prompt: String) async throws -> Int
     func generateJSON(prompt: String, schema: StructuredJSONSchema, maximumTokens: Int) async throws -> String
     func generateJSON(prompt: String, schema: StructuredJSONSchema, maximumTokens: Int,
@@ -15,6 +17,8 @@ public protocol SummaryModelRuntime: Sendable {
 }
 
 extension SummaryModelRuntime {
+    public var contextTokenLimit: Int { SummaryContextWindow.legacy.maximumTokens }
+    public var outputTokenLimit: Int { SummaryContextWindow.legacy.outputTokenLimit }
     /// Runtimes without native work counters still support the same contract.
     public func generateJSON(prompt: String, schema: StructuredJSONSchema, maximumTokens: Int,
                              progress: SummaryGenerationProgressReporter?) async throws -> String {
@@ -33,14 +37,14 @@ public enum SummaryAdapterRegistry {
             guard configuration.isSupported, manifest.runtimeVersion == SummaryModelConfiguration.runtimeVersion else {
                 throw LocalSummaryRuntimeError.invalidModel
             }
-            return configuration
+            return ModelCatalog.summaryConfiguration(for: manifest)
         }
         // Previously installed Qwen 2.5/Phi-3 models keep their original
         // immutable manifests. Actual GGUF metadata determines the legacy path.
         guard manifest.runtimeVersion == "llama.cpp-b5046" else {
             throw LocalSummaryRuntimeError.invalidModel
         }
-        return nil
+        return ModelCatalog.summaryConfiguration(for: manifest)
     }
 
     public static func makeRuntime(modelURL: URL, configuration: SummaryModelConfiguration?) throws -> any SummaryModelRuntime {
@@ -53,22 +57,25 @@ public enum SummaryAdapterRegistry {
             }
         }
         guard configuration.isSupported else { throw LocalSummaryRuntimeError.invalidModel }
+        let context = configuration.contextWindow ?? .legacy
         switch configuration.family {
-        case .qwen25: return try Qwen25SummaryAdapter(modelURL: modelURL)
-        case .qwen3: return try Qwen3SummaryAdapter(modelURL: modelURL, variant: configuration.variant)
-        case .phi3: return try Phi3SummaryAdapter(modelURL: modelURL)
-        case .phi4: return try Phi4SummaryAdapter(modelURL: modelURL)
-        case .gemma3: return try Gemma3SummaryAdapter(modelURL: modelURL)
-        case .gemma4: return try Gemma4SummaryAdapter(modelURL: modelURL)
+        case .qwen25: return try Qwen25SummaryAdapter(modelURL: modelURL, contextWindow: context)
+        case .qwen3: return try Qwen3SummaryAdapter(modelURL: modelURL, variant: configuration.variant, contextWindow: context)
+        case .phi3: return try Phi3SummaryAdapter(modelURL: modelURL, contextWindow: context)
+        case .phi4: return try Phi4SummaryAdapter(modelURL: modelURL, contextWindow: context)
+        case .gemma3: return try Gemma3SummaryAdapter(modelURL: modelURL, contextWindow: context)
+        case .gemma4: return try Gemma4SummaryAdapter(modelURL: modelURL, contextWindow: context)
         }
     }
 }
 
 public struct Qwen25SummaryAdapter: SummaryModelRuntime {
     private let engine: LocalSummaryRuntime
+    public var contextTokenLimit: Int { engine.contextTokenLimit }
+    public var outputTokenLimit: Int { engine.outputTokenLimit }
     init(engine: LocalSummaryRuntime) { self.engine = engine }
-    public init(modelURL: URL) throws {
-        engine = try LocalSummaryRuntime(modelURL: modelURL, contextSize: 4_096, chatFormat: .qwen)
+    public init(modelURL: URL, contextWindow: SummaryContextWindow = .legacy) throws {
+        engine = try LocalSummaryRuntime(modelURL: modelURL, contextWindow: contextWindow, chatFormat: .qwen)
     }
     public func promptTokenCount(prompt: String) async throws -> Int { try await engine.promptTokenCount(prompt: prompt) }
     public func generateJSON(prompt: String, schema: StructuredJSONSchema, maximumTokens: Int) async throws -> String {
@@ -83,8 +90,10 @@ public struct Qwen25SummaryAdapter: SummaryModelRuntime {
 
 public struct Qwen3SummaryAdapter: SummaryModelRuntime {
     private let engine: LocalSummaryRuntime
-    public init(modelURL: URL, variant: SummaryModelVariant = .standard) throws {
-        engine = try LocalSummaryRuntime(modelURL: modelURL, contextSize: 4_096,
+    public var contextTokenLimit: Int { engine.contextTokenLimit }
+    public var outputTokenLimit: Int { engine.outputTokenLimit }
+    public init(modelURL: URL, variant: SummaryModelVariant = .standard, contextWindow: SummaryContextWindow = .legacy) throws {
+        engine = try LocalSummaryRuntime(modelURL: modelURL, contextWindow: contextWindow,
             chatFormat: variant == .qwen3Instruct2507 ? .qwen3Instruct2507 : .qwen3)
     }
     public func promptTokenCount(prompt: String) async throws -> Int { try await engine.promptTokenCount(prompt: prompt) }
@@ -100,9 +109,11 @@ public struct Qwen3SummaryAdapter: SummaryModelRuntime {
 
 public struct Phi3SummaryAdapter: SummaryModelRuntime {
     private let engine: LocalSummaryRuntime
+    public var contextTokenLimit: Int { engine.contextTokenLimit }
+    public var outputTokenLimit: Int { engine.outputTokenLimit }
     init(engine: LocalSummaryRuntime) { self.engine = engine }
-    public init(modelURL: URL) throws {
-        engine = try LocalSummaryRuntime(modelURL: modelURL, contextSize: 4_096, chatFormat: .phi3)
+    public init(modelURL: URL, contextWindow: SummaryContextWindow = .legacy) throws {
+        engine = try LocalSummaryRuntime(modelURL: modelURL, contextWindow: contextWindow, chatFormat: .phi3)
     }
     public func promptTokenCount(prompt: String) async throws -> Int { try await engine.promptTokenCount(prompt: prompt) }
     public func generateJSON(prompt: String, schema: StructuredJSONSchema, maximumTokens: Int) async throws -> String {
@@ -119,8 +130,10 @@ public struct Phi3SummaryAdapter: SummaryModelRuntime {
 /// template. It is not the larger Phi-4 model's ChatML/IM_SEP format.
 public struct Phi4SummaryAdapter: SummaryModelRuntime {
     private let engine: LocalSummaryRuntime
-    public init(modelURL: URL) throws {
-        engine = try LocalSummaryRuntime(modelURL: modelURL, contextSize: 4_096, chatFormat: .phi4Mini)
+    public var contextTokenLimit: Int { engine.contextTokenLimit }
+    public var outputTokenLimit: Int { engine.outputTokenLimit }
+    public init(modelURL: URL, contextWindow: SummaryContextWindow = .legacy) throws {
+        engine = try LocalSummaryRuntime(modelURL: modelURL, contextWindow: contextWindow, chatFormat: .phi4Mini)
     }
     public func promptTokenCount(prompt: String) async throws -> Int { try await engine.promptTokenCount(prompt: prompt) }
     public func generateJSON(prompt: String, schema: StructuredJSONSchema, maximumTokens: Int) async throws -> String {
@@ -135,8 +148,10 @@ public struct Phi4SummaryAdapter: SummaryModelRuntime {
 
 public struct Gemma3SummaryAdapter: SummaryModelRuntime {
     private let engine: LocalSummaryRuntime
-    public init(modelURL: URL) throws {
-        engine = try LocalSummaryRuntime(modelURL: modelURL, contextSize: 4_096, chatFormat: .gemma3)
+    public var contextTokenLimit: Int { engine.contextTokenLimit }
+    public var outputTokenLimit: Int { engine.outputTokenLimit }
+    public init(modelURL: URL, contextWindow: SummaryContextWindow = .legacy) throws {
+        engine = try LocalSummaryRuntime(modelURL: modelURL, contextWindow: contextWindow, chatFormat: .gemma3)
     }
     public func promptTokenCount(prompt: String) async throws -> Int { try await engine.promptTokenCount(prompt: prompt) }
     public func generateJSON(prompt: String, schema: StructuredJSONSchema, maximumTokens: Int) async throws -> String {
@@ -151,8 +166,10 @@ public struct Gemma3SummaryAdapter: SummaryModelRuntime {
 
 public struct Gemma4SummaryAdapter: SummaryModelRuntime {
     private let engine: LocalSummaryRuntime
-    public init(modelURL: URL) throws {
-        engine = try LocalSummaryRuntime(modelURL: modelURL, contextSize: 4_096, chatFormat: .gemma4)
+    public var contextTokenLimit: Int { engine.contextTokenLimit }
+    public var outputTokenLimit: Int { engine.outputTokenLimit }
+    public init(modelURL: URL, contextWindow: SummaryContextWindow = .legacy) throws {
+        engine = try LocalSummaryRuntime(modelURL: modelURL, contextWindow: contextWindow, chatFormat: .gemma4)
     }
     public func promptTokenCount(prompt: String) async throws -> Int { try await engine.promptTokenCount(prompt: prompt) }
     public func generateJSON(prompt: String, schema: StructuredJSONSchema, maximumTokens: Int) async throws -> String {

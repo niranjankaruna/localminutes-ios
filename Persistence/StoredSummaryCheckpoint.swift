@@ -1,4 +1,7 @@
 import Foundation
+#if SWIFT_PACKAGE
+import LocalMinutesModels
+#endif
 #if canImport(LocalMinutesCore)
 import LocalMinutesCore
 #endif
@@ -69,9 +72,9 @@ public actor SummaryCheckpointStore {
     }
 
     public static let maximumMaps = 1_024
-    private static let maximumMapBytes = 65_536
-    // Codable represents map Data as base64. This bound covers every allowed
-    // map plus bounded identity/framing overhead without unbounded disk reads.
+    private static let maximumMapBytes = 1_048_576
+    // Codable represents map Data as base64. Keep an independent total bound;
+    // a job cannot fill every possible map with the maximum individual payload.
     private static let maximumEnvelopeBytes = 96 * 1_048_576
     private let directoryURL: URL
     private let canonicalDirectoryPath: String
@@ -215,8 +218,8 @@ public actor SummaryCheckpointStore {
               metadata(identity.modelID, maximumBytes: 256),
               metadata(identity.runtimeVersion, maximumBytes: 128),
               metadata(identity.promptVersion, maximumBytes: 128),
-              (64...32_768).contains(identity.contextTokenLimit),
-              (1...1_024).contains(identity.reservedOutputTokens),
+              (64...SummaryContextWindow.maximumSupportedTokens).contains(identity.contextTokenLimit),
+              (1...SummaryContextWindow.maximumSupportedOutputTokens).contains(identity.reservedOutputTokens),
               identity.reservedOutputTokens < identity.contextTokenLimit,
               (1...maximumMaps).contains(identity.totalChunks) else {
             throw SummaryCheckpointError.invalidInput

@@ -83,7 +83,7 @@ struct GroundedSummaryValidation {
         let pinned = revision.count == 40 && revision.allSatisfy({
             ($0 >= 48 && $0 <= 57) || ($0 >= 97 && $0 <= 102)
         })
-        guard pinned || AppleSummaryModel.isSystemRevision(value.modelRevision),
+        guard pinned,
               !value.promptVersion.isEmpty, value.promptVersion.utf8.count <= 256, value.mapIndex >= 0 else {
             throw GroundedSummaryError.invalidProvenance
         }

@@ -25,6 +25,23 @@ export function validateVariant(variant) {
       !Number.isSafeInteger(variant.byteCount) || variant.byteCount <= 0 || variant.byteCount > maximumModelBytes) {
     throw new Error('Invalid catalogue variant or immutable artifact pin');
   }
+  const context = variant.contextWindow;
+  const outputPolicyLimit = variant.family === 'phi3' ? 2048 :
+    ['qwen25', 'gemma3'].includes(variant.family) ? 8192 : 16384;
+  if (!context || !Number.isSafeInteger(context.maximumTokens) || context.maximumTokens < 512 ||
+      context.maximumTokens > 262_144 ||
+      !Number.isSafeInteger(context.maximumOutputTokens) || context.maximumOutputTokens < 1 ||
+      context.maximumOutputTokens > outputPolicyLimit || context.maximumOutputTokens >= context.maximumTokens ||
+      (context.yarnOriginalContextTokens != null &&
+       (context.yarnOriginalContextTokens !== 32_768 || context.maximumTokens !== 131_072 ||
+        variant.family !== 'qwen3' || (variant.variant ?? 'standard') !== 'standard'))) {
+    throw new Error('Invalid model context window');
+  }
+  let contextSource;
+  try { contextSource = new URL(variant.contextSourceURL); } catch { throw new Error('Invalid context source URL'); }
+  if (contextSource.protocol !== 'https:' || contextSource.username || contextSource.password) {
+    throw new Error('Invalid context source URL');
+  }
   const [publisher] = repositoryParts(variant.repository);
   const official = officialPublishers[variant.family];
   const conversion = (publisher === 'unsloth' && ['qwen3', 'phi4'].includes(variant.family)) ||

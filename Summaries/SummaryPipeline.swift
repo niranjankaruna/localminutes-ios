@@ -1,5 +1,8 @@
 import CryptoKit
 import Foundation
+#if SWIFT_PACKAGE
+import LocalMinutesModels
+#endif
 #if canImport(LocalMinutesPersistence)
 import LocalMinutesPersistence
 #endif
@@ -45,7 +48,7 @@ public enum SummaryPipelineError: Error, Equatable, Sendable { case invalidConfi
 /// Release closures must call the leased real runtime; unit tests double only
 /// tokenizer/generated JSON edges. Intermediate maps are never published.
 public actor SummaryPipeline {
-    public static let currentPromptVersion = "grounded-map-v3"
+    public static let currentPromptVersion = "grounded-map-v4"
     private let modelRevision: String
     private let promptVersion: String
     private let contextTokenLimit: Int
@@ -84,8 +87,8 @@ public actor SummaryPipeline {
         state = .init(phase: .running, meetingID: selectedMeetingID, result: nil)
         do {
             try Task.checkCancellation()
-            guard (64...4_096).contains(contextTokenLimit),
-                  (1...1_024).contains(reservedOutputTokens), reservedOutputTokens < contextTokenLimit,
+            guard (64...SummaryContextWindow.maximumSupportedTokens).contains(contextTokenLimit),
+                  (1...SummaryContextWindow.maximumSupportedOutputTokens).contains(reservedOutputTokens), reservedOutputTokens < contextTokenLimit,
                   source.originalManualNotes.utf8.count <= 65_536 else {
                 throw SummaryPipelineError.invalidConfiguration
             }
@@ -97,7 +100,7 @@ public actor SummaryPipeline {
             // canonical token counts determine chunks, so a long meeting need
             // not create a separate map for every few utterances. This output
             // policy does not guarantee arbitrary generated strings terminate.
-            let sourceLimit = max(1, min(2, reservedOutputTokens / 512))
+            let sourceLimit = SummaryOutputBudget.itemLimit(outputTokens: reservedOutputTokens)
             let notes = String(decoding: try JSONEncoder().encode(source.originalManualNotes), as: UTF8.self)
             let prefix = Self.mapInstructions + "\n\nOUTPUT_ITEM_LIMIT: \(sourceLimit)"
                 + "\nSELECTED_MEETING_ID: " + selectedMeetingID.uuidString
@@ -161,7 +164,9 @@ public actor SummaryPipeline {
                         // ASR paragraphs. Select references before spending an
                         // entire response budget copying those paragraphs twice.
                         bytes = try await compact.generate(chunk: chunk, meetingID: selectedMeetingID,
-                            notes: source.originalManualNotes, itemLimit: sourceLimit, meetingContext: contextJSON)
+                            notes: source.originalManualNotes, itemLimit: sourceLimit,
+                            provenance: .init(modelRevision: modelRevision, promptVersion: promptVersion, mapIndex: index),
+                            meetingContext: contextJSON)
                     } else {
                         let schema = try Self.mapSchema(meetingID: selectedMeetingID, segments: chunk.segments,
                                                         outputItemLimit: sourceLimit)
@@ -174,7 +179,9 @@ public actor SummaryPipeline {
                             // One bounded recovery, never a loop or a truncated
                             // JSON result. Earlier validated checkpoints survive.
                             bytes = try await compact.generate(chunk: chunk, meetingID: selectedMeetingID,
-                                notes: source.originalManualNotes, itemLimit: sourceLimit, meetingContext: contextJSON)
+                                notes: source.originalManualNotes, itemLimit: sourceLimit,
+                                provenance: .init(modelRevision: modelRevision, promptVersion: promptVersion, mapIndex: index),
+                                meetingContext: contextJSON)
                         }
                     }
                 }
@@ -202,7 +209,7 @@ public actor SummaryPipeline {
             let result: GroundedSummary
             if carriesContext || itemCount > limits.maximumItems || maps.count > limits.maximumItems {
                 result = try await SummaryConsolidator(tokenizer: tokenizer, generator: generator,
-                    contextTokenLimit: contextTokenLimit, report: consolidationProgress)
+                    contextTokenLimit: contextTokenLimit, outputTokenLimit: reservedOutputTokens, report: consolidationProgress)
                     .combine(maps, meetingID: selectedMeetingID, source: source)
             } else {
                 result = try GroundedSummaryMerger.merge(maps, selectedMeetingID: selectedMeetingID,
@@ -268,7 +275,7 @@ public actor SummaryPipeline {
     private static func mapSchema(meetingID: UUID, segments: [SummaryEvidenceSegment],
                                   outputItemLimit: Int) throws -> StructuredJSONSchema {
         guard !segments.isEmpty, segments.count <= 256 else { throw GroundedSummaryError.limitExceeded }
-        let maximumItems = min(segments.count, outputItemLimit)
+        let maximumItems = min(sentenceVocabulary(segments.map(\.text))?.count ?? segments.count, outputItemLimit)
         // This pipeline is deliberately extractive: the current chunk is the
         // vocabulary, not a fixture answer. The model still chooses categories,
         // source IDs, ownership and deadlines; all resulting links are validated.

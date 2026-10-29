@@ -3,6 +3,60 @@ import XCTest
 @testable import LocalMinutesModels
 
 final class ModelCatalogTests: XCTestCase {
+    func testEveryVariantCarriesItsPublishedMaximumAndOnlyQwen4BNeedsYarn() throws {
+        let expected = [
+            "qwen2.5-0.5b-instruct-q4_k_m": 32_768, "qwen2.5-1.5b-instruct-q4_k_m": 32_768,
+            "qwen3-0.6b-q8_0": 32_768, "qwen3-1.7b-q8_0": 32_768,
+            "qwen3-4b-q4_k_m": 131_072, "qwen3-4b-instruct-2507-q4_k_m": 262_144,
+            "phi3-mini-4k-instruct-q4": 4_096, "phi4-mini-instruct-q4_k_m": 131_072,
+            "gemma3-1b-it-qat-q4_0": 32_768, "gemma3-4b-it-qat-q4_0": 131_072,
+            "gemma4-e2b-it-qat-q4_0": 131_072, "gemma4-e4b-it-qat-q4_0": 131_072
+        ]
+        for variant in ModelCatalog.summaryFamilies.flatMap(\.variants) {
+            let context = try XCTUnwrap(variant.contextWindow)
+            XCTAssertEqual(context.maximumTokens, expected[variant.id])
+            XCTAssertTrue(context.isSupported)
+            let output = variant.manifest.summaryConfiguration?.family == .phi3 ? 2_048 :
+                (["qwen25", "gemma3"].contains(variant.manifest.summaryConfiguration?.family.rawValue ?? "") ? 8_192 : 16_384)
+            XCTAssertEqual(context.outputTokenLimit, output)
+            XCTAssertLessThan(output, context.maximumTokens)
+            XCTAssertEqual(variant.contextSourceURL?.scheme, "https")
+            XCTAssertEqual(context.yarnOriginalContextTokens, variant.id == "qwen3-4b-q4_k_m" ? 32_768 : nil)
+            XCTAssertEqual(context.allocationTokens(requiredTokens: 1_000), 1_024)
+            XCTAssertEqual(context.allocationTokens(requiredTokens: context.maximumTokens), context.maximumTokens)
+            XCTAssertNil(context.allocationTokens(requiredTokens: context.maximumTokens + 1))
+        }
+    }
+
+    func testInstalledManifestsWithoutContextMetadataResolveCurrentSettingsWithoutChangingWeights() throws {
+        for variant in ModelCatalog.summaryFamilies.flatMap(\.variants) {
+            var object = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(variant.manifest)) as? [String: Any])
+            var profile = try XCTUnwrap(object["summaryConfiguration"] as? [String: Any])
+            profile.removeValue(forKey: "contextWindow")
+            object["summaryConfiguration"] = profile
+            let old = try JSONDecoder().decode(ModelManifest.self, from: JSONSerialization.data(withJSONObject: object))
+            XCTAssertNil(old.summaryConfiguration?.contextWindow)
+            XCTAssertTrue(variant.matches(old))
+            XCTAssertEqual(ModelCatalog.summaryConfiguration(for: old)?.contextWindow, variant.contextWindow)
+            XCTAssertEqual(old.artifacts, variant.manifest.artifacts)
+        }
+    }
+
+    func testInvalidContextProfilesAreRejected() {
+        for maximum in [0, -1, 511, 262_145, Int.max] {
+            XCTAssertFalse(SummaryContextWindow(maximumTokens: maximum).isSupported)
+        }
+        XCTAssertFalse(SummaryContextWindow(maximumTokens: 131_072, yarnOriginalContextTokens: 4_096).isSupported)
+        XCTAssertFalse(SummaryModelConfiguration(family: .gemma3,
+            contextWindow: .init(maximumTokens: 131_072, yarnOriginalContextTokens: 32_768)).isSupported)
+        for output in [0, -1, 16_385, Int.max] {
+            XCTAssertFalse(SummaryContextWindow(maximumTokens: 32_768, maximumOutputTokens: output).isSupported)
+        }
+        XCTAssertFalse(SummaryContextWindow(maximumTokens: 4_096, maximumOutputTokens: 4_096).isSupported)
+        XCTAssertFalse(SummaryModelConfiguration(family: .qwen25,
+            contextWindow: .init(maximumTokens: 32_768, maximumOutputTokens: 16_384)).isSupported)
+    }
+
     func testBundledCatalogLoadsAllRequestedFamiliesWithRegisteredContracts() throws {
         XCTAssertNil(ModelCatalog.loadError)
         let families = ModelCatalog.families(for: .summary)

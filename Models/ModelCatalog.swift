@@ -8,6 +8,9 @@ public struct ModelCatalogVariant: Identifiable, Equatable, Sendable {
     public let detail: String
     public let manifest: ModelManifest
     public let profile: HuggingFaceRuntimeProfile
+    public let contextSourceURL: URL?
+
+    public var contextWindow: SummaryContextWindow? { manifest.summaryConfiguration?.contextWindow }
 
     public var repositoryName: String {
         manifest.upstreamRepository.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
@@ -15,9 +18,10 @@ public struct ModelCatalogVariant: Identifiable, Equatable, Sendable {
     public var downloadBytes: Int64 { manifest.artifacts.reduce(0) { $0 + $1.byteCount } }
 
     public init(id: String, title: String, detail: String, manifest: ModelManifest,
-                profile: HuggingFaceRuntimeProfile) {
+                profile: HuggingFaceRuntimeProfile, contextSourceURL: URL? = nil) {
         self.id = id; self.title = title; self.detail = detail
         self.manifest = manifest; self.profile = profile
+        self.contextSourceURL = contextSourceURL
     }
 
     /// Old installations keep their original provenance and runtime pin. Matching
@@ -67,6 +71,8 @@ public enum ModelCatalog {
         let licenseIdentifier: String
         let licenseURL: URL
         let sourceRepository: String?
+        let contextWindow: SummaryContextWindow
+        let contextSourceURL: URL
     }
     private enum CatalogError: Error { case missingResource, invalidResource }
     private static let loaded: Result<[ModelCatalogFamily], Error> = Result {
@@ -105,6 +111,14 @@ public enum ModelCatalog {
         summaryFamilies.flatMap(\.variants).first { $0.id == id }
     }
 
+    /// Resolve current inference settings by exact pinned weights, preserving
+    /// the original installed manifest and avoiding a metadata-only re-download.
+    public static func summaryConfiguration(for manifest: ModelManifest) -> SummaryModelConfiguration? {
+        guard manifest.purpose == .summary else { return nil }
+        return summaryFamilies.flatMap(\.variants).first { $0.matches(manifest) }?
+            .manifest.summaryConfiguration ?? manifest.summaryConfiguration
+    }
+
     public static func matchesSourceWeights(_ lhs: ModelManifest, _ rhs: ModelManifest) -> Bool {
         guard lhs.purpose == rhs.purpose, lhs.upstreamRepository == rhs.upstreamRepository,
               lhs.revision == rhs.revision, lhs.artifacts.count == rhs.artifacts.count else { return false }
@@ -122,7 +136,7 @@ public enum ModelCatalog {
                                       detail: String) -> ModelCatalogFamily {
         .init(id: "parakeet-" + version, title: "Parakeet " + version, detail: detail,
               purpose: .speechRecognition, variants: [
-                .init(id: manifest.modelID, title: "0.6B · INT8", detail: "Core ML · 16 kHz audio",
+                .init(id: manifest.modelID, title: "0.6B", detail: "INT8 · Core ML · 16 kHz audio",
                       manifest: manifest, profile: .parakeetTDTCoreML)
               ])
     }
@@ -151,13 +165,15 @@ public enum ModelCatalog {
                       hex(variant.revision, length: 40), hex(variant.sha256, length: 64),
                       variant.byteCount > 0, variant.byteCount <= 8_589_934_592,
                       ModelArtifactPath.component(variant.fileName), variant.fileName.hasSuffix(".gguf"),
-                      !variant.licenseIdentifier.isEmpty, variant.licenseURL.scheme == "https" else {
+                      !variant.licenseIdentifier.isEmpty, variant.licenseURL.scheme == "https",
+                      variant.contextSourceURL.scheme == "https", variant.contextSourceURL.host != nil,
+                      variant.contextWindow.maximumOutputTokens != nil else {
                     throw CatalogError.invalidResource
                 }
                 let repository = URL(string: "https://huggingface.co/" + variant.repository)!
                 let attribution = variant.sourceRepository.map { "Original model: https://huggingface.co/\($0). " } ?? ""
                 let configuration = SummaryModelConfiguration(family: variant.family,
-                    variant: variant.variant ?? .standard)
+                    variant: variant.variant ?? .standard, contextWindow: variant.contextWindow)
                 guard configuration.isSupported else { throw CatalogError.invalidResource }
                 let manifest = ModelManifest(modelID: variant.id, purpose: .summary,
                     upstreamRepository: repository, revision: variant.revision,
@@ -170,7 +186,7 @@ public enum ModelCatalog {
                         digestProvenance: .upstreamReported)],
                     summaryConfiguration: configuration)
                 return .init(id: variant.id, title: variant.title, detail: variant.detail,
-                             manifest: manifest, profile: .llamaGGUF)
+                             manifest: manifest, profile: .llamaGGUF, contextSourceURL: variant.contextSourceURL)
             }
             return .init(id: family.id, title: family.title, detail: family.detail,
                          purpose: .summary, variants: variants)

@@ -33,7 +33,7 @@ let package = Package(
         .target(name: "LocalMinutesMeetingLibrary", dependencies: ["LocalMinutesCore", "LocalMinutesPersistence", "LocalMinutesRecording"], path: "MeetingLibrary"),
         .target(name: "LocalMinutesSummary", dependencies: ["llama", "LocalMinutesModels", "LocalMinutesPersistence"], path: "Summaries",
                 linkerSettings: [.linkedLibrary("c++"), .linkedFramework("Accelerate"), .linkedFramework("Metal")]),
-        .target(name: "LocalMinutesQuestionAnswering", dependencies: ["LocalMinutesPersistence", "LocalMinutesSummary"], path: "QuestionAnswering"),
+        .target(name: "LocalMinutesQuestionAnswering", dependencies: ["LocalMinutesPersistence", "LocalMinutesSummary", "LocalMinutesModels"], path: "QuestionAnswering"),
         .target(name: "LocalMinutesIntelligence", dependencies: ["LocalMinutesCore", "LocalMinutesModels", "LocalMinutesPersistence", "LocalMinutesSummary", "LocalMinutesQuestionAnswering"], path: "Intelligence"),
         .testTarget(name: "CoreTests", dependencies: ["LocalMinutesCore"], path: "Tests/CoreTests", linkerSettings: [.linkedLibrary("sqlite3")]),
         .testTarget(name: "RecordingTests", dependencies: ["LocalMinutesRecording", "LocalMinutesCore", "LocalMinutesMeetingLibrary"], path: "Tests/RecordingTests"),

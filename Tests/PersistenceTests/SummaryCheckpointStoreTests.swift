@@ -6,6 +6,39 @@ import XCTest
 /// These cases prove neither inference nor semantic grounding of stored JSON.
 @MainActor
 final class SummaryCheckpointStoreTests: XCTestCase {
+    func testLargerOutputBudgetAndCitationPayloadSurviveCheckpointReopen() async throws {
+        try await withSummaryCheckpointFixture { fixture in
+            let identity = fixture.identity(contextTokenLimit: 32_768, reservedOutputTokens: 16_384)
+            // Transport fixture only; semantic grounding remains the pipeline's responsibility.
+            let map = fixture.map(0, text: String(repeating: "Original evidence. ", count: 3_000))
+            XCTAssertGreaterThan(map.mapJSON.count, 65_536)
+            try await fixture.checkpoints.save(map, matching: identity)
+            let reopened = try SummaryCheckpointStore(directoryURL: fixture.directory)
+            let saved = try await reopened.load(matching: identity)
+            XCTAssertEqual(saved?.maps, [map])
+            XCTAssertEqual(saved?.identity.reservedOutputTokens, 16_384)
+            await expectSummaryCheckpointError(.identityMismatch) {
+                _ = try await reopened.load(matching: fixture.identity(contextTokenLimit: 32_768, reservedOutputTokens: 8_192))
+            }
+        }
+    }
+
+    func testPublishedContextSizesSurviveCheckpointSaveAndReopen() async throws {
+        for limit in [32_768, 131_072, 262_144] {
+            try await withSummaryCheckpointFixture { fixture in
+                let identity = fixture.identity(contextTokenLimit: limit)
+                try await fixture.checkpoints.save(fixture.map(0), matching: identity)
+                let reopened = try SummaryCheckpointStore(directoryURL: fixture.directory)
+                let saved = try await reopened.load(matching: identity)
+                XCTAssertEqual(saved?.identity.contextTokenLimit, limit)
+                XCTAssertEqual(saved?.maps, [fixture.map(0)])
+                await expectSummaryCheckpointError(.identityMismatch) {
+                    _ = try await reopened.load(matching: fixture.identity(contextTokenLimit: 4_096))
+                }
+            }
+        }
+    }
+
     func testPresentationFindsSavedProgressAfterReopenWithoutAcceptingAnotherMeeting() async throws {
         try await withSummaryCheckpointFixture { fixture in
             let identity = fixture.identity()
@@ -99,7 +132,7 @@ final class SummaryCheckpointStoreTests: XCTestCase {
             }
             await expectSummaryCheckpointError(.limitExceeded) {
                 try await fixture.checkpoints.save(.init(index: 1, chunkSHA256: String(repeating: "1", count: 64),
-                    mapJSON: Data(repeating: 32, count: 65_537)), matching: identity)
+                    mapJSON: Data(repeating: 32, count: 1_048_577)), matching: identity)
             }
             let reopened = try SummaryCheckpointStore(directoryURL: fixture.directory)
             let restored = try await reopened.load(matching: identity)

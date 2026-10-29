@@ -66,7 +66,7 @@ public struct GroundedSummaryLimits: Equatable, Sendable {
     public let maximumJSONBytes: Int
     public let maximumItems: Int
     public let maximumQuoteUTF8Bytes: Int
-    public init(maximumJSONBytes: Int = 65_536, maximumItems: Int = 128, maximumQuoteUTF8Bytes: Int = 4_096) {
+    public init(maximumJSONBytes: Int = 1_048_576, maximumItems: Int = 128, maximumQuoteUTF8Bytes: Int = 4_096) {
         self.maximumJSONBytes = maximumJSONBytes; self.maximumItems = maximumItems
         self.maximumQuoteUTF8Bytes = maximumQuoteUTF8Bytes
     }

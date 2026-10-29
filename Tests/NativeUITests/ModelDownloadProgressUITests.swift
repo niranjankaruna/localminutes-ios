@@ -14,13 +14,19 @@ final class ModelDownloadProgressUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["Action Button"].exists)
     }
 
-    func testSummaryListIncludesAppleIntelligenceWithItsAvailabilityAndSelectionAction() {
+    func testSummaryListRemovesAppleAndShowsVariantContextInCardAndDetails() {
         let app = launch(stage: "idle")
         defer { app.terminate() }
-        guard minutesTap(minutesElement("models.apple.open", in: app), in: app) else { return }
-        XCTAssertTrue(app.staticTexts["models.apple.title"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["models.apple.availability"].exists)
-        XCTAssertTrue(app.buttons["models.apple.equip"].exists)
+        XCTAssertFalse(minutesElement("models.apple.open", in: app).exists)
+        guard minutesTap(minutesElement("models.family.qwen3", in: app), in: app) else { return }
+        let id = "qwen3-0.6b-q8_0"
+        let context = app.staticTexts["models.context.\(id)"]
+        XCTAssertTrue(context.waitForExistence(timeout: 5))
+        XCTAssertEqual(context.label, "Context: 32,768 tokens")
+        XCTAssertEqual(app.staticTexts["models.output.\(id)"].label, "Summary output: up to 16,384 tokens")
+        guard minutesTap(minutesElement("models.open.\(id)", in: app), in: app) else { return }
+        XCTAssertTrue(minutesElement("models.details.context", in: app).waitForExistence(timeout: 5))
+        XCTAssertTrue(minutesElement("models.details.output", in: app).exists)
     }
 
     func testDownloadShowsBytesPercentageSpeedRemainingTimeFileAndResumeDetails() {

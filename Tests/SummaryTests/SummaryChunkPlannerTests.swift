@@ -4,6 +4,29 @@ import XCTest
 
 @MainActor
 final class SummaryChunkPlannerTests: XCTestCase {
+    func testModelContextPacksMoreThanFourKTokensAndSixtyFourKBytesWithoutTruncation() async throws {
+        let sources = (0..<4).map { index in
+            SummaryEvidenceSegment(id: "s\(index)", startSample: Int64(index * 16_000),
+                endSample: Int64((index + 1) * 16_000), text: String(repeating: "Meeting evidence. ", count: 1_000))
+        }
+        for limit in [32_768, 131_072, 262_144] {
+            let planner = SummaryChunkPlanner(contextTokenLimit: limit, reservedOutputTokens: 1_024,
+                promptPrefix: "Select evidence.", tokenizer: { $0.utf8.count / 4 })
+            let chunks = try await planner.plan(sources)
+            XCTAssertEqual(chunks.count, 1)
+            let chunk = try XCTUnwrap(chunks.first)
+            XCTAssertEqual(chunk.segments, sources)
+            XCTAssertGreaterThan(chunk.prompt.utf8.count, 65_536)
+            XCTAssertGreaterThan(chunk.promptTokenCount, 4_096)
+            XCTAssertLessThan(chunk.promptTokenCount + chunk.reservedOutputTokens, limit)
+        }
+        let smaller = SummaryChunkPlanner(contextTokenLimit: 4_096, reservedOutputTokens: 1_024,
+            promptPrefix: "Select evidence.", splitOversizedSegments: true, tokenizer: { $0.utf8.count / 4 })
+        let chunks = try await smaller.plan(sources)
+        XCTAssertGreaterThan(chunks.count, 1)
+        XCTAssertEqual(chunks.flatMap(\.segments).map(\.text).joined(), sources.map(\.text).joined())
+    }
+
     func testPlannerCountsWholePromptsAndReservesOutputStrictlyBelowContextLimit() async throws {
         let recorder = ChunkPromptRecorder()
         let planner = SummaryChunkPlanner(contextTokenLimit: 64, reservedOutputTokens: 16,
@@ -76,7 +99,7 @@ final class SummaryChunkPlannerTests: XCTestCase {
 
     func testPlannerRejectsInvalidBoundsSourceIdentityRangesAndTokenizerCounts() async throws {
         let source = [chunkSource(0)]
-        for (limit, reserve) in [(63, 16), (4_097, 16), (64, 0), (64, 64), (4_096, 1_025)] {
+        for (limit, reserve) in [(63, 16), (262_145, 16), (64, 0), (64, 64), (32_768, 16_385)] {
             let planner = SummaryChunkPlanner(contextTokenLimit: limit, reservedOutputTokens: reserve,
                 promptPrefix: "Original policy", tokenizer: { _ in 20 })
             await expect(.invalidConfiguration, planner: planner, source: source)

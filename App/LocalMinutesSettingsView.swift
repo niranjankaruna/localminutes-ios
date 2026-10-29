@@ -73,7 +73,6 @@ struct LocalMinutesSettingsView: View {
     }
     private func selectedModel(_ purpose: ModelPurpose) -> String {
         let browser = services.modelBrowser
-        if purpose == .summary && browser.appleEquipped { return "Apple Intelligence" }
         if let model = browser.installed.first(where: { $0.purpose == purpose && browser.isEquipped($0) }) {
             return ModelDisplay.name(model)
         }

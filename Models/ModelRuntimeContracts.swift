@@ -19,10 +19,8 @@ public enum ModelRuntimeContracts {
                   manifest.artifacts[0].role == .summary,
                   manifest.artifacts[0].fileName.lowercased().hasSuffix(".gguf") else { return false }
             if let configuration = manifest.summaryConfiguration {
-                return configuration.profileVersion == 1
+                return configuration.isSupported
                     && manifest.runtimeVersion == SummaryModelConfiguration.runtimeVersion
-                    && (configuration.variant == .standard
-                        || configuration.family == .qwen3 && configuration.variant == .qwen3Instruct2507)
             }
             // Preserve legacy installation metadata; inference performs the
             // stricter runtime-version, actual architecture and template checks.

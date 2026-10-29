@@ -1,4 +1,7 @@
 import Foundation
+#if SWIFT_PACKAGE
+import LocalMinutesModels
+#endif
 
 /// Bounded context from already validated sections. These excerpts help the
 /// next section interpret references; they are never a new source of citations.
@@ -49,7 +52,7 @@ struct SummaryMeetingContext: Sendable {
                 let count = try await tokenizer(prompt)
                 try Task.checkCancellation()
                 guard count > 0 else { throw SummaryChunkPlannerError.invalidTokenCount }
-                if prompt.utf8.count <= 65_536, count < contextTokenLimit - chunk.reservedOutputTokens {
+                if prompt.utf8.count <= SummaryContextWindow.maximumPromptUTF8Bytes, count < contextTokenLimit - chunk.reservedOutputTokens {
                     selected.append(value)
                 }
             }

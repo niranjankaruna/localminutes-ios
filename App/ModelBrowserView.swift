@@ -23,7 +23,7 @@ enum ModelDisplay {
 }
 
 enum ModelScreen: Hashable, Identifiable {
-    case variant(String), transfer, apple
+    case variant(String), transfer
     var id: Self { self }
 }
 
@@ -66,13 +66,11 @@ struct ModelPurposeView: View {
     @State private var confirmingRemoval = false
     @State private var transferDetails = false
     @State private var screenshotPrepared = false
-    @State private var appleAvailability: AppleSummaryAvailability
 
     init(controller: ModelBrowserController, purpose: ModelPurpose, application: RecordingApplication? = nil,
          onSelected: (() -> Void)? = nil) {
         self.controller = controller; self.purpose = purpose
         self.application = application; self.onSelected = onSelected
-        _appleAvailability = State(initialValue: controller.appleAvailability)
         #if DEBUG
         if let scene = AppScreenshotFixture.scene {
             let variants = controller.families(for: purpose).flatMap(\.variants)
@@ -112,10 +110,6 @@ struct ModelPurposeView: View {
                         Label("Equipped: \(ModelDisplay.name(selected))", systemImage: "checkmark.circle.fill")
                             .font(.subheadline).foregroundStyle(MinutesStyle.accent)
                             .accessibilityIdentifier("models.selection")
-                    } else if purpose == .summary && controller.appleEquipped {
-                        Label("Equipped: Apple Intelligence", systemImage: "checkmark.circle.fill")
-                            .font(.subheadline).foregroundStyle(MinutesStyle.accent)
-                            .accessibilityIdentifier("models.selection")
                     } else {
                         Text("No model equipped").font(.subheadline).foregroundStyle(.secondary)
                             .accessibilityIdentifier("models.empty")
@@ -133,7 +127,6 @@ struct ModelPurposeView: View {
                     }.accessibilityIdentifier("models.transfer.open")
                 }
             }
-            if purpose == .summary { appleCatalogSection }
             ForEach(families, id: \.id) { family in
                 Section {
                     DisclosureGroup(isExpanded: familyExpansion(family.id)) {
@@ -200,26 +193,14 @@ struct ModelPurposeView: View {
         return variants
     }
 
-    private var appleCatalogSection: some View {
-        Section {
-            NavigationLink(value: ModelScreen.apple) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Label("Apple Intelligence", systemImage: "sparkles")
-                        .font(.title3.weight(.semibold)).accessibilityIdentifier("models.apple.title")
-                    Text(controller.appleEquipped ? "Equipped · Built into iOS" : "Built into iOS")
-                        .font(.subheadline).foregroundStyle(.secondary)
-                    Text(controller.appleAvailability.explanation).font(.footnote).foregroundStyle(.secondary)
-                        .accessibilityIdentifier("models.apple.availability")
-                }.padding(.vertical, 8)
-            }.accessibilityIdentifier("models.apple.open")
-        }
-    }
-
     private func variantRow(_ variant: ModelCatalogVariant) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(variant.title).font(.headline)
                     .accessibilityIdentifier("models.title.\(variant.id)")
+                Text(bytes(ModelBrowserController.downloadBytes(variant.manifest)))
+                    .font(.footnote).foregroundStyle(.secondary)
+                    .accessibilityLabel("Download size: \(bytes(ModelBrowserController.downloadBytes(variant.manifest)))")
                 Spacer(minLength: 0)
                 if let installed = controller.installedManifest(for: variant.manifest) {
                     Label(controller.isEquipped(installed) ? "Equipped" : "Downloaded",
@@ -228,9 +209,7 @@ struct ModelPurposeView: View {
                         .accessibilityIdentifier("models.status.\(variant.id)")
                 }
             }
-            Text(variant.detail).font(.subheadline).foregroundStyle(.secondary)
-            Text("\(bytes(ModelBrowserController.downloadBytes(variant.manifest))) · \(ModelDisplay.engine(variant.manifest))")
-                .font(.footnote).foregroundStyle(.secondary)
+            variantContext(variant)
             if controller.transferManifest?.modelID == variant.id, controller.isDownloading {
                 ProgressView(value: controller.downloadProgress?.overallFractionCompleted)
                     .accessibilityLabel("Downloading \(variant.title)")
@@ -242,7 +221,30 @@ struct ModelPurposeView: View {
                     .accessibilityLabel("Details for \(modelActionIdentity(variant.manifest))")
                     .accessibilityIdentifier("models.open.\(variant.id)")
             }
-        }.padding(.vertical, 10)
+        }.padding(.vertical, 4)
+    }
+
+    @ViewBuilder private func variantContext(_ variant: ModelCatalogVariant) -> some View {
+        if let context = variant.contextWindow {
+            let contextLabel = Text("Context: \(context.maximumTokens.formatted())")
+                .accessibilityLabel("Context: \(context.maximumTokens.formatted()) tokens")
+                .accessibilityIdentifier("models.context.\(variant.id)")
+            let outputLabel = Text("Output: \(context.outputTokenLimit.formatted())")
+                .accessibilityLabel("Summary output: up to \(context.outputTokenLimit.formatted()) tokens")
+                .accessibilityIdentifier("models.output.\(variant.id)")
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) {
+                    contextLabel
+                    Text("·").accessibilityHidden(true)
+                    outputLabel
+                }.fixedSize(horizontal: true, vertical: false)
+                VStack(alignment: .leading, spacing: 2) {
+                    contextLabel
+                    outputLabel
+                }
+            }
+            .font(.footnote).foregroundStyle(.secondary)
+        }
     }
 
     private var actionLayout: AnyLayout {
@@ -308,7 +310,6 @@ struct ModelPurposeView: View {
                 if let variant = controller.variant(id: id) { detailsPage(variant) }
                 else { ContentUnavailableView("Model unavailable", systemImage: "exclamationmark.circle") }
             case .transfer: transferPage
-            case .apple: applePage
             }
         }.navigationBarTitleDisplayMode(.inline).tint(MinutesStyle.accent).screenshotReady(true)
     }
@@ -324,6 +325,21 @@ struct ModelPurposeView: View {
                 actionLayout { modelActions(variant) }
             }
             feedbackSection
+            if let context = variant.contextWindow {
+                Section("Context window") {
+                    LabeledContent("Maximum context", value: "\(context.maximumTokens.formatted()) tokens")
+                        .accessibilityIdentifier("models.details.context")
+                    LabeledContent("Summary output limit", value: "\(context.outputTokenLimit.formatted()) tokens")
+                        .accessibilityIdentifier("models.details.output")
+                    Text("Used automatically for summaries and answers. Includes the input and generated response.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                    Text("The summary output budget is reserved within this context. Responses can finish earlier.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                    if let url = variant.contextSourceURL {
+                        Link("Publisher context specifications", destination: url).frame(minHeight: 44)
+                    }
+                }
+            }
             Section("Download & storage") {
                 LabeledContent("Download size", value: bytes(ModelBrowserController.downloadBytes(variant.manifest)))
                 LabeledContent("Free storage", value: bytes(controller.resources.freeDiskBytes))
@@ -412,32 +428,6 @@ struct ModelPurposeView: View {
             }
             feedbackSection
         }.minutesList().navigationTitle("Model transfer")
-    }
-
-    private var applePage: some View {
-        Form {
-            Section {
-                Label("Apple Intelligence", systemImage: "sparkles").font(.title2.weight(.semibold))
-                    .accessibilityIdentifier("models.apple.title")
-                Text("Built into iOS. Model downloads and storage are managed in iPhone Settings.")
-                    .foregroundStyle(.secondary)
-                Text(appleAvailability.explanation).accessibilityIdentifier("models.apple.availability")
-                Button(controller.appleEquipped ? "Equipped" : "Equip Apple Intelligence") {
-                    Task {
-                        await controller.equipAppleIntelligence()
-                        if controller.appleEquipped { onSelected?() }
-                    }
-                }
-                .frame(minHeight: 44).accessibilityIdentifier("models.apple.equip")
-                .disabled(busy || controller.appleEquipped || appleAvailability != .available)
-                if appleAvailability != .available {
-                    Button("Check again") { appleAvailability = controller.appleAvailability }
-                        .frame(minHeight: 44).accessibilityIdentifier("models.apple.refresh")
-                }
-            }
-            feedbackSection
-        }.minutesList().navigationTitle("Apple Intelligence")
-            .onAppear { appleAvailability = controller.appleAvailability }
     }
 
     @ViewBuilder private var feedbackSection: some View {

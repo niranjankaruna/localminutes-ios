@@ -2,6 +2,7 @@ import CryptoKit
 import Foundation
 import XCTest
 import llama
+import LocalMinutesModels
 @testable import LocalMinutesSummary
 
 /// Real pinned model vocabulary and real native generation. Missing artifacts
@@ -79,7 +80,7 @@ final class ActualPromptTokenizationTests: XCTestCase {
                             "Actual generation must accept a fully counted prompt below the context boundary")
 
             do {
-                _ = try await runtime.promptTokenCount(prompt: String(repeating: "x", count: 65_537))
+                _ = try await runtime.promptTokenCount(prompt: String(repeating: "x", count: SummaryContextWindow.maximumPromptUTF8Bytes + 1))
                 XCTFail("An excessive source must fail explicitly instead of losing evidence")
             } catch { XCTAssertEqual(error as? LocalSummaryRuntimeError, .generationFailed) }
             let cancelled = Task { try await runtime.promptTokenCount(prompt: "Original source") }

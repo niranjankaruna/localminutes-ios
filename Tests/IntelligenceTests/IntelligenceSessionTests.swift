@@ -9,6 +9,29 @@ import LocalMinutesSummary
 
 @MainActor
 final class IntelligenceSessionTests: XCTestCase {
+    func testSummaryAndQuestionsUseTheSelectedRuntimeContextAboveFourK() async throws {
+        let h = try await IntelligenceFixture.create()
+        do {
+            for (limit, output) in [(4_096, 2_048), (32_768, 8_192), (131_072, 16_384), (262_144, 16_384)] {
+                for operation in [IntelligenceOperation.summary, .question("Who will write the guide?")] {
+                    let reply = try (operation == .summary ? h.rawSummary() : h.rawAnswer())
+                    let runtime = IntelligenceBoundaryRuntime(replies: [reply],
+                        contextTokenLimit: limit, tokenCount: limit - output - 1_024, outputTokenLimit: output)
+                    let session = IntelligenceSession(store: h.store, models: h.models, admission: h.admission,
+                        manifest: h.manifest, runtimeLoader: { _ in runtime })
+                    let document = try await session.run(h.request(operation))
+                    XCTAssertEqual(document.meetingID, h.selected)
+                    XCTAssertEqual(document.kind, operation == .summary ? .summary : .questionAnswer)
+                    let unloaded = await runtime.unloaded
+                    XCTAssertTrue(unloaded)
+                    let requested = await runtime.requestedMaximumTokens
+                    XCTAssertEqual(requested, [operation == .summary ? output : 192])
+                }
+            }
+            try await h.closeAndRemove()
+        } catch { try? await h.closeAndRemove(); throw error }
+    }
+
     func testNativeCountersReachTheCallerBeforeSummaryOrAnswerCompletes() async throws {
         let h = try await IntelligenceFixture.create()
         do {

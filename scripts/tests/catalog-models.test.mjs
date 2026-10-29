@@ -12,7 +12,8 @@ const fixtureVariant = (overrides = {}) => ({
   id: 'qwen-test-fixture', family: 'qwen25', repository: 'Qwen/Synthetic-GGUF',
   revision: 'a'.repeat(40), fileName: 'synthetic.gguf', byteCount: bytes.length,
   sha256: digest(bytes), licenseIdentifier: 'Apache-2.0',
-  licenseURL: 'https://www.apache.org/licenses/LICENSE-2.0', ...overrides,
+  licenseURL: 'https://www.apache.org/licenses/LICENSE-2.0',
+  contextWindow: { maximumTokens: 32768, maximumOutputTokens: 8192 }, contextSourceURL: 'https://huggingface.co/Qwen/Synthetic-GGUF', ...overrides,
 });
 
 async function temporary(body) {
@@ -72,6 +73,48 @@ test('explicit one-variant CLI rejects missing, traversal, URL, and extra argume
     assert.throws(() => parseArguments(args), /Usage:/);
   }
   await assert.rejects(main(['--variant', 'not-in-reviewed-catalogue']), /Unknown catalogue variant/);
+});
+
+test('every pinned variant has its verified maximum and required positional scaling', async () => {
+  const variants = await loadCatalog();
+  const expected = {
+    'qwen2.5-0.5b-instruct-q4_k_m': 32768, 'qwen2.5-1.5b-instruct-q4_k_m': 32768,
+    'qwen3-0.6b-q8_0': 32768, 'qwen3-1.7b-q8_0': 32768,
+    'qwen3-4b-q4_k_m': 131072, 'qwen3-4b-instruct-2507-q4_k_m': 262144,
+    'phi3-mini-4k-instruct-q4': 4096, 'phi4-mini-instruct-q4_k_m': 131072,
+    'gemma3-1b-it-qat-q4_0': 32768, 'gemma3-4b-it-qat-q4_0': 131072,
+    'gemma4-e2b-it-qat-q4_0': 131072, 'gemma4-e4b-it-qat-q4_0': 131072,
+  };
+  assert.deepEqual(Object.fromEntries(variants.map(v => [v.id, v.contextWindow.maximumTokens])), expected);
+  assert.deepEqual(variants.filter(v => v.contextWindow.yarnOriginalContextTokens != null).map(v => v.id), ['qwen3-4b-q4_k_m']);
+  assert.equal(variants.find(v => v.id === 'qwen3-4b-q4_k_m').contextWindow.yarnOriginalContextTokens, 32768);
+  for (const variant of variants) assert.equal(new URL(variant.contextSourceURL).protocol, 'https:');
+});
+
+test('missing, oversized and unsupported context profiles fail before a download', () => {
+  for (const contextWindow of [undefined, {}, { maximumTokens: 0 }, { maximumTokens: -1 },
+    { maximumTokens: 32768.5 }, { maximumTokens: 262145 },
+    { maximumTokens: 131072, yarnOriginalContextTokens: 32768 }]) {
+    assert.throws(() => validateVariant(fixtureVariant({ contextWindow })), /context window/);
+  }
+  assert.throws(() => validateVariant(fixtureVariant({ contextSourceURL: 'http://example.com' })), /context source/);
+});
+
+test('output budgets are variant-specific and leave room for input', async () => {
+  const variants = await loadCatalog();
+  const expected = {
+    'qwen2.5-0.5b-instruct-q4_k_m': 8192, 'qwen2.5-1.5b-instruct-q4_k_m': 8192,
+    'qwen3-0.6b-q8_0': 16384, 'qwen3-1.7b-q8_0': 16384,
+    'qwen3-4b-q4_k_m': 16384, 'qwen3-4b-instruct-2507-q4_k_m': 16384,
+    'phi3-mini-4k-instruct-q4': 2048, 'phi4-mini-instruct-q4_k_m': 16384,
+    'gemma3-1b-it-qat-q4_0': 8192, 'gemma3-4b-it-qat-q4_0': 8192,
+    'gemma4-e2b-it-qat-q4_0': 16384, 'gemma4-e4b-it-qat-q4_0': 16384,
+  };
+  assert.deepEqual(Object.fromEntries(variants.map(v => [v.id, v.contextWindow.maximumOutputTokens])), expected);
+  for (const variant of variants) assert.ok(variant.contextWindow.maximumOutputTokens < variant.contextWindow.maximumTokens);
+  for (const maximumOutputTokens of [undefined, 0, -1, 8192.5, 8193, 32768, Number.MAX_SAFE_INTEGER]) {
+    assert.throws(() => validateVariant(fixtureVariant({ contextWindow: { maximumTokens: 32768, maximumOutputTokens } })), /context window/);
+  }
 });
 
 test('variant validation rejects untrusted publishers, mutable pins, unsafe paths, and unbounded sizes before download', () => {

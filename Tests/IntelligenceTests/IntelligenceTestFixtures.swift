@@ -165,6 +165,9 @@ private enum IntelligenceFixtureError: Error {
 // Only the async inference/load boundaries are doubled. They do not release any
 // model/gate lease or save a document: the real service must perform that work.
 actor IntelligenceBoundaryRuntime: IntelligenceRuntime {
+    nonisolated let contextTokenLimit: Int
+    nonisolated let outputTokenLimit: Int
+    private let tokenCount: Int
     private var replies: [String]
     private var holdGeneration: Bool
     private var holdUnload: Bool
@@ -174,10 +177,14 @@ actor IntelligenceBoundaryRuntime: IntelligenceRuntime {
     private(set) var unloading = false
     private(set) var unloaded = false
     private(set) var events: [String] = []
-    init(replies: [String], holdGeneration: Bool = false, holdUnload: Bool = false) {
+    private(set) var requestedMaximumTokens: [Int] = []
+    init(replies: [String], holdGeneration: Bool = false, holdUnload: Bool = false,
+         contextTokenLimit: Int = 4_096, tokenCount: Int = 500, outputTokenLimit: Int = 1_024) {
         self.replies = replies; self.holdGeneration = holdGeneration; self.holdUnload = holdUnload
+        self.contextTokenLimit = contextTokenLimit; self.tokenCount = tokenCount
+        self.outputTokenLimit = outputTokenLimit
     }
-    func promptTokenCount(prompt: String) async throws -> Int { try Task.checkCancellation(); return 500 }
+    func promptTokenCount(prompt: String) async throws -> Int { try Task.checkCancellation(); return tokenCount }
     func generateJSON(prompt: String, schema: StructuredJSONSchema, maximumTokens: Int,
                       progress: SummaryGenerationProgressReporter?) async throws -> String {
         progress?(.promptTokens(completed: 128, total: 500))
@@ -186,6 +193,7 @@ actor IntelligenceBoundaryRuntime: IntelligenceRuntime {
         return try await generateJSON(prompt: prompt, schema: schema, maximumTokens: maximumTokens)
     }
     func generateJSON(prompt: String, schema: StructuredJSONSchema, maximumTokens: Int) async throws -> String {
+        requestedMaximumTokens.append(maximumTokens)
         generating = true; events.append("work.begin")
         defer { generating = false; events.append("work.drained") }
         while holdGeneration && !generationReleased { try await Task.sleep(for: .milliseconds(1)) }
