@@ -99,6 +99,8 @@ private final class RuntimeHardware: CaptureHardware {
     var format: AVAudioFormat
     var failActivation = false
     var failStart = false
+    var startupError: any Error = RuntimeTestError.hardwareFailure
+    var deactivationError: (any Error)?
     var sessionActive = false
     var engineRunning = false
     var readFormatWhileActive = false
@@ -112,7 +114,7 @@ private final class RuntimeHardware: CaptureHardware {
 
     func activateSession() throws {
         probe.trace.append("activate")
-        if failActivation { throw RuntimeTestError.hardwareFailure }
+        if failActivation { throw startupError }
         sessionActive = true
     }
 
@@ -130,7 +132,7 @@ private final class RuntimeHardware: CaptureHardware {
 
     func startEngine() throws {
         probe.trace.append("start")
-        if failStart { throw RuntimeTestError.hardwareFailure }
+        if failStart { throw startupError }
         engineRunning = true
     }
 
@@ -146,6 +148,7 @@ private final class RuntimeHardware: CaptureHardware {
 
     func deactivateSession() throws {
         probe.trace.append("deactivate")
+        if let deactivationError { throw deactivationError }
         sessionActive = false
     }
 
@@ -588,6 +591,9 @@ final class MicrophoneCaptureRuntimeTests: XCTestCase {
             defer { h.cleanupIfQuiescent() }
             h.hardware.failActivation = failActivation
             h.hardware.failStart = !failActivation
+            let nativeError = NSError(domain: NSOSStatusErrorDomain, code: 561_145_187,
+                                      userInfo: [NSLocalizedDescriptionKey: "Synthetic audio rejection"])
+            h.hardware.startupError = nativeError
             try await start(h)
             let failure: CaptureRuntimeFailure = failActivation ? .sessionUnavailable : .captureUnavailable
             XCTAssertTrue(h.probe.events.contains(.failed(h.id, failure)))
@@ -597,6 +603,12 @@ final class MicrophoneCaptureRuntimeTests: XCTestCase {
             XCTAssertFalse(h.probe.events.contains(.firstBufferAccepted(h.id)))
             XCTAssertNil(h.probe.successfulManifest(h.id))
             XCTAssertEqual(h.probe.stoppedCount(h.id), 1)
+            let diagnostic = try XCTUnwrap(h.runtime.snapshot().failureDiagnostic)
+            XCTAssertEqual(diagnostic.sessionID, h.id)
+            XCTAssertEqual(diagnostic.stage, failActivation ? .sessionActivation : .engineStart)
+            XCTAssertEqual(diagnostic.errorDomain, nativeError.domain)
+            XCTAssertEqual(diagnostic.errorCode, nativeError.code,
+                           "Keep the actual OS error after the failed epoch has been released")
             if failActivation {
                 XCTAssertFalse(h.probe.trace.contains("install"))
                 XCTAssertFalse(h.probe.trace.contains("start"))
@@ -604,7 +616,35 @@ final class MicrophoneCaptureRuntimeTests: XCTestCase {
                 XCTAssertTrue(h.probe.trace.contains("remove"))
                 XCTAssertTrue(h.probe.trace.contains("deactivate"))
             }
+            h.hardware.failActivation = false
+            h.hardware.failStart = false
+            let nextID = UUID()
+            try await complete("retry") {
+                await h.runtime.start(sessionID: nextID, directory: h.root.appendingPathComponent("retry"))
+            }
+            XCTAssertNil(h.runtime.snapshot().failureDiagnostic,
+                         "A new attempt must not inherit the previous attempt's diagnosis")
+            try await stop(h, id: nextID)
         }
+    }
+
+    func testCleanupFailureDoesNotReplaceOriginalStartupDiagnostic() async throws {
+        let h = try RuntimeHarness()
+        defer { h.cleanupIfQuiescent() }
+        h.hardware.failStart = true
+        h.hardware.startupError = NSError(domain: "TestEngine", code: 42)
+        h.hardware.deactivationError = NSError(domain: "TestDeactivation", code: 43)
+        try await start(h)
+        XCTAssertTrue(h.runtime.snapshot().cleanupPending)
+        let original = try XCTUnwrap(h.runtime.snapshot().failureDiagnostic)
+        XCTAssertEqual(original.stage, .engineStart)
+        XCTAssertEqual(original.errorDomain, "TestEngine")
+        XCTAssertEqual(original.errorCode, 42)
+        h.hardware.deactivationError = nil
+        try await stop(h)
+        XCTAssertFalse(h.runtime.snapshot().cleanupPending)
+        XCTAssertEqual(h.runtime.snapshot().failureDiagnostic, original)
+        XCTAssertNil(h.probe.successfulManifest(h.id))
     }
 
     func testUnsupportedNativeInputFormatIsPreparationRejection() async throws {

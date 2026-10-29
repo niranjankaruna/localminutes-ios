@@ -241,6 +241,12 @@ public final class RecordingSessionOwner {
         await coordinator.snapshot()
     }
 
+    public func captureFailureDiagnostic(for sessionID: UUID) -> CaptureFailureDiagnostic? {
+        guard let diagnostic = capture.snapshot().failureDiagnostic,
+              diagnostic.sessionID == sessionID else { return nil }
+        return diagnostic
+    }
+
     fileprivate func receive(_ event: CaptureRuntimeEvent) {
         let id: UUID
         switch event {

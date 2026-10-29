@@ -14,15 +14,16 @@ final class NativeOpenLatestMeetingIntentTests: XCTestCase {
             await f.services.initialize()
             let before = try XCTUnwrap(f.application.owner)
             let beforeSnapshot = await before.snapshot()
+            let navigation = f.application.meetingNavigation
             // Insert after startup so the intent cannot use an obsolete UI list.
             let latest = try await f.seed(id: UUID(), at: 20, title: "Latest private fixture")
             let result = try await OpenLatestMeetingIntent(application: f.application).perform()
-            XCTAssertEqual(result.value, "Opening your latest meeting.")
+            XCTAssertEqual(result.value, "Opening your last meeting.")
             XCTAssertNotNil(result.dialog)
-            XCTAssertNotNil(f.application.meetingNavigation, "The app must retain the same router that the view observes")
-            XCTAssertEqual(f.application.meetingNavigation?.requestedMeetingID, latest.id)
-            XCTAssertNotNil(f.application.meetingNavigation?.requestID)
-            XCTAssertTrue(f.application.meetingNavigation === f.application.meetingNavigation)
+            XCTAssertEqual(f.application.meetingNavigation.request?.destination, .meeting(latest.id))
+            XCTAssertNotNil(f.application.meetingNavigation.request?.id)
+            XCTAssertTrue(f.application.meetingNavigation === navigation,
+                          "The app must retain the same router that the view observes")
             XCTAssertFalse(try XCTUnwrap(result.value).contains(latest.title), "Private titles must not be spoken or exported by the shortcut")
             let after = await before.snapshot()
             XCTAssertEqual(after.phase, beforeSnapshot.phase)
@@ -43,18 +44,18 @@ final class NativeOpenLatestMeetingIntentTests: XCTestCase {
             let router = MeetingNavigationRouter(store: f.services.store)
             let initial = try await router.openLatest()
             XCTAssertEqual(initial, .opened(later))
-            let firstRequest = router.requestID
+            let firstRequest = router.request?.id
             _ = try await f.seed(id: earlier, at: 100)
             let tied = try await router.openLatest()
             XCTAssertEqual(tied, .opened(earlier),
                 "The SQLite history contract uses created_at DESC, id ASC; insertion order cannot choose the tie")
-            XCTAssertEqual(router.requestedMeetingID, earlier)
-            XCTAssertNotNil(router.requestID)
-            XCTAssertNotEqual(router.requestID, firstRequest, "Repeated navigation needs a fresh observable request")
+            XCTAssertEqual(router.request?.destination, .meeting(earlier))
+            XCTAssertNotNil(router.request?.id)
+            XCTAssertNotEqual(router.request?.id, firstRequest, "Repeated navigation needs a fresh observable request")
             let last = try await f.seed(id: UUID(), at: 101)
             let newest = try await router.openLatest()
             XCTAssertEqual(newest, .opened(last.id))
-            XCTAssertEqual(router.requestedMeetingID, last.id)
+            XCTAssertEqual(router.request?.destination, .meeting(last.id))
         }
     }
 
@@ -66,11 +67,11 @@ final class NativeOpenLatestMeetingIntentTests: XCTestCase {
             let empty = try await OpenLatestMeetingIntent(application: f.application, router: router).perform()
             XCTAssertEqual(empty.value, "No saved meetings yet.")
             XCTAssertNotNil(empty.dialog)
-            XCTAssertNil(router.requestedMeetingID); XCTAssertNil(router.requestID)
+            XCTAssertEqual(router.request?.destination, .meetings)
             let meeting = try await f.seed(id: UUID(), at: 1)
             let opened = try await router.openLatest()
             XCTAssertEqual(opened, .opened(meeting.id))
-            XCTAssertEqual(router.requestedMeetingID, meeting.id)
+            XCTAssertEqual(router.request?.destination, .meeting(meeting.id))
             try await f.services.store.close()
             f.closed = true
             let unavailable = try await router.openLatest()
@@ -78,8 +79,8 @@ final class NativeOpenLatestMeetingIntentTests: XCTestCase {
             let closed = try await OpenLatestMeetingIntent(application: f.application, router: router).perform()
             XCTAssertEqual(closed.value, "Saved meetings are not available.")
             XCTAssertNotNil(closed.dialog)
-            XCTAssertNil(router.requestedMeetingID, "A closed store cannot leave an old meeting selected for a new intent")
-            XCTAssertNil(router.requestID)
+            XCTAssertEqual(router.request?.destination, .meetings,
+                           "A closed store must open the list instead of leaving an old meeting selected")
         }
     }
 
@@ -101,34 +102,116 @@ final class NativeOpenLatestMeetingIntentTests: XCTestCase {
             await operation.value
             XCTAssertTrue(call.error is CancellationError, "A cancelled intent must propagate CancellationError")
             XCTAssertNil(call.returnedValue)
-            XCTAssertNil(router.requestedMeetingID); XCTAssertNil(router.requestID)
+            XCTAssertNil(router.request)
             let actual = try await f.services.store.meeting(id: original.id)
             XCTAssertEqual(actual, original)
             XCTAssertNil(f.application.lastOutcome)
         }
     }
 
-    func testNativeSDKRequiresLocalUnlockForegroundAndASeparateFourthDiscoverableShortcut() throws {
-        func acceptsAppIntent<I: AppIntent>(_: I.Type) {}
-        acceptsAppIntent(OpenLatestMeetingIntent.self)
+    func testExactlyThreeNavigationShortcutsRequireForegroundAndLocalUnlock() throws {
+        func checkNavigationIntent<I: AppIntent>(_ type: I.Type) {
+            XCTAssertTrue(type.isDiscoverable)
+            switch type.authenticationPolicy {
+            case .requiresLocalDeviceAuthentication: break
+            default: XCTFail("Opening private app screens requires unlocking this device")
+            }
+            XCTAssertTrue(type.openAppWhenRun, "Earlier iOS versions must also open the app")
+            if #available(iOS 26.0, *) {
+                XCTAssertEqual(type.supportedModes, [.foreground(.immediate)])
+            }
+        }
+        checkNavigationIntent(OpenRecordingIntent.self)
+        checkNavigationIntent(OpenMeetingsIntent.self)
+        checkNavigationIntent(OpenLatestMeetingIntent.self)
         let intent = OpenLatestMeetingIntent()
         XCTAssertTrue(intent.application === RecordingApplication.shared)
-        XCTAssertTrue(OpenLatestMeetingIntent.isDiscoverable)
-        XCTAssertEqual(String(localized: OpenLatestMeetingIntent.title), "Open Latest LocalMinutes Meeting")
-        switch OpenLatestMeetingIntent.authenticationPolicy {
-        case .requiresLocalDeviceAuthentication: break
-        default: XCTFail("Private history requires unlocking this device, independently of recording-control policy")
+        XCTAssertTrue(OpenRecordingIntent().application === RecordingApplication.shared)
+        XCTAssertTrue(OpenMeetingsIntent().application === RecordingApplication.shared)
+        XCTAssertEqual(String(localized: OpenRecordingIntent.title), "Open LocalMinutes Recording")
+        XCTAssertEqual(String(localized: OpenMeetingsIntent.title), "Open LocalMinutes Meetings")
+        XCTAssertEqual(String(localized: OpenLatestMeetingIntent.title), "Open Last LocalMinutes Meeting")
+        let intents: [Any] = [OpenRecordingIntent(), OpenMeetingsIntent(), intent]
+        for value in intents {
+            XCTAssertFalse(value is any AudioRecordingIntent)
+            XCTAssertFalse(value is any LiveActivityIntent)
         }
-        XCTAssertFalse((intent as Any) is any AudioRecordingIntent)
-        XCTAssertFalse((intent as Any) is any LiveActivityIntent)
-        XCTAssertTrue(OpenLatestMeetingIntent.openAppWhenRun, "iOS18 compatibility must open the app")
-        if #available(iOS 26.0, *) {
-            let modes = OpenLatestMeetingIntent.supportedModes
-            XCTAssertTrue(modes.contains(.foreground(.immediate)))
-            XCTAssertFalse(modes.contains(.background))
-            XCTAssertFalse(modes.contains(.foreground(.dynamic)))
+        XCTAssertEqual(LocalMinutesShortcuts.appShortcuts.count, 3)
+    }
+
+    func testOpenRecordingAndMeetingsReplaceTheDetailRouteWithoutStartingRecording() async throws {
+        try await fixture { f in
+            let meeting = try await f.seed(id: UUID(), at: 10)
+            let before = await f.application.owner?.snapshot()
+            _ = try await OpenLatestMeetingIntent(application: f.application).perform()
+            XCTAssertEqual(f.application.meetingNavigation.request?.destination, .meeting(meeting.id))
+            let recording = try await OpenRecordingIntent(application: f.application).perform()
+            XCTAssertEqual(recording.value, "Opening recording controls.")
+            XCTAssertEqual(f.application.meetingNavigation.request?.destination, .recording)
+            let recordingID = try XCTUnwrap(f.application.meetingNavigation.request?.id)
+            let meetings = try await OpenMeetingsIntent(application: f.application).perform()
+            XCTAssertEqual(meetings.value, "Opening your meetings.")
+            XCTAssertEqual(f.application.meetingNavigation.request?.destination, .meetings)
+            f.application.meetingNavigation.consumeRequest(recordingID)
+            XCTAssertEqual(f.application.meetingNavigation.request?.destination, .meetings,
+                           "A delayed view callback cannot consume a newer shortcut")
+            let after = await f.application.owner?.snapshot()
+            XCTAssertEqual(after, before)
+            XCTAssertNil(f.application.lastOutcome)
+            let unchanged = try await f.services.store.meeting(id: meeting.id)
+            XCTAssertEqual(unchanged, meeting)
         }
-        XCTAssertEqual(LocalMinutesShortcuts.appShortcuts.count, 4)
+    }
+
+    func testNavigationStillWorksWhenPersistentServicesAreUnavailable() async throws {
+        let app = RecordingApplication(services: nil)
+        _ = try await OpenRecordingIntent(application: app).perform()
+        XCTAssertEqual(app.meetingNavigation.request?.destination, .recording)
+        _ = try await OpenMeetingsIntent(application: app).perform()
+        XCTAssertEqual(app.meetingNavigation.request?.destination, .meetings)
+        let last = try await OpenLatestMeetingIntent(application: app).perform()
+        XCTAssertEqual(last.value, "Saved meetings are not available.")
+        XCTAssertEqual(app.meetingNavigation.request?.destination, .meetings)
+        let state = await app.owner?.snapshot()
+        XCTAssertEqual(state?.phase, .idle)
+        XCTAssertNil(state?.sessionID)
+        XCTAssertNil(app.lastOutcome)
+    }
+
+    func testLateLatestLookupCannotReplaceANewerNavigationRequest() async throws {
+        for closeStore in [false, true] {
+            try await fixture { f in
+                _ = try await f.seed(id: UUID(), at: 10)
+                let boundary = LatestIntentStartBoundary()
+                let router = MeetingNavigationRouter(store: f.services.store, beforeLatestRead: {
+                    await boundary.wait()
+                })
+                let pending = Task { try await router.openLatest() }
+                defer { pending.cancel(); boundary.release() }
+                let deadline = ContinuousClock.now.advanced(by: .seconds(2))
+                while !boundary.isWaiting && ContinuousClock.now < deadline {
+                    try await Task.sleep(for: .milliseconds(1))
+                }
+                XCTAssertTrue(boundary.isWaiting)
+                guard boundary.isWaiting else {
+                    pending.cancel(); boundary.release(); _ = try? await pending.value
+                    return
+                }
+                if closeStore {
+                    try await f.services.store.close()
+                    f.closed = true
+                    router.openMeetings()
+                } else {
+                    router.openRecording()
+                }
+                let newer = router.request
+                boundary.release()
+                let outcome = try await pending.value
+                XCTAssertEqual(outcome, .superseded)
+                XCTAssertEqual(router.request, newer,
+                               "Neither an old successful read nor an old failure may replace a newer destination")
+            }
+        }
     }
 
     private func fixture(_ body: @MainActor (LatestIntentFixture) async throws -> Void) async throws {
@@ -182,6 +265,7 @@ private final class LatestIntentFixture {
 private final class LatestIntentStartBoundary {
     private var continuation: CheckedContinuation<Void, Never>?
     private var released = false
+    var isWaiting: Bool { continuation != nil }
     func wait() async {
         guard !released else { return }
         await withCheckedContinuation { continuation = $0 }

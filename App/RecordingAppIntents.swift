@@ -2,18 +2,18 @@
 import AppIntents
 import Foundation
 
-// Actual recording controls share the application-held resource owner. Public
-// results describe its facts, never the success of locked or physical dispatch.
-struct StartMeetingIntent: AudioRecordingIntent, LiveActivityIntent {
-    static var title: LocalizedStringResource { "Start LocalMinutes Recording" }
+/// Action Button shortcuts only navigate. The visible Record button owns the
+/// explicit user action that starts microphone capture.
+struct OpenRecordingIntent: AppIntent {
+    static var title: LocalizedStringResource { "Open LocalMinutes Recording" }
     static var description: IntentDescription {
-        IntentDescription("Start a meeting in the background when microphone access and the speech model are ready.")
+        IntentDescription("Open the Record screen. Tap Record in the app to start recording.")
     }
     static var isDiscoverable: Bool { true }
-    static var authenticationPolicy: IntentAuthenticationPolicy { .alwaysAllowed }
+    static var authenticationPolicy: IntentAuthenticationPolicy { .requiresLocalDeviceAuthentication }
 
     @available(iOS 26.0, *)
-    static var supportedModes: IntentModes { .background }
+    static var supportedModes: IntentModes { [.foreground(.immediate)] }
 
     private var injectedApplication: RecordingApplication?
     init() { injectedApplication = nil }
@@ -21,18 +21,20 @@ struct StartMeetingIntent: AudioRecordingIntent, LiveActivityIntent {
     @MainActor var application: RecordingApplication { injectedApplication ?? .shared }
 
     @MainActor
-    func perform() async throws -> RecordingNativeResult {
-        try await RecordingIntentReplies.perform(.start(UUID()), application: application)
+    func perform() async throws -> MeetingNavigationIntentResult {
+        try Task.checkCancellation()
+        application.meetingNavigation.openRecording()
+        return .result(value: "Opening recording controls.", dialog: IntentDialog("Opening recording controls."))
     }
 }
 
-struct StopMeetingIntent: AudioRecordingIntent, LiveActivityIntent {
-    static var title: LocalizedStringResource { "Stop LocalMinutes Recording" }
+struct OpenMeetingsIntent: AppIntent {
+    static var title: LocalizedStringResource { "Open LocalMinutes Meetings" }
     static var isDiscoverable: Bool { true }
-    static var authenticationPolicy: IntentAuthenticationPolicy { .alwaysAllowed }
+    static var authenticationPolicy: IntentAuthenticationPolicy { .requiresLocalDeviceAuthentication }
 
     @available(iOS 26.0, *)
-    static var supportedModes: IntentModes { .background }
+    static var supportedModes: IntentModes { [.foreground(.immediate)] }
 
     private var injectedApplication: RecordingApplication?
     init() { injectedApplication = nil }
@@ -40,60 +42,34 @@ struct StopMeetingIntent: AudioRecordingIntent, LiveActivityIntent {
     @MainActor var application: RecordingApplication { injectedApplication ?? .shared }
 
     @MainActor
-    func perform() async throws -> RecordingNativeResult {
-        try await RecordingIntentReplies.perform(.stop(expectedSessionID: nil),
-                                                  application: application)
+    func perform() async throws -> MeetingNavigationIntentResult {
+        try Task.checkCancellation()
+        application.meetingNavigation.openMeetings()
+        return .result(value: "Opening your meetings.", dialog: IntentDialog("Opening your meetings."))
     }
 }
 
-struct ToggleMeetingIntent: AudioRecordingIntent, LiveActivityIntent {
-    static var title: LocalizedStringResource { "Toggle LocalMinutes Recording" }
-    static var isDiscoverable: Bool { true }
-    static var authenticationPolicy: IntentAuthenticationPolicy { .alwaysAllowed }
-
-    @available(iOS 26.0, *)
-    static var supportedModes: IntentModes { .background }
-
-    private var injectedApplication: RecordingApplication?
-    init() { injectedApplication = nil }
-    init(application: RecordingApplication) { injectedApplication = application }
-    @MainActor var application: RecordingApplication { injectedApplication ?? .shared }
-
-    @MainActor
-    func perform() async throws -> RecordingNativeResult {
-        try await RecordingIntentReplies.perform(.toggle(UUID()), application: application)
-    }
-}
-
-// Earlier iOS versions also keep every recording action in the background.
-// Only the separate Open Latest Meeting shortcut presents the application.
+// Earlier OS versions use openAppWhenRun; iOS 26+ uses supportedModes.
 @available(*, deprecated)
-extension StartMeetingIntent {
-    static var openAppWhenRun: Bool { false }
+extension OpenRecordingIntent {
+    static var openAppWhenRun: Bool { true }
 }
 @available(*, deprecated)
-extension StopMeetingIntent {
-    static var openAppWhenRun: Bool { false }
-}
-@available(*, deprecated)
-extension ToggleMeetingIntent {
-    static var openAppWhenRun: Bool { false }
+extension OpenMeetingsIntent {
+    static var openAppWhenRun: Bool { true }
 }
 
 struct LocalMinutesShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
-        AppShortcut(intent: StartMeetingIntent(),
-                    phrases: ["Start recording with \(.applicationName)"],
-                    shortTitle: "Start Recording", systemImageName: "mic.fill")
-        AppShortcut(intent: StopMeetingIntent(),
-                    phrases: ["Stop recording with \(.applicationName)"],
-                    shortTitle: "Stop Recording", systemImageName: "stop.fill")
-        AppShortcut(intent: ToggleMeetingIntent(),
-                    phrases: ["Toggle recording with \(.applicationName)"],
-                    shortTitle: "Toggle Recording", systemImageName: "record.circle")
+        AppShortcut(intent: OpenRecordingIntent(),
+                    phrases: ["Open recording in \(.applicationName)"],
+                    shortTitle: "Open Recording", systemImageName: "mic")
+        AppShortcut(intent: OpenMeetingsIntent(),
+                    phrases: ["Open meetings in \(.applicationName)"],
+                    shortTitle: "Open Meetings", systemImageName: "text.book.closed")
         AppShortcut(intent: OpenLatestMeetingIntent(),
-                    phrases: ["Open latest meeting with \(.applicationName)"],
-                    shortTitle: "Open Latest Meeting", systemImageName: "text.book.closed")
+                    phrases: ["Open last meeting in \(.applicationName)"],
+                    shortTitle: "Open Last Meeting", systemImageName: "clock")
     }
 }
 #endif

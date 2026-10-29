@@ -11,6 +11,7 @@ struct RecordingControlsView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ScaledMetric(relativeTo: .title) private var timerSize: CGFloat = 36
     @State private var snapshot: RecordingSnapshot?
+    @State private var captureDiagnostic: CaptureFailureDiagnostic?
     @State private var progress: RecordingProgress?
     @State private var isStarting = false
     @State private var isStopping = false
@@ -155,12 +156,13 @@ struct RecordingControlsView: View {
             if stopping {
                 MinutesProgress(title: "Finishing recording", detail: "Waiting for audio cleanup.")
                 if let failure = snapshot?.failure {
-                    MinutesMessage(text: String(localized: RecordingIntentReplies.message(for: .blocked(failure))), isError: true)
+                    MinutesMessage(text: String(localized: RecordingIntentReplies.message(for: .blocked(failure), diagnostic: captureDiagnostic)), isError: true)
+                    if failure == .captureUnavailable { captureErrorDetails }
                 }
             } else if snapshot?.phase == .recording {
                 activeRecording
             } else if preparing {
-                MinutesProgress(title: "Getting ready", detail: "Preparing the microphone and speech model.")
+                MinutesProgress(title: "Getting ready", detail: "Preparing the microphone and speech model. Keep the app open until Recording appears; then you can lock your iPhone.")
             } else if let failure = snapshot?.failure, failure != .modelUnavailable {
                 failureView(failure)
             } else if application.services == nil {
@@ -300,7 +302,8 @@ struct RecordingControlsView: View {
         MinutesEmptyState(title: failure == .microphoneDenied ? "Microphone is off" : "Recording needs attention",
             symbol: failure == .microphoneDenied ? "mic.slash" : "exclamationmark.circle",
             detail: failure == .storageFull ? "Free up space on this iPhone, then try again." :
-                String(localized: RecordingIntentReplies.message(for: .blocked(failure))))
+                String(localized: RecordingIntentReplies.message(for: .blocked(failure), diagnostic: captureDiagnostic)))
+        if failure == .captureUnavailable { captureErrorDetails }
         if failure == .microphoneDenied || failure == .activityUnavailable {
             Button("Review recording permissions") { showingPermissions = true }
                 .buttonStyle(MinutesButtonStyle())
@@ -308,6 +311,19 @@ struct RecordingControlsView: View {
         Button("Try again") { Task { await start() } }.buttonStyle(MinutesButtonStyle(kind: .secondary))
         if let id = snapshot?.sessionID {
             Button("Review saved meeting") { openMeeting(id) }.frame(minHeight: 44)
+        }
+    }
+
+    @ViewBuilder private var captureErrorDetails: some View {
+        if let diagnostic = captureDiagnostic {
+            DisclosureGroup("Recording error details") {
+                Text("Step: \(diagnostic.stage.rawValue)\n\(diagnostic.errorDomain) (\(String(diagnostic.errorCode)))")
+                    .font(.footnote).foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 8)
+            }
+            .accessibilityIdentifier("recording.errorDetails")
         }
     }
 
@@ -325,6 +341,7 @@ struct RecordingControlsView: View {
         let latest = await owner.snapshot()
         guard !Task.isCancelled else { return }
         snapshot = latest
+        captureDiagnostic = latest.sessionID.flatMap { owner.captureFailureDiagnostic(for: $0) }
         let recorder = application.services?.metrics
         progress = RecordingProgressPresenter.make(recording: latest,
             firstAudioQueuedAtNanoseconds: recorder?.firstAudioQueuedAtNanoseconds,

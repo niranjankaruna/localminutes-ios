@@ -129,6 +129,7 @@ private final class OwnerTestHardware: CaptureHardware {
     private(set) var stopCalls = 0
     private(set) var deactivateCalls = 0
     var activationFailures = 0
+    var activationError: any Error = OwnerTestError.hardwareFailure
     var deactivationFailures = 0
 
     init(probe: OwnerTestProbe, rate: Double, channels: AVAudioChannelCount) throws {
@@ -142,7 +143,7 @@ private final class OwnerTestHardware: CaptureHardware {
         probe.trace.append("audio.activate")
         if activationFailures > 0 {
             activationFailures -= 1
-            throw OwnerTestError.hardwareFailure
+            throw activationError
         }
         sessionActive = true
     }
@@ -1195,7 +1196,24 @@ extension RecordingSessionOwnerTests {
 #if os(iOS) && !SWIFT_PACKAGE
 import AppIntents
 
-// App-hosted intent tests reuse the recording harness and compile only on iOS.
+// App-hosted recording and scoped Live Activity tests reuse the real owner harness.
+// Start/toggle calls below exercise application orchestration, not public shortcuts.
+
+/// Only a test caller of the application API. This is not an AppIntent and
+/// cannot be selected in Shortcuts or assigned to the Action Button.
+@MainActor
+private func appRecordingAction(_ action: RecordingIntentAction,
+                                application: RecordingApplication) async throws -> RecordingNativeResult {
+    try Task.checkCancellation()
+    let outcome = try await application.perform(action, allowForegroundContinuation: false)
+    let diagnostic: CaptureFailureDiagnostic?
+    switch action {
+    case .start(let id), .toggle(let id):
+        diagnostic = application.owner?.captureFailureDiagnostic(for: id)
+    case .stop: diagnostic = nil
+    }
+    return RecordingIntentReplies.result(for: outcome, diagnostic: diagnostic)
+}
 
 @MainActor
 private final class NativeIntentCall {
@@ -1227,15 +1245,12 @@ extension RecordingSessionOwnerTests {
         return result
     }
 
-    func testNativeDefaultRootAndIntentsShareApplicationAndMissingModelIsBlocked() async throws {
+    func testNativeDefaultRootSharesApplicationAndMissingModelIsBlocked() async throws {
         let shared = RecordingApplication.shared
         let root = LocalMinutesApp()
         XCTAssertTrue(root.application === shared)
-        XCTAssertTrue(StartMeetingIntent().application === shared)
-        XCTAssertTrue(StopMeetingIntent().application === shared)
-        XCTAssertTrue(ToggleMeetingIntent().application === shared)
         XCTAssertNotNil(shared.owner, "The production default must own the real resource composition")
-        let call = try await nativeCall { try await StartMeetingIntent().perform() }
+        let call = try await nativeCall { try await appRecordingAction(.start(UUID()), application: shared) }
         XCTAssertNil(call.error, "Model unavailability is a truthful blocked result, not recording success")
         XCTAssertEqual(call.reply?.value, "A verified speech model is required before recording.")
         XCTAssertNotNil(call.reply?.dialog)
@@ -1252,13 +1267,11 @@ extension RecordingSessionOwnerTests {
         }
     }
 
-    func testNativeStartUsesInjectedRealOwnerAndWaitsForActualBufferReadiness() async throws {
+    func testAppStartUsesInjectedRealOwnerAndWaitsForActualBufferReadiness() async throws {
         try await withHarness { h in
             let app = RecordingApplication(owner: h.owner)
-            let intent = StartMeetingIntent(application: app)
-            XCTAssertTrue(intent.application === app)
             XCTAssertTrue(app.owner === h.owner)
-            let call = try await nativeCall { try await intent.perform() }
+            let call = try await nativeCall { try await appRecordingAction(.start(UUID()), application: app) }
             XCTAssertNil(call.error)
             XCTAssertEqual(call.reply?.value, "Preparing recording.")
             XCTAssertNotNil(call.reply?.dialog)
@@ -1267,7 +1280,7 @@ extension RecordingSessionOwnerTests {
             XCTAssertEqual(before.phase, .preparing)
             XCTAssertFalse(before.readiness.firstBufferAccepted)
             guard let sessionID = before.sessionID else {
-                XCTFail("The actual native intent must admit a real owner epoch")
+                XCTFail("The app recording action must admit a real owner epoch")
                 return
             }
             XCTAssertEqual(h.preparation.requests, [sessionID])
@@ -1276,7 +1289,7 @@ extension RecordingSessionOwnerTests {
             let recorded = await ownerEventually { await h.owner.snapshot().phase == .recording }
             XCTAssertTrue(recorded)
             let duplicate = try await nativeCall {
-                try await StartMeetingIntent(application: app).perform()
+                try await appRecordingAction(.start(UUID()), application: app)
             }
             XCTAssertNil(duplicate.error)
             XCTAssertEqual(duplicate.reply?.value, "Recording is active.")
@@ -1297,7 +1310,7 @@ extension RecordingSessionOwnerTests {
             try await recordOneBuffer(h)
             let app = RecordingApplication(owner: h.owner)
             let call = try await nativeCall {
-                try await StopMeetingIntent(application: app).perform()
+                try await appRecordingAction(.stop(expectedSessionID: nil), application: app)
             }
             XCTAssertNil(call.error)
             XCTAssertEqual(call.reply?.value, "Recording saved.")
@@ -1326,7 +1339,7 @@ extension RecordingSessionOwnerTests {
             try await recordOneBuffer(h)
             let app = RecordingApplication(owner: h.owner)
             let stopped = try await nativeCall {
-                try await ToggleMeetingIntent(application: app).perform()
+                try await appRecordingAction(.toggle(UUID()), application: app)
             }
             XCTAssertNil(stopped.error)
             XCTAssertEqual(stopped.reply?.value, "Recording saved.")
@@ -1337,7 +1350,7 @@ extension RecordingSessionOwnerTests {
             XCTAssertFalse(completed.cleanupPending)
             h.preparation.result = .ready(directory: h.root.appendingPathComponent("native-toggle"))
             let starting = try await nativeCall {
-                try await ToggleMeetingIntent(application: app).perform()
+                try await appRecordingAction(.toggle(UUID()), application: app)
             }
             XCTAssertNil(starting.error)
             XCTAssertEqual(starting.reply?.value, "Preparing recording.")
@@ -1412,7 +1425,7 @@ extension RecordingSessionOwnerTests {
             foreground.shouldReject = false
             let app = RecordingApplication(owner: h.owner, foreground: foreground)
             let first = try await nativeCall {
-                try await StopMeetingIntent(application: app).perform()
+                try await appRecordingAction(.stop(expectedSessionID: nil), application: app)
             }
             XCTAssertNil(first.error)
             XCTAssertEqual(first.reply?.value, "Stopping is still pending. Open LocalMinutes.")
@@ -1426,7 +1439,7 @@ extension RecordingSessionOwnerTests {
             XCTAssertTrue(foreground.requests.isEmpty)
             h.activity.handles[0].endOutcome = .applied
             let retried = try await nativeCall {
-                try await StopMeetingIntent(application: app).perform()
+                try await appRecordingAction(.stop(expectedSessionID: nil), application: app)
             }
             XCTAssertNil(retried.error)
             XCTAssertEqual(retried.reply?.value,
@@ -1444,20 +1457,18 @@ extension RecordingSessionOwnerTests {
         }
     }
 
-    func testBackgroundStartReportsDeniedCaptureWithoutRequestingForeground() async throws {
+    func testAppStartReportsDeniedCaptureWithoutRequestingForeground() async throws {
         try await withHarness { h in
             h.permission.granted = false
             let foreground = NativeIntentForeground()
             let app = RecordingApplication(owner: h.owner, foreground: foreground)
             let call = try await nativeCall {
-                try await StartMeetingIntent(application: app).perform()
+                try await appRecordingAction(.start(UUID()), application: app)
             }
             XCTAssertNil(call.error)
             XCTAssertEqual(call.reply?.value,
                            String(localized: RecordingIntentReplies.message(for: .requiresForeground(.microphoneDenied))))
             XCTAssertEqual(app.lastOutcome, .requiresForeground(.microphoneDenied))
-            XCTAssertNotNil(app.recordingNavigationRequestID,
-                            "Keep the Record destination even when iOS cannot open the app")
             XCTAssertTrue(foreground.requests.isEmpty, "A setup failure must not automatically open LocalMinutes")
             let state = await h.owner.snapshot()
             XCTAssertEqual(state.phase, .failed)
@@ -1509,7 +1520,7 @@ extension RecordingSessionOwnerTests {
         }
     }
 
-    func testBackgroundStartAndToggleReportActivityAndAudioFailuresWithoutOpeningTheApp() async throws {
+    func testAppStartAndToggleReportActivityAndAudioFailuresWithoutForegroundHandoff() async throws {
         for failure in [RecordingFailure.activityUnavailable, .captureUnavailable] {
             for toggle in [false, true] {
                 try await withHarness { h in
@@ -1518,8 +1529,8 @@ extension RecordingSessionOwnerTests {
                     let foreground = NativeIntentForeground()
                     let app = RecordingApplication(owner: h.owner, foreground: foreground)
                     let call = try await nativeCall {
-                        if toggle { return try await ToggleMeetingIntent(application: app).perform() }
-                        return try await StartMeetingIntent(application: app).perform()
+                        if toggle { return try await appRecordingAction(.toggle(UUID()), application: app) }
+                        return try await appRecordingAction(.start(UUID()), application: app)
                     }
                     XCTAssertNil(call.error)
                     XCTAssertEqual(call.reply?.value,
@@ -1535,29 +1546,80 @@ extension RecordingSessionOwnerTests {
         }
     }
 
-    func testNativeSDKConformancesAndThreeDiscoverableShortcutsArePresent() async throws {
-        func acceptsRecordingAndActivity<I: AudioRecordingIntent & LiveActivityIntent>(_: I.Type) {}
-        acceptsRecordingAndActivity(StartMeetingIntent.self)
-        acceptsRecordingAndActivity(StopMeetingIntent.self)
-        acceptsRecordingAndActivity(ToggleMeetingIntent.self)
-        acceptsRecordingAndActivity(StopRecordingActivityIntent.self)
-        XCTAssertTrue(StartMeetingIntent.isDiscoverable)
-        XCTAssertTrue(StopMeetingIntent.isDiscoverable)
-        XCTAssertTrue(ToggleMeetingIntent.isDiscoverable)
-        // Preserve the original three recording controls and require the
-        // separately authenticated fourth navigation action as well.
-        XCTAssertTrue(OpenLatestMeetingIntent.isDiscoverable)
-        XCTAssertEqual(String(localized: OpenLatestMeetingIntent.title), "Open Latest LocalMinutes Meeting")
-        XCTAssertFalse(StopRecordingActivityIntent.isDiscoverable)
-        XCTAssertEqual(LocalMinutesShortcuts.appShortcuts.count, 4)
-        XCTAssertFalse(StartMeetingIntent.openAppWhenRun)
-        XCTAssertFalse(StopMeetingIntent.openAppWhenRun)
-        XCTAssertFalse(ToggleMeetingIntent.openAppWhenRun)
-        if #available(iOS 26.0, *) {
-            for modes in [StartMeetingIntent.supportedModes, StopMeetingIntent.supportedModes,
-                          ToggleMeetingIntent.supportedModes] {
-                XCTAssertEqual(modes, .background, "Recording actions must never request a foreground launch")
+    func testAppStartAndTogglePreserveIOSRejectionWithoutForegroundHandoff() async throws {
+        for toggle in [false, true] {
+            try await withHarness { h in
+                h.hardware.activationFailures = 1
+                let code = Int(AVAudioSession.ErrorCode.cannotStartRecording.rawValue)
+                h.hardware.activationError = NSError(domain: NSOSStatusErrorDomain, code: code)
+                let foreground = NativeIntentForeground()
+                let app = RecordingApplication(owner: h.owner, foreground: foreground)
+                let call = try await nativeCall {
+                    if toggle { return try await appRecordingAction(.toggle(UUID()), application: app) }
+                    return try await appRecordingAction(.start(UUID()), application: app)
+                }
+                XCTAssertNil(call.error)
+                XCTAssertTrue(try XCTUnwrap(call.reply?.value).contains("iOS did not allow"))
+                XCTAssertTrue(foreground.requests.isEmpty)
+                let state = await h.owner.snapshot()
+                let id = try XCTUnwrap(state.sessionID)
+                let diagnostic = try XCTUnwrap(h.owner.captureFailureDiagnostic(for: id))
+                XCTAssertEqual(diagnostic.stage, .sessionActivation)
+                XCTAssertEqual(diagnostic.errorDomain, NSOSStatusErrorDomain)
+                XCTAssertEqual(diagnostic.errorCode, code)
+                XCTAssertFalse(state.cleanupPending)
+                XCTAssertFalse(state.readiness.audioSessionActive)
+                XCTAssertFalse(h.hardware.engineRunning)
+                XCTAssertNil(h.owner.completedManifest)
+                XCTAssertNil(h.owner.captureFailureDiagnostic(for: UUID()),
+                             "A different recording must not display this attempt's OS error")
+
+                // A model failure never reaches capture. Its UI must not borrow
+                // the retained hardware diagnostic from the previous attempt.
+                h.preparation.result = .rejected(.modelUnavailable)
+                let replacement = UUID()
+                _ = try await app.perform(.start(replacement), allowForegroundContinuation: false)
+                let next = await h.owner.snapshot()
+                XCTAssertEqual(next.sessionID, replacement)
+                XCTAssertEqual(next.failure, .modelUnavailable)
+                XCTAssertNil(h.owner.captureFailureDiagnostic(for: replacement))
             }
+        }
+    }
+
+    func testOnlyScopedActivityStopRemainsARecordingIntent() {
+        func acceptsRecordingAndActivity<I: AudioRecordingIntent & LiveActivityIntent>(_: I.Type) {}
+        acceptsRecordingAndActivity(StopRecordingActivityIntent.self)
+        XCTAssertFalse(StopRecordingActivityIntent.isDiscoverable)
+        XCTAssertFalse(StopRecordingActivityIntent.openAppWhenRun)
+        if #available(iOS 26.0, *) {
+            XCTAssertEqual(StopRecordingActivityIntent.supportedModes, .background)
+        }
+    }
+
+    func testNavigationAndBackgroundSceneChangesLeaveStartedRecordingRunning() async throws {
+        try await withHarness { h in
+            try await recordOneBuffer(h)
+            let app = RecordingApplication(owner: h.owner)
+            let before = await h.owner.snapshot()
+            _ = try await OpenRecordingIntent(application: app).perform()
+            _ = try await OpenMeetingsIntent(application: app).perform()
+            _ = try await OpenLatestMeetingIntent(application: app).perform()
+            try app.recordScenePhase(.inactive)
+            try app.recordScenePhase(.background)
+            let background = await h.owner.snapshot()
+            XCTAssertEqual(background, before)
+            XCTAssertNil(app.lastOutcome, "Navigation and lock transitions must not dispatch a recording command")
+            XCTAssertTrue(h.hardware.engineRunning)
+            XCTAssertTrue(h.hardware.sessionActive)
+            XCTAssertEqual(h.hardware.startCalls, 1)
+            XCTAssertEqual(h.hardware.stopCalls, 0)
+            // Continue actual PCM conversion/persistence after the lifecycle
+            // transition. This does not simulate physical iPhone suspension.
+            try h.hardware.emit(signal(h), sampleTime: 40_064)
+            try await complete { await h.owner.stop() }
+            let manifest = try XCTUnwrap(h.owner.completedManifest)
+            XCTAssertEqual(manifest.totalFrames, 128)
         }
     }
 
@@ -1569,7 +1631,7 @@ extension RecordingSessionOwnerTests {
             let app = RecordingApplication(owner: h.owner)
             let first = NativeIntentCall()
             let firstTask = Task {
-                do { first.reply = try await ToggleMeetingIntent(application: app).perform() }
+                do { first.reply = try await appRecordingAction(.toggle(UUID()), application: app) }
                 catch { first.error = error }
             }
             let held = await ownerEventually { h.activity.handles[0].endIsWaiting }
@@ -1579,7 +1641,7 @@ extension RecordingSessionOwnerTests {
             let secondProbe = OwnerTestProbe()
             let secondTask = Task {
                 secondProbe.started = true
-                do { second.reply = try await ToggleMeetingIntent(application: app).perform() }
+                do { second.reply = try await appRecordingAction(.toggle(UUID()), application: app) }
                 catch { second.error = error }
             }
             let entered = await ownerEventually { secondProbe.started }
@@ -1598,7 +1660,7 @@ extension RecordingSessionOwnerTests {
             XCTAssertEqual(h.activity.handles[0].endCalls, 1)
             h.preparation.result = .ready(directory: h.root.appendingPathComponent("later-native-toggle"))
             let later = try await nativeCall {
-                try await ToggleMeetingIntent(application: app).perform()
+                try await appRecordingAction(.toggle(UUID()), application: app)
             }
             XCTAssertNil(later.error)
             XCTAssertEqual(later.reply?.value, "Preparing recording.")
@@ -1616,9 +1678,9 @@ extension RecordingSessionOwnerTests {
                 let task = Task {
                     do {
                         if useToggle {
-                            call.reply = try await ToggleMeetingIntent(application: app).perform()
+                            call.reply = try await appRecordingAction(.toggle(UUID()), application: app)
                         } else {
-                            call.reply = try await StartMeetingIntent(application: app).perform()
+                            call.reply = try await appRecordingAction(.start(UUID()), application: app)
                         }
                     } catch { call.error = error }
                 }
@@ -1650,7 +1712,7 @@ extension RecordingSessionOwnerTests {
             let app = RecordingApplication(owner: h.owner)
             let first = NativeIntentCall()
             let firstTask = Task {
-                do { first.reply = try await ToggleMeetingIntent(application: app).perform() }
+                do { first.reply = try await appRecordingAction(.toggle(UUID()), application: app) }
                 catch { first.error = error }
             }
             let held = await ownerEventually { h.preparation.isWaiting }
@@ -1658,7 +1720,7 @@ extension RecordingSessionOwnerTests {
             guard held else { firstTask.cancel(); return }
             let second = NativeIntentCall()
             let secondTask = Task {
-                do { second.reply = try await ToggleMeetingIntent(application: app).perform() }
+                do { second.reply = try await appRecordingAction(.toggle(UUID()), application: app) }
                 catch { second.error = error }
             }
             let cancelling = await ownerEventually { await h.owner.snapshot().cleanupPending }
@@ -1817,7 +1879,7 @@ extension RecordingSessionOwnerTests {
             let application = RecordingApplication(owner: h.owner, signalCenter: center)
             let result = NativeIntentCall()
             try await complete {
-                do { result.reply = try await StartMeetingIntent(application: application).perform() }
+                do { result.reply = try await appRecordingAction(.start(UUID()), application: application) }
                 catch { result.error = error }
             }
             XCTAssertNil(result.error)
@@ -1844,7 +1906,7 @@ extension RecordingSessionOwnerTests {
             XCTAssertNotNil(data)
             if let data {
                 let manifest = try JSONDecoder().decode(AudioCaptureManifest.self, from: data)
-                // StartMeetingIntent allocates its own epoch UUID.
+                // The app recording action allocates its own epoch UUID.
                 XCTAssertEqual(manifest.sessionID, state.sessionID)
                 XCTAssertEqual(manifest.totalFrames, 64)
                 XCTAssertEqual(try decode(manifest, directory: h.directory).count, 64)

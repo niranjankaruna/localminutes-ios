@@ -38,12 +38,11 @@ final class RecordingApplication {
     private(set) var owner: RecordingSessionOwner?
     let foreground: (any RecordingForegroundContinuation)?
     private(set) var services: LocalMinutesServices?
-    private(set) var meetingNavigation: MeetingNavigationRouter?
+    private(set) var meetingNavigation: MeetingNavigationRouter
     private(set) var playbackOwnership: PlaybackOwnershipController?
     private(set) var isRestoringLibrary = false
     @ObservationIgnored private var libraryPlaybackReservation: (controller: PlaybackOwnershipController, id: UUID)?
     private(set) var lastOutcome: RecordingIntentOutcome?
-    private(set) var recordingNavigationRequestID: UUID?
     private var router: RecordingIntentRouter
     @ObservationIgnored private var signalMonitor: IOSRecordingSignalMonitor
     @ObservationIgnored
@@ -67,7 +66,7 @@ final class RecordingApplication {
             usageAdmission: services?.recordingAdmission
         )
         self.services = services
-        meetingNavigation = services.map { MeetingNavigationRouter(store: $0.store) }
+        meetingNavigation = MeetingNavigationRouter(store: services?.store)
         if let services {
             playbackOwnership = PlaybackOwnershipController(owner: owner, hardware: services)
         } else {
@@ -87,7 +86,7 @@ final class RecordingApplication {
          playbackOwnership: PlaybackOwnershipController? = nil,
          signalCenter: NotificationCenter? = nil) {
         services = nil
-        meetingNavigation = nil
+        meetingNavigation = MeetingNavigationRouter(store: nil)
         self.playbackOwnership = playbackOwnership
         self.owner = owner
         router = RecordingIntentRouter(owner: owner)
@@ -98,13 +97,6 @@ final class RecordingApplication {
     }
 
     func flushSignals() async { await signalMonitor.flush() }
-
-    func requestRecordingNavigation() { recordingNavigationRequestID = UUID() }
-
-    func consumeRecordingNavigationRequest(_ id: UUID) {
-        guard recordingNavigationRequestID == id else { return }
-        recordingNavigationRequestID = nil
-    }
 
     func recordScenePhase(_ scenePhase: ScenePhase) throws {
         let visibility: MetricsVisibility
@@ -302,7 +294,6 @@ final class RecordingApplication {
         router = replacement.router
         signalMonitor = replacement.signalMonitor
         toggleOperation = nil; preparationStop = nil; lastOutcome = nil
-        recordingNavigationRequestID = nil
     }
 }
 #endif

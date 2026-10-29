@@ -55,10 +55,16 @@ enum LibraryUITestFixture {
                 try PersistentFilePolicy.writeAtomically(Data(token.uuidString.utf8), to: marker, within: root)
             }
             let application = RecordingApplication(services: services)
+            if ProcessInfo.processInfo.arguments.contains("--ui-test-last-meeting-shortcut")
+                || ProcessInfo.processInfo.arguments.contains("--ui-test-meetings-shortcut") {
+                _ = try await OpenLatestMeetingIntent(application: application).perform()
+            }
+            if ProcessInfo.processInfo.arguments.contains("--ui-test-meetings-shortcut") {
+                _ = try await OpenMeetingsIntent(application: application).perform()
+            }
             if ProcessInfo.processInfo.arguments.contains("--ui-test-recording-shortcut") {
-                // Exercise a cold intent before the root exists. The fixture
-                // has no speech model, so this never requests the microphone.
-                _ = try await StartMeetingIntent(application: application).perform()
+                // Exercise a cold navigation intent before the root exists.
+                _ = try await OpenRecordingIntent(application: application).perform()
             }
             return application
         } catch {

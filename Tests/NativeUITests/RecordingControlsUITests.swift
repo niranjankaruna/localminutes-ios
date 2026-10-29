@@ -3,7 +3,7 @@ import XCTest
 /// Simulator UI contract only; not physical microphone or locked-ASR evidence.
 @MainActor
 final class RecordingControlsUITests: XCTestCase {
-    func testColdStartShortcutOpensRecordAndOffersPermissionsWithoutASpeechModel() {
+    func testColdOpenRecordingShortcutOnlyOpensRecordAndOffersPermissionsWithoutASpeechModel() {
         let app = minutesLibraryApp(arguments: ["--ui-test-recording-shortcut"])
         app.launch(); defer { app.terminate() }
         XCTAssertTrue(minutesElement("recording.modelRequired", in: app).waitForExistence(timeout: 15))
@@ -23,6 +23,36 @@ final class RecordingControlsUITests: XCTestCase {
         guard minutesTap(minutesElement("settings.recordingPermissions", in: app), in: app) else { return }
         XCTAssertTrue(minutesElement("recording.permissions.microphone", in: app).waitForExistence(timeout: 5))
         XCTAssertTrue(minutesElement("recording.permissions.liveActivities", in: app).exists)
+        XCTAssertFalse(app.alerts.firstMatch.exists)
+    }
+
+    func testOpenLastMeetingShortcutSelectsNewestSavedMeetingWithoutRecording() {
+        let app = minutesLibraryApp(arguments: ["--ui-test-last-meeting-shortcut"])
+        app.launch(); defer { app.terminate() }
+        let summary = app.staticTexts["meeting.generatedSummary.content"]
+        XCTAssertTrue(summary.waitForExistence(timeout: 15))
+        minutesWaitForValue("Seeded Alpha generated summary.", summary)
+        XCTAssertTrue(app.tabBars.buttons["Meetings"].isSelected)
+        XCTAssertFalse(app.staticTexts["recording.active"].exists)
+        XCTAssertFalse(app.alerts.firstMatch.exists)
+    }
+
+    func testOpenMeetingsShortcutReplacesAPendingDetailRouteWithTheList() {
+        let app = minutesLibraryApp(arguments: ["--ui-test-meetings-shortcut"])
+        app.launch(); defer { app.terminate() }
+        XCTAssertTrue(minutesHistoryRow("UI Library Alpha", in: app).waitForExistence(timeout: 15))
+        XCTAssertTrue(minutesHistoryRow("UI Library Beta", in: app).exists)
+        XCTAssertTrue(app.tabBars.buttons["Meetings"].isSelected)
+        XCTAssertFalse(app.staticTexts["meeting.generatedSummary.content"].exists)
+        XCTAssertFalse(app.staticTexts["recording.active"].exists)
+    }
+
+    func testOpenLastMeetingWithEmptyLibraryShowsMeetingsWithoutRecording() {
+        let app = minutesLibraryApp(arguments: ["--ui-test-library-empty", "--ui-test-last-meeting-shortcut"])
+        app.launch(); defer { app.terminate() }
+        XCTAssertTrue(minutesElement("meeting.history.empty", in: app).waitForExistence(timeout: 15))
+        XCTAssertTrue(app.tabBars.buttons["Meetings"].isSelected)
+        XCTAssertFalse(app.staticTexts["recording.active"].exists)
         XCTAssertFalse(app.alerts.firstMatch.exists)
     }
 

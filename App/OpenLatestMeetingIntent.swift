@@ -7,7 +7,7 @@ typealias MeetingNavigationIntentResult = IntentResultContainer<String, Never, N
 /// Opening private history uses local authentication and foreground routing;
 /// it deliberately has no AudioRecordingIntent or LiveActivityIntent role.
 struct OpenLatestMeetingIntent: AppIntent {
-    static var title: LocalizedStringResource { "Open Latest LocalMinutes Meeting" }
+    static var title: LocalizedStringResource { "Open Last LocalMinutes Meeting" }
     static var isDiscoverable: Bool { true }
     static var authenticationPolicy: IntentAuthenticationPolicy { .requiresLocalDeviceAuthentication }
 
@@ -26,18 +26,20 @@ struct OpenLatestMeetingIntent: AppIntent {
     @MainActor
     func perform() async throws -> MeetingNavigationIntentResult {
         try Task.checkCancellation()
-        let outcome = try await (injectedRouter ?? application.meetingNavigation)?.openLatest() ?? .unavailable
+        let outcome = try await (injectedRouter ?? application.meetingNavigation).openLatest()
         try Task.checkCancellation()
         switch outcome {
         case .opened:
-            return .result(value: "Opening your latest meeting.",
-                           dialog: IntentDialog("Opening your latest meeting."))
+            return .result(value: "Opening your last meeting.",
+                           dialog: IntentDialog("Opening your last meeting."))
         case .emptyLibrary:
             return .result(value: "No saved meetings yet.",
                            dialog: IntentDialog("No saved meetings yet."))
         case .unavailable:
             return .result(value: "Saved meetings are not available.",
                            dialog: IntentDialog("Saved meetings are not available."))
+        case .superseded:
+            return .result(value: "Opening LocalMinutes.", dialog: IntentDialog("Opening LocalMinutes."))
         }
     }
 }

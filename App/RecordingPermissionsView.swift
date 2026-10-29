@@ -49,7 +49,7 @@ struct RecordingPermissionsView: View {
             } header: { Text("Recording status") }
 
             Section("Action Button & Shortcuts") {
-                Text("Allow microphone access and equip a speech model in Settings → Speech. Start, Stop, and Toggle Recording from the Action Button or Shortcuts run in the background. A Live Activity shows recording status. If an action cannot run, it reports the reason without opening LocalMinutes.")
+                Text("Choose Open Recording, Open Meetings, or Open Last Meeting for the Action Button or Shortcuts. These actions open the app without starting a recording. To record, allow microphone access, equip a speech model in Settings → Speech, then tap Record in the app. Once Recording appears, you can lock your iPhone and recording continues. The Live Activity shows recording status and lets you stop.")
                     .foregroundStyle(.secondary)
             }
         }

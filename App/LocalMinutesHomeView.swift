@@ -11,7 +11,6 @@ struct LocalMinutesHomeView: View {
     @State private var libraryActions: LibraryActionsController
     @State private var selectedTab: LocalMinutesTab = .meetings
     @State private var meetingPath: [UUID] = []
-    @State private var handledMeetingRequestID: UUID?
 
     init(application: RecordingApplication, privacy: RecordingPrivacyController? = nil) {
         self.application = application
@@ -63,22 +62,17 @@ struct LocalMinutesHomeView: View {
                 }
             }
             .task(id: application.services.map { ObjectIdentifier($0) }) { await application.services?.initialize() }
-            .onChange(of: application.meetingNavigation?.requestID, initial: true) { _, requestID in
+            .onChange(of: application.meetingNavigation.request, initial: true) { _, request in
                 #if DEBUG
                 if AppScreenshotFixture.scene != nil { return }
                 #endif
-                guard let requestID, let id = application.meetingNavigation?.requestedMeetingID else {
-                    meetingPath = []; handledMeetingRequestID = nil
-                    return
+                guard let request else { return }
+                switch request.destination {
+                case .recording: selectedTab = .record
+                case .meetings: meetingPath = []; selectedTab = .meetings
+                case .meeting(let id): meetingPath = [id]; selectedTab = .meetings
                 }
-                guard handledMeetingRequestID != requestID else { return }
-                handledMeetingRequestID = requestID
-                meetingPath = [id]; selectedTab = .meetings
-            }
-            .onChange(of: application.recordingNavigationRequestID, initial: true) { _, requestID in
-                guard let requestID else { return }
-                selectedTab = .record
-                application.consumeRecordingNavigationRequest(requestID)
+                application.meetingNavigation.consumeRequest(request.id)
             }
             .onChange(of: scenePhase) { _, phase in
                 do {
@@ -94,7 +88,6 @@ struct LocalMinutesHomeView: View {
             // A restore (including reopening the retained library on failure)
             // invalidates detail controllers tied to the previous SQLite store.
             meetingPath = []
-            handledMeetingRequestID = nil
             selectedTab = .meetings
         }
     }

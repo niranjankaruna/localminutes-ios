@@ -46,8 +46,9 @@ public final class IOSCaptureHardware: CaptureHardware {
         engine = AVAudioEngine()
     }
 
-    /// A nonmixable session cannot interrupt other apps from a background
-    /// intent. Capture only uses the input node; no playback is started here.
+    /// Keep input capture mixable with other apps' playback. The Record screen
+    /// starts the session; background audio keeps it running after screen lock.
+    /// Capture only uses the input node; no playback is started here.
     func configureSession() throws {
         guard !sessionActive else { throw IOSCaptureHardwareError.invalidState }
         try session.setCategory(.playAndRecord, mode: .measurement, options: [.mixWithOthers])

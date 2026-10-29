@@ -52,19 +52,22 @@ public struct CaptureRuntimeSnapshot: Sendable, Equatable {
     public let firstBufferAccepted: Bool
     public let cleanupPending: Bool
     public let failure: CaptureRuntimeFailure?
+    public let failureDiagnostic: CaptureFailureDiagnostic?
 
     public init(
         activeSessionID: UUID? = nil,
         audioSessionActive: Bool = false,
         firstBufferAccepted: Bool = false,
         cleanupPending: Bool = false,
-        failure: CaptureRuntimeFailure? = nil
+        failure: CaptureRuntimeFailure? = nil,
+        failureDiagnostic: CaptureFailureDiagnostic? = nil
     ) {
         self.activeSessionID = activeSessionID
         self.audioSessionActive = audioSessionActive
         self.firstBufferAccepted = firstBufferAccepted
         self.cleanupPending = cleanupPending
         self.failure = failure
+        self.failureDiagnostic = failureDiagnostic
     }
 }
 
@@ -117,6 +120,7 @@ public final class MicrophoneCaptureRuntime {
     private let normalizedSink: (any NormalizedCaptureSink)?
     private var current: CaptureRuntimeEpoch?
     private var lastFailure: CaptureRuntimeFailure?
+    private var lastFailureDiagnostic: CaptureFailureDiagnostic?
 
     public convenience init(
         permission: any CapturePermissionSource,
@@ -162,6 +166,7 @@ public final class MicrophoneCaptureRuntime {
         let epoch = CaptureRuntimeEpoch(id: sessionID)
         current = epoch
         lastFailure = nil
+        lastFailureDiagnostic = nil
         let granted = await permission.requestRecordPermission()
         guard current === epoch, !epoch.cleanupPending else { return }
         epoch.permissionPending = false
@@ -177,7 +182,7 @@ public final class MicrophoneCaptureRuntime {
         }
         do { try hardware.activateSession() }
         catch {
-            fail(epoch, .sessionUnavailable)
+            fail(epoch, .sessionUnavailable, stage: .sessionActivation, error: error)
             await stop(sessionID: sessionID)
             return
         }
@@ -192,7 +197,7 @@ public final class MicrophoneCaptureRuntime {
             context = try CaptureTapContext(input: input, configuration: configuration,
                                             afterAdmission: afterAdmission)
         } catch {
-            fail(epoch, .preparationRejected)
+            fail(epoch, .preparationRejected, stage: .inputPreparation, error: error)
             await stop(sessionID: sessionID)
             return
         }
@@ -217,12 +222,14 @@ public final class MicrophoneCaptureRuntime {
             await stop(sessionID: sessionID)
             return
         }
+        var stage = CaptureFailureDiagnostic.Stage.tapInstallation
         do {
             try hardware.installTap(context.makeHandler())
             epoch.tapInstalled = true
+            stage = .engineStart
             try hardware.startEngine()
         } catch {
-            fail(epoch, .captureUnavailable)
+            fail(epoch, .captureUnavailable, stage: stage, error: error)
             await stop(sessionID: sessionID)
             return
         }
@@ -267,6 +274,14 @@ public final class MicrophoneCaptureRuntime {
         onEvent(.failed(epoch.id, failure))
     }
 
+    private func fail(_ epoch: CaptureRuntimeEpoch, _ failure: CaptureRuntimeFailure,
+                      stage: CaptureFailureDiagnostic.Stage, error: any Error) {
+        // Preserve the original failure when subsequent cleanup also fails.
+        guard epoch.failure == nil else { return }
+        lastFailureDiagnostic = .init(sessionID: epoch.id, stage: stage, error: error)
+        fail(epoch, failure)
+    }
+
     private func publishFirstBuffer(_ epoch: CaptureRuntimeEpoch) {
         if !epoch.firstBufferAccepted, epoch.context?.firstBufferAccepted == true {
             epoch.firstBufferAccepted = true
@@ -305,7 +320,7 @@ public final class MicrophoneCaptureRuntime {
             } catch {
                 // Failed deactivation is not a cleanup acknowledgement. Keep
                 // resource state honest and allow an explicit retry later.
-                fail(epoch, .sessionUnavailable)
+                fail(epoch, .sessionUnavailable, stage: .sessionDeactivation, error: error)
                 epoch.stopping = nil
                 return
             }
@@ -322,6 +337,7 @@ public final class MicrophoneCaptureRuntime {
             audioSessionActive: current?.sessionActive ?? false,
             firstBufferAccepted: current?.firstBufferAccepted ?? false,
             cleanupPending: current?.cleanupPending ?? false,
-            failure: current?.failure ?? lastFailure)
+            failure: current?.failure ?? lastFailure,
+            failureDiagnostic: lastFailureDiagnostic)
     }
 }

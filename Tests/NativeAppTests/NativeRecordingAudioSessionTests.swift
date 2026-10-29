@@ -18,7 +18,7 @@ final class NativeRecordingAudioSessionTests: XCTestCase {
         XCTAssertEqual(session.category, .playAndRecord)
         XCTAssertEqual(session.mode, .measurement)
         XCTAssertTrue(session.categoryOptions.contains(.mixWithOthers),
-                      "A background start must not request permission to interrupt another app's audio")
+                      "Capture must not request permission to interrupt another app's audio")
         XCTAssertFalse(session.categoryOptions.contains(.duckOthers))
         XCTAssertFalse(session.categoryOptions.contains(.interruptSpokenAudioAndMixWithOthers))
     }

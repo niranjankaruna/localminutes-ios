@@ -1,5 +1,9 @@
 # Repository rules
 
+## User test device
+
+- iPhone 17 Pro running iOS 27.2 (user-reported).
+
 ## Branch policy
 
 - Work only on the `main` branch.

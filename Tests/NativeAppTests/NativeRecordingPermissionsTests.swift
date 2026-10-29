@@ -1,4 +1,5 @@
 import AppIntents
+import AVFoundation
 import Foundation
 import XCTest
 @testable import LocalMinutes
@@ -89,20 +90,54 @@ final class NativeRecordingPermissionsTests: XCTestCase {
         XCTAssertEqual(messages.count, failures.count)
     }
 
-    func testBlockedShortcutPublishesRecordNavigationAndAnOldConsumerCannotClearANewerRequest() async throws {
+    func testOpenRecordingNavigatesWithoutARecordAttemptAndAnOldConsumerCannotClearANewerRequest() async throws {
         let app = RecordingApplication(services: nil)
-        let reply = try await StartMeetingIntent(application: app).perform()
-        XCTAssertEqual(reply.value, "A verified speech model is required before recording.")
-        let first = try XCTUnwrap(app.recordingNavigationRequestID)
-        _ = try await StartMeetingIntent(application: app).perform()
-        let second = try XCTUnwrap(app.recordingNavigationRequestID)
+        let reply = try await OpenRecordingIntent(application: app).perform()
+        XCTAssertEqual(reply.value, "Opening recording controls.")
+        XCTAssertEqual(app.meetingNavigation.request?.destination, .recording)
+        let first = try XCTUnwrap(app.meetingNavigation.request?.id)
+        _ = try await OpenRecordingIntent(application: app).perform()
+        let second = try XCTUnwrap(app.meetingNavigation.request?.id)
         XCTAssertNotEqual(first, second)
-        app.consumeRecordingNavigationRequest(first)
-        XCTAssertEqual(app.recordingNavigationRequestID, second)
-        app.consumeRecordingNavigationRequest(second)
-        XCTAssertNil(app.recordingNavigationRequestID, "Consumed navigation must not override a later tab selection")
+        app.meetingNavigation.consumeRequest(first)
+        XCTAssertEqual(app.meetingNavigation.request?.id, second)
+        app.meetingNavigation.consumeRequest(second)
+        XCTAssertNil(app.meetingNavigation.request, "Consumed navigation must not override a later tab selection")
         let state = await app.owner?.snapshot()
-        XCTAssertEqual(state?.failure, .modelUnavailable)
+        XCTAssertEqual(state?.phase, .idle)
+        XCTAssertNil(state?.sessionID)
+        XCTAssertNil(state?.failure)
+        XCTAssertNil(app.lastOutcome)
         XCTAssertEqual(state?.readiness.audioSessionActive, false)
+    }
+
+    func testAudioRejectionMessagesUseTheNativeDomainCodeAndStage() {
+        let cases: [(AVAudioSession.ErrorCode, String)] = [
+            (.cannotStartRecording, "iOS did not allow"),
+            (.cannotStartPlaying, "iOS did not allow"),
+            (.cannotInterruptOthers, "iOS did not allow"),
+            (.insufficientPriority, "another audio session has priority"),
+            (.siriIsRecording, "another audio session has priority")
+        ]
+        let outcome = RecordingIntentOutcome.requiresForeground(.captureUnavailable)
+        for (code, expected) in cases {
+            let diagnostic = CaptureFailureDiagnostic(sessionID: UUID(), stage: .sessionActivation,
+                error: NSError(domain: NSOSStatusErrorDomain, code: Int(code.rawValue)))
+            let message = String(localized: RecordingIntentReplies.message(for: outcome, diagnostic: diagnostic))
+            XCTAssertTrue(message.contains(expected))
+        }
+        let generic = String(localized: RecordingIntentReplies.message(for: outcome))
+        let unrelatedErrors: [(String, CaptureFailureDiagnostic.Stage, Int)] = [
+            ("UnrelatedErrorDomain", .sessionActivation,
+             Int(AVAudioSession.ErrorCode.cannotStartRecording.rawValue)),
+            (NSOSStatusErrorDomain, .inputPreparation, Int(AVAudioSession.ErrorCode.cannotStartRecording.rawValue)),
+            (NSOSStatusErrorDomain, .sessionActivation, -1234)
+        ]
+        for (domain, stage, code) in unrelatedErrors {
+            let diagnostic = CaptureFailureDiagnostic(sessionID: UUID(), stage: stage,
+                error: NSError(domain: domain, code: code))
+            XCTAssertEqual(String(localized: RecordingIntentReplies.message(for: outcome, diagnostic: diagnostic)), generic,
+                           "An unknown error or a different operation must not be diagnosed as an iOS start restriction")
+        }
     }
 }
