@@ -11,7 +11,7 @@ import LocalMinutesSummary
 /// unchanged to the real default native runtime. Counters retain no content.
 @MainActor
 final class ActualResumedPhiIntelligenceTests: XCTestCase {
-    func testActualPhiValidatedMapsSurviveCancelledCommitAndReopenedServiceCommitsWithoutRegeneration() async throws {
+    func testActualPhiSourceIndexSurvivesCancelledCommitAndReopenedServiceRewritesVerifiedNarrative() async throws {
         let path = try XCTUnwrap(ProcessInfo.processInfo.environment["LOCALMINUTES_PHI_MODEL_PATH"],
                                  "The dedicated native job must provide the reviewed real Phi model")
         let available = try ModelStoragePolicy.availableBytes(at: FileManager.default.temporaryDirectory)
@@ -76,7 +76,8 @@ final class ActualResumedPhiIntelligenceTests: XCTestCase {
             XCTAssertTrue(beforeReopen.isEmpty)
             let firstCounts = await calls.snapshot()
             XCTAssertEqual(firstCounts.loads, 1)
-            XCTAssertEqual(firstCounts.generated[0, default: 0], 1)
+            XCTAssertGreaterThanOrEqual(firstCounts.generated[0, default: 0], 3,
+                "Actual draft generation must be followed by bullet and overview verification")
             XCTAssertEqual(firstCounts.unloaded[0, default: 0], 1)
 
             // Resume requires a durable, validated map before another generation.
@@ -117,15 +118,16 @@ final class ActualResumedPhiIntelligenceTests: XCTestCase {
             let finalCounts = await calls.snapshot()
             XCTAssertEqual(finalCounts.loads, 2, "Reopen must use the real default loader again")
             XCTAssertGreaterThan(finalCounts.tokenized[1, default: 0], 0, "Recompute the plan with the real native tokenizer")
-            XCTAssertEqual(finalCounts.generated[1, default: 0], 0, "Reuse grounded native maps without a second generation")
-            XCTAssertEqual(finalCounts.generated.values.reduce(0, +), 1)
+            XCTAssertGreaterThanOrEqual(finalCounts.generated[1, default: 0], 3,
+                "Only the source index is resumed; the final prose is freshly written and reviewed")
+            XCTAssertGreaterThanOrEqual(finalCounts.generated.values.reduce(0, +), 6)
             XCTAssertEqual(finalCounts.unloaded[1, default: 0], 1)
             let durable = try await reopened.generatedDocument(id: saved.id, meetingID: h.selected)
             XCTAssertEqual(durable, saved)
             XCTAssertEqual(saved.kind, .summary)
             XCTAssertEqual(saved.modelRevision, revision)
-            XCTAssertEqual(saved.promptVersion, SummaryPipeline.currentPromptVersion)
-            try validatePhiSummary(saved, fixture: h, revision: revision)
+            XCTAssertEqual(saved.promptVersion, AdaptiveSummaryPipeline.currentPromptVersion)
+            try assertNarrativeFixtureSummary(saved, fixture: h, revision: revision)
             XCTAssertNil(try readPhiCheckpoint(directory, meetingID: h.selected))
             XCTAssertEqual(next.snapshot().phase, .completed)
             XCTAssertEqual(gate.snapshot().phase, .idle)
@@ -143,39 +145,7 @@ final class ActualResumedPhiIntelligenceTests: XCTestCase {
         }
     }
 
-    private func validatePhiSummary(_ saved: StoredGeneratedDocument, fixture h: IntelligenceFixture, revision: String) throws {
-        let object = try XCTUnwrap(try JSONSerialization.jsonObject(with: saved.originalJSON) as? [String: Any])
-        XCTAssertEqual(object["meeting_id"] as? String, h.selected.uuidString)
-        let decisions = try XCTUnwrap(object["decisions"] as? [[String: Any]])
-        XCTAssertTrue(decisions.contains { ($0["text"] as? String)?.lowercased().contains("prototype") == true
-            && ($0["text"] as? String)?.contains("Friday") == true })
-        let actions = try XCTUnwrap(object["actions"] as? [[String: Any]])
-        let guide = try XCTUnwrap(actions.first { ($0["task"] as? String)?.lowercased().contains("guide") == true })
-        XCTAssertEqual(guide["owner"] as? String, "Leo")
-        XCTAssertEqual(guide["due"] as? String, "Thursday")
-        XCTAssertFalse(String(decoding: saved.originalJSON, as: UTF8.self).contains("telescope"))
-        for key in ["summary_points", "decisions", "actions"] {
-            for item in object[key] as? [[String: Any]] ?? [] {
-                let evidence = try XCTUnwrap(item["evidence"] as? [[String: Any]])
-                XCTAssertFalse(evidence.isEmpty)
-                for citation in evidence {
-                    let id = try XCTUnwrap(citation["source_id"] as? String)
-                    let source = try XCTUnwrap(h.segments.first { $0.id.uuidString == id })
-                    let quote = try XCTUnwrap(citation["quote"] as? String)
-                    XCTAssertNotNil(source.text.range(of: quote))
-                    XCTAssertEqual((citation["start_sample"] as? NSNumber)?.int64Value, source.startSample)
-                    XCTAssertEqual((citation["end_sample"] as? NSNumber)?.int64Value, source.endSample)
-                }
-                let provenance = try XCTUnwrap(item["provenance"] as? [[String: Any]])
-                XCTAssertFalse(provenance.isEmpty)
-                for value in provenance {
-                    XCTAssertEqual(value["model_revision"] as? String, revision)
-                    XCTAssertEqual(value["prompt_version"] as? String, SummaryPipeline.currentPromptVersion)
-                    XCTAssertEqual((value["map_index"] as? NSNumber)?.intValue, 0)
-                }
-            }
-        }
-    }
+
 }
 
 private struct ResumedPhiEnvelope: Decodable { let schemaVersion: Int; let checkpoint: StoredSummaryCheckpoint }

@@ -30,8 +30,8 @@ final class Phi3IntegrationTests: XCTestCase {
         phi3Progress("setup", "native_load_begin")
         let runtime = try LocalSummaryRuntime(modelURL: url, contextSize: 4_096, threads: 4, chatFormat: .phi3)
         phi3Progress("setup", "native_loaded")
-        let expectedCalls = 4
-        let observations = Phi3ComparisonObservations(maximumCalls: expectedCalls)
+        let maximumCalls = 64
+        let observations = Phi3ComparisonObservations(maximumCalls: maximumCalls)
         let revision = "a64113399c2f6b8ad3e11c394733a2ddadaa7f33"
         do {
             let positiveID = UUID(uuidString: "40000000-0000-0000-0000-000000000018")!
@@ -46,12 +46,11 @@ final class Phi3IntegrationTests: XCTestCase {
                 let output = try await self.pipeline(runtime, observations, revision, stage: "summary_positive")
                     .summarize(selectedMeetingID: positiveID, source: positive)
                 XCTAssertEqual(output.meetingID, positiveID)
-                XCTAssertFalse(output.summaryPoints.isEmpty)
-                XCTAssertTrue(output.decisions.contains { $0.text.lowercased().contains("prototype") && $0.text.contains("Friday") })
-                let action = try XCTUnwrap(output.actions.first { $0.task.lowercased().contains("guide") })
-                XCTAssertEqual(action.owner, "Leo"); XCTAssertEqual(action.due, "Thursday")
-                XCTAssertFalse(action.evidence.isEmpty)
-                XCTAssertTrue(action.evidence.contains { $0.sourceID == "action-source" })
+                XCTAssertFalse(output.bullets.isEmpty)
+                let prose = output.bullets.map(\.text).joined(separator: " ")
+                XCTAssertTrue(prose.lowercased().contains("prototype") && prose.contains("Friday"))
+                XCTAssertTrue(prose.lowercased().contains("guide") && prose.contains("Leo") && prose.contains("Thursday"))
+                XCTAssertTrue(output.bullets.flatMap(\.evidence).contains { $0.sourceID == "action-source" })
                 try self.validate(output, source: positive, revision: revision)
                 XCTAssertEqual(positive, originalPositive)
             }
@@ -64,13 +63,12 @@ final class Phi3IntegrationTests: XCTestCase {
                 let output = try await self.pipeline(runtime, observations, revision, stage: "summary_unknown")
                     .summarize(selectedMeetingID: unknownID, source: unknownSource)
                 XCTAssertEqual(output.meetingID, unknownID)
-                XCTAssertFalse(output.summaryPoints.isEmpty)
-                XCTAssertTrue(output.decisions.isEmpty)
-                let action = try XCTUnwrap(output.actions.first { $0.task.lowercased().contains("checklist") })
-                XCTAssertNil(action.owner); XCTAssertNil(action.due)
-                XCTAssertFalse(action.evidence.isEmpty)
+                XCTAssertFalse(output.bullets.isEmpty)
+                let prose = output.bullets.map(\.text).joined(separator: " ").lowercased()
+                XCTAssertTrue(prose.contains("checklist"))
+                for invented in ["maya", "leo", "friday", "thursday"] { XCTAssertFalse(prose.contains(invented)) }
                 try self.validate(output, source: unknownSource, revision: revision)
-                XCTAssertTrue((output.summaryPoints.flatMap(\.evidence) + output.actions.flatMap(\.evidence))
+                XCTAssertTrue((output.bullets.flatMap(\.evidence) + (output.overview?.evidence ?? []))
                     .allSatisfy { $0.sourceID == "unassigned-source" })
             }
             try await withQuestionFixture { fixture in
@@ -141,8 +139,8 @@ final class Phi3IntegrationTests: XCTestCase {
                 } catch { try? await reopened.close(); throw error }
             }
             let count = await observations.count
-            XCTAssertEqual(count, expectedCalls,
-                "Every selected observation must execute actual native inference exactly once")
+            XCTAssertGreaterThanOrEqual(count, 8, "Both narratives require drafting and evidence review, in addition to the two questions")
+            XCTAssertLessThanOrEqual(count, maximumCalls)
             phi3Progress("setup", "unload_begin")
             await runtime.unload()
             phi3Progress("setup", "unloaded")
@@ -155,8 +153,8 @@ final class Phi3IntegrationTests: XCTestCase {
     }
 
     private func pipeline(_ runtime: LocalSummaryRuntime, _ observations: Phi3ComparisonObservations,
-                          _ revision: String, stage: String) -> SummaryPipeline {
-        SummaryPipeline(modelRevision: revision,
+                          _ revision: String, stage: String) -> AdaptiveSummaryPipeline {
+        AdaptiveSummaryPipeline(modelRevision: revision,
             tokenizer: { prompt in
                 await observations.tokenizing(stage, bytes: prompt.utf8.count)
                 let count = try await runtime.promptTokenCount(prompt: prompt)
@@ -200,9 +198,9 @@ final class Phi3IntegrationTests: XCTestCase {
         }
     }
 
-    private func validate(_ output: GroundedSummary, source: GroundedSummarySource, revision: String) throws {
-        let evidence = output.summaryPoints.flatMap(\.evidence) + output.decisions.flatMap(\.evidence)
-            + output.actions.flatMap(\.evidence)
+    private func validate(_ output: NarrativeSummary, source: GroundedSummarySource, revision: String) throws {
+        let overview = try XCTUnwrap(output.overview)
+        let evidence = output.bullets.flatMap(\.evidence) + overview.evidence
         XCTAssertFalse(evidence.isEmpty)
         for citation in evidence {
             let segment = try XCTUnwrap(source.segments.first { Data($0.id.utf8) == Data(citation.sourceID.utf8) })
@@ -211,12 +209,11 @@ final class Phi3IntegrationTests: XCTestCase {
             XCTAssertFalse(citation.quote.isEmpty)
             XCTAssertNotNil(Data(segment.text.utf8).range(of: Data(citation.quote.utf8)))
         }
-        let provenance = output.summaryPoints.flatMap(\.provenance) + output.decisions.flatMap(\.provenance)
-            + output.actions.flatMap(\.provenance)
-        XCTAssertFalse(provenance.isEmpty)
-        XCTAssertTrue(provenance.allSatisfy {
-            $0.modelRevision == revision && $0.promptVersion == SummaryPipeline.currentPromptVersion && $0.mapIndex >= 0
-        })
+        XCTAssertEqual(output.provenance.modelRevision, revision)
+        XCTAssertEqual(output.provenance.promptVersion, AdaptiveSummaryPipeline.currentPromptVersion)
+        for paragraph in output.bullets + [overview] {
+            XCTAssertFalse(source.segments.contains { $0.text == paragraph.text }, "Narrative prose should synthesize, not copy a source row")
+        }
     }
 }
 
@@ -272,22 +269,16 @@ private func phi3Progress(_ stage: String, _ event: String, counts: [String: Int
 private func phi3SafeError(_ error: any Error) -> String {
     if let value = error as? LocalSummaryRuntimeError { return "LocalSummaryRuntimeError.\(value)" }
     if let value = error as? GroundedSummaryError { return "GroundedSummaryError.\(value)" }
-    if let value = error as? SummaryPipelineError { return "SummaryPipelineError.\(value)" }
+    if let value = error as? NarrativeSummaryError { return "NarrativeSummaryError.\(value)" }
     if let value = error as? MeetingQuestionError { return "MeetingQuestionError.\(value)" }
-    if let value = error as? SummaryChunkPlannerError {
-        switch value {
-        case .oversizedSegment: return "SummaryChunkPlannerError.oversizedSegment"
-        default: return "SummaryChunkPlannerError.\(value)"
-        }
-    }
     if error is CancellationError { return "CancellationError" }
     return String(reflecting: type(of: error))
 }
 
-extension Phi3CandidateComparisonTests {
+extension Phi3IntegrationTests {
     /// A fixed synthetic quality screen, not a claim of broad meeting accuracy.
     /// Every tokenizer/generator call delegates to the pinned native runtime.
-    func testActualPinnedPhi3RepresentativeMultiMapMergeAndUnknownDeadlineRefusal() async throws {
+    func testActualPinnedPhi3RepresentativeNarrativeAndUnknownDeadlineRefusal() async throws {
         let path = try XCTUnwrap(ProcessInfo.processInfo.environment["LOCALMINUTES_PHI_MODEL_PATH"])
         let url = URL(fileURLWithPath: path)
         let size = (try FileManager.default.attributesOfItem(atPath: path)[.size] as? NSNumber)?.int64Value
@@ -305,7 +296,7 @@ extension Phi3CandidateComparisonTests {
         guard digest == expected else { throw LocalSummaryRuntimeError.invalidModel }
         let runtime = try LocalSummaryRuntime(modelURL: url, contextSize: 4_096, threads: 4, chatFormat: .phi3)
         let revision = "a64113399c2f6b8ad3e11c394733a2ddadaa7f33"
-        let observations = Phi3ComparisonObservations(maximumCalls: 9) // At most eight maps plus one QA.
+        let observations = Phi3ComparisonObservations(maximumCalls: 256) // Reading, writing, bounded review and one QA.
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("phi-representative-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
         let database = root.appendingPathComponent("meetings.sqlite")
@@ -347,11 +338,9 @@ extension Phi3CandidateComparisonTests {
             let source = GroundedSummarySource(meetingID: selected, segments: persisted.map {
                 .init(id: $0.id.uuidString, startSample: $0.startSample, endSample: $0.endSample, text: $0.text)
             }, originalManualNotes: persistedNote.text)
-            // The 2048-token pipeline budget is supported by its public API;
-            // the actual canonical tokenizer measures every candidate before
-            // generation. Oversized inputs fail honestly rather than altering
-            // token counts or truncating text to force the desired map count.
-            let pipeline = SummaryPipeline(modelRevision: revision, contextTokenLimit: 2_048,
+            // Routing uses real token counts including writing/review headroom;
+            // the fixture is never truncated to force a specific chunk count.
+            let pipeline = AdaptiveSummaryPipeline(modelRevision: revision, contextTokenLimit: 4_096,
                 reservedOutputTokens: 1_024, tokenizer: { prompt in
                     XCTAssertFalse(prompt.contains("OTHER_MEETING_CANARY_PHI_19"))
                     XCTAssertFalse(prompt.contains("OTHER_MEETING_NOTE_CANARY_PHI_19"))
@@ -360,9 +349,9 @@ extension Phi3CandidateComparisonTests {
                     return count
                 }, generator: { prompt, schema, maximum in
                     let mapCalls = await observations.count
-                    guard mapCalls < 8 else { throw LocalSummaryRuntimeError.generationFailed }
+                    guard mapCalls < 255 else { throw LocalSummaryRuntimeError.generationFailed }
                     let actualCount = try await runtime.promptTokenCount(prompt: prompt)
-                    XCTAssertLessThan(actualCount + maximum, 2_048)
+                    XCTAssertLessThan(actualCount + maximum, 4_096)
                     try await observations.admit("representative_map", promptBytes: prompt.utf8.count,
                         maximumOutputTokens: maximum)
                     let raw = try await runtime.generateJSON(prompt: prompt, schema: schema, maximumTokens: maximum)
@@ -371,28 +360,19 @@ extension Phi3CandidateComparisonTests {
                 })
             let summary = try await pipeline.summarize(selectedMeetingID: selected, source: source)
             let mapCalls = await observations.count
-            XCTAssertGreaterThanOrEqual(mapCalls, 2, "This case must execute multiple real native maps")
-            XCTAssertLessThanOrEqual(mapCalls, 8)
+            XCTAssertGreaterThanOrEqual(mapCalls, 3, "Narrative generation must include original-source review")
+            XCTAssertLessThanOrEqual(mapCalls, 255)
             XCTAssertEqual(summary.meetingID, selected)
-            XCTAssertFalse(summary.summaryPoints.isEmpty)
-            XCTAssertTrue(summary.decisions.contains { $0.text.contains("prototype") && $0.text.contains("Friday") })
-            XCTAssertFalse(summary.decisions.contains { $0.text.contains("Monday")
-                || ($0.text.contains("Tuesday") && !$0.text.contains("Friday")) },
-                "An earlier proposal or manual note must not replace the final recorded agreement")
-            let guide = try XCTUnwrap(summary.actions.first { $0.task.lowercased().contains("guide") })
-            XCTAssertEqual(guide.owner, "Leo"); XCTAssertEqual(guide.due, "Thursday")
-            XCTAssertTrue(guide.evidence.contains { $0.sourceID == segments[1].id.uuidString })
-            let checklist = try XCTUnwrap(summary.actions.first { $0.task.lowercased().contains("checklist") })
-            XCTAssertNil(checklist.owner); XCTAssertNil(checklist.due)
-            XCTAssertTrue(checklist.evidence.contains { $0.sourceID == segments[11].id.uuidString })
+            XCTAssertFalse(summary.bullets.isEmpty)
+            let prose = summary.bullets.map(\.text).joined(separator: " ")
+            XCTAssertTrue(prose.contains("prototype") && prose.contains("Friday"))
+            XCTAssertTrue(prose.contains("guide") && prose.contains("Leo") && prose.contains("Thursday"))
+            XCTAssertTrue(prose.lowercased().contains("checklist"))
+            XCTAssertFalse(prose.contains("June 1") || prose.contains("Nolan"))
             try validate(summary, source: source, revision: revision)
-            let provenance = summary.summaryPoints.flatMap(\.provenance) + summary.decisions.flatMap(\.provenance)
-                + summary.actions.flatMap(\.provenance)
-            XCTAssertGreaterThanOrEqual(Set(provenance.map(\.mapIndex)).count, 2,
-                "The final merged result must retain validated content from multiple actual maps")
-            XCTAssertTrue(provenance.allSatisfy { $0.mapIndex < mapCalls })
-            let evidence = summary.summaryPoints.flatMap(\.evidence) + summary.decisions.flatMap(\.evidence)
-                + summary.actions.flatMap(\.evidence)
+            let evidence = summary.bullets.flatMap(\.evidence) + (summary.overview?.evidence ?? [])
+            XCTAssertTrue(evidence.contains { $0.sourceID == segments[0].id.uuidString })
+            XCTAssertTrue(evidence.contains { $0.sourceID == segments[11].id.uuidString })
             XCTAssertFalse(evidence.contains { $0.quote.contains("OTHER_MEETING") || $0.quote.contains("telescope") })
             let answerer = MeetingQuestionAnswerer(store: store, modelRevision: revision,
                 tokenCounter: { try await runtime.promptTokenCount(prompt: $0) }, generator: { request in

@@ -65,12 +65,6 @@ struct IntelligenceBackgroundProgress {
             }
             units = combining ? combinationUnits(fraction: fraction)
                 : sectionUnits(fraction: recoveryBase + fraction * (1 - recoveryBase))
-        case .recoveringSummary:
-            guard generating, completedSections < totalSections else { return false }
-            let completed = Double(completedUnitCount - 100_000) / 800_000 * Double(totalSections)
-            recoveryBase = min(0.999, max(recoveryBase, completed - Double(completedSections)))
-            responding = false
-            units = completedUnitCount
         case .generationStarted:
             guard generating else { return false }
             if responding, !combining {

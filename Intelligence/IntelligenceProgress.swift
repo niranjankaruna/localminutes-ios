@@ -13,7 +13,6 @@ public enum IntelligenceProgress: Equatable, Sendable {
     case answering
     case generating(SummaryGenerationProgress)
     case generationStarted
-    case recoveringSummary
     case consolidatingSummary(completed: Int, total: Int)
     case saving
 
@@ -23,13 +22,12 @@ public enum IntelligenceProgress: Equatable, Sendable {
         case .loadingModel: return "Checking the selected model…"
         case .planningSummary: return "Preparing transcript sections and shared context…"
         case .summaryChunks(let completed, let total):
-            return completed < total ? "Summarizing section \(completed + 1) of \(total)…" : "Checking summary sources…"
+            return completed < total ? "Reading section \(completed + 1) of \(total)…" : "Organizing meeting topics…"
         case .answering: return "Reading meeting evidence…"
         case .generating(.promptTokens): return "Reading meeting text…"
         case .generationStarted: return "Reading meeting text…"
         case .generating(.responseTokens): return "Writing a response…"
-        case .recoveringSummary: return "Finishing this section with a shorter response…"
-        case .consolidatingSummary: return "Combining meeting sections and checking context…"
+        case .consolidatingSummary: return "Writing the meeting summary and checking its sources…"
         case .saving: return "Saving on this iPhone…"
         }
     }

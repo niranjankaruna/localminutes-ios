@@ -7,6 +7,35 @@ import XCTest
 /// No native inference, microphone or audio-playback success is inferred.
 @MainActor
 final class NativeMeetingCitationNavigationTests: XCTestCase {
+    func testParaphrasedNarrativeRetainsOriginalEvidenceAndNavigationIdentity() async throws {
+        try await fixture { f in
+            let source = f.selectedSegments[1]
+            let document = try await f.document(kind: .summary, source: source, start: source.startSample,
+                end: source.endSample, narrative: true)
+            let controller = MeetingIntelligenceController(services: f.services, meetingID: f.selected)
+            await controller.load()
+            let citations = try XCTUnwrap(controller.citations[document.id])
+            XCTAssertEqual(citations.count, 1, "Overview and bullet references to the same original span are deduplicated")
+            let citation = try XCTUnwrap(citations.first)
+            XCTAssertEqual(citation.quote, source.text)
+            XCTAssertNotEqual(document.editedText, citation.quote)
+            let target = try XCTUnwrap(controller.citationNavigationTarget(documentID: document.id, citationID: citation.id))
+            XCTAssertEqual(target.segmentID, source.id)
+            XCTAssertEqual(target.startSample, source.startSample)
+            XCTAssertEqual(target.endSample, source.endSample)
+        }
+    }
+
+    func testNarrativeEvidenceCannotInventAWordAlignmentInsideAnOriginalSegment() async throws {
+        try await fixture { f in
+            let document = try await f.document(kind: .summary, source: f.selectedSegments[1],
+                start: 40_000, end: 56_000, narrative: true)
+            let controller = MeetingIntelligenceController(services: f.services, meetingID: f.selected)
+            await controller.load()
+            XCTAssertEqual(controller.citations[document.id]?.count, 0)
+        }
+    }
+
     func testSummaryCitationRetainsMeetingAndExactSegmentIdentityAlongsideValidatedPlaybackOffset() async throws {
         try await fixture { f in
             let document = try await f.document(kind: .summary, source: f.selectedSegments[1], start: 40_000, end: 56_000)
@@ -115,11 +144,15 @@ private struct CitationNavigationFixture {
     }
 
     func document(kind: GeneratedDocumentKind, source: StoredTranscriptSegment,
-                  start: Int64, end: Int64, quote: String? = nil) async throws -> StoredGeneratedDocument {
+                  start: Int64, end: Int64, quote: String? = nil, narrative: Bool = false) async throws -> StoredGeneratedDocument {
         let evidence: [[String: Any]] = [["source_id": source.id.uuidString,
             "start_sample": start, "end_sample": end, "quote": quote ?? source.text]]
         var payload: [String: Any] = ["schema_version": 1, "meeting_id": selected.uuidString]
-        if kind == .summary {
+        if kind == .summary && narrative {
+            payload["schema_version"] = 2
+            payload["overview"] = ["text": "Documentation is scheduled for Thursday.", "evidence": evidence]
+            payload["bullets"] = [["text": "Leo committed to preparing the guide for Thursday.", "evidence": evidence]]
+        } else if kind == .summary {
             payload["summary_points"] = [["text": source.text, "evidence": evidence]]
             payload["decisions"] = []; payload["actions"] = []
         } else { payload["status"] = "supported_quote"; payload["evidence"] = evidence }

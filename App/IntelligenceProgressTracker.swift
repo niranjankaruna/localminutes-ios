@@ -33,7 +33,7 @@ final class IntelligenceProgressTracker {
         switch operation { case .summary: "Summarizing"; case .question: "Finding an answer" }
     }
     var detail: String {
-        if consolidating { return "Combining meeting sections and checking context…" }
+        if consolidating { return IntelligenceProgress.consolidatingSummary(completed: 0, total: 1).message }
         return stage == .waiting ? "Waiting for iOS to start generation…" : progress.detail
     }
 
@@ -43,7 +43,7 @@ final class IntelligenceProgressTracker {
         let next: Stage
         switch value {
         case .preparing, .loadingModel, .planningSummary: next = .loading
-        case .summaryChunks, .answering, .recoveringSummary, .generationStarted: next = .mapping
+        case .summaryChunks, .answering, .generationStarted: next = .mapping
         case .consolidatingSummary: consolidating = true; next = .mapping
         case .generating(.promptTokens): next = .reading
         case .generating(.responseTokens): next = .writing

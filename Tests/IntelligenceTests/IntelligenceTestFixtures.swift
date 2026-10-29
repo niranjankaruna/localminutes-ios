@@ -27,7 +27,7 @@ struct IntelligenceFixture {
     let note: StoredManualNote
 
     static func create(actualModel: URL? = nil, manifestOverride: ModelManifest? = nil,
-                       importActualDirectoryDirectly: Bool = false) async throws -> IntelligenceFixture {
+                       importActualDirectoryDirectly: Bool = false, extendedSummarySource: Bool = false) async throws -> IntelligenceFixture {
         let root = FileManager.default.temporaryDirectory.standardizedFileURL
             .appendingPathComponent("localminutes-intelligence-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
@@ -100,11 +100,12 @@ struct IntelligenceFixture {
             try await store.createMeeting(.init(id: id, title: "Original synthetic meeting",
                 createdAt: Date(timeIntervalSince1970: 1_000), recordingState: .completed, capturedSampleCount: 32_000))
         }
+        let context = extendedSummarySource ? String(repeating: " The team reviewed the meeting agenda.", count: 12) : ""
         let segments = [
             StoredTranscriptSegment(id: intelligenceUUID(11), meetingID: selected, sequence: 0,
-                startSample: 0, endSample: 16_000, text: "Maya: We decided to ship the prototype on Friday.", modelRevision: "original-ASR"),
+                startSample: 0, endSample: 16_000, text: "Maya: We decided to ship the prototype on Friday." + context, modelRevision: "original-ASR"),
             StoredTranscriptSegment(id: intelligenceUUID(12), meetingID: selected, sequence: 1,
-                startSample: 16_000, endSample: 32_000, text: "Leo: I will write the guide by Thursday.", modelRevision: "original-ASR")
+                startSample: 16_000, endSample: 32_000, text: "Leo: I will write the guide by Thursday." + context, modelRevision: "original-ASR")
         ]
         let otherSegments = [StoredTranscriptSegment(id: intelligenceUUID(21), meetingID: other, sequence: 0,
             startSample: 0, endSample: 16_000, text: "Other meeting canary: Nolan owns the telescope task.", modelRevision: "other-ASR")]
@@ -137,14 +138,19 @@ struct IntelligenceFixture {
     }
 
     func rawSummary() throws -> String {
-        let points = segments.map { segment -> [String: Any] in
-            ["text": segment.text, "evidence": [citation(segment)]]
-        }
-        let decision: [String: Any] = ["text": segments[0].text, "evidence": [citation(segments[0])]]
-        let action: [String: Any] = ["task": "write the guide", "owner": "Leo", "due": "Thursday",
-                                    "evidence": [citation(segments[1])]]
-        return String(decoding: try JSONSerialization.data(withJSONObject: ["meeting_id": selected.uuidString,
-            "summary_points": points, "decisions": [decision], "actions": [action]], options: [.sortedKeys]), as: UTF8.self)
+        // These two short, contiguous original segments form source unit 0.
+        // Generated prose intentionally differs from its hidden evidence.
+        let bullets: [[String: Any]] = [
+            ["text": "The team agreed to ship the prototype on Friday.", "source_ids": [0]],
+            ["text": "Leo committed to writing the guide by Thursday.", "source_ids": [0]]
+        ]
+        return String(decoding: try JSONSerialization.data(withJSONObject: ["bullets": bullets,
+            "overview": ["text": "The team aligned the prototype release and its documentation schedule.",
+                         "source_ids": [0]]], options: [.sortedKeys]), as: UTF8.self)
+    }
+
+    func summaryReplies() throws -> [String] {
+        [try rawSummary()] + Array(repeating: "{\"supported\":true,\"issues\":[]}", count: 3)
     }
 
     func rawAnswer() throws -> String {
@@ -152,10 +158,48 @@ struct IntelligenceFixture {
             "source_id": segments[1].id.uuidString, "quote": segments[1].text], options: [.sortedKeys]), as: UTF8.self)
     }
 
-    private func citation(_ segment: StoredTranscriptSegment) -> [String: Any] {
-        ["source_id": segment.id.uuidString, "start_sample": segment.startSample,
-         "end_sample": segment.endSample, "quote": segment.text]
+
+}
+
+/// The actual runtime and boundary-fixture tests share output/evidence checks.
+/// These assertions do not turn mocked semantic verdicts into model-quality evidence.
+@MainActor
+func assertNarrativeFixtureSummary(_ saved: StoredGeneratedDocument, fixture h: IntelligenceFixture,
+                                   revision: String) throws {
+    let object = try XCTUnwrap(try JSONSerialization.jsonObject(with: saved.originalJSON) as? [String: Any])
+    XCTAssertEqual(object["schema_version"] as? Int, 2)
+    XCTAssertEqual(object["meeting_id"] as? String, h.selected.uuidString)
+    XCTAssertEqual(saved.promptVersion, AdaptiveSummaryPipeline.currentPromptVersion)
+    XCTAssertNil(object["summary_points"]); XCTAssertNil(object["decisions"]); XCTAssertNil(object["actions"])
+    let bullets = try XCTUnwrap(object["bullets"] as? [[String: Any]])
+    let overview = try XCTUnwrap(object["overview"] as? [String: Any])
+    let prose = bullets.compactMap { $0["text"] as? String }.map { $0.lowercased() }
+    XCTAssertTrue(prose.contains { $0.contains("prototype") && $0.contains("friday") })
+    XCTAssertTrue(prose.contains { $0.contains("guide") && $0.contains("leo") && $0.contains("thursday") })
+    XCTAssertTrue(saved.editedText.hasPrefix("Overview\n"))
+    XCTAssertTrue(saved.editedText.contains("\n\n• "))
+    XCTAssertFalse(saved.editedText.contains("Decision:"))
+    XCTAssertFalse(saved.editedText.contains("Action:"))
+    XCTAssertFalse(String(decoding: saved.originalJSON, as: UTF8.self).contains("telescope"))
+    for item in [overview] + bullets {
+        let text = try XCTUnwrap(item["text"] as? String)
+        XCTAssertFalse(h.segments.contains { $0.text == text }, "Narrative prose must not be a copied transcript row")
+        let evidence = try XCTUnwrap(item["evidence"] as? [[String: Any]])
+        XCTAssertFalse(evidence.isEmpty)
+        for citation in evidence {
+            let id = try XCTUnwrap(citation["source_id"] as? String)
+            let source = try XCTUnwrap(h.segments.first { $0.id.uuidString == id })
+            let quote = try XCTUnwrap(citation["quote"] as? String)
+            XCTAssertFalse(quote.isEmpty)
+            XCTAssertNotNil(Data(source.text.utf8).range(of: Data(quote.utf8)))
+            XCTAssertEqual((citation["start_sample"] as? NSNumber)?.int64Value, source.startSample)
+            XCTAssertEqual((citation["end_sample"] as? NSNumber)?.int64Value, source.endSample)
+        }
     }
+    let provenance = try XCTUnwrap(object["provenance"] as? [String: Any])
+    XCTAssertEqual(provenance["model_revision"] as? String, revision)
+    XCTAssertEqual(provenance["prompt_version"] as? String, AdaptiveSummaryPipeline.currentPromptVersion)
+    XCTAssertEqual((provenance["map_index"] as? NSNumber)?.intValue, 0)
 }
 
 private enum IntelligenceFixtureError: Error {
@@ -178,6 +222,7 @@ actor IntelligenceBoundaryRuntime: IntelligenceRuntime {
     private(set) var unloaded = false
     private(set) var events: [String] = []
     private(set) var requestedMaximumTokens: [Int] = []
+    private(set) var prompts: [String] = []
     init(replies: [String], holdGeneration: Bool = false, holdUnload: Bool = false,
          contextTokenLimit: Int = 4_096, tokenCount: Int = 500, outputTokenLimit: Int = 1_024) {
         self.replies = replies; self.holdGeneration = holdGeneration; self.holdUnload = holdUnload
@@ -194,6 +239,7 @@ actor IntelligenceBoundaryRuntime: IntelligenceRuntime {
     }
     func generateJSON(prompt: String, schema: StructuredJSONSchema, maximumTokens: Int) async throws -> String {
         requestedMaximumTokens.append(maximumTokens)
+        prompts.append(prompt)
         generating = true; events.append("work.begin")
         defer { generating = false; events.append("work.drained") }
         while holdGeneration && !generationReleased { try await Task.sleep(for: .milliseconds(1)) }

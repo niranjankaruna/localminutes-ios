@@ -9,6 +9,7 @@ struct SummaryPresentation {
     struct Section: Identifiable {
         let title: String
         let items: [String]
+        var isBulleted = false
         var id: String { title }
     }
     let sections: [Section]
@@ -17,8 +18,24 @@ struct SummaryPresentation {
         guard document.kind == .summary, document.editRevision == 0, text == document.editedText,
               document.originalJSON.count <= 1_048_576,
               let payload = try? JSONSerialization.jsonObject(with: document.originalJSON) as? [String: Any],
-              payload["schema_version"] as? Int == 1,
-              let meeting = payload["meeting_id"] as? String, UUID(uuidString: meeting) == document.meetingID,
+              let meeting = payload["meeting_id"] as? String, UUID(uuidString: meeting) == document.meetingID else { return nil }
+        if payload["schema_version"] as? Int == 2 {
+            guard let rawBullets = payload["bullets"] as? [[String: Any]] else { return nil }
+            let bullets = rawBullets.compactMap { $0["text"] as? String }
+            guard bullets.count == rawBullets.count,
+                  bullets.allSatisfy({ !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) else { return nil }
+            var result: [Section] = []
+            if let overview = payload["overview"] as? [String: Any] {
+                guard let paragraph = overview["text"] as? String,
+                      !paragraph.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+                result.append(Section(title: "Overview", items: [paragraph]))
+            } else if !(payload["overview"] is NSNull) { return nil }
+            if !bullets.isEmpty { result.append(Section(title: "", items: bullets, isBulleted: true)) }
+            guard !result.isEmpty else { return nil }
+            sections = result
+            return
+        }
+        guard payload["schema_version"] as? Int == 1,
               let points = payload["summary_points"] as? [[String: Any]],
               let decisions = payload["decisions"] as? [[String: Any]],
               let actions = payload["actions"] as? [[String: Any]] else { return nil }
@@ -52,9 +69,20 @@ struct SummaryReadingView: View {
             VStack(alignment: .leading, spacing: 28) {
                 ForEach(presentation.sections) { section in
                     VStack(alignment: .leading, spacing: 16) {
-                        Text(section.title).font(.title3.weight(.semibold)).accessibilityAddTraits(.isHeader)
+                        if !section.title.isEmpty {
+                            Text(section.title).font(.title3.weight(.semibold)).accessibilityAddTraits(.isHeader)
+                        }
                         ForEach(Array(section.items.enumerated()), id: \.offset) { _, item in
-                            Text(item).font(.body).lineSpacing(6).textSelection(.enabled)
+                            if section.isBulleted {
+                                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                                    Text("•").accessibilityHidden(true)
+                                    Text(item).textSelection(.enabled)
+                                }
+                                .font(.body).lineSpacing(6)
+                                .accessibilityElement(children: .combine)
+                            } else {
+                                Text(item).font(.body).lineSpacing(6).textSelection(.enabled)
+                            }
                         }
                     }
                 }

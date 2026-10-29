@@ -96,15 +96,33 @@ final class ActualCatalogAdapterIntegrationTests: XCTestCase {
                         .init(id: UUID().uuidString, startSample: Int64(index * 80_000),
                               endSample: Int64((index + 1) * 80_000), text: text)
                     }, originalManualNotes: "")
-                let pipeline = SummaryPipeline(modelRevision: variant.manifest.revision,
+                let pipeline = AdaptiveSummaryPipeline(modelRevision: variant.manifest.revision,
                     contextTokenLimit: runtime.contextTokenLimit,
                     reservedOutputTokens: runtime.outputTokenLimit,
                     tokenizer: { try await runtime.promptTokenCount(prompt: $0) },
                     generator: { try await runtime.generateJSON(prompt: $0, schema: $1, maximumTokens: $2) })
                 let recordedSummary = try await pipeline.summarize(selectedMeetingID: meeting, source: source)
-                XCTAssertFalse(recordedSummary.summaryPoints.isEmpty)
-                XCTAssertTrue(recordedSummary.actions.allSatisfy { $0.owner == nil && $0.due == nil },
-                    "Unknown metadata must remain null, not fail the entire meeting after hallucinated assignments")
+                let overview = try XCTUnwrap(recordedSummary.overview)
+                let paragraphs = [overview] + recordedSummary.bullets
+                let prose = paragraphs.map(\.text).joined(separator: " ").lowercased()
+                XCTAssertTrue(prose.contains("download"), "Preserve the actual UI defect")
+                XCTAssertTrue(prose.contains("summar") && prose.contains("model"), "Preserve the model-related summary failure")
+                XCTAssertTrue(prose.contains("test"), "Preserve the requested regression/native testing")
+                XCTAssertTrue(prose.contains("device"), "Preserve the explicit local-data requirement")
+                for invented in ["maya", "leo", "thursday", "friday"] {
+                    XCTAssertFalse(prose.contains(invented), "Unlabeled speech cannot inherit named fixture ownership or dates")
+                }
+                for paragraph in paragraphs {
+                    XCTAssertFalse(sentences.contains(paragraph.text), "Narrative output must paraphrase instead of copying a row")
+                    XCTAssertFalse(paragraph.evidence.isEmpty)
+                    for citation in paragraph.evidence {
+                        let original = try XCTUnwrap(source.segments.first { $0.id == citation.sourceID })
+                        XCTAssertEqual(citation.startSample, original.startSample)
+                        XCTAssertEqual(citation.endSample, original.endSample)
+                        XCTAssertFalse(citation.quote.isEmpty)
+                        XCTAssertNotNil(Data(original.text.utf8).range(of: Data(citation.quote.utf8)))
+                    }
+                }
                 await runtime.unload()
                 do { _ = try await runtime.promptTokenCount(prompt: prompt); XCTFail("Unloaded adapter retained the model") }
                 catch { XCTAssertEqual(error as? LocalSummaryRuntimeError, .modelUnavailable) }
@@ -120,6 +138,7 @@ final class ActualCatalogAdapterIntegrationTests: XCTestCase {
                 admission: fixture.admission, manifest: variant.manifest)
             let summary = try await session.run(fixture.request(.summary))
             XCTAssertEqual(summary.kind, .summary)
+            try assertNarrativeFixtureSummary(summary, fixture: fixture, revision: variant.manifest.revision)
             let answer = try await session.run(fixture.request(.question("Who will write the guide?")))
             XCTAssertEqual(answer.kind, .questionAnswer)
             XCTAssertEqual(summary.modelRevision, variant.manifest.revision)

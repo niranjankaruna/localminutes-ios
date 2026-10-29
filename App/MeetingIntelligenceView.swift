@@ -404,10 +404,21 @@ final class MeetingIntelligenceController {
               let object = try? JSONSerialization.jsonObject(with: document.originalJSON) as? [String: Any],
               let rawMeeting = object["meeting_id"] as? String,
               UUID(uuidString: rawMeeting) == meetingID else { return [] }
-        var raw = object["evidence"] as? [[String: Any]] ?? []
-        for key in ["summary_points", "decisions", "actions"] {
-            for point in object[key] as? [[String: Any]] ?? [] {
-                raw += point["evidence"] as? [[String: Any]] ?? []
+        let isNarrative = document.kind == .summary && object["schema_version"] as? Int == 2
+        var raw: [[String: Any]] = []
+        if isNarrative {
+            if let overview = object["overview"] as? [String: Any] {
+                raw += overview["evidence"] as? [[String: Any]] ?? []
+            }
+            for bullet in object["bullets"] as? [[String: Any]] ?? [] {
+                raw += bullet["evidence"] as? [[String: Any]] ?? []
+            }
+        } else {
+            raw = object["evidence"] as? [[String: Any]] ?? []
+            for key in ["summary_points", "decisions", "actions"] {
+                for point in object[key] as? [[String: Any]] ?? [] {
+                    raw += point["evidence"] as? [[String: Any]] ?? []
+                }
             }
         }
         var seen: Set<String> = []
@@ -421,6 +432,9 @@ final class MeetingIntelligenceController {
                   end.int64Value > start.int64Value,
                   let quote = value["quote"] as? String, !quote.isEmpty,
                   Data(source.text.utf8).range(of: Data(quote.utf8)) != nil else { return nil }
+            // Narrative prose can be paraphrased; only its hidden evidence is
+            // literal, with the original segment's full source range retained.
+            if isNarrative && (start.int64Value != source.startSample || end.int64Value != source.endSample) { return nil }
             let key = "\(id):\(start.int64Value):\(end.int64Value):\(quote)"
             guard seen.insert(key).inserted else { return nil }
             return MeetingIntelligenceCitation(id: key, sourceID: sourceID,

@@ -42,26 +42,7 @@ final class ActualSelectedModelIntelligenceTests: XCTestCase {
                     XCTAssertFalse(String(decoding: saved.originalJSON, as: UTF8.self).contains("telescope"))
                     if stage == "summary" {
                         XCTAssertEqual(saved.kind, .summary)
-                        XCTAssertEqual(saved.promptVersion, SummaryPipeline.currentPromptVersion)
-                        let decisions = try XCTUnwrap(object["decisions"] as? [[String: Any]])
-                        XCTAssertTrue(decisions.contains { ($0["text"] as? String)?.lowercased().contains("prototype") == true
-                            && ($0["text"] as? String)?.contains("Friday") == true })
-                        let actions = try XCTUnwrap(object["actions"] as? [[String: Any]])
-                        let action = try XCTUnwrap(actions.first { ($0["task"] as? String)?.lowercased().contains("guide") == true })
-                        XCTAssertEqual(action["owner"] as? String, "Leo")
-                        XCTAssertEqual(action["due"] as? String, "Thursday")
-                        for key in ["summary_points", "decisions", "actions"] {
-                            for item in object[key] as? [[String: Any]] ?? [] {
-                                try self.validate(item["evidence"], fixture: h)
-                                let provenance = try XCTUnwrap(item["provenance"] as? [[String: Any]])
-                                XCTAssertFalse(provenance.isEmpty)
-                                for source in provenance {
-                                    XCTAssertEqual(source["model_revision"] as? String, revision)
-                                    XCTAssertEqual(source["prompt_version"] as? String, SummaryPipeline.currentPromptVersion)
-                                    XCTAssertGreaterThanOrEqual((source["map_index"] as? NSNumber)?.intValue ?? -1, 0)
-                                }
-                            }
-                        }
+                        try assertNarrativeFixtureSummary(saved, fixture: h, revision: revision)
                     } else {
                         XCTAssertEqual(saved.kind, .questionAnswer)
                         XCTAssertEqual(saved.question, "Who will write the guide?")

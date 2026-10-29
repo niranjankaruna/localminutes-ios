@@ -9,14 +9,15 @@ import LocalMinutesSummary
 
 @MainActor
 final class IntelligenceSessionTests: XCTestCase {
-    func testSummaryAndQuestionsUseTheSelectedRuntimeContextAboveFourK() async throws {
+    func testSummaryUsesBoundedWorkingBudgetWhileQuestionsRespectSelectedContext() async throws {
         let h = try await IntelligenceFixture.create()
         do {
             for (limit, output) in [(4_096, 2_048), (32_768, 8_192), (131_072, 16_384), (262_144, 16_384)] {
                 for operation in [IntelligenceOperation.summary, .question("Who will write the guide?")] {
-                    let reply = try (operation == .summary ? h.rawSummary() : h.rawAnswer())
-                    let runtime = IntelligenceBoundaryRuntime(replies: [reply],
-                        contextTokenLimit: limit, tokenCount: limit - output - 1_024, outputTokenLimit: output)
+                    let replies = try (operation == .summary ? h.summaryReplies() : [h.rawAnswer()])
+                    let runtime = IntelligenceBoundaryRuntime(replies: replies,
+                        contextTokenLimit: limit, tokenCount: operation == .summary ? 500 : limit - output - 1_024,
+                        outputTokenLimit: output)
                     let session = IntelligenceSession(store: h.store, models: h.models, admission: h.admission,
                         manifest: h.manifest, runtimeLoader: { _ in runtime })
                     let document = try await session.run(h.request(operation))
@@ -25,7 +26,14 @@ final class IntelligenceSessionTests: XCTestCase {
                     let unloaded = await runtime.unloaded
                     XCTAssertTrue(unloaded)
                     let requested = await runtime.requestedMaximumTokens
-                    XCTAssertEqual(requested, [operation == .summary ? output : 192])
+                    if operation == .summary {
+                        let writingBudget = min(output, min(1_536, min(limit, 8_192) / 4))
+                        XCTAssertEqual(requested, [writingBudget, 512, 512, 512],
+                            "A draft and three semantic reviews use bounded budgets")
+                        let prompts = await runtime.prompts
+                        XCTAssertTrue(prompts.first?.contains("NARRATIVE_DRAFT") == true)
+                        XCTAssertTrue(prompts.dropFirst().allSatisfy { $0.contains("NARRATIVE_REVIEW") })
+                    } else { XCTAssertEqual(requested, [192]) }
                 }
             }
             try await h.closeAndRemove()
@@ -36,8 +44,8 @@ final class IntelligenceSessionTests: XCTestCase {
         let h = try await IntelligenceFixture.create()
         do {
             for kind in [IntelligenceOperation.summary, .question("Who will write the guide?")] {
-                let reply = try (kind == .summary ? h.rawSummary() : h.rawAnswer())
-                let runtime = IntelligenceBoundaryRuntime(replies: [reply], holdGeneration: true)
+                let replies = try (kind == .summary ? h.summaryReplies() : [h.rawAnswer()])
+                let runtime = IntelligenceBoundaryRuntime(replies: replies, holdGeneration: true)
                 let session = IntelligenceSession(store: h.store, models: h.models, admission: h.admission,
                     manifest: h.manifest, runtimeLoader: { _ in runtime })
                 let progress = IntelligenceProgressEvents()
@@ -85,7 +93,7 @@ final class IntelligenceSessionTests: XCTestCase {
     func testSummaryAndQASaveSelectedValidatedDocumentsAndProvenanceWithoutChangingOriginals() async throws {
         let h = try await IntelligenceFixture.create()
         do {
-            let summaryRuntime = IntelligenceBoundaryRuntime(replies: [try h.rawSummary()])
+            let summaryRuntime = IntelligenceBoundaryRuntime(replies: try h.summaryReplies())
             let qaRuntime = IntelligenceBoundaryRuntime(replies: [try h.rawAnswer()])
             let loader = IntelligenceBoundaryLoader([summaryRuntime, qaRuntime])
             let session = IntelligenceSession(store: h.store, models: h.models, admission: h.admission,
@@ -95,18 +103,29 @@ final class IntelligenceSessionTests: XCTestCase {
             let answerRequest = h.request(.question("Who will write the guide?"))
             let answer = try await session.run(answerRequest)
             let summaryJSON = try dictionary(summary.originalJSON)
-            XCTAssertEqual(summaryJSON["schema_version"] as? Int, 1)
+            XCTAssertEqual(summaryJSON["schema_version"] as? Int, 2)
             XCTAssertEqual(summaryJSON["meeting_id"] as? String, h.selected.uuidString)
-            let points = try XCTUnwrap(summaryJSON["summary_points"] as? [[String: Any]])
+            let points = try XCTUnwrap(summaryJSON["bullets"] as? [[String: Any]])
             XCTAssertEqual(points.count, 2)
+            XCTAssertEqual(points.first?["text"] as? String, "The team agreed to ship the prototype on Friday.")
+            XCTAssertNotEqual(points.first?["text"] as? String, h.segments[0].text)
+            let overview = try XCTUnwrap(summaryJSON["overview"] as? [String: Any])
+            XCTAssertEqual(overview["text"] as? String, "The team aligned the prototype release and its documentation schedule.")
             let evidence = try XCTUnwrap(points.first?["evidence"] as? [[String: Any]])
             XCTAssertEqual(evidence.first?["source_id"] as? String, h.segments[0].id.uuidString)
-            let provenance = try XCTUnwrap(points.first?["provenance"] as? [[String: Any]])
-            XCTAssertEqual(provenance.first?["model_revision"] as? String, h.manifest.revision)
-            XCTAssertEqual(provenance.first?["prompt_version"] as? String, SummaryPipeline.currentPromptVersion)
-            XCTAssertEqual(provenance.first?["map_index"] as? Int, 0)
+            XCTAssertEqual(evidence.first?["quote"] as? String, h.segments[0].text)
+            XCTAssertEqual((evidence.first?["start_sample"] as? NSNumber)?.int64Value, h.segments[0].startSample)
+            XCTAssertEqual((evidence.first?["end_sample"] as? NSNumber)?.int64Value, h.segments[0].endSample)
+            let provenance = try XCTUnwrap(summaryJSON["provenance"] as? [String: Any])
+            XCTAssertEqual(provenance["model_revision"] as? String, h.manifest.revision)
+            XCTAssertEqual(provenance["prompt_version"] as? String, AdaptiveSummaryPipeline.currentPromptVersion)
+            XCTAssertEqual(provenance["map_index"] as? Int, 0)
+            XCTAssertTrue(summary.editedText.hasPrefix("Overview\n"))
+            XCTAssertTrue(summary.editedText.contains("\n\n• The team agreed"))
+            XCTAssertNil(summaryJSON["decisions"]); XCTAssertNil(summaryJSON["actions"])
+            XCTAssertFalse(summary.editedText.contains("Maya:"))
             XCTAssertEqual(summary.kind, .summary); XCTAssertNil(summary.question)
-            XCTAssertEqual(summary.promptVersion, SummaryPipeline.currentPromptVersion)
+            XCTAssertEqual(summary.promptVersion, AdaptiveSummaryPipeline.currentPromptVersion)
             XCTAssertEqual(answer.kind, .questionAnswer); XCTAssertEqual(answer.question, "Who will write the guide?")
             XCTAssertEqual(answer.promptVersion, "meeting-qa-v1")
             XCTAssertEqual(summary.modelRevision, h.manifest.revision); XCTAssertEqual(answer.modelRevision, h.manifest.revision)
@@ -141,7 +160,7 @@ final class IntelligenceSessionTests: XCTestCase {
 
     func testCancellationJoinsWorkThenUnloadsAndReleasesRealModelLeaseBeforeReplacement() async throws {
         let h = try await IntelligenceFixture.create()
-        let oldRuntime = IntelligenceBoundaryRuntime(replies: [try h.rawSummary()], holdGeneration: true, holdUnload: true)
+        let oldRuntime = IntelligenceBoundaryRuntime(replies: try h.summaryReplies(), holdGeneration: true, holdUnload: true)
         let nextRuntime = IntelligenceBoundaryRuntime(replies: [try h.rawAnswer()])
         let loader = IntelligenceBoundaryLoader([oldRuntime, nextRuntime])
         let session = IntelligenceSession(store: h.store, models: h.models, admission: h.admission,
@@ -195,7 +214,7 @@ final class IntelligenceSessionTests: XCTestCase {
         let h = try await IntelligenceFixture.create()
         let asr = IntelligenceASRBoundary()
         let recordingLease = try h.admission.acquire(purpose: .streamingASR, requestID: UUID(), resource: asr)
-        let summaryRuntime = IntelligenceBoundaryRuntime(replies: [try h.rawSummary()], holdGeneration: true)
+        let summaryRuntime = IntelligenceBoundaryRuntime(replies: try h.summaryReplies(), holdGeneration: true)
         let qaRuntime = IntelligenceBoundaryRuntime(replies: [try h.rawAnswer()])
         let loader = IntelligenceBoundaryLoader([summaryRuntime, qaRuntime])
         let first = IntelligenceSession(store: h.store, models: h.models, admission: h.admission,
@@ -238,7 +257,7 @@ final class IntelligenceSessionTests: XCTestCase {
 
     func testActualClosedSQLiteSaveFailurePublishesNothingAndStillReleasesRuntimeAndLeases() async throws {
         let h = try await IntelligenceFixture.create()
-        let runtime = IntelligenceBoundaryRuntime(replies: [try h.rawSummary()], holdGeneration: true)
+        let runtime = IntelligenceBoundaryRuntime(replies: try h.summaryReplies(), holdGeneration: true)
         let loader = IntelligenceBoundaryLoader([runtime])
         let session = IntelligenceSession(store: h.store, models: h.models, admission: h.admission,
             manifest: h.manifest, runtimeLoader: { try await loader.load($0) })
@@ -271,7 +290,7 @@ final class IntelligenceSessionTests: XCTestCase {
 
     func testCancellationBeforeBlockedSQLiteCommitSavesNothingAndPreservesOriginalsAndModel() async throws {
         let h = try await IntelligenceFixture.create()
-        let runtime = IntelligenceBoundaryRuntime(replies: [try h.rawSummary()], holdGeneration: true)
+        let runtime = IntelligenceBoundaryRuntime(replies: try h.summaryReplies(), holdGeneration: true)
         let loader = IntelligenceBoundaryLoader([runtime])
         let session = IntelligenceSession(store: h.store, models: h.models, admission: h.admission,
             manifest: h.manifest, runtimeLoader: { try await loader.load($0) })

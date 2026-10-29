@@ -326,19 +326,14 @@ public final class IntelligenceSession {
                     checkpoints: summaryCheckpoints)
             } else { resume = nil }
             let report = use.progress
-            let pipeline = SummaryPipeline(modelRevision: modelRevision,
+            let pipeline = AdaptiveSummaryPipeline(modelRevision: modelRevision,
                 contextTokenLimit: runtime.contextTokenLimit,
                 reservedOutputTokens: runtime.outputTokenLimit,
                 tokenizer: { try await runtime.promptTokenCount(prompt: $0) },
                 generator: { prompt, schema, maximum in
                     report?(.generationStarted)
-                    do {
-                        return try await runtime.generateJSON(prompt: prompt, schema: schema, maximumTokens: maximum,
-                            progress: { report?(.generating($0)) })
-                    } catch LocalSummaryRuntimeError.outputLimitExceeded {
-                        report?(.recoveringSummary)
-                        throw LocalSummaryRuntimeError.outputLimitExceeded
-                    }
+                    return try await runtime.generateJSON(prompt: prompt, schema: schema, maximumTokens: maximum,
+                        progress: { report?(.generating($0)) })
                 }, resume: resume, mapProgress: { completed, total in
                     report?(.summaryChunks(completed: completed, total: total))
                 }, consolidationProgress: { completed, total in
@@ -440,30 +435,23 @@ public final class IntelligenceSession {
          "end_sample": value.endSample, "quote": value.quote]
     }
 
-    private static func provenance(_ values: [SummaryGenerationProvenance]) -> [[String: Any]] {
-        values.map { ["model_revision": $0.modelRevision, "prompt_version": $0.promptVersion, "map_index": $0.mapIndex] }
-    }
-
-    private static func point(_ value: GroundedSummaryPoint) -> [String: Any] {
-        ["text": value.text, "evidence": value.evidence.map { evidence($0) }, "provenance": provenance(value.provenance)]
-    }
-
-    private static func document(summary: GroundedSummary, request: IntelligenceRequest,
+    private static func document(summary: NarrativeSummary, request: IntelligenceRequest,
                                  revision: String) throws -> StoredGeneratedDocument {
-        let actions: [[String: Any]] = summary.actions.map {
-            ["task": $0.task, "owner": $0.owner.map { $0 as Any } ?? NSNull(),
-             "due": $0.due.map { $0 as Any } ?? NSNull(), "evidence": $0.evidence.map { evidence($0) },
-             "provenance": provenance($0.provenance)]
+        func paragraph(_ value: NarrativeSummaryParagraph) -> [String: Any] {
+            ["text": value.text, "evidence": value.evidence.map { evidence($0) }]
         }
-        let payload: [String: Any] = ["schema_version": 1, "meeting_id": summary.meetingID.uuidString,
-            "summary_points": summary.summaryPoints.map { point($0) },
-            "decisions": summary.decisions.map { point($0) }, "actions": actions]
-        let text = (summary.summaryPoints.map(\.text) + summary.decisions.map { "Decision: " + $0.text }
-            + summary.actions.map { action in
-                "Action: " + action.task + (action.owner.map { " — " + $0 } ?? "") + (action.due.map { " (" + $0 + ")" } ?? "")
-            }).joined(separator: "\n")
+        let origin = summary.provenance
+        let payload: [String: Any] = ["schema_version": 2, "meeting_id": summary.meetingID.uuidString,
+            "overview": summary.overview.map { paragraph($0) as Any } ?? NSNull(),
+            "bullets": summary.bullets.map(paragraph),
+            "provenance": ["model_revision": origin.modelRevision,
+                           "prompt_version": origin.promptVersion, "map_index": origin.mapIndex]]
+        var sections: [String] = []
+        if let overview = summary.overview { sections.append("Overview\n" + overview.text) }
+        if !summary.bullets.isEmpty { sections.append(summary.bullets.map { "• " + $0.text }.joined(separator: "\n\n")) }
+        let text = sections.joined(separator: "\n\n")
         return try document(payload: payload, text: text, request: request, kind: .summary,
-                            revision: revision, prompt: SummaryPipeline.currentPromptVersion, question: nil)
+                            revision: revision, prompt: AdaptiveSummaryPipeline.currentPromptVersion, question: nil)
     }
 
     private static func document(answer: MeetingQuestionAnswer, request: IntelligenceRequest) throws -> StoredGeneratedDocument {

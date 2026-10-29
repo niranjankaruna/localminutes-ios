@@ -6,6 +6,50 @@ import XCTest
 /// These cases prove neither inference nor semantic grounding of stored JSON.
 @MainActor
 final class SummaryCheckpointStoreTests: XCTestCase {
+    func testNarrativeIndexesRoundTripOnlyUnderNarrativePromptIdentity() async throws {
+        try await withSummaryCheckpointFixture { fixture in
+            let identity = fixture.identity(promptVersion: "narrative-v1")
+            let json = try JSONSerialization.data(withJSONObject: ["schema_version": 2,
+                "meeting_id": identity.meetingID.uuidString,
+                "topics": [["label": "Release preparation", "source_ids": [0, 1]]]])
+            let map = SummaryMapCheckpoint(index: 0, chunkSHA256: String(repeating: "3", count: 64), mapJSON: json)
+            try await fixture.checkpoints.save(map, matching: identity)
+            let reopened = try SummaryCheckpointStore(directoryURL: fixture.directory)
+            let restored = try await reopened.load(matching: identity)
+            XCTAssertEqual(restored?.maps, [map])
+            await expectSummaryCheckpointError(.identityMismatch) {
+                _ = try await reopened.load(matching: fixture.identity())
+            }
+            try await reopened.remove(jobID: identity.jobID, meetingID: identity.meetingID)
+            await expectSummaryCheckpointError(.invalidInput) {
+                try await reopened.save(map, matching: fixture.identity())
+            }
+            await expectSummaryCheckpointError(.invalidInput) {
+                try await reopened.save(fixture.map(0), matching: identity)
+            }
+            try await fixture.assertOriginalsUnchanged()
+        }
+    }
+
+    func testLegacyCheckpointStaysReadableAndRemovableButCannotResumeNarrativeGeneration() async throws {
+        try await withSummaryCheckpointFixture { fixture in
+            let legacy = fixture.identity()
+            let map = fixture.map(0)
+            try await fixture.checkpoints.save(map, matching: legacy)
+            let reopened = try SummaryCheckpointStore(directoryURL: fixture.directory)
+            let saved = try await reopened.load(matching: legacy)
+            XCTAssertEqual(saved?.maps, [map])
+            await expectSummaryCheckpointError(.identityMismatch) {
+                _ = try await reopened.load(matching: fixture.identity(promptVersion: "narrative-v1"))
+            }
+            let count = try await reopened.savedMapCount(jobID: legacy.jobID, meetingID: legacy.meetingID)
+            XCTAssertEqual(count, 1)
+            try await reopened.remove(jobID: legacy.jobID, meetingID: legacy.meetingID)
+            let removed = try await reopened.load(matching: fixture.identity(promptVersion: "narrative-v1"))
+            XCTAssertNil(removed)
+        }
+    }
+
     func testLargerOutputBudgetAndCitationPayloadSurviveCheckpointReopen() async throws {
         try await withSummaryCheckpointFixture { fixture in
             let identity = fixture.identity(contextTokenLimit: 32_768, reservedOutputTokens: 16_384)

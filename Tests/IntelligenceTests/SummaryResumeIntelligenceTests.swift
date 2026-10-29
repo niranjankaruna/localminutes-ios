@@ -55,10 +55,14 @@ final class SummaryResumeIntelligenceTests: XCTestCase {
                 try writer?.release(); writer = nil
                 let saved = try await running.value
                 let calls = await nextRuntime.requests
-                XCTAssertEqual(calls.count, 1, "Reopened service must generate only the missing map")
-                if let prompt = calls.first {
-                    XCTAssertEqual(try resumeServiceSources(prompt).map(\.id), [h.segments[1].id.uuidString])
+                let indexCalls = calls.filter { $0.hasPrefix("NARRATIVE_INDEX") }
+                XCTAssertEqual(indexCalls.count, 1, "Reopened service must generate only the missing source index")
+                if let prompt = indexCalls.first {
+                    XCTAssertEqual(try resumeServiceUnits(prompt).map(\.id), [1])
                 }
+                XCTAssertTrue(calls.contains { $0.hasPrefix("NARRATIVE_DRAFT") },
+                    "Resumed original-source indexes must still be written into fresh narrative prose")
+                XCTAssertTrue(calls.contains { $0.hasPrefix("NARRATIVE_REVIEW") })
                 let durable = try await h.store.generatedDocument(id: saved.id, meetingID: h.selected)
                 XCTAssertEqual(durable, saved)
                 XCTAssertNil(try resumeServiceCheckpoint(directory, meetingID: h.selected))
@@ -96,7 +100,15 @@ final class SummaryResumeIntelligenceTests: XCTestCase {
                         reservedOutputTokens: fault == "budget" ? 512 : id.reservedOutputTokens,
                         totalChunks: id.totalChunks)
                     try await checkpoints.remove(jobID: h.selected, meetingID: h.selected)
-                    for map in original.maps { try await checkpoints.save(map, matching: stale) }
+                    for map in original.maps {
+                        if fault == "template" {
+                            // Preserve readable legacy progress under its old prompt identity.
+                            let json = try JSONSerialization.data(withJSONObject: ["meeting_id": h.selected.uuidString,
+                                "summary_points": [], "decisions": [], "actions": []])
+                            try await checkpoints.save(.init(index: map.index, chunkSHA256: map.chunkSHA256, mapJSON: json),
+                                matching: stale)
+                        } else { try await checkpoints.save(map, matching: stale) }
+                    }
                 }
                 let runtime = ResumeServiceRuntime()
                 let session = resumeServiceSession(h, runtime: runtime, checkpoints: checkpoints)
@@ -117,7 +129,9 @@ final class SummaryResumeIntelligenceTests: XCTestCase {
                 let fresh = resumeServiceSession(h, runtime: freshRuntime, checkpoints: checkpoints)
                 let saved = try await fresh.run(h.request(.summary))
                 let calls = await freshRuntime.requests
-                XCTAssertEqual(calls.count, 2)
+                XCTAssertEqual(calls.filter { $0.hasPrefix("NARRATIVE_INDEX") }.count, 2)
+                XCTAssertTrue(calls.contains { $0.hasPrefix("NARRATIVE_DRAFT") })
+                XCTAssertTrue(calls.contains { $0.hasPrefix("NARRATIVE_REVIEW") })
                 XCTAssertEqual(saved.modelRevision, h.manifest.revision)
                 XCTAssertNil(try resumeServiceCheckpoint(directory, meetingID: h.selected))
                 let documents = try await h.store.generatedDocuments(meetingID: h.selected)
@@ -127,7 +141,7 @@ final class SummaryResumeIntelligenceTests: XCTestCase {
         }
     }
 
-    func testFinalSaveConflictRetainsAllMapsAndRetryCommitsWithoutRegeneratingOrOverwritingExistingDocument() async throws {
+    func testFinalSaveConflictRetainsSourceIndexesAndRetryRewritesWithoutOverwritingExistingDocument() async throws {
         try await withResumeIntelligenceFixture { h, checkpoints, directory in
             let documentID = UUID()
             let existing = StoredGeneratedDocument(id: documentID, meetingID: h.selected, kind: .summary,
@@ -154,7 +168,9 @@ final class SummaryResumeIntelligenceTests: XCTestCase {
             let retry = resumeServiceSession(h, runtime: retryRuntime, checkpoints: reopened)
             let saved = try await retry.run(h.request(.summary))
             let calls = await retryRuntime.requests
-            XCTAssertTrue(calls.isEmpty, "Complete map set must be decoded/merged without regenerating")
+            XCTAssertFalse(calls.contains { $0.hasPrefix("NARRATIVE_INDEX") }, "Complete source indexes must not be regenerated")
+            XCTAssertTrue(calls.contains { $0.hasPrefix("NARRATIVE_DRAFT") }, "The final narrative is freshly written")
+            XCTAssertTrue(calls.contains { $0.hasPrefix("NARRATIVE_REVIEW") }, "Fresh prose still requires semantic review")
             let durable = try await h.store.generatedDocument(id: saved.id, meetingID: h.selected)
             let preserved = try await h.store.generatedDocument(id: existing.id, meetingID: h.selected)
             XCTAssertEqual(durable, saved); XCTAssertEqual(preserved, existing)
@@ -238,7 +254,7 @@ private func seedResumeServiceCheckpoint(_ h: IntelligenceFixture, checkpoints: 
         .init(id: $0.id.uuidString, startSample: $0.startSample, endSample: $0.endSample, text: $0.text)
     }, originalManualNotes: note?.text ?? "")
     let artifact = try XCTUnwrap(h.manifest.artifacts.first)
-    let pipeline = SummaryPipeline(modelRevision: h.manifest.revision,
+    let pipeline = AdaptiveSummaryPipeline(modelRevision: h.manifest.revision,
         tokenizer: { try await runtime.promptTokenCount(prompt: $0) },
         generator: { try await runtime.generateJSON(prompt: $0, schema: $1, maximumTokens: $2) },
         resume: .init(jobID: h.selected, modelID: h.manifest.modelID, modelSHA256: artifact.sha256,
@@ -260,7 +276,7 @@ private func assertResumeServiceOriginals(_ h: IntelligenceFixture, note: Stored
 @MainActor
 private func withResumeIntelligenceFixture(
     _ body: @MainActor (IntelligenceFixture, SummaryCheckpointStore, URL) async throws -> Void) async throws {
-    let h = try await IntelligenceFixture.create()
+    let h = try await IntelligenceFixture.create(extendedSummarySource: true)
     do {
         let directory = h.root.appendingPathComponent("SummaryCheckpoints", isDirectory: true)
         let checkpoints = try SummaryCheckpointStore(directoryURL: directory)
@@ -282,7 +298,12 @@ private actor ResumeServiceRuntime: IntelligenceRuntime {
     }
     func promptTokenCount(prompt: String) async throws -> Int {
         try Task.checkCancellation()
-        return try resumeServiceSources(prompt).count == 1 ? 3_000 : 3_072
+        if prompt.hasPrefix("NARRATIVE_RECONCILE") { return 500 }
+        let count = try resumeServiceUnits(prompt).count
+        // Force the two original reading units through the real indexing path.
+        // Every single-unit writer packet and the final overview remain in budget.
+        if count > 1 && (prompt.hasPrefix("NARRATIVE_DRAFT") || prompt.hasPrefix("NARRATIVE_INDEX")) { return 4_096 }
+        return 500
     }
     func generateJSON(prompt: String, schema: StructuredJSONSchema, maximumTokens: Int) async throws -> String {
         requests.append(prompt)
@@ -291,17 +312,43 @@ private actor ResumeServiceRuntime: IntelligenceRuntime {
             while !released { try await Task.sleep(for: .milliseconds(1)) }
         }
         try Task.checkCancellation()
-        let sources = try resumeServiceSources(prompt)
-        guard let marker = prompt.range(of: "SELECTED_MEETING_ID: "),
-              let meeting = UUID(uuidString: String(prompt[marker.upperBound...].prefix(36))) else {
-            throw ResumeServiceFixtureError.invalidPrompt
+        if prompt.hasPrefix("NARRATIVE_RECONCILE") {
+            guard let marker = prompt.range(of: "TOPICS_JSON:\n", options: .backwards),
+                  let topics = try JSONSerialization.jsonObject(with: Data(prompt[marker.upperBound...].utf8)) as? [[String: Any]] else {
+                throw ResumeServiceFixtureError.invalidPrompt
+            }
+            let groups = try topics.map { row -> [String: Any] in
+                guard let id = row["id"] as? Int, let label = row["label"] as? String else {
+                    throw ResumeServiceFixtureError.invalidPrompt
+                }
+                return ["label": label, "topic_ids": [id]]
+            }
+            return String(decoding: try JSONSerialization.data(withJSONObject: ["groups": groups],
+                options: [.sortedKeys]), as: UTF8.self)
         }
-        let points: [[String: Any]] = sources.map {
-            ["text": $0.text, "evidence": [["source_id": $0.id, "start_sample": $0.startSample,
-                                           "end_sample": $0.endSample, "quote": $0.text]]]
-        }
-        let object: [String: Any] = ["meeting_id": meeting.uuidString, "summary_points": points,
-                                   "decisions": [], "actions": []]
+        let units = try resumeServiceUnits(prompt)
+        let ids = units.map(\.id)
+        guard !ids.isEmpty else { throw ResumeServiceFixtureError.invalidPrompt }
+        let narrative = ids.contains(0) && ids.contains(1)
+            ? "The team prepared the Friday prototype release, with Leo's guide due Thursday."
+            : (ids.contains(0) ? "A Friday prototype release was agreed." : "Leo committed to completing the guide by Thursday.")
+        let object: [String: Any]
+        if prompt.hasPrefix("NARRATIVE_INDEX") {
+            object = ["topics": units.map { unit -> [String: Any] in
+                ["label": unit.id == 0 ? "Prototype release" : "Documentation", "source_ids": [unit.id]]
+            }]
+        } else if prompt.hasPrefix("NARRATIVE_DRAFT") {
+            let bullets: [[String: Any]] = units.map { unit in
+                ["text": unit.id == 0 ? "The team agreed to release the prototype on Friday."
+                    : "Leo will prepare the guide by Thursday.", "source_ids": [unit.id]]
+            }
+            object = ["bullets": bullets,
+                "overview": ["text": narrative, "source_ids": ids]]
+        } else if prompt.hasPrefix("NARRATIVE_REVIEW") {
+            object = ["supported": true, "issues": []]
+        } else if prompt.hasPrefix("NARRATIVE_OVERVIEW") || prompt.hasPrefix("NARRATIVE_REPAIR") {
+            object = ["text": narrative, "source_ids": ids]
+        } else { throw ResumeServiceFixtureError.invalidPrompt }
         return String(decoding: try JSONSerialization.data(withJSONObject: object, options: [.sortedKeys]), as: UTF8.self)
     }
     func unload() async {
@@ -312,9 +359,17 @@ private actor ResumeServiceRuntime: IntelligenceRuntime {
     func releaseAll() { released = true }
 }
 
-private func resumeServiceSources(_ prompt: String) throws -> [SummaryEvidenceSegment] {
-    guard let marker = prompt.range(of: "\n\nEVIDENCE_JSON:\n") else { throw ResumeServiceFixtureError.invalidPrompt }
-    return try JSONDecoder().decode([SummaryEvidenceSegment].self, from: Data(prompt[marker.upperBound...].utf8))
+private struct ResumeServiceSourceUnit: Decodable {
+    let id: Int
+    let text: String?
+    let segments: [SummaryEvidenceSegment]?
+}
+
+private func resumeServiceUnits(_ prompt: String) throws -> [ResumeServiceSourceUnit] {
+    guard let marker = prompt.range(of: "SOURCE_UNITS_JSON:\n", options: .backwards) else {
+        throw ResumeServiceFixtureError.invalidPrompt
+    }
+    return try JSONDecoder().decode([ResumeServiceSourceUnit].self, from: Data(prompt[marker.upperBound...].utf8))
 }
 
 @MainActor

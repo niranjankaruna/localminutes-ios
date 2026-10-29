@@ -36,7 +36,7 @@ public struct SummaryCheckpointIdentity: Codable, Equatable, Sendable {
 }
 
 /// Persisted JSON is untrusted on reopen. The resume adapter must run the
-/// existing grounded decoder against this exact chunk before reusing the map.
+/// pipeline's evidence and semantic validation against this exact chunk before reuse.
 public struct SummaryMapCheckpoint: Codable, Equatable, Sendable {
     public let index: Int
     public let chunkSHA256: String
@@ -237,9 +237,21 @@ public actor SummaryCheckpointStore {
             }
             object = decoded
         } catch { throw SummaryCheckpointError.invalidInput }
-        guard let meeting = object["meeting_id"] as? String, UUID(uuidString: meeting) == identity.meetingID,
-              object["summary_points"] is [Any], object["decisions"] is [Any], object["actions"] is [Any] else {
+        guard let meeting = object["meeting_id"] as? String, UUID(uuidString: meeting) == identity.meetingID else {
             throw SummaryCheckpointError.invalidInput
+        }
+        if identity.promptVersion == "narrative-v1" {
+            // The pipeline validates topic contents and references on resume.
+            guard object["schema_version"] as? Int == 2, object["topics"] is [Any] else {
+                throw SummaryCheckpointError.invalidInput
+            }
+        } else {
+            // Legacy progress remains readable and removable. Exact identity
+            // comparison prevents its reuse by the narrative pipeline.
+            guard object["schema_version"] == nil || object["schema_version"] as? Int == 1,
+                  object["summary_points"] is [Any], object["decisions"] is [Any], object["actions"] is [Any] else {
+                throw SummaryCheckpointError.invalidInput
+            }
         }
     }
 

@@ -18,20 +18,22 @@ public enum IntelligenceFailureMessage {
             return "The selected model is not installed. Download and equip a summary model in Settings."
         case LocalSummaryRuntimeError.contextUnavailable:
             return "There is not enough available memory to load this model. Close other apps or equip a smaller summary model."
-        case LocalSummaryRuntimeError.contextExceeded,
-             SummaryChunkPlannerError.oversizedSegment, MeetingQuestionError.evidenceExceedsBudget:
+        case LocalSummaryRuntimeError.contextExceeded, NarrativeSummaryError.contextExceeded,
+             MeetingQuestionError.evidenceExceedsBudget:
             return "A transcript section or the meeting notes exceeds this model's input limit. Shorten the notes or try another summary model."
         case LocalSummaryRuntimeError.outputLimitExceeded:
             return "The model could not finish its response within the output limit. Try again or equip another summary model."
         case is StructuredJSONSchemaError:
             return "The model could not use the requested response format. Try another summary model and check for an app update."
-        case GroundedSummaryError.invalidSource, SummaryChunkPlannerError.invalidSource,
-             SummaryChunkPlannerError.duplicateSegmentID:
+        case GroundedSummaryError.invalidSource:
             return "The saved transcript has invalid source ranges. Transcribe the meeting again before summarizing it."
-        case is GroundedSummaryError, MeetingQuestionError.invalidJSON, MeetingQuestionError.unsupportedEvidence:
+        case is GroundedSummaryError, NarrativeSummaryError.unsupportedEvidence,
+             NarrativeSummaryError.invalidResponse, MeetingQuestionError.invalidJSON, MeetingQuestionError.unsupportedEvidence:
             return "The model's response could not be verified against this transcript. Nothing was saved. Try again or equip another summary model."
         case LocalSummaryRuntimeError.generationFailed:
             return "The model could not complete a valid response. Try again or equip another summary model."
+        case NarrativeSummaryError.limitExceeded:
+            return "This meeting exceeded the summary processing limit. Try a model with more capacity. Your transcript and saved progress are unchanged."
         default:
             return "Generation could not be completed or saved. Try again. If it continues, reopen LocalMinutes and check the selected summary model."
         }

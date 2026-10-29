@@ -105,13 +105,13 @@ final class NativeIntelligenceTimingTests: XCTestCase {
         XCTAssertNil(resumed.display(at: start.advanced(by: .seconds(101))).remainingSeconds)
     }
 
-    func testCompactRecoveryContinuesAdvancingWithoutMovingPercentageBackward() {
+    func testAnotherGenerationStageContinuesWithoutMovingPercentageBackward() {
         let start = ContinuousClock.now
         let tracker = IntelligenceProgressTracker(operation: .summary, startedAt: start)
         tracker.report(.summaryChunks(completed: 0, total: 2), at: start)
         tracker.report(.generating(.responseTokens(completed: 1_024, limit: 1_024)), at: start.advanced(by: .seconds(40)))
         let before = tracker.progress.completedUnitCount
-        tracker.report(.recoveringSummary, at: start.advanced(by: .seconds(41)))
+        tracker.report(.generationStarted, at: start.advanced(by: .seconds(41)))
         tracker.report(.generating(.promptTokens(completed: 256, total: 512)), at: start.advanced(by: .seconds(42)))
         XCTAssertGreaterThan(tracker.progress.completedUnitCount, before)
         let reading = tracker.progress.completedUnitCount
