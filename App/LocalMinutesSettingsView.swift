@@ -2,7 +2,7 @@
 import SwiftUI
 import UIKit
 
-enum MinutesSettingsRoute: Hashable { case speech, summary, about, device, storage, privacy, report }
+enum MinutesSettingsRoute: Hashable { case speech, summary, recordingPermissions, about, device, storage, privacy, report }
 
 @MainActor
 struct LocalMinutesSettingsView: View {
@@ -38,6 +38,10 @@ struct LocalMinutesSettingsView: View {
                         settingsRow("Summaries & answers", subtitle: selectedModel(.summary), symbol: "sparkles")
                     }.accessibilityIdentifier("settings.models.summary")
                 } header: { Text("Models") } footer: { Text("Models work on this iPhone.") }
+                Section("Recording") {
+                    NavigationLink("Recording permissions", value: MinutesSettingsRoute.recordingPermissions)
+                        .accessibilityIdentifier("settings.recordingPermissions")
+                }
                 Section("Library") {
                     Button { actions.prepareNewBackup(); showingBackup = true } label: {
                         Label("Back up meetings", systemImage: "square.and.arrow.up")
@@ -59,6 +63,7 @@ struct LocalMinutesSettingsView: View {
                 switch route {
                 case .speech: ModelPurposeView(controller: services.modelBrowser, purpose: .speechRecognition, application: application)
                 case .summary: ModelPurposeView(controller: services.modelBrowser, purpose: .summary, application: application)
+                case .recordingPermissions: RecordingPermissionsView()
                 case .about: MinutesAboutView(controller: services.modelBrowser, application: application, actions: actions)
                 case .device: ModelDeviceView(controller: services.modelBrowser)
                 case .storage: StorageCheckView(controller: services.modelBrowser, application: application)
@@ -206,8 +211,9 @@ struct MinutesPrivacyView: View {
                 }
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Microphone").font(.headline)
-                    Text("Microphone permission is used only for recordings you start. Change access in iPhone Settings.")
+                    Text("Microphone permission is used only for recordings you start. Allow access in Recording permissions; change an existing choice in iPhone Settings.")
                         .foregroundStyle(.secondary).accessibilityIdentifier("recording.microphoneExplanation")
+                    NavigationLink("Recording permissions") { RecordingPermissionsView() }
                 }
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Live Activity").font(.headline)

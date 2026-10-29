@@ -7,13 +7,13 @@ import Foundation
 struct StartMeetingIntent: AudioRecordingIntent, LiveActivityIntent {
     static var title: LocalizedStringResource { "Start LocalMinutes Recording" }
     static var description: IntentDescription {
-        IntentDescription("Start a meeting when the required local models are ready.")
+        IntentDescription("Open LocalMinutes and start a meeting when microphone access and the speech model are ready.")
     }
     static var isDiscoverable: Bool { true }
     static var authenticationPolicy: IntentAuthenticationPolicy { .alwaysAllowed }
 
     @available(iOS 26.0, *)
-    static var supportedModes: IntentModes { [.background, .foreground(.dynamic)] }
+    static var supportedModes: IntentModes { [.foreground(.immediate)] }
 
     private var injectedApplication: RecordingApplication?
     init() { injectedApplication = nil }
@@ -68,7 +68,11 @@ struct ToggleMeetingIntent: AudioRecordingIntent, LiveActivityIntent {
 // Apple's documented compatibility conformance preserves the iOS18 path while
 // the helper explicitly selects the guarded modern overload on iOS26.
 @available(*, deprecated)
-extension StartMeetingIntent: ForegroundContinuableIntent {}
+extension StartMeetingIntent: ForegroundContinuableIntent {
+    // iOS 18–25 must also open the app before requesting its first Live
+    // Activity or microphone access. iOS 26 uses supportedModes above.
+    static var openAppWhenRun: Bool { true }
+}
 @available(*, deprecated)
 extension StopMeetingIntent: ForegroundContinuableIntent {}
 @available(*, deprecated)

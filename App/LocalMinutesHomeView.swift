@@ -75,6 +75,11 @@ struct LocalMinutesHomeView: View {
                 handledMeetingRequestID = requestID
                 meetingPath = [id]; selectedTab = .meetings
             }
+            .onChange(of: application.recordingNavigationRequestID, initial: true) { _, requestID in
+                guard let requestID else { return }
+                selectedTab = .record
+                application.consumeRecordingNavigationRequest(requestID)
+            }
             .onChange(of: scenePhase) { _, phase in
                 do {
                     try application.recordScenePhase(phase)

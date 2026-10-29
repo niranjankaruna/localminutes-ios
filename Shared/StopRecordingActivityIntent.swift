@@ -9,14 +9,13 @@ enum RecordingNativeIntentError: Error, Equatable, Sendable, LocalizedError {
     case applicationUnavailable
     case invalidSession
     case foregroundUnavailable
-    case nativeForegroundRequired
 
     var errorDescription: String? {
         switch self {
         case .applicationUnavailable: "Open LocalMinutes to control recording."
         case .invalidSession: "This recording control has an invalid session."
-        case .foregroundUnavailable, .nativeForegroundRequired:
-            "Open LocalMinutes to review recording permissions and status."
+        case .foregroundUnavailable:
+            "Open LocalMinutes and select Record to see recording status and setup."
         }
     }
 
@@ -60,9 +59,10 @@ struct StopRecordingActivityIntent: AudioRecordingIntent, LiveActivityIntent {
         do {
             let outcome = try await application.perform(.stop(expectedSessionID: sessionID))
             return RecordingIntentReplies.result(for: outcome)
-        } catch RecordingNativeIntentError.nativeForegroundRequired {
+        } catch let error as RecordingForegroundRequiredError {
             // App-only foreground APIs do not belong in this shared control.
-            throw RecordingNativeIntentError.foregroundUnavailable
+            application.requestRecordingNavigation()
+            throw error
         }
         #endif
     }

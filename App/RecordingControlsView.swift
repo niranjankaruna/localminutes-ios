@@ -1,6 +1,5 @@
 import Foundation
 import SwiftUI
-import UIKit
 
 /// Capture is owned by RecordingApplication. Switching tabs or opening setup
 /// only changes this projection and never releases microphone resources.
@@ -9,7 +8,6 @@ struct RecordingControlsView: View {
     let application: RecordingApplication
     var openMeeting: (UUID) -> Void = { _ in }
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.openURL) private var openURL
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ScaledMetric(relativeTo: .title) private var timerSize: CGFloat = 36
     @State private var snapshot: RecordingSnapshot?
@@ -19,6 +17,7 @@ struct RecordingControlsView: View {
     @State private var commandError: String?
     @State private var showingSetup = false
     @State private var showingPrivacy = false
+    @State private var showingPermissions = false
     @State private var showingNotes = false
     @State private var pendingStoppedMeeting: UUID?
     @State private var screenshotPrepared = false
@@ -84,6 +83,11 @@ struct RecordingControlsView: View {
             .navigationTitle(hasActiveSession ? "Recording" : "Record")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { showingPermissions = true } label: {
+                        Image(systemName: "gearshape").frame(minWidth: 44, minHeight: 44)
+                    }.accessibilityLabel("Recording permissions").accessibilityIdentifier("recording.permissions")
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showingPrivacy = true } label: {
                         Image(systemName: "info.circle").frame(minWidth: 44, minHeight: 44)
@@ -106,6 +110,12 @@ struct RecordingControlsView: View {
                 NavigationStack {
                     MinutesPrivacyView()
                         .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showingPrivacy = false } } }
+                }
+            }
+            .sheet(isPresented: $showingPermissions) {
+                NavigationStack {
+                    RecordingPermissionsView()
+                        .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showingPermissions = false } } }
                 }
             }
             .screenshotReady(screenshotPrepared)
@@ -292,9 +302,8 @@ struct RecordingControlsView: View {
             detail: failure == .storageFull ? "Free up space on this iPhone, then try again." :
                 String(localized: RecordingIntentReplies.message(for: .blocked(failure))))
         if failure == .microphoneDenied || failure == .activityUnavailable {
-            Button("Open iPhone Settings") {
-                if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
-            }.buttonStyle(MinutesButtonStyle())
+            Button("Review recording permissions") { showingPermissions = true }
+                .buttonStyle(MinutesButtonStyle())
         }
         Button("Try again") { Task { await start() } }.buttonStyle(MinutesButtonStyle(kind: .secondary))
         if let id = snapshot?.sessionID {
@@ -338,7 +347,10 @@ struct RecordingControlsView: View {
             default: commandError = String(localized: RecordingIntentReplies.message(for: outcome))
             }
         }
-        catch { commandError = "Recording could not start. Review permissions and try again." }
+        catch let error as RecordingForegroundRequiredError {
+            commandError = String(localized: RecordingIntentReplies.message(for: .requiresForeground(error.failure)))
+        }
+        catch { commandError = "Recording could not start. Try again." }
         await refresh()
         if snapshot?.failure != nil { commandError = nil }
     }

@@ -10,6 +10,16 @@ protocol RecordingForegroundContinuation: AnyObject {
     func requestContinuation(for failure: RecordingFailure) async throws
 }
 
+/// Carry this invocation's failure through the native foreground handoff.
+/// A later call can replace lastOutcome while the intent is suspended.
+struct RecordingForegroundRequiredError: Error, Equatable, LocalizedError {
+    let failure: RecordingFailure
+
+    var errorDescription: String? {
+        String(localized: RecordingIntentReplies.message(for: .requiresForeground(failure)))
+    }
+}
+
 /// Reject recording when the persistent services needed to load speech are unavailable.
 @MainActor
 private final class RequiredSpeechModelPreparation: RecordingPreparationSource {
@@ -33,6 +43,7 @@ final class RecordingApplication {
     private(set) var isRestoringLibrary = false
     @ObservationIgnored private var libraryPlaybackReservation: (controller: PlaybackOwnershipController, id: UUID)?
     private(set) var lastOutcome: RecordingIntentOutcome?
+    private(set) var recordingNavigationRequestID: UUID?
     private var router: RecordingIntentRouter
     @ObservationIgnored private var signalMonitor: IOSRecordingSignalMonitor
     @ObservationIgnored
@@ -87,6 +98,14 @@ final class RecordingApplication {
     }
 
     func flushSignals() async { await signalMonitor.flush() }
+
+    func requestRecordingNavigation() { recordingNavigationRequestID = UUID() }
+
+    func consumeRecordingNavigationRequest(_ id: UUID) {
+        guard recordingNavigationRequestID == id else { return }
+        recordingNavigationRequestID = nil
+    }
+
     func recordScenePhase(_ scenePhase: ScenePhase) throws {
         let visibility: MetricsVisibility
         switch scenePhase {
@@ -221,7 +240,7 @@ final class RecordingApplication {
         }
         lastOutcome = outcome
         if case .requiresForeground(let failure) = outcome {
-            guard let foreground else { throw RecordingNativeIntentError.nativeForegroundRequired }
+            guard let foreground else { throw RecordingForegroundRequiredError(failure: failure) }
             try await foreground.requestContinuation(for: failure)
         }
         return outcome
@@ -282,6 +301,7 @@ final class RecordingApplication {
         router = replacement.router
         signalMonitor = replacement.signalMonitor
         toggleOperation = nil; preparationStop = nil; lastOutcome = nil
+        recordingNavigationRequestID = nil
     }
 }
 #endif

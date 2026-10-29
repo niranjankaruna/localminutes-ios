@@ -3,6 +3,29 @@ import XCTest
 /// Simulator UI contract only; not physical microphone or locked-ASR evidence.
 @MainActor
 final class RecordingControlsUITests: XCTestCase {
+    func testColdStartShortcutOpensRecordAndOffersPermissionsWithoutASpeechModel() {
+        let app = minutesLibraryApp(arguments: ["--ui-test-recording-shortcut"])
+        app.launch(); defer { app.terminate() }
+        XCTAssertTrue(minutesElement("recording.modelRequired", in: app).waitForExistence(timeout: 15))
+        XCTAssertTrue(app.tabBars.buttons["Record"].isSelected)
+        XCTAssertFalse(app.staticTexts["recording.active"].exists)
+        guard minutesTap(app.buttons["recording.permissions"], in: app) else { return }
+        XCTAssertTrue(minutesElement("recording.permissions.microphone", in: app).waitForExistence(timeout: 5))
+        XCTAssertTrue(minutesElement("recording.permissions.liveActivities", in: app).exists)
+        XCTAssertFalse(app.alerts.firstMatch.exists, "Reviewing permission status must not prompt for access")
+    }
+
+    func testRecordingPermissionsAreAccessibleFromSettingsBeforeModelSetup() {
+        let app = minutesLibraryApp()
+        app.launch(); defer { app.terminate() }
+        XCTAssertTrue(app.tabBars.buttons["Settings"].waitForExistence(timeout: 10))
+        guard minutesTap(app.tabBars.buttons["Settings"], in: app) else { return }
+        guard minutesTap(minutesElement("settings.recordingPermissions", in: app), in: app) else { return }
+        XCTAssertTrue(minutesElement("recording.permissions.microphone", in: app).waitForExistence(timeout: 5))
+        XCTAssertTrue(minutesElement("recording.permissions.liveActivities", in: app).exists)
+        XCTAssertFalse(app.alerts.firstMatch.exists)
+    }
+
     func testNewFinalizedTranscriptScrollsIntoViewWhileStopAndTimerStayAtTheTop() async throws {
         let app = transcriptApp(stream: "finalized")
         app.launch(); defer { app.terminate() }
