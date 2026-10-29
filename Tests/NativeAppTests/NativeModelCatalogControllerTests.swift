@@ -8,6 +8,28 @@ import XCTest
 /// ownership and deletion without loading a model or using the network.
 @MainActor
 final class NativeModelCatalogControllerTests: XCTestCase {
+    func testCancelledRefreshPreservesInstalledModelsWithoutReportingAnOperationFailure() async throws {
+        try await fixture { root, services in
+            let model = try await self.install("refresh", in: services, root: root)
+            let controller = services.modelBrowser
+            await controller.refresh()
+            XCTAssertEqual(controller.installed, [model.manifest])
+            XCTAssertNil(controller.errorMessage)
+
+            // The main actor cannot start this task before the synchronous cancel.
+            // The real installer's inventory scan observes the cancelled task.
+            let refresh = Task { await controller.refresh() }
+            refresh.cancel()
+            await refresh.value
+
+            XCTAssertEqual(controller.installed, [model.manifest])
+            XCTAssertNil(controller.errorMessage)
+            await controller.refresh()
+            XCTAssertEqual(controller.installed, [model.manifest])
+            XCTAssertNil(controller.errorMessage)
+        }
+    }
+
     func testFirstDefaultSummaryDownloadPersistsUnequippedSelectionBeforeTransfer() async throws {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [CatalogFailFastURLProtocol.self]

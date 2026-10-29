@@ -100,6 +100,10 @@ final class ModelBrowserController {
                 }
                 return hasBytes ? variant.id : nil
             })
+        } catch is CancellationError {
+            // Navigating away cancels the view's refresh task. Keep the last
+            // inventory without presenting that normal lifecycle event as a failure.
+            return
         } catch { errorMessage = Self.describe(error) }
     }
 

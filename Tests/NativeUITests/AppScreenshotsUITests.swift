@@ -84,22 +84,23 @@ final class AppScreenshotsUITests: XCTestCase {
                 .matching(NSPredicate(format: "label == %@", "No meetings yet")).firstMatch
         case .meetingTranscript, .meetingTranscriptSearch:
             target = app.staticTexts[scene.target]
-        case .meetingsRestore, .modelsImport, .modelsPack:
+        case .meetingsRestore:
             target = app.buttons["Cancel"].firstMatch
         case .meetingShare:
             target = app.otherElements["ActivityListView"].cells
                 .matching(NSPredicate(format: "label == %@", "Copy")).firstMatch
-        case .modelsCompatibility, .modelsRequirements:
+        case .modelsSource, .modelsDownload:
             target = app.staticTexts[scene.target]
         default: target = element(scene.target, in: app)
         }
-        let isSectionHeader = scene == .modelsCompatibility || scene == .modelsRequirements
+        let isSectionHeader = scene == .modelsSource || scene == .modelsDownload
+        let sectionScrollView = app.collectionViews.firstMatch
         if isSectionHeader {
-            try uncoverSectionHeader(target, in: prepared, app: app)
+            try uncoverSectionHeader(target, in: sectionScrollView, app: app)
         }
         try waitUntilVisible(target, description: scene.target)
         if isSectionHeader {
-            let viewport = try contentViewport(of: prepared, in: app)
+            let viewport = try contentViewport(of: sectionScrollView, in: app)
             guard viewport.contains(target.frame) else {
                 throw CaptureError.notReady("Section heading is clipped: \(target.frame), visible content: \(viewport)")
             }

@@ -29,11 +29,7 @@ enum AppScreenshotScene: String, CaseIterable {
     case modelsDevice = "models_device"
     case modelsRepository = "models_parakeet_repository"
     case modelsSource = "models_parakeet_source"
-    case modelsCompatibility = "models_parakeet_compatibility"
-    case modelsRequirements = "models_parakeet_requirements"
     case modelsDownload = "models_parakeet_download"
-    case modelsImport = "models_import_picker"
-    case modelsPack = "models_pack_picker"
     case modelsInstalled = "models_installed_summary"
     case modelsDetails = "models_installed_details"
     case modelsRemove = "models_remove_confirmation"
@@ -51,11 +47,7 @@ enum AppScreenshotScene: String, CaseIterable {
     var isRecording: Bool { [.recordActive, .recordTranscript, .recordNotes].contains(self) }
     var isEmptyMeeting: Bool { [.meetingNoTranscript, .meetingNoSummary, .meetingModelRequired].contains(self) }
     var usesModelFixture: Bool {
-        [.modelsInstalled, .modelsDetails, .modelsRemove, .modelsDownloading, .modelsVerifying, .modelsCard].contains(self)
-    }
-    var usesRepository: Bool {
-        [.modelsRepository, .modelsSource, .modelsCompatibility, .modelsRequirements,
-         .modelsDownload, .modelsImport, .modelsCard].contains(self)
+        [.modelsInstalled, .modelsDetails, .modelsRemove, .modelsDownloading, .modelsVerifying].contains(self)
     }
     var usesSummaryModels: Bool {
         [.modelsSummary, .modelsStorage, .modelsAbout, .modelsDevice, .modelsInstalled,
@@ -79,17 +71,16 @@ enum AppScreenshotScene: String, CaseIterable {
         case .meetingAnswers: "meeting.answers"
         case .meetingExport, .meetingShare: "meeting.export"
         case .meetingDelete: "meeting.delete"
-        case .modelsSpeech, .modelsSummary, .modelsPack: "models.top"
+        case .modelsSpeech, .modelsSummary: "models.top"
         case .modelsStorage: "models.storage"
         case .modelsAbout: "models.about"
         case .modelsDevice: "models.device"
         case .modelsRepository: "models.repository"
         case .modelsSource: "models.source"
         case .modelsCard: "models.card"
-        case .modelsCompatibility: "models.compatibility"
-        case .modelsRequirements: "models.requirements"
-        case .modelsDownload, .modelsImport: "models.download"
-        case .modelsInstalled, .modelsDetails, .modelsRemove: "models.installed"
+        case .modelsDownload: "models.download"
+        case .modelsInstalled, .modelsRemove: "ui-model-alpha"
+        case .modelsDetails: "models.source"
         case .modelsDownloading, .modelsVerifying: "models.progress"
         }
     }
@@ -103,7 +94,6 @@ enum AppScreenshotScene: String, CaseIterable {
         case .meetingShare: ["meeting.export.text"]
         case .meetingDelete: ["meeting.actions", "meeting.delete"]
         case .modelsRemove: ["models.remove.ui-model-alpha"]
-        case .modelsCard: ["models.license.open"]
         default: []
         }
     }
@@ -130,14 +120,14 @@ enum AppScreenshotScene: String, CaseIterable {
         case .meetingNoTranscript: "meeting.transcript.empty"
         case .meetingNoSummary: "meeting.generatedSummary.generate"
         case .meetingModelRequired: "meeting.intelligence.modelRequired"
-        case .modelsSpeech, .modelsPack: "models.family.parakeet-v2"
-        case .modelsSummary: "models.apple.availability"
+        case .modelsSpeech: "models.family.parakeet-v2"
+        case .modelsSummary: "models.family.qwen25"
         case .modelsStorage: "settings.storageAudit.share"
         case .modelsAbout: "settings.appBuildIdentity"
         case .modelsDevice: "models.device.availableMemory"
         case .modelsRepository: "models.repository.title"
-        case .modelsSource, .modelsCompatibility, .modelsRequirements,
-             .modelsDownload, .modelsImport: "models.details.title"
+        case .modelsSource: "models.source.heading"
+        case .modelsDownload: "models.download.heading"
         case .modelsInstalled: "models.title.ui-model-alpha"
         case .modelsDetails: "models.runtime.ui-model-alpha"
         case .modelsRemove: "models.remove.confirm"

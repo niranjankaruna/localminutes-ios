@@ -6,6 +6,9 @@ import { pathToFileURL } from 'node:url';
 
 const sceneSource = new URL('../Shared/AppScreenshotScene.swift', import.meta.url);
 const pngSignature = Buffer.from('89504e470d0a1a0a', 'hex');
+// Read existing capture receipts without offering removed UI for a new run.
+const retiredScenes = ['models_parakeet_compatibility', 'models_parakeet_requirements',
+  'models_import_picker', 'models_pack_picker'];
 
 export const screenshotCategories = {
   recording: ['record_idle', 'record_speech_model_required', 'record_active', 'record_live_transcript', 'record_live_notes'],
@@ -17,8 +20,7 @@ export const screenshotCategories = {
   questions: ['meeting_questions_and_answers'],
   sharing: ['meeting_export', 'meeting_share_sheet'],
   models: ['models_speech', 'models_summary'],
-  parakeet: ['models_parakeet_repository', 'models_parakeet_source', 'models_parakeet_compatibility',
-    'models_parakeet_requirements', 'models_parakeet_download', 'models_import_picker', 'models_pack_picker', 'models_model_card'],
+  parakeet: ['models_parakeet_repository', 'models_parakeet_source', 'models_parakeet_download', 'models_model_card'],
   downloads: ['models_downloading', 'models_verifying'],
   'installed-models': ['models_installed_summary', 'models_installed_details', 'models_remove_confirmation'],
   settings: ['models_storage_check', 'models_about', 'models_device']
@@ -62,9 +64,20 @@ export async function resolveScreenshotSelection({ appearance = 'both', categori
     scenes: scenes.filter(scene => selected.has(scene)) };
 }
 
-async function checkedSelection(selection) {
+async function checkedSelection(selection, { historical = false } = {}) {
   selection ??= await resolveScreenshotSelection();
   assert.ok(Array.isArray(selection.appearances) && Array.isArray(selection.scenes), 'Invalid screenshot selection');
+  if (historical && selection.scenes.some(scene => retiredScenes.includes(scene))) {
+    const current = await resolveScreenshotSelection({
+      appearance: selection.appearances.length === 2 ? 'both' : selection.appearances[0]
+    });
+    const known = [...current.scenes, ...retiredScenes];
+    assert.ok(selection.scenes.every(scene => known.includes(scene))
+      && new Set(selection.scenes).size === selection.scenes.length, 'Invalid historical screenshot selection');
+    assert.deepEqual(selection, { appearances: current.appearances, scenes: selection.scenes },
+      'Invalid historical screenshot selection');
+    return selection;
+  }
   const normalized = await resolveScreenshotSelection({
     appearance: selection.appearances.length === 2 ? 'both' : selection.appearances[0],
     screens: selection.scenes.join(',')
@@ -74,14 +87,20 @@ async function checkedSelection(selection) {
 }
 
 function screenshotPath(scene, appearance) {
-  const category = Object.keys(screenshotCategories).find(key => screenshotCategories[key].includes(scene));
+  const category = Object.keys(screenshotCategories).find(key => screenshotCategories[key].includes(scene))
+    ?? (retiredScenes.includes(scene) ? 'parakeet' : undefined);
   assert.ok(category, `Unknown screenshot scene: ${scene}`);
   return `${appearance}/${category}/${scene}_${appearance}.png`;
 }
 
-export async function expectedScreenshotNames(selection) {
-  const { scenes, appearances } = await checkedSelection(selection);
+export async function expectedScreenshotNames(selection, options) {
+  const { scenes, appearances } = await checkedSelection(selection, options);
   return scenes.flatMap(scene => appearances.map(appearance => screenshotPath(scene, appearance))).sort();
+}
+
+async function historicalScreenshotNames() {
+  const current = await resolveScreenshotSelection();
+  return expectedScreenshotNames({ ...current, scenes: [...current.scenes, ...retiredScenes] }, { historical: true });
 }
 
 async function imageFacts(file) {
@@ -198,12 +217,18 @@ export async function verifyScreenshotBundle(directory, sourceCommit, requestedS
   assert.equal(manifest.sourceCommit, sourceCommit, 'Screenshot source commit does not match the request');
   assert.equal(manifest.fixtureData, true);
   assert.ok(typeof manifest.device === 'string' && manifest.device.length > 0);
-  const selection = manifest.schemaVersion === 1 ? await resolveScreenshotSelection() : manifest.selection;
+  let selection = manifest.schemaVersion === 1 ? await resolveScreenshotSelection() : manifest.selection;
+  if (manifest.schemaVersion === 1) {
+    const reported = [...(manifest.screenshots ?? []).map(image => image.filename), ...(manifest.missingScreenshots ?? [])];
+    if (reported.some(name => retiredScenes.some(scene => ['light', 'dark'].some(appearance => name === `${scene}_${appearance}.png`)))) {
+      selection = { ...selection, scenes: [...selection.scenes, ...retiredScenes] };
+    }
+  }
   assert.ok(selection, 'Missing screenshot selection');
-  await checkedSelection(selection);
+  await checkedSelection(selection, { historical: true });
   if (requestedSelection) assert.deepEqual(selection, await checkedSelection(requestedSelection),
     'Screenshot selection does not match the request');
-  const paths = await expectedScreenshotNames(selection);
+  const paths = await expectedScreenshotNames(selection, { historical: true });
   const expected = manifest.schemaVersion === 1 ? paths.map(name => basename(name)).sort() : paths;
   assert.equal(typeof manifest.captureSucceeded, 'boolean');
   assert.ok(Array.isArray(manifest.screenshots) && Array.isArray(manifest.diagnostics));
@@ -247,11 +272,11 @@ export async function verifyScreenshotGallery(directory) {
   assert.equal(gallery.schemaVersion, 2);
   assert.equal(gallery.kind, 'gallery');
   assert.equal(gallery.fixtureData, true);
-  const expected = await expectedScreenshotNames();
+  const expected = await historicalScreenshotNames();
   const names = gallery.screenshots.map(image => image.filename);
   assert.ok(names.length > 0 && names.every(name => expected.includes(name)), 'Unexpected gallery screenshot');
   assert.equal(new Set(names).size, names.length, 'Duplicate gallery screenshot');
-  await checkedSelection(gallery.lastCapture.selection);
+  await checkedSelection(gallery.lastCapture.selection, { historical: true });
   const files = [...names, 'manifest.json'];
   if (gallery.log) {
     assert.equal(gallery.log.filename, 'capture.log');
@@ -280,7 +305,7 @@ async function previousGallery(directory) {
     return (await verifyScreenshotGallery(directory)).screenshots.map(image => ({ image, source: image.filename }));
   }
   await verifyScreenshots(directory, manifest.sourceCommit);
-  const paths = await expectedScreenshotNames();
+  const paths = await historicalScreenshotNames();
   return manifest.screenshots.map(image => ({
     source: image.filename,
     image: { ...image, filename: paths.find(name => basename(name) === basename(image.filename)),

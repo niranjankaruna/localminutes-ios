@@ -41,8 +41,24 @@ async function prepareDownload(root, outputDirectory, { selection, sourceCommit 
     sourceCommit, selection, device: 'Synthetic PNG test fixture, not an iOS capture' });
 }
 
+async function addRetiredCaptures(directory, manifest) {
+  const scenes = ['models_parakeet_compatibility', 'models_parakeet_requirements',
+    'models_import_picker', 'models_pack_picker'];
+  const names = [];
+  for (const scene of scenes) {
+    for (const appearance of ['light', 'dark']) {
+      const filename = `${appearance}/parakeet/${scene}_${appearance}.png`;
+      names.push(filename);
+      await writeFile(join(directory, filename), png);
+      manifest.screenshots.push({ ...manifest.screenshots[0], filename });
+    }
+  }
+  (manifest.selection ?? manifest.lastCapture.selection).scenes.push(...scenes);
+  return names;
+}
+
 test('appearance, categories, exact screens, and related screens resolve one deduplicated capture plan', async () => {
-  assert.equal((await expectedScreenshotNames()).length, 82);
+  assert.equal((await expectedScreenshotNames()).length, 74);
   const transcript = await resolveScreenshotSelection({ appearance: 'dark', categories: 'transcript' });
   assert.deepEqual(await expectedScreenshotNames(transcript), [
     'dark/transcript/meeting_no_transcript_dark.png',
@@ -63,7 +79,9 @@ test('invalid filters fail before any hosted capture can start', async () => {
   for (const options of [
     { appearance: 'dakr' }, { categories: 'transcripts' }, { screens: 'meeting_transcrip' },
     { categories: 'summary,,transcript' }, { screens: 'meeting_summary,' }, { related: true },
-    { screens: '../escape' }, { categories: '__proto__' }
+    { screens: '../escape' }, { categories: '__proto__' },
+    { screens: 'models_import_picker' }, { screens: 'models_pack_picker' },
+    { screens: 'models_parakeet_compatibility' }, { screens: 'models_parakeet_requirements' }
   ]) await assert.rejects(() => resolveScreenshotSelection(options));
 });
 
@@ -86,7 +104,7 @@ test('exported XCTest attachments get stable meaningful names, complete light/da
   await withProject(async root => {
     const directory = await prepareDownload(root, join(root, 'download'));
     const names = await expectedScreenshotNames();
-    assert.equal(names.length, 82);
+    assert.equal(names.length, 74);
     assert.ok(names.includes('light/summary/meeting_summary_light.png') && names.includes('dark/recording/record_active_dark.png'));
     assert.equal(await verifyScreenshots(directory, commit), directory);
     assert.deepEqual((await verifyScreenshotBundle(directory, commit)).screenshots.map(image => image.filename).sort(), names);
@@ -148,7 +166,7 @@ test('a failed scene exports diagnostics and a checked log without replacing the
     assert.equal(report.complete, false);
     assert.equal(report.missingScreenshots.length, 1);
     assert.equal(report.diagnostics.length, 1);
-    assert.equal(report.screenshots.length, 81);
+    assert.equal(report.screenshots.length, 73);
     assert.equal(await readFile(join(stagingDirectory, 'capture.log'), 'utf8'), await readFile(logFile, 'utf8'));
     await assert.rejects(() => replaceScreenshots({ repositoryRoot: root, stagingDirectory, sourceCommit: commit }),
       /Capture failed.*Previous screenshots were not replaced/);
@@ -167,7 +185,7 @@ test('build failures without an xcresult still produce a downloadable failure re
       allowIncomplete: true, captureSucceeded: false, logFile });
     const report = await verifyScreenshotBundle(directory, commit);
     assert.equal(report.screenshots.length, 0);
-    assert.equal(report.missingScreenshots.length, 82);
+    assert.equal(report.missingScreenshots.length, 74);
     await assert.rejects(() => verifyScreenshots(directory, commit), /Capture failed/);
   });
 });
@@ -181,7 +199,7 @@ test('a verified repeat replaces the old folder and removes obsolete screenshot 
     const stagingDirectory = await prepareDownload(root, join(root, '.agent-local', `screenshots-${randomUUID()}`));
     assert.equal(await replaceScreenshots({ repositoryRoot: root, stagingDirectory, sourceCommit: commit }), destination);
     const gallery = await verifyScreenshotGallery(destination);
-    assert.equal(gallery.screenshots.length, 82);
+    assert.equal(gallery.screenshots.length, 74);
     assert.ok(gallery.screenshots.every(image => image.sourceCommit === commit));
     await assert.rejects(() => lstat(join(destination, 'old_screen.png')), { code: 'ENOENT' });
     assert.equal(await readFile(join(root, 'keep.txt'), 'utf8'), 'Other project content');
@@ -213,7 +231,7 @@ test('partial updates preserve other appearances and scenes with their original 
     await replaceScreenshots({ repositoryRoot: root, stagingDirectory, sourceCommit: newerCommit, selection });
     const gallery = await verifyScreenshotGallery(destination);
     const selectedPaths = await expectedScreenshotNames(selection);
-    assert.equal(gallery.screenshots.length, 82);
+    assert.equal(gallery.screenshots.length, 74);
     assert.deepEqual(gallery.lastCapture.selection, selection);
     for (const image of gallery.screenshots) {
       if (selectedPaths.includes(image.filename)) assert.equal(image.sourceCommit, newerCommit);
@@ -241,11 +259,42 @@ test('a failed partial capture leaves the complete gallery untouched', async () 
   });
 });
 
+test('partial updates preserve retired scenes in an older gallery until a complete recapture replaces them', async () => {
+  await withProject(async root => {
+    const first = await prepareDownload(root, join(root, '.agent-local', `screenshots-${randomUUID()}`));
+    const destination = await replaceScreenshots({ repositoryRoot: root, stagingDirectory: first, sourceCommit: commit });
+    const gallery = await verifyScreenshotGallery(destination);
+    const retiredNames = await addRetiredCaptures(destination, gallery);
+    await writeFile(join(destination, 'manifest.json'), JSON.stringify(gallery));
+    assert.equal((await verifyScreenshotGallery(destination)).screenshots.length, 82);
+
+    const selection = await resolveScreenshotSelection({ appearance: 'dark', screens: 'meeting_summary' });
+    const newerCommit = 'b'.repeat(40);
+    const partial = await prepareDownload(root, join(root, '.agent-local', `screenshots-${randomUUID()}`),
+      { selection, sourceCommit: newerCommit });
+    await replaceScreenshots({ repositoryRoot: root, stagingDirectory: partial, sourceCommit: newerCommit, selection });
+    const updated = await verifyScreenshotGallery(destination);
+    assert.equal(updated.screenshots.length, 82);
+    for (const filename of retiredNames) {
+      assert.deepEqual(updated.screenshots.find(image => image.filename === filename),
+        gallery.screenshots.find(image => image.filename === filename));
+    }
+
+    const complete = await prepareDownload(root, join(root, '.agent-local', `screenshots-${randomUUID()}`),
+      { sourceCommit: newerCommit });
+    await replaceScreenshots({ repositoryRoot: root, stagingDirectory: complete, sourceCommit: newerCommit });
+    const current = await verifyScreenshotGallery(destination);
+    assert.equal(current.screenshots.length, 74);
+    for (const filename of retiredNames) await assert.rejects(() => lstat(join(destination, filename)), { code: 'ENOENT' });
+  });
+});
+
 test('an existing flat gallery is reorganized during a partial update without losing other captures', async () => {
   await withProject(async root => {
     const destination = await prepareDownload(root, join(root, 'AppUI_Screenshots'));
     const manifestPath = join(destination, 'manifest.json');
     const legacy = JSON.parse(await readFile(manifestPath, 'utf8'));
+    await addRetiredCaptures(destination, legacy);
     const parents = new Set();
     for (const image of legacy.screenshots) {
       parents.add(dirname(image.filename));
@@ -343,7 +392,7 @@ test(`screenshot transfer verifies its selection and cleans its remote run: ${sc
       assert.equal(directory, join(root, 'AppUI_Screenshots'));
       const gallery = await verifyScreenshotGallery(directory);
       assert.deepEqual(gallery.lastCapture.selection, selection);
-      assert.equal(gallery.screenshots.length, filtered ? 4 : 82);
+      assert.equal(gallery.screenshots.length, filtered ? 4 : 74);
     }
     const deletion = calls.findIndex(call => call.includes('DELETE repos/owner/repo/actions/artifacts/42'));
     assert.ok(deletion > calls.findIndex(call => call.startsWith('run download 17')));

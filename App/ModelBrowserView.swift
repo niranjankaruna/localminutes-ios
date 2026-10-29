@@ -66,6 +66,8 @@ struct ModelPurposeView: View {
     @State private var confirmingRemoval = false
     @State private var transferDetails = false
     @State private var screenshotPrepared = false
+    @State private var screenshotDetailsPrepared = false
+    @State private var attributionExpanded = false
 
     init(controller: ModelBrowserController, purpose: ModelPurpose, application: RecordingApplication? = nil,
          onSelected: (() -> Void)? = nil) {
@@ -73,15 +75,22 @@ struct ModelPurposeView: View {
         self.application = application; self.onSelected = onSelected
         #if DEBUG
         if let scene = AppScreenshotFixture.scene {
-            let variants = controller.families(for: purpose).flatMap(\.variants)
             switch scene {
             case .modelsDownloading, .modelsVerifying:
                 _captureRoute = State(initialValue: .transfer)
-            case .modelsDetails, .modelsRemove:
-                _captureRoute = State(initialValue: variants.first.map { .variant($0.id) })
-            case .modelsRepository, .modelsSource, .modelsCard, .modelsCompatibility,
-                 .modelsRequirements, .modelsDownload, .modelsImport:
-                _captureRoute = State(initialValue: variants.last.map { .variant($0.id) })
+            case .modelsInstalled, .modelsRemove:
+                if let family = controller.families(for: purpose).first(where: {
+                    $0.variants.contains(where: { $0.id == "ui-model-alpha" })
+                }) {
+                    _expandedFamilies = State(initialValue: [family.id])
+                }
+            case .modelsDetails:
+                _captureRoute = State(initialValue: .variant("ui-model-alpha"))
+            case .modelsRepository, .modelsSource, .modelsCard, .modelsDownload:
+                let variant = controller.families(for: .speechRecognition)
+                    .first(where: { $0.id == "parakeet-v2" })?.variants.first
+                _captureRoute = State(initialValue: variant.map { .variant($0.id) })
+                _attributionExpanded = State(initialValue: scene == .modelsCard)
             default: break
             }
         } else if controller.downloadProgress != nil {
@@ -95,6 +104,12 @@ struct ModelPurposeView: View {
     private var families: [ModelCatalogFamily] { controller.families(for: purpose) }
 
     var body: some View {
+        ScrollViewReader { proxy in
+            modelList.screenshotScroll(proxy, ready: screenshotPrepared)
+        }
+    }
+
+    private var modelList: some View {
         List {
             Section {
                 VStack(alignment: .leading, spacing: 10) {
@@ -136,6 +151,7 @@ struct ModelPurposeView: View {
                             .padding(.vertical, 8)
                         ForEach(family.variants, id: \.id) { variant in
                             variantRow(variant)
+                                .screenshotAnchor(variant.id)
                         }
                     } label: {
                         VStack(alignment: .leading, spacing: 6) {
@@ -311,10 +327,26 @@ struct ModelPurposeView: View {
                 else { ContentUnavailableView("Model unavailable", systemImage: "exclamationmark.circle") }
             case .transfer: transferPage
             }
-        }.navigationBarTitleDisplayMode(.inline).tint(MinutesStyle.accent).screenshotReady(true)
+        }.navigationBarTitleDisplayMode(.inline).tint(MinutesStyle.accent)
     }
 
     private func detailsPage(_ variant: ModelCatalogVariant) -> some View {
+        ScrollViewReader { proxy in
+            modelDetails(variant)
+                .screenshotScroll(proxy, ready: screenshotDetailsPrepared)
+        }
+        .screenshotReady(screenshotDetailsPrepared)
+        .task {
+            #if DEBUG
+            if AppScreenshotFixture.scene != nil {
+                await Task.yield()
+                screenshotDetailsPrepared = true
+            }
+            #endif
+        }
+    }
+
+    private func modelDetails(_ variant: ModelCatalogVariant) -> some View {
         Form {
             Section {
                 Text(variant.title).font(.title2.weight(.semibold))
@@ -323,7 +355,7 @@ struct ModelPurposeView: View {
                 Text(repositoryName(variant.manifest)).font(.subheadline).textSelection(.enabled)
                     .accessibilityIdentifier("models.repository.title")
                 actionLayout { modelActions(variant) }
-            }
+            }.screenshotAnchor("models.repository")
             feedbackSection
             if let context = variant.contextWindow {
                 Section("Context window") {
@@ -340,7 +372,7 @@ struct ModelPurposeView: View {
                     }
                 }
             }
-            Section("Download & storage") {
+            Section {
                 LabeledContent("Download size", value: bytes(ModelBrowserController.downloadBytes(variant.manifest)))
                 LabeledContent("Free storage", value: bytes(controller.resources.freeDiskBytes))
                 Text("Installation temporarily needs up to twice the download size. Model memory requirements are additional and depend on your iPhone.")
@@ -349,8 +381,11 @@ struct ModelPurposeView: View {
                     Text("Not enough free storage for this download. Remove another model and try again.")
                         .font(.callout).foregroundStyle(MinutesStyle.recording)
                 }
+            } header: {
+                Text("Download & storage").accessibilityIdentifier("models.download.heading")
             }
-            Section("Source & license") {
+            .screenshotAnchor("models.download")
+            Section {
                 LabeledContent("Format", value: ModelDisplay.engine(variant.manifest))
                 LabeledContent("License", value: variant.manifest.licenseIdentifier)
                 Text(variant.manifest.runtimeVersion).font(.footnote).textSelection(.enabled)
@@ -365,13 +400,16 @@ struct ModelPurposeView: View {
                         }
                     }
                 }
-                DisclosureGroup("Attribution & terms") {
+                DisclosureGroup("Attribution & terms", isExpanded: $attributionExpanded) {
                     Text(variant.manifest.licenseNotice).font(.footnote).textSelection(.enabled)
                         .accessibilityIdentifier("models.license.notice")
-                }.accessibilityIdentifier("models.license.open")
+                }.accessibilityIdentifier("models.license.open").screenshotAnchor("models.card")
                 Link("View publisher repository", destination: variant.manifest.upstreamRepository)
                     .frame(minHeight: 44)
+            } header: {
+                Text("Source & license").accessibilityIdentifier("models.source.heading")
             }
+            .screenshotAnchor("models.source")
         }.minutesList().navigationTitle("Model details")
     }
 
@@ -427,7 +465,7 @@ struct ModelPurposeView: View {
                 Section { actionLayout { modelActions(variant) } }
             }
             feedbackSection
-        }.minutesList().navigationTitle("Model transfer")
+        }.minutesList().navigationTitle("Model transfer").screenshotReady(true)
     }
 
     @ViewBuilder private var feedbackSection: some View {

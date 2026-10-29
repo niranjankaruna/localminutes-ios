@@ -90,15 +90,39 @@ enum AppScreenshotFixture {
                      receivedSampleCount: Int64(segments.count) * 80_000)
     }
 }
+
+/// A separate accessibility leaf keeps the readiness identifier off production
+/// containers, where SwiftUI can propagate it to their controls and safe-area insets.
+@MainActor
+private struct ScreenshotReadinessMarker: UIViewRepresentable {
+    let identifier: String
+
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView()
+        view.backgroundColor = .clear
+        view.isUserInteractionEnabled = false
+        view.isAccessibilityElement = true
+        view.accessibilityLabel = "Screenshot readiness"
+        return view
+    }
+
+    func updateUIView(_ view: UIView, context: Context) {
+        view.accessibilityIdentifier = identifier
+    }
+}
 #endif
 
 @MainActor
 extension View {
     @ViewBuilder
     func screenshotReady(_ ready: Bool) -> some View {
-        #if DEBUG
+        #if DEBUG && os(iOS)
         if let scene = AppScreenshotFixture.scene {
-            accessibilityIdentifier("screenshot.\(ready ? "ready" : "loading").\(scene.rawValue)")
+            overlay(alignment: .topLeading) {
+                ScreenshotReadinessMarker(identifier: "screenshot.\(ready ? "ready" : "loading").\(scene.rawValue)")
+                    .frame(width: 1, height: 1)
+                    .allowsHitTesting(false)
+            }
         } else { self }
         #else
         self
@@ -107,7 +131,7 @@ extension View {
 
     @ViewBuilder
     func screenshotAnchor(_ name: String) -> some View {
-        #if DEBUG
+        #if DEBUG && os(iOS)
         if AppScreenshotFixture.scene != nil { id(name) } else { self }
         #else
         self
@@ -116,7 +140,7 @@ extension View {
 
     func screenshotScroll(_ proxy: ScrollViewProxy, ready: Bool) -> some View {
         onChange(of: ready, initial: true) { _, ready in
-            #if DEBUG
+            #if DEBUG && os(iOS)
             if ready { AppScreenshotFixture.scroll(proxy) }
             #endif
         }

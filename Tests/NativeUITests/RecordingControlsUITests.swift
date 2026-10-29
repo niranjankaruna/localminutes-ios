@@ -3,6 +3,25 @@ import XCTest
 /// Simulator UI contract only; not physical microphone or locked-ASR evidence.
 @MainActor
 final class RecordingControlsUITests: XCTestCase {
+    func testScreenshotReadinessPreservesRecordingControlIdentifiers() {
+        for scene in ["record_idle", "record_active"] {
+            let app = XCUIApplication()
+            app.launchArguments = ["--ui-test-library-fixture", "--ui-screenshots"]
+            app.launchEnvironment["LOCALMINUTES_UI_LIBRARY_TOKEN"] = UUID().uuidString
+            app.launchEnvironment["LOCALMINUTES_SCREENSHOT_SCENE"] = scene
+            app.launch()
+            defer { app.terminate() }
+            let markers = app.descendants(matching: .any).matching(identifier: "screenshot.ready.\(scene)")
+            XCTAssertTrue(markers.firstMatch.waitForExistence(timeout: 40))
+            XCTAssertEqual(markers.count, 1, "Readiness belongs to one leaf, never the recording controls.")
+            let control = app.buttons[scene == "record_idle" ? "recording.start" : "recording.stop"]
+            XCTAssertTrue(control.waitForExistence(timeout: 5))
+            XCTAssertTrue(control.isHittable)
+            XCTAssertTrue(app.staticTexts["recording.elapsed"].isHittable)
+            XCTAssertTrue(app.scrollViews["recording.content.scroll"].exists)
+        }
+    }
+
     func testColdOpenRecordingShortcutOnlyOpensRecordAndOffersPermissionsWithoutASpeechModel() {
         let app = minutesLibraryApp(arguments: ["--ui-test-recording-shortcut"])
         app.launch(); defer { app.terminate() }
