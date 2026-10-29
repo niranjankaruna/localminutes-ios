@@ -134,7 +134,8 @@ final class RecordingApplication {
         }
     }
 
-    func perform(_ action: RecordingIntentAction) async throws -> RecordingIntentOutcome {
+    func perform(_ action: RecordingIntentAction,
+                 allowForegroundContinuation: Bool = true) async throws -> RecordingIntentOutcome {
         guard !isRestoringLibrary, services?.maintainingLibrary != true else {
             lastOutcome = .cleanupPending; return .cleanupPending
         }
@@ -239,7 +240,7 @@ final class RecordingApplication {
             outcome = await router.perform(action)
         }
         lastOutcome = outcome
-        if case .requiresForeground(let failure) = outcome {
+        if allowForegroundContinuation, case .requiresForeground(let failure) = outcome {
             guard let foreground else { throw RecordingForegroundRequiredError(failure: failure) }
             try await foreground.requestContinuation(for: failure)
         }

@@ -75,13 +75,15 @@ enum AppScreenshotFixture {
     /// Long display-only input for the actual recording scroll view. It never
     /// changes capture state, writes transcript rows or invokes speech inference.
     static func scrollingTranscript(finalCount: Int, partial: String = "") -> LiveTranscriptSnapshot {
-        let segments = (0..<min(25, max(0, finalCount))).map { index in
-            StoredTranscriptSegment(
-                id: UUID(uuidString: String(format: "20000000-0000-0000-0000-%012d", index + 1))!,
-                meetingID: meetingID, sequence: index,
-                startSample: Int64(index) * 80_000, endSample: Int64(index + 1) * 80_000,
-                text: index == 24 ? "Newest finalized transcript segment." :
-                    "Transcript segment \(index + 1). " + String(repeating: "We are reviewing the meeting notes and next steps. ", count: 4),
+        let count = min(25, max(0, finalCount))
+        let detail = String(repeating: "We are reviewing the meeting notes and next steps. ", count: 4)
+        let segments: [StoredTranscriptSegment] = (0..<count).map { index -> StoredTranscriptSegment in
+            let identifier = String(format: "20000000-0000-0000-0000-%012d", index + 1)
+            let start = Int64(index) * 80_000
+            let end = Int64(index + 1) * 80_000
+            let text = index == 24 ? "Newest finalized transcript segment." : "Transcript segment \(index + 1). " + detail
+            return StoredTranscriptSegment(id: UUID(uuidString: identifier)!,
+                meetingID: meetingID, sequence: index, startSample: start, endSample: end, text: text,
                 modelRevision: ParakeetCoreMLModel.manifest.revision)
         }
         return .init(sessionID: meetingID, partial: partial, finalized: segments,

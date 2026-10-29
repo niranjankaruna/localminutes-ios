@@ -7,13 +7,13 @@ import Foundation
 struct StartMeetingIntent: AudioRecordingIntent, LiveActivityIntent {
     static var title: LocalizedStringResource { "Start LocalMinutes Recording" }
     static var description: IntentDescription {
-        IntentDescription("Open LocalMinutes and start a meeting when microphone access and the speech model are ready.")
+        IntentDescription("Start a meeting in the background when microphone access and the speech model are ready.")
     }
     static var isDiscoverable: Bool { true }
     static var authenticationPolicy: IntentAuthenticationPolicy { .alwaysAllowed }
 
     @available(iOS 26.0, *)
-    static var supportedModes: IntentModes { [.foreground(.immediate)] }
+    static var supportedModes: IntentModes { .background }
 
     private var injectedApplication: RecordingApplication?
     init() { injectedApplication = nil }
@@ -22,7 +22,7 @@ struct StartMeetingIntent: AudioRecordingIntent, LiveActivityIntent {
 
     @MainActor
     func perform() async throws -> RecordingNativeResult {
-        try await RecordingIntentReplies.perform(.start(UUID()), application: application, intent: self)
+        try await RecordingIntentReplies.perform(.start(UUID()), application: application)
     }
 }
 
@@ -32,7 +32,7 @@ struct StopMeetingIntent: AudioRecordingIntent, LiveActivityIntent {
     static var authenticationPolicy: IntentAuthenticationPolicy { .alwaysAllowed }
 
     @available(iOS 26.0, *)
-    static var supportedModes: IntentModes { [.background, .foreground(.dynamic)] }
+    static var supportedModes: IntentModes { .background }
 
     private var injectedApplication: RecordingApplication?
     init() { injectedApplication = nil }
@@ -42,7 +42,7 @@ struct StopMeetingIntent: AudioRecordingIntent, LiveActivityIntent {
     @MainActor
     func perform() async throws -> RecordingNativeResult {
         try await RecordingIntentReplies.perform(.stop(expectedSessionID: nil),
-                                                  application: application, intent: self)
+                                                  application: application)
     }
 }
 
@@ -52,7 +52,7 @@ struct ToggleMeetingIntent: AudioRecordingIntent, LiveActivityIntent {
     static var authenticationPolicy: IntentAuthenticationPolicy { .alwaysAllowed }
 
     @available(iOS 26.0, *)
-    static var supportedModes: IntentModes { [.background, .foreground(.dynamic)] }
+    static var supportedModes: IntentModes { .background }
 
     private var injectedApplication: RecordingApplication?
     init() { injectedApplication = nil }
@@ -61,22 +61,24 @@ struct ToggleMeetingIntent: AudioRecordingIntent, LiveActivityIntent {
 
     @MainActor
     func perform() async throws -> RecordingNativeResult {
-        try await RecordingIntentReplies.perform(.toggle(UUID()), application: application, intent: self)
+        try await RecordingIntentReplies.perform(.toggle(UUID()), application: application)
     }
 }
 
-// Apple's documented compatibility conformance preserves the iOS18 path while
-// the helper explicitly selects the guarded modern overload on iOS26.
+// Earlier iOS versions also keep every recording action in the background.
+// Only the separate Open Latest Meeting shortcut presents the application.
 @available(*, deprecated)
-extension StartMeetingIntent: ForegroundContinuableIntent {
-    // iOS 18–25 must also open the app before requesting its first Live
-    // Activity or microphone access. iOS 26 uses supportedModes above.
-    static var openAppWhenRun: Bool { true }
+extension StartMeetingIntent {
+    static var openAppWhenRun: Bool { false }
 }
 @available(*, deprecated)
-extension StopMeetingIntent: ForegroundContinuableIntent {}
+extension StopMeetingIntent {
+    static var openAppWhenRun: Bool { false }
+}
 @available(*, deprecated)
-extension ToggleMeetingIntent: ForegroundContinuableIntent {}
+extension ToggleMeetingIntent {
+    static var openAppWhenRun: Bool { false }
+}
 
 struct LocalMinutesShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {

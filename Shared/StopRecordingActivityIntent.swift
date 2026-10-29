@@ -56,15 +56,15 @@ struct StopRecordingActivityIntent: AudioRecordingIntent, LiveActivityIntent {
         guard let sessionID = UUID(uuidString: sessionID) else {
             throw RecordingNativeIntentError.invalidSession
         }
-        do {
-            let outcome = try await application.perform(.stop(expectedSessionID: sessionID))
-            return RecordingIntentReplies.result(for: outcome)
-        } catch let error as RecordingForegroundRequiredError {
-            // App-only foreground APIs do not belong in this shared control.
-            application.requestRecordingNavigation()
-            throw error
-        }
+        let outcome = try await application.perform(.stop(expectedSessionID: sessionID),
+                                                     allowForegroundContinuation: false)
+        return RecordingIntentReplies.result(for: outcome)
         #endif
     }
+}
+
+@available(*, deprecated)
+extension StopRecordingActivityIntent {
+    static var openAppWhenRun: Bool { false }
 }
 #endif

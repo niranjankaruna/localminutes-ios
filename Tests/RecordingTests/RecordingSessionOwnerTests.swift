@@ -1433,7 +1433,7 @@ extension RecordingSessionOwnerTests {
                            String(localized: RecordingIntentReplies.message(for: .requiresForeground(.activityUnavailable))))
             XCTAssertNotNil(retried.reply?.dialog)
             XCTAssertEqual(app.lastOutcome, .requiresForeground(.activityUnavailable))
-            XCTAssertEqual(foreground.requests, [.activityUnavailable])
+            XCTAssertTrue(foreground.requests.isEmpty, "A background Stop must not present the app after a failure")
             let settled = await h.owner.snapshot()
             XCTAssertFalse(settled.cleanupPending)
             XCTAssertEqual(settled.failure, .activityUnavailable)
@@ -1444,7 +1444,7 @@ extension RecordingSessionOwnerTests {
         }
     }
 
-    func testNativeForegroundRequestFailureNeverChangesDeniedCaptureIntoSuccess() async throws {
+    func testBackgroundStartReportsDeniedCaptureWithoutRequestingForeground() async throws {
         try await withHarness { h in
             h.permission.granted = false
             let foreground = NativeIntentForeground()
@@ -1452,12 +1452,13 @@ extension RecordingSessionOwnerTests {
             let call = try await nativeCall {
                 try await StartMeetingIntent(application: app).perform()
             }
-            XCTAssertEqual(call.error as? RecordingNativeIntentError, .foregroundUnavailable)
-            XCTAssertNil(call.reply, "A failed foreground transition cannot return recording success")
+            XCTAssertNil(call.error)
+            XCTAssertEqual(call.reply?.value,
+                           String(localized: RecordingIntentReplies.message(for: .requiresForeground(.microphoneDenied))))
             XCTAssertEqual(app.lastOutcome, .requiresForeground(.microphoneDenied))
             XCTAssertNotNil(app.recordingNavigationRequestID,
                             "Keep the Record destination even when iOS cannot open the app")
-            XCTAssertEqual(foreground.requests, [.microphoneDenied])
+            XCTAssertTrue(foreground.requests.isEmpty, "A setup failure must not automatically open LocalMinutes")
             let state = await h.owner.snapshot()
             XCTAssertEqual(state.phase, .failed)
             XCTAssertEqual(state.failure, .microphoneDenied)
@@ -1508,6 +1509,32 @@ extension RecordingSessionOwnerTests {
         }
     }
 
+    func testBackgroundStartAndToggleReportActivityAndAudioFailuresWithoutOpeningTheApp() async throws {
+        for failure in [RecordingFailure.activityUnavailable, .captureUnavailable] {
+            for toggle in [false, true] {
+                try await withHarness { h in
+                    if failure == .activityUnavailable { h.activity.areActivitiesEnabled = false }
+                    else { h.hardware.activationFailures = 1 }
+                    let foreground = NativeIntentForeground()
+                    let app = RecordingApplication(owner: h.owner, foreground: foreground)
+                    let call = try await nativeCall {
+                        if toggle { return try await ToggleMeetingIntent(application: app).perform() }
+                        return try await StartMeetingIntent(application: app).perform()
+                    }
+                    XCTAssertNil(call.error)
+                    XCTAssertEqual(call.reply?.value,
+                                   String(localized: RecordingIntentReplies.message(for: .requiresForeground(failure))))
+                    XCTAssertTrue(foreground.requests.isEmpty)
+                    XCTAssertEqual(app.lastOutcome, .requiresForeground(failure))
+                    let state = await h.owner.snapshot()
+                    XCTAssertFalse(state.cleanupPending)
+                    XCTAssertFalse(state.readiness.audioSessionActive)
+                    XCTAssertFalse(h.hardware.engineRunning)
+                }
+            }
+        }
+    }
+
     func testNativeSDKConformancesAndThreeDiscoverableShortcutsArePresent() async throws {
         func acceptsRecordingAndActivity<I: AudioRecordingIntent & LiveActivityIntent>(_: I.Type) {}
         acceptsRecordingAndActivity(StartMeetingIntent.self)
@@ -1523,13 +1550,13 @@ extension RecordingSessionOwnerTests {
         XCTAssertEqual(String(localized: OpenLatestMeetingIntent.title), "Open Latest LocalMinutes Meeting")
         XCTAssertFalse(StopRecordingActivityIntent.isDiscoverable)
         XCTAssertEqual(LocalMinutesShortcuts.appShortcuts.count, 4)
-        XCTAssertTrue(StartMeetingIntent.openAppWhenRun,
-                      "Earlier iOS versions must open the app for first-time recording setup")
+        XCTAssertFalse(StartMeetingIntent.openAppWhenRun)
+        XCTAssertFalse(StopMeetingIntent.openAppWhenRun)
+        XCTAssertFalse(ToggleMeetingIntent.openAppWhenRun)
         if #available(iOS 26.0, *) {
-            XCTAssertEqual(StartMeetingIntent.supportedModes, [.foreground(.immediate)])
-            for modes in [StopMeetingIntent.supportedModes, ToggleMeetingIntent.supportedModes] {
-                XCTAssertTrue(modes.contains(.background))
-                XCTAssertTrue(modes.contains(.foreground(.dynamic)))
+            for modes in [StartMeetingIntent.supportedModes, StopMeetingIntent.supportedModes,
+                          ToggleMeetingIntent.supportedModes] {
+                XCTAssertEqual(modes, .background, "Recording actions must never request a foreground launch")
             }
         }
     }

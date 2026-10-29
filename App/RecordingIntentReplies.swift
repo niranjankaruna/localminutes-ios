@@ -1,7 +1,6 @@
 #if os(iOS)
 import AppIntents
 import Foundation
-import UIKit
 
 enum RecordingIntentReplies {
     static func message(for outcome: RecordingIntentOutcome) -> LocalizedStringResource {
@@ -31,38 +30,16 @@ enum RecordingIntentReplies {
         return .result(value: String(localized: resource), dialog: IntentDialog(resource))
     }
 
-    @MainActor static func perform<I: ForegroundContinuableIntent>(
-        _ action: RecordingIntentAction, application: RecordingApplication, intent: I
+    @MainActor static func perform(
+        _ action: RecordingIntentAction, application: RecordingApplication
     ) async throws -> RecordingNativeResult {
         try Task.checkCancellation()
-        // Publish before any await so a cold launch, an existing foreground
-        // scene and a later manual open all land on the actual recording state.
+        // Select Record for the next manual open without presenting the app.
         application.requestRecordingNavigation()
-        do {
-            // Use this caller's value, never a shared lastOutcome after a yield.
-            let outcome = try await application.perform(action)
-            return result(for: outcome)
-        } catch let error as RecordingForegroundRequiredError {
-            let outcome = RecordingIntentOutcome.requiresForeground(error.failure)
-            let dialog = IntentDialog(message(for: outcome))
-            if #available(iOS 26.0, *) {
-                let mode = intent.systemContext.currentMode
-                if mode != .background {
-                    // Already in foreground: describe the failure without
-                    // retrying capture or turning it into recording success.
-                    return result(for: outcome)
-                }
-                guard mode.canContinueInForeground else {
-                    throw error
-                }
-                throw intent.needsToContinueInForegroundError(dialog, alwaysConfirm: true)
-            } else {
-                if UIApplication.shared.applicationState == .active {
-                    return result(for: outcome)
-                }
-                throw intent.needsToContinueInForegroundError(dialog, continuation: nil)
-            }
-        }
+        // Setup failures remain truthful results. They never request a scene
+        // activation, launch the app or retry a recording in the foreground.
+        let outcome = try await application.perform(action, allowForegroundContinuation: false)
+        return result(for: outcome)
     }
 }
 #endif

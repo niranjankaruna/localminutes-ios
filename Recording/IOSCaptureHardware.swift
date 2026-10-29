@@ -37,13 +37,20 @@ public final class IOSCaptureHardware: CaptureHardware {
         guard !sessionActive, !tapInstalled, !ownsEngineResources, engine == nil else {
             throw IOSCaptureHardwareError.invalidState
         }
-        try session.setCategory(.record, mode: .measurement, options: [])
+        try configureSession()
         try session.setActive(true)
         sessionActive = true
         // Media-services reset invalidates old audio objects. Every subsequent
         // explicit user start creates a fresh engine after prior cleanup; an
         // orphaned engine is never silently reused or restarted mid-epoch.
         engine = AVAudioEngine()
+    }
+
+    /// A nonmixable session cannot interrupt other apps from a background
+    /// intent. Capture only uses the input node; no playback is started here.
+    func configureSession() throws {
+        guard !sessionActive else { throw IOSCaptureHardwareError.invalidState }
+        try session.setCategory(.playAndRecord, mode: .measurement, options: [.mixWithOthers])
     }
 
     public func inputFormat() throws -> AVAudioFormat {

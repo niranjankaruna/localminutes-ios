@@ -49,7 +49,7 @@ struct RecordingPermissionsView: View {
             } header: { Text("Recording status") }
 
             Section("Action Button & Shortcuts") {
-                Text("Allow microphone access and equip a speech model in Settings → Speech. Start Recording from the Action Button or Shortcuts opens LocalMinutes to the Record tab before starting. If recording needs attention, the Record tab shows the reason.")
+                Text("Allow microphone access and equip a speech model in Settings → Speech. Start, Stop, and Toggle Recording from the Action Button or Shortcuts run in the background. A Live Activity shows recording status. If an action cannot run, it reports the reason without opening LocalMinutes.")
                     .foregroundStyle(.secondary)
             }
         }
