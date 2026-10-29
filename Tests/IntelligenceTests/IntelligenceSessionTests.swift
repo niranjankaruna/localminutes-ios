@@ -9,14 +9,15 @@ import LocalMinutesSummary
 
 @MainActor
 final class IntelligenceSessionTests: XCTestCase {
-    func testSummaryUsesBoundedWorkingBudgetWhileQuestionsRespectSelectedContext() async throws {
+    func testSummaryAndQuestionsUseSelectedModelLimits() async throws {
         let h = try await IntelligenceFixture.create()
         do {
             for (limit, output) in [(4_096, 2_048), (32_768, 8_192), (131_072, 16_384), (262_144, 16_384)] {
                 for operation in [IntelligenceOperation.summary, .question("Who will write the guide?")] {
                     let replies = try (operation == .summary ? h.summaryReplies() : [h.rawAnswer()])
+                    let summaryInput = limit == 4_096 ? 500 : 14_000
                     let runtime = IntelligenceBoundaryRuntime(replies: replies,
-                        contextTokenLimit: limit, tokenCount: operation == .summary ? 500 : limit - output - 1_024,
+                        contextTokenLimit: limit, tokenCount: operation == .summary ? summaryInput : limit - output - 1_024,
                         outputTokenLimit: output)
                     let session = IntelligenceSession(store: h.store, models: h.models, admission: h.admission,
                         manifest: h.manifest, runtimeLoader: { _ in runtime })
@@ -27,12 +28,11 @@ final class IntelligenceSessionTests: XCTestCase {
                     XCTAssertTrue(unloaded)
                     let requested = await runtime.requestedMaximumTokens
                     if operation == .summary {
-                        let writingBudget = min(output, min(1_536, min(limit, 8_192) / 4))
-                        XCTAssertEqual(requested, [writingBudget, 512, 512, 512],
-                            "A draft and three semantic reviews use bounded budgets")
+                        XCTAssertEqual(requested, [min(output, max(512, summaryInput / 4))],
+                            "The whole meeting uses one dynamically budgeted generation")
                         let prompts = await runtime.prompts
                         XCTAssertTrue(prompts.first?.contains("NARRATIVE_DRAFT") == true)
-                        XCTAssertTrue(prompts.dropFirst().allSatisfy { $0.contains("NARRATIVE_REVIEW") })
+                        XCTAssertEqual(prompts.count, 1)
                     } else { XCTAssertEqual(requested, [192]) }
                 }
             }

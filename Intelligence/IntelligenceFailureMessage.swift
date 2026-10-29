@@ -19,9 +19,10 @@ public enum IntelligenceFailureMessage {
             return "The selected model is not installed. Download and equip a summary model in Settings."
         case LocalSummaryRuntimeError.contextUnavailable:
             return "There is not enough available memory to load this model. Close other apps or equip a smaller summary model."
-        case LocalSummaryRuntimeError.contextExceeded, NarrativeSummaryError.contextExceeded,
-             MeetingQuestionError.evidenceExceedsBudget:
-            return "A transcript section or the meeting notes exceeds this model's input limit. Shorten the notes or try another summary model."
+        case LocalSummaryRuntimeError.contextExceeded, NarrativeSummaryError.contextExceeded:
+            return "The full transcript and expected summary do not fit the selected model's context window. Choose a summary model with a larger context window or shorten the meeting notes. Nothing was generated or saved."
+        case MeetingQuestionError.evidenceExceedsBudget:
+            return "The question and its transcript evidence exceed this model's input limit. Shorten the question or try another model."
         case LocalSummaryRuntimeError.outputLimitExceeded:
             return "The model could not finish a complete response within its output limit. Your transcript is unchanged. Try again or equip another summary model."
         case SummaryCheckpointError.invalidInput:
@@ -36,7 +37,7 @@ public enum IntelligenceFailureMessage {
         case GroundedSummaryError.invalidSource:
             return "The saved transcript has invalid source ranges. Transcribe the meeting again before summarizing it."
         case NarrativeSummaryError.invalidResponse:
-            return "The model did not return a valid summary or source-check response after automatic retries. Nothing was saved. Try again or equip another summary model."
+            return "The model did not return a valid summary. Nothing was saved. Try again or equip another summary model."
         case is GroundedSummaryError, NarrativeSummaryError.unsupportedEvidence, NarrativeSummaryError.reviewRejected,
              MeetingQuestionError.invalidJSON, MeetingQuestionError.unsupportedEvidence:
             return "The model's response could not be verified against this transcript. Nothing was saved. Try again or equip another summary model."

@@ -62,32 +62,45 @@ final class NarrativeSourcePlannerTests: XCTestCase {
         }
     }
 
-    func testBudgetUsesCanonicalTokensAndIndependentStageAllowances() async throws {
-        let budget = try NarrativeSummaryBudget(contextTokenLimit: 32_768, outputTokenLimit: 8_192)
-        XCTAssertLessThan(budget.writingTokens, 8_192, "Do not reserve the model's entire response ceiling for every stage")
-        XCTAssertLessThan(budget.checkingTokens, budget.writingTokens)
-        let maximumInput = budget.contextTokens - budget.writingTokens - budget.safetyTokens
-        let fits = try await budget.fits(prompt: "short text with a large canonical envelope",
-            outputTokens: budget.writingTokens, tokenizer: { _ in maximumInput - 1 })
-        let full = try await budget.fits(prompt: "x", outputTokens: budget.writingTokens, tokenizer: { _ in maximumInput })
-        XCTAssertTrue(fits)
-        XCTAssertFalse(full, "Admission must use the real framed token count, not characters")
-        do {
-            _ = try await budget.fits(prompt: "x", outputTokens: budget.writingTokens, tokenizer: { _ in 0 })
-            XCTFail("An invalid tokenizer count must not admit a request")
-        } catch { XCTAssertEqual(error as? NarrativeSummaryError, .invalidTokenCount) }
-        let small = try NarrativeSummaryBudget(contextTokenLimit: 4_096, outputTokenLimit: 512)
-        XCTAssertLessThanOrEqual(small.writingTokens, 512)
-        XCTAssertLessThanOrEqual(small.readingTokens, 512)
-        XCTAssertLessThanOrEqual(small.checkingTokens, 512)
+    func testBudgetUsesSelectedContextAndScalesOutputWithActualPromptTokens() async throws {
+        for context in [4_096, 32_768, 131_072, 262_144] {
+            let budget = try NarrativeSummaryBudget(contextTokenLimit: context, outputTokenLimit: min(context / 2, 16_384))
+            XCTAssertEqual(budget.contextTokens, context)
+        }
+        let budget = try NarrativeSummaryBudget(contextTokenLimit: 32_768, outputTokenLimit: 16_384)
+        let short = try await budget.outputTokens(prompt: "short", tokenizer: { _ in 500 })
+        let hour = try await budget.outputTokens(prompt: "hour", tokenizer: { _ in 14_000 })
+        XCTAssertEqual(short, 512)
+        XCTAssertEqual(hour, 3_500)
+        let limited = try NarrativeSummaryBudget(contextTokenLimit: 32_768, outputTokenLimit: 2_048)
+        let capped = try await limited.outputTokens(prompt: "hour", tokenizer: { _ in 14_000 })
+        XCTAssertEqual(capped, 2_048)
     }
 
-    func testWorkingContextPolicyCannotExceedTheSelectedModel() throws {
-        XCTAssertThrowsError(try NarrativeSummaryBudget(contextTokenLimit: 4_096, outputTokenLimit: 512,
-            workingContextTokenLimit: 8_192))
-        XCTAssertThrowsError(try NarrativeSummaryBudget(contextTokenLimit: 4_096, outputTokenLimit: 4_096))
-        let tuned = try NarrativeSummaryBudget(contextTokenLimit: 32_768, outputTokenLimit: 8_192,
-            workingContextTokenLimit: 16_384)
-        XCTAssertEqual(tuned.contextTokens, 16_384)
+    func testExactTokenBoundaryIncludesOutputAndSafetyAllowance() async throws {
+        let budget = try NarrativeSummaryBudget(contextTokenLimit: 4_096, outputTokenLimit: 512)
+        let maximumInput = budget.contextTokens - budget.outputTokenLimit - budget.safetyTokens
+        let accepted = try await budget.outputTokens(prompt: "x", tokenizer: { _ in maximumInput - 1 })
+        XCTAssertEqual(accepted, 512)
+        for count in [maximumInput, 4_096, Int.max] {
+            do {
+                _ = try await budget.outputTokens(prompt: "x", tokenizer: { _ in count })
+                XCTFail("Do not truncate input or output to squeeze a request into the window")
+            } catch { XCTAssertEqual(error as? NarrativeSummaryError, .contextExceeded) }
+        }
+        for count in [0, -1] {
+            do {
+                _ = try await budget.outputTokens(prompt: "x", tokenizer: { _ in count })
+                XCTFail("Token counts must be positive")
+            } catch { XCTAssertEqual(error as? NarrativeSummaryError, .invalidTokenCount) }
+        }
+    }
+
+    func testInvalidSelectedModelLimitsAreRejected() {
+        for (context, output) in [(0, 1), (4_096, 0), (4_096, 4_096), (32_768, 32_768)] {
+            XCTAssertThrowsError(try NarrativeSummaryBudget(contextTokenLimit: context, outputTokenLimit: output)) {
+                XCTAssertEqual($0 as? NarrativeSummaryError, .invalidConfiguration)
+            }
+        }
     }
 }

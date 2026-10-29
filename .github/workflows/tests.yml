@@ -34,7 +34,7 @@ jobs:
           node-version: '22'
       - name: Prepare iOS project and native framework
         run: bash scripts/prepare-ios.sh --device-only
-      - name: Compile the iPhone app with summary recovery
+      - name: Compile the iPhone app with single-pass summaries
         run: |
           xcodebuild -quiet -project LocalMinutes.xcodeproj -scheme LocalMinutes -configuration Release \
             -destination 'generic/platform=iOS' -derivedDataPath build/device \
@@ -42,7 +42,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO LOCALMINUTES_SOURCE_COMMIT="$GITHUB_SHA" build
 
   summary-contracts:
-    name: Summary recovery, cancellation and persistence
+    name: Single-pass summaries, fail-fast limits and persistence
     runs-on: macos-15
     timeout-minutes: 20
     steps:

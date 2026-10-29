@@ -1,7 +1,7 @@
 import Foundation
 
 /// Readable meeting minutes and immutable evidence are deliberately separate.
-/// A reference proves source membership; semantic support is checked by the writer.
+/// A reference proves source membership, not the factual accuracy of model prose.
 public struct NarrativeSummaryParagraph: Equatable, Sendable {
     public let text: String
     public let evidence: [GroundedSummaryEvidence]
@@ -36,14 +36,11 @@ struct NarrativeSourceUnit: Codable, Equatable, Sendable {
 struct NarrativeDraftParagraph: Codable, Equatable, Sendable {
     let text: String
     let sourceIDs: [Int]
-    // App-owned only: model JSON cannot set this flag. Excerpts are rebuilt and
-    // verified against original source bytes before bypassing model review.
-    var isSourceExcerpt = false
     enum CodingKeys: String, CodingKey { case text; case sourceIDs = "source_ids" }
 
     var uniqueReferences: Self {
         var seen: Set<Int> = []
-        return .init(text: text, sourceIDs: sourceIDs.filter { seen.insert($0).inserted }, isSourceExcerpt: isSourceExcerpt)
+        return .init(text: text, sourceIDs: sourceIDs.filter { seen.insert($0).inserted })
     }
 }
 

@@ -11,8 +11,8 @@ struct GroundedEvidenceKey: Hashable {
     }
 }
 
-/// Validates immutable input identity and ordering. Readable prose is checked
-/// separately against original source packets by NarrativeSummaryWriter.
+/// Validates immutable input identity and ordering. The writer separately
+/// validates generated JSON and membership of its transcript references.
 struct SummarySourceValidation {
     init(selectedMeetingID: UUID, source: GroundedSummarySource, limits: GroundedSummaryLimits) throws {
         guard (1...1_048_576).contains(limits.maximumJSONBytes),

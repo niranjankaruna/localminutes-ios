@@ -11,7 +11,7 @@ import LocalMinutesSummary
 /// unchanged to the real default native runtime. Counters retain no content.
 @MainActor
 final class ActualResumedPhiIntelligenceTests: XCTestCase {
-    func testActualPhiSourceIndexSurvivesCancelledCommitAndReopenedServiceRewritesVerifiedNarrative() async throws {
+    func testActualPhiCancelledCommitAndReopenedServiceEachUseOneFreshRequest() async throws {
         let path = try XCTUnwrap(ProcessInfo.processInfo.environment["LOCALMINUTES_PHI_MODEL_PATH"],
                                  "The dedicated native job must provide the reviewed real Phi model")
         let available = try ModelStoragePolicy.availableBytes(at: FileManager.default.temporaryDirectory)
@@ -76,29 +76,10 @@ final class ActualResumedPhiIntelligenceTests: XCTestCase {
             XCTAssertTrue(beforeReopen.isEmpty)
             let firstCounts = await calls.snapshot()
             XCTAssertEqual(firstCounts.loads, 1)
-            XCTAssertGreaterThanOrEqual(firstCounts.generated[0, default: 0], 3,
-                "Actual draft generation must be followed by bullet and overview verification")
+            XCTAssertEqual(firstCounts.generated[0, default: 0], 1)
             XCTAssertEqual(firstCounts.unloaded[0, default: 0], 1)
 
-            // Resume requires a durable, validated map before another generation.
-            guard let checkpoint else {
-                XCTFail("A validated actual-Phi map must be durable before final SQLite commit")
-                try await assertPhiOriginals(h, store: h.store)
-                try await h.closeAndRemove()
-                return
-            }
-            XCTAssertEqual(checkpoint.identity.jobID, h.selected)
-            XCTAssertEqual(checkpoint.identity.meetingID, h.selected)
-            XCTAssertEqual(checkpoint.identity.modelRevision, revision)
-            XCTAssertEqual(checkpoint.identity.modelSHA256, manifest.artifacts[0].sha256)
-            XCTAssertEqual(checkpoint.identity.runtimeVersion, SummaryModelConfiguration.runtimeVersion,
-                           "Legacy installed weights use the current engine and must invalidate older checkpoints")
-            XCTAssertEqual(checkpoint.maps.count, 1)
-            guard checkpoint.maps.count == 1 else {
-                XCTFail("The unchanged small selected fixture must have exactly one validated native map")
-                try await h.closeAndRemove()
-                return
-            }
+            XCTAssertNil(checkpoint, "A single request has no source-index checkpoint to resume")
             try await h.store.close()
             let reopened = try SQLiteMeetingStore(databaseURL: h.database)
             reopenedStore = reopened
@@ -118,9 +99,9 @@ final class ActualResumedPhiIntelligenceTests: XCTestCase {
             let finalCounts = await calls.snapshot()
             XCTAssertEqual(finalCounts.loads, 2, "Reopen must use the real default loader again")
             XCTAssertGreaterThan(finalCounts.tokenized[1, default: 0], 0, "Recompute the plan with the real native tokenizer")
-            XCTAssertGreaterThanOrEqual(finalCounts.generated[1, default: 0], 3,
-                "Only the source index is resumed; the final prose is freshly written and reviewed")
-            XCTAssertGreaterThanOrEqual(finalCounts.generated.values.reduce(0, +), 6)
+            XCTAssertEqual(finalCounts.generated[1, default: 0], 1,
+                "A user retry generates once from the whole original transcript")
+            XCTAssertEqual(finalCounts.generated.values.reduce(0, +), 2)
             XCTAssertEqual(finalCounts.unloaded[1, default: 0], 1)
             let durable = try await reopened.generatedDocument(id: saved.id, meetingID: h.selected)
             XCTAssertEqual(durable, saved)

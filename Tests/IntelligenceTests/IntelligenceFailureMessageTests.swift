@@ -6,6 +6,16 @@ import LocalMinutesQuestionAnswering
 @testable import LocalMinutesIntelligence
 
 final class IntelligenceFailureMessageTests: XCTestCase {
+    func testSinglePassErrorsExplainCapacityAndDoNotClaimRetries() {
+        let capacity = IntelligenceFailureMessage.message(for: NarrativeSummaryError.contextExceeded)
+        XCTAssertTrue(capacity.contains("full transcript and expected summary"))
+        XCTAssertTrue(capacity.contains("larger context window"))
+        XCTAssertEqual(IntelligenceFailureMessage.code(for: NarrativeSummaryError.contextExceeded), "LM-INPUT-LIMIT")
+        let invalid = IntelligenceFailureMessage.message(for: NarrativeSummaryError.invalidResponse)
+        XCTAssertTrue(invalid.contains("Nothing was saved"))
+        XCTAssertFalse(invalid.contains("retries"))
+    }
+
     func testCheckpointFormatFailureIdentifiesTheAppStorageBoundaryInsteadOfBlamingTheModel() {
         let error = SummaryCheckpointError.invalidInput
         let message = IntelligenceFailureMessage.message(for: error)

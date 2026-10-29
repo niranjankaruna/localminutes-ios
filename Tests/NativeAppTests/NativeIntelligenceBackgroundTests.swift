@@ -184,7 +184,8 @@ final class NativeIntelligenceBackgroundTests: XCTestCase {
             provider.expirations[0]()
             try await eventually { !controller.isRunning }
             XCTAssertTrue(controller.summaryPaused)
-            XCTAssertTrue(controller.message?.contains("Resume summary") == true)
+            XCTAssertTrue(controller.message?.contains("Summarize meeting") == true)
+            XCTAssertTrue(controller.message?.contains("full transcript") == true)
             XCTAssertNil(controller.errorMessage)
             XCTAssertEqual(provider.activities[0].finished, [false])
             // A retry is a fresh system allowance for the same meeting, and an

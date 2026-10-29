@@ -139,7 +139,7 @@ final class Phi3IntegrationTests: XCTestCase {
                 } catch { try? await reopened.close(); throw error }
             }
             let count = await observations.count
-            XCTAssertGreaterThanOrEqual(count, 8, "Both narratives require drafting and evidence review, in addition to the two questions")
+            XCTAssertEqual(count, 4, "One request per summary and one per question")
             XCTAssertLessThanOrEqual(count, maximumCalls)
             phi3Progress("setup", "unload_begin")
             await runtime.unload()
@@ -155,6 +155,7 @@ final class Phi3IntegrationTests: XCTestCase {
     private func pipeline(_ runtime: LocalSummaryRuntime, _ observations: Phi3ComparisonObservations,
                           _ revision: String, stage: String) -> AdaptiveSummaryPipeline {
         AdaptiveSummaryPipeline(modelRevision: revision,
+            contextTokenLimit: runtime.contextTokenLimit, reservedOutputTokens: runtime.outputTokenLimit,
             tokenizer: { prompt in
                 await observations.tokenizing(stage, bytes: prompt.utf8.count)
                 let count = try await runtime.promptTokenCount(prompt: prompt)
@@ -296,7 +297,7 @@ extension Phi3IntegrationTests {
         guard digest == expected else { throw LocalSummaryRuntimeError.invalidModel }
         let runtime = try LocalSummaryRuntime(modelURL: url, contextSize: 4_096, threads: 4, chatFormat: .phi3)
         let revision = "a64113399c2f6b8ad3e11c394733a2ddadaa7f33"
-        let observations = Phi3ComparisonObservations(maximumCalls: 256) // Reading, writing, bounded review and one QA.
+        let observations = Phi3ComparisonObservations(maximumCalls: 2) // One summary and one question.
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("phi-representative-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
         let database = root.appendingPathComponent("meetings.sqlite")
@@ -338,8 +339,7 @@ extension Phi3IntegrationTests {
             let source = GroundedSummarySource(meetingID: selected, segments: persisted.map {
                 .init(id: $0.id.uuidString, startSample: $0.startSample, endSample: $0.endSample, text: $0.text)
             }, originalManualNotes: persistedNote.text)
-            // Routing uses real token counts including writing/review headroom;
-            // the fixture is never truncated to force a specific chunk count.
+            // The full fixture and dynamic response allowance must fit together.
             let pipeline = AdaptiveSummaryPipeline(modelRevision: revision, contextTokenLimit: 4_096,
                 reservedOutputTokens: 1_024, tokenizer: { prompt in
                     XCTAssertFalse(prompt.contains("OTHER_MEETING_CANARY_PHI_19"))
@@ -360,8 +360,7 @@ extension Phi3IntegrationTests {
                 })
             let summary = try await pipeline.summarize(selectedMeetingID: selected, source: source)
             let mapCalls = await observations.count
-            XCTAssertGreaterThanOrEqual(mapCalls, 3, "Narrative generation must include original-source review")
-            XCTAssertLessThanOrEqual(mapCalls, 255)
+            XCTAssertEqual(mapCalls, 1, "Generate once from the complete meeting")
             XCTAssertEqual(summary.meetingID, selected)
             XCTAssertFalse(summary.bullets.isEmpty)
             let prose = summary.bullets.map(\.text).joined(separator: " ")

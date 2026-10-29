@@ -311,20 +311,6 @@ public final class IntelligenceSession {
             let source = GroundedSummarySource(meetingID: request.meetingID,
                 segments: segments.map { .init(id: $0.id.uuidString, startSample: $0.startSample,
                     endSample: $0.endSample, text: $0.text) }, originalManualNotes: note?.text ?? "")
-            let resume: SummaryPipelineResumeConfiguration?
-            if let summaryCheckpoints {
-                guard let artifact = manifest.artifacts.first(where: { $0.role == .summary }) else {
-                    throw IntelligenceSessionError.invalidModel
-                }
-                // An older installed manifest still describes its original
-                // artifact contract. Checkpoints must identify the engine now
-                // doing inference so b5046 maps are not reused after upgrading.
-                let runtimeVersion = manifest.runtimeVersion == "llama.cpp-b5046"
-                    ? SummaryModelConfiguration.runtimeVersion : manifest.runtimeVersion
-                resume = .init(jobID: request.meetingID, modelID: manifest.modelID,
-                    modelSHA256: artifact.sha256, runtimeVersion: runtimeVersion,
-                    checkpoints: summaryCheckpoints)
-            } else { resume = nil }
             let report = use.progress
             let pipeline = AdaptiveSummaryPipeline(modelRevision: modelRevision,
                 contextTokenLimit: runtime.contextTokenLimit,
@@ -334,10 +320,6 @@ public final class IntelligenceSession {
                     report?(.generationStarted)
                     return try await runtime.generateJSON(prompt: prompt, schema: schema, maximumTokens: maximum,
                         progress: { report?(.generating($0)) })
-                }, resume: resume, mapProgress: { completed, total in
-                    report?(.summaryChunks(completed: completed, total: total))
-                }, consolidationProgress: { completed, total in
-                    report?(.consolidatingSummary(completed: completed, total: total))
                 }, planningProgress: { completed, total, pass in
                     report?(.planningSummary(completed: completed, total: total, pass: pass))
                 }, workProgress: { work in

@@ -32,7 +32,7 @@ final class ActualSummaryEndToEndTests: XCTestCase {
         } catch { await runtime.unload(); throw error }
     }
 
-    func testShortAndTwentyThreeMinuteMeetingsCompleteThroughSaveAndReopen() async throws {
+    func testShortAndHourLengthTranscriptsCompleteInOneRequestThroughSaveAndReopen() async throws {
         let environment = ProcessInfo.processInfo.environment
         let id = try XCTUnwrap(environment["LOCALMINUTES_CATALOG_VARIANT_ID"])
         let path = try XCTUnwrap(environment["LOCALMINUTES_CATALOG_MODEL_PATH"])
@@ -40,7 +40,7 @@ final class ActualSummaryEndToEndTests: XCTestCase {
         let fixture = try await IntelligenceFixture.create(actualModel: URL(fileURLWithPath: path),
             manifestOverride: variant.manifest, importActualDirectoryDirectly: true)
         do {
-            for count in [4, 276] {
+            for count in [4, 460] {
                 let meeting = UUID()
                 let segments = Self.segments(count: count, meetingID: meeting)
                 try await fixture.store.createMeeting(.init(id: meeting, title: "Synthetic release planning",
@@ -90,15 +90,14 @@ final class ActualSummaryEndToEndTests: XCTestCase {
                     }
                 }
                 let phases = await trace.phases()
-                XCTAssertTrue(phases.contains("NARRATIVE_DRAFT"))
-                XCTAssertTrue(phases.contains("NARRATIVE_REVIEW"))
-                if count == 276 {
-                    XCTAssertTrue(phases.contains("NARRATIVE_INDEX"))
-                    XCTAssertTrue(phases.contains("NARRATIVE_OVERVIEW"))
-                }
+                XCTAssertEqual(phases, Set(["NARRATIVE_DRAFT"]))
+                let callCount = await trace.totalCalls()
+                XCTAssertEqual(callCount, 1)
                 let unloaded = await trace.didUnload()
                 XCTAssertTrue(unloaded, "The selected model must be unloaded after save")
                 let excerpts = bullets.filter { $0["source_excerpt"] as? Bool == true }.count
+                XCTAssertEqual(excerpts, 0)
+                XCTAssertFalse(overview["source_excerpt"] as? Bool == true)
                 print("SUMMARY_END_TO_END model=\(id) segments=\(count) saved=true bullets=\(bullets.count) sourceExcerpts=\(excerpts) calls=\(await trace.snapshot())")
             }
             try await fixture.closeAndRemove()
@@ -137,6 +136,7 @@ private actor SummaryEndToEndTrace {
     func record(_ prompt: String) { counts[String(prompt.split(separator: "\n").first ?? "unknown"), default: 0] += 1 }
     func snapshot() -> String { counts.keys.sorted().map { "\($0)=\(counts[$0]!)" }.joined(separator: ",") }
     func phases() -> Set<String> { Set(counts.keys) }
+    func totalCalls() -> Int { counts.values.reduce(0, +) }
     func markUnloaded() { unloaded = true }
     func didUnload() -> Bool { unloaded }
 }

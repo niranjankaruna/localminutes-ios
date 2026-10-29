@@ -67,7 +67,7 @@ final class NativeSummaryDeletionTests: XCTestCase {
             let reopened = MeetingIntelligenceController(services: f.services, meetingID: f.selected)
             await reopened.load()
             XCTAssertNil(reopened.summary)
-            XCTAssertTrue(reopened.summaryPaused, "Existing checkpoints may still offer Resume after output is deleted")
+            XCTAssertTrue(reopened.summaryPaused, "Legacy unfinished progress remains available to clear after output is deleted")
             try await f.assertOriginalsAndUnrelatedContent()
         }
     }

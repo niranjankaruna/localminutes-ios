@@ -23,7 +23,7 @@ final class NativeIntelligenceTimingTests: XCTestCase {
         tracker.report(.generationStarted, at: start.advanced(by: .seconds(31)))
         tracker.report(.generating(.promptTokens(completed: 200, total: 400)), at: start.advanced(by: .seconds(32)))
         XCTAssertGreaterThan(tracker.progress.completedUnitCount, checking)
-        XCTAssertEqual(tracker.detail, "Checking facts and sources")
+        XCTAssertEqual(tracker.detail, "Checking summary references")
         tracker.report(.summaryWork(.init(phase: .checking, completedFraction: 1, operationFraction: 0)),
             at: start.advanced(by: .seconds(60)))
         XCTAssertEqual(tracker.display(at: start).percentage, 98)

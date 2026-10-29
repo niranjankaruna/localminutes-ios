@@ -170,7 +170,7 @@ final class MeetingIntelligenceController {
             }
             if !isRunning, summary == nil, let savedMaps, savedMaps > 0 {
                 summaryPaused = true
-                if message == nil { message = "Previous summary progress is saved. Tap Resume summary to continue." }
+                if message == nil { message = "A previous summary was not completed. Tap Summarize meeting to generate from the full transcript." }
             }
             let retained = answers.filter { document in
                 savingAnswerIDs.contains(document.id) || answerEditConflicts.contains(document.id)
@@ -371,7 +371,7 @@ final class MeetingIntelligenceController {
             } catch IntelligenceBackgroundError.expired {
                 if case .summary = kind {
                     self.summaryPaused = true
-                    self.message = "Summary paused because iOS stopped background processing. Tap Resume summary to continue. Saved progress is reused when available."
+                    self.message = "Summary interrupted because iOS stopped background processing. Tap Summarize meeting to start a new attempt from the full transcript."
                 } else {
                     self.message = "iOS stopped background processing. Ask your question again to retry."
                 }
@@ -611,14 +611,14 @@ struct MeetingIntelligenceView: View {
                 Button("Details") { showingDetails = true }.frame(minHeight: 44)
             }
         } else if !controller.busy && !controller.modelRequired {
-            MinutesEmptyState(title: controller.summaryPaused ? "Summary paused" : "No summary yet", symbol: "sparkles",
-                              detail: controller.summaryPaused ? "Continue summarizing this meeting." : "Create a summary from this meeting.")
-            Button(controller.summaryPaused ? "Resume summary" : "Summarize meeting") { controller.generateSummary() }
+            MinutesEmptyState(title: "No summary yet", symbol: "sparkles",
+                              detail: "Create a summary from this meeting's full transcript.")
+            Button("Summarize meeting") { controller.generateSummary() }
                 .buttonStyle(MinutesButtonStyle()).accessibilityIdentifier("meeting.generatedSummary.generate")
                 .disabled(controller.editConflict)
         }
         Menu {
-            Button(controller.summary == nil ? "Generate or resume summary" : "Generate again") { controller.generateSummary() }
+            Button(controller.summary == nil ? "Generate summary" : "Generate again") { controller.generateSummary() }
                 .accessibilityIdentifier(controller.summary == nil ? "meeting.summary.resume" : "meeting.generatedSummary.generate")
             Button("Start from beginning…", role: .destructive) { confirmingFreshSummary = true }
                 .accessibilityIdentifier("meeting.summary.reset")
