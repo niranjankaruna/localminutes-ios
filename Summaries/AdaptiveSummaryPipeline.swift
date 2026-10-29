@@ -13,7 +13,7 @@ public struct NarrativeSummaryPipelineSnapshot: Equatable, Sendable {
 /// Adaptive reading, source-linked topic reconciliation, then reviewed prose.
 /// Intermediate labels organize original evidence; they never become evidence.
 public actor AdaptiveSummaryPipeline {
-    public static let currentPromptVersion = "narrative-v2"
+    public static let currentPromptVersion = "narrative-v3"
     private let modelRevision: String
     private let promptVersion: String
     private let contextTokenLimit: Int
@@ -89,14 +89,14 @@ public actor AdaptiveSummaryPipeline {
             try validation.provenance(provenance)
             let budget = try NarrativeSummaryBudget(contextTokenLimit: contextTokenLimit, outputTokenLimit: reservedOutputTokens,
                 workingContextTokenLimit: workingContextTokenLimit)
-            let limiter = NarrativeGenerationLimiter(generator: generator)
+            planningProgress?(0, source.segments.count, 1)
+            let units = try NarrativeSourcePlanner.units(source: source)
+            planningProgress?(source.segments.count, source.segments.count, 1)
+            let limiter = NarrativeGenerationLimiter(generator: generator, sourceUnitCount: units.count)
             let bounded: SummaryMapJSONGenerator = { prompt, schema, maximum in
                 try await limiter.generate(prompt: prompt, schema: schema, maximum: maximum)
             }
             let writer = NarrativeSummaryWriter(tokenizer: tokenizer, generator: bounded, budget: budget)
-            planningProgress?(0, source.segments.count, 1)
-            let units = try NarrativeSourcePlanner.units(source: source)
-            planningProgress?(source.segments.count, source.segments.count, 1)
             guard !units.isEmpty else {
                 let empty = NarrativeSummary(meetingID: selectedMeetingID, overview: nil, bullets: [], provenance: provenance)
                 state = .init(phase: .completed, meetingID: selectedMeetingID, result: empty)
@@ -153,7 +153,8 @@ public actor AdaptiveSummaryPipeline {
             let draft: NarrativeSummaryDraft
             if direct {
                 consolidationProgress?(0, 1)
-                draft = try await writer.draft(units: units, notes: source.originalManualNotes, progress: work)
+                draft = try await draftWithRecovery(units: units, allUnits: units,
+                    notes: source.originalManualNotes, writer: writer, progress: work)
                 consolidationProgress?(1, 1)
             } else {
                 work.child(0.25, 0.3).begin(.organizing)
@@ -172,8 +173,8 @@ public actor AdaptiveSummaryPipeline {
                     for (packetIndex, packet) in packets.enumerated() {
                         let packetWork = topicWork.child(0.6 * Double(packetIndex) / Double(packets.count),
                             0.6 * Double(packetIndex + 1) / Double(packets.count))
-                        let part = try await writer.draft(units: packet, notes: source.originalManualNotes,
-                            topic: topic.label, progress: packetWork)
+                        let part = try await draftWithRecovery(units: packet, allUnits: units,
+                            notes: source.originalManualNotes, topic: topic.label, writer: writer, progress: packetWork)
                         topicBullets += part.bullets
                         guard topicBullets.count <= 4_096 else { throw NarrativeSummaryError.limitExceeded }
                     }
@@ -560,6 +561,39 @@ public actor AdaptiveSummaryPipeline {
     }
 
 
+    /// Input fit does not predict completion length or format reliability.
+    /// Subdivide recoverable responses, retaining both halves and revisions.
+    /// A single unit gets the writer's compact retry, then fails visibly if the
+    /// model still cannot complete it. No partial JSON becomes meeting prose.
+    private func draftWithRecovery(units: [NarrativeSourceUnit], allUnits: [NarrativeSourceUnit],
+                                   notes: String, topic: String? = nil, writer: NarrativeSummaryWriter,
+                                   progress: SummaryWorkScope) async throws -> NarrativeSummaryDraft {
+        do {
+            let draft = try await writer.draft(units: units, notes: notes, topic: topic,
+                progress: progress.child(0, 0.5))
+            progress.complete(.writing)
+            return draft
+        } catch {
+            try Task.checkCancellation()
+            guard NarrativeSummaryWriter.canRetry(error), units.count > 1 else { throw error }
+        }
+        let middle = units.count / 2
+        let first = try await draftWithRecovery(units: Array(units[..<middle]), allUnits: allUnits,
+            notes: notes, topic: topic, writer: writer, progress: progress.child(0.5, 0.65).retrying())
+        let second = try await draftWithRecovery(units: Array(units[middle...]), allUnits: allUnits,
+            notes: notes, topic: topic, writer: writer, progress: progress.child(0.65, 0.8).retrying())
+        let paragraphs = first.bullets + second.bullets
+        var bullets: [NarrativeDraftParagraph] = []
+        for (index, paragraph) in paragraphs.enumerated() {
+            bullets.append(try await reviewTopic(paragraph, topicUnits: units, allUnits: allUnits, notes: notes,
+                writer: writer, progress: progress.child(0.8 + 0.15 * Double(index) / Double(paragraphs.count),
+                    0.8 + 0.15 * Double(index + 1) / Double(paragraphs.count)).retrying()))
+        }
+        let overview = try await meetingOverview(bullets: bullets, units: allUnits, notes: notes,
+            writer: writer, progress: progress.child(0.95, 1).retrying())
+        return .init(bullets: bullets, overview: overview)
+    }
+
     private func reviewTopic(_ paragraph: NarrativeDraftParagraph, topicUnits: [NarrativeSourceUnit],
                              allUnits: [NarrativeSourceUnit], notes: String,
                              writer: NarrativeSummaryWriter, progress: SummaryWorkScope) async throws -> NarrativeDraftParagraph {
@@ -594,7 +628,8 @@ public actor AdaptiveSummaryPipeline {
                 guard primaryCount > 0 else { throw NarrativeSummaryError.contextExceeded }
                 let scope = progress.child((Double(sweep) + Double(offset) / Double(topicUnits.count)) / 2,
                     (Double(sweep) + Double(offset + primaryCount) / Double(topicUnits.count)) / 2)
-                let reviewed = try await writer.checked(current, units: chosen, notes: notes, progress: scope)
+                let reviewed = try await checkWithRecovery(current, context: chosen, allUnits: allUnits,
+                    notes: notes, writer: writer, progress: scope)
                 if reviewed != current { changed = true }
                 current = reviewed
                 // Repairs can change supporting IDs. Rebuild support from originals
@@ -609,12 +644,40 @@ public actor AdaptiveSummaryPipeline {
         throw NarrativeSummaryError.unsupportedEvidence
     }
 
+    /// Split checking context while retaining every cited original in each
+    /// request. The outer topic sweep rechecks earlier context after repairs.
+    private func checkWithRecovery(_ paragraph: NarrativeDraftParagraph, context: [NarrativeSourceUnit],
+                                   allUnits: [NarrativeSourceUnit], notes: String,
+                                   writer: NarrativeSummaryWriter,
+                                   progress: SummaryWorkScope) async throws -> NarrativeDraftParagraph {
+        let supportIDs = Set(paragraph.sourceIDs)
+        let support = allUnits.filter { supportIDs.contains($0.id) }
+        let packet = (support + context.filter { !supportIDs.contains($0.id) }).sorted { $0.id < $1.id }
+        do {
+            let result = try await writer.checked(paragraph, units: packet, notes: notes,
+                progress: progress.child(0, 0.5))
+            progress.complete(.checking)
+            return result
+        } catch {
+            try Task.checkCancellation()
+            let capacity = (error as? NarrativeSummaryError) == .contextExceeded
+            guard NarrativeSummaryWriter.canRetry(error) || capacity,
+                  context.count > 1, packet.count > support.count else { throw error }
+        }
+        let middle = context.count / 2
+        let first = try await checkWithRecovery(paragraph, context: Array(context[..<middle]), allUnits: allUnits,
+            notes: notes, writer: writer, progress: progress.child(0.5, 0.75).retrying())
+        return try await checkWithRecovery(first, context: Array(context[middle...]), allUnits: allUnits,
+            notes: notes, writer: writer, progress: progress.child(0.75, 1).retrying())
+    }
+
     private func meetingOverview(bullets: [NarrativeDraftParagraph], units: [NarrativeSourceUnit],
                                  notes: String, writer: NarrativeSummaryWriter,
                                  progress: SummaryWorkScope) async throws -> NarrativeDraftParagraph {
         guard !bullets.isEmpty else { throw NarrativeSummaryError.invalidResponse }
         var current = bullets
-        for pass in 0..<8 {
+        var pass = 0
+        while true {
             try Task.checkCancellation()
             func evidence(_ paragraphs: [NarrativeDraftParagraph]) -> [NarrativeSourceUnit] {
                 let wanted = Set(paragraphs.flatMap(\.sourceIDs))
@@ -622,32 +685,71 @@ public actor AdaptiveSummaryPipeline {
             }
             let allEvidence = evidence(current)
             let lower = 1 - pow(0.5, Double(pass))
+            var maximumPacketCount = current.count
+            var packetLower = lower
             if (try await writer.canOverview(bullets: current, units: allEvidence, notes: notes)) {
-                return try await writer.overview(bullets: current, units: allEvidence, notes: notes,
-                    progress: progress.child(lower, 1))
+                do {
+                    let overview = try await writer.overview(bullets: current, units: allEvidence, notes: notes,
+                        progress: progress.child(lower, lower + (1 - lower) / 2))
+                    progress.complete(.overview)
+                    return overview
+                } catch {
+                    try Task.checkCancellation()
+                    guard NarrativeSummaryWriter.canRetry(error), current.count > 1 else { throw error }
+                    maximumPacketCount = max(1, (current.count + 1) / 2)
+                    packetLower = lower + (1 - lower) / 2
+                }
             }
             var next: [NarrativeDraftParagraph] = []
             var offset = 0
             while offset < current.count {
                 var selected: [NarrativeDraftParagraph] = []
                 var count = 1
-                while offset + count <= current.count {
+                while count <= maximumPacketCount, offset + count <= current.count {
                     let packet = Array(current[offset..<(offset + count)])
                     guard (try await writer.canOverview(bullets: packet, units: evidence(packet), notes: notes)) else { break }
                     selected = packet; count += 1
                 }
                 guard !selected.isEmpty else { throw NarrativeSummaryError.contextExceeded }
-                let span = (1 - lower) / 2
-                let scope = progress.child(lower + span * Double(offset) / Double(current.count),
-                    lower + span * Double(offset + selected.count) / Double(current.count))
-                next.append(try await writer.overview(bullets: selected, units: evidence(selected), notes: notes,
-                    progress: scope))
+                let span = (1 - packetLower) / 2
+                let scope = progress.child(packetLower + span * Double(offset) / Double(current.count),
+                    packetLower + span * Double(offset + selected.count) / Double(current.count))
+                next += try await overviewWithRecovery(bullets: selected, units: units, notes: notes,
+                    writer: writer, progress: maximumPacketCount < current.count ? scope.retrying() : scope)
                 offset += selected.count
             }
-            guard next.count < current.count else { throw NarrativeSummaryError.contextExceeded }
+            // Singleton compression can make the next merge fit. Require
+            // measurable progress, rather than imposing a meeting-length cap
+            // of eight reduction levels or retrying an unchanged packet forever.
+            let previousBytes = current.reduce(0) { $0 + $1.text.utf8.count }
+            let nextBytes = next.reduce(0) { $0 + $1.text.utf8.count }
+            guard next.count < current.count || nextBytes < previousBytes else { throw NarrativeSummaryError.contextExceeded }
             current = next
+            // A failed full attempt consumed half of this pass's work slice.
+            pass += packetLower > lower ? 2 : 1
         }
-        throw NarrativeSummaryError.limitExceeded
+    }
+
+    private func overviewWithRecovery(bullets: [NarrativeDraftParagraph], units: [NarrativeSourceUnit],
+                                      notes: String, writer: NarrativeSummaryWriter,
+                                      progress: SummaryWorkScope) async throws -> [NarrativeDraftParagraph] {
+        let wanted = Set(bullets.flatMap(\.sourceIDs))
+        let evidence = units.filter { wanted.contains($0.id) }
+        do {
+            let overview = try await writer.overview(bullets: bullets, units: evidence, notes: notes,
+                progress: progress.child(0, 0.5))
+            progress.complete(.overview)
+            return [overview]
+        } catch {
+            try Task.checkCancellation()
+            guard NarrativeSummaryWriter.canRetry(error), bullets.count > 1 else { throw error }
+        }
+        let middle = bullets.count / 2
+        let first = try await overviewWithRecovery(bullets: Array(bullets[..<middle]), units: units,
+            notes: notes, writer: writer, progress: progress.child(0.5, 0.75).retrying())
+        let second = try await overviewWithRecovery(bullets: Array(bullets[middle...]), units: units,
+            notes: notes, writer: writer, progress: progress.child(0.75, 1).retrying())
+        return first + second
     }
 
     private func load(identity: SummaryCheckpointIdentity?, batches: [ReadingBatch], meetingID: UUID) async throws -> [[Topic]] {
@@ -701,11 +803,17 @@ public actor AdaptiveSummaryPipeline {
 /// Bounds all native calls, including writer reviews and repair attempts.
 private actor NarrativeGenerationLimiter {
     let generator: SummaryMapJSONGenerator
+    let maximumCalls: Int
     private var calls = 0
-    init(generator: @escaping SummaryMapJSONGenerator) { self.generator = generator }
+    init(generator: @escaping SummaryMapJSONGenerator, sourceUnitCount: Int) {
+        self.generator = generator
+        // Source units are bounded by the planner. Allow longer meetings more
+        // work while retaining an overall guard against pathological models.
+        maximumCalls = max(4_096, sourceUnitCount * 128)
+    }
     func generate(prompt: String, schema: StructuredJSONSchema, maximum: Int) async throws -> String {
         try Task.checkCancellation()
-        guard calls < 4_096 else { throw NarrativeSummaryError.limitExceeded }
+        guard calls < maximumCalls else { throw NarrativeSummaryError.limitExceeded }
         calls += 1
         return try await generator(prompt, schema, maximum)
     }

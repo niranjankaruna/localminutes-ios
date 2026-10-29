@@ -7,6 +7,86 @@ import LocalMinutesPersistence
 /// tests do not measure the selected models' narrative or reasoning quality.
 @MainActor
 final class AdaptiveSummaryPipelineTests: XCTestCase {
+    func testWritingLimitsSubdivideDirectAndIndexedMeetingsWithoutLosingSources() async throws {
+        for unitTokens in [100, 400] {
+            let source = adaptiveSource(count: 12)
+            let boundary = AdaptiveBoundary(maximumDraftUnits: 3)
+            let events = SummaryWorkRecorder()
+            let pipeline = adaptivePipeline(boundary: boundary, unitTokens: unitTokens,
+                workProgress: { events.append($0) })
+            let result = try await pipeline.summarize(selectedMeetingID: source.meetingID, source: source)
+            XCTAssertFalse(result.bullets.isEmpty)
+            XCTAssertNotNil(result.overview)
+            let calls = await boundary.calls
+            let drafts = calls.filter { $0.marker == "NARRATIVE_DRAFT" }
+            XCTAssertTrue(drafts.contains { $0.ids.count > 3 }, "Exercise a real attempted packet that fails output admission")
+            let successful = drafts.filter { $0.ids.count <= 3 }
+            XCTAssertEqual(Set(successful.flatMap(\.ids)), Set(try NarrativeSourcePlanner.units(source: source).map(\.id)))
+            XCTAssertTrue(events.values.contains { $0.phase == .writing && $0.isRetry })
+            for (previous, next) in zip(events.values, events.values.dropFirst()) {
+                XCTAssertGreaterThanOrEqual(next.completedFraction + 0.000001, previous.completedFraction)
+            }
+            let snapshot = await pipeline.snapshot()
+            XCTAssertEqual(snapshot.phase, .completed)
+        }
+    }
+
+    func testRepeatedMalformedSourceChecksRecoverUsingSmallerContextAndRetainCitations() async throws {
+        let source = adaptiveSource(count: 12)
+        let boundary = AdaptiveBoundary(maximumReviewUnits: 4)
+        let events = SummaryWorkRecorder()
+        let result = try await adaptivePipeline(boundary: boundary, unitTokens: 100,
+            workProgress: { events.append($0) }).summarize(selectedMeetingID: source.meetingID, source: source)
+        XCTAssertFalse(result.bullets.isEmpty)
+        let calls = await boundary.calls
+        XCTAssertTrue(calls.contains { $0.marker == "NARRATIVE_REVIEW" && $0.ids.count > 4 })
+        let checks = calls.filter { $0.marker == "NARRATIVE_REVIEW" && $0.ids.count <= 4 }
+        XCTAssertEqual(Set(checks.flatMap(\.ids)), Set(try NarrativeSourcePlanner.units(source: source).map(\.id)))
+        XCTAssertTrue(events.values.contains { $0.phase == .checking && $0.isRetry })
+        for (previous, next) in zip(events.values, events.values.dropFirst()) {
+            XCTAssertGreaterThanOrEqual(next.completedFraction + 0.000001, previous.completedFraction)
+        }
+    }
+
+    func testOverviewOutputLimitsReduceAllParagraphsInSmallerGroups() async throws {
+        let source = adaptiveSource(count: 12)
+        let boundary = AdaptiveBoundary(maximumDraftUnits: 1, maximumOverviewBullets: 2)
+        let events = SummaryWorkRecorder()
+        let result = try await adaptivePipeline(boundary: boundary, unitTokens: 100,
+            workProgress: { events.append($0) }).summarize(selectedMeetingID: source.meetingID, source: source)
+        XCTAssertEqual(result.bullets.count, 12, "Reduction affects the overview, not saved discussion coverage")
+        XCTAssertNotNil(result.overview)
+        XCTAssertTrue(events.values.contains { $0.phase == .overview && $0.isRetry })
+        for (previous, next) in zip(events.values, events.values.dropFirst()) {
+            XCTAssertGreaterThanOrEqual(next.completedFraction + 0.000001, previous.completedFraction)
+        }
+    }
+
+    func testPersistentLeafFailuresAreBoundedAndNeverPublishPartialResults() async throws {
+        for failure in ["limit", "malformed", "cancel", "memory", "source"] {
+            let source = adaptiveSource(count: 2)
+            let boundary = AdaptiveBoundary(writingFailure: failure)
+            let pipeline = adaptivePipeline(boundary: boundary)
+            do {
+                _ = try await pipeline.summarize(selectedMeetingID: source.meetingID, source: source)
+                XCTFail("An unusable model must not publish an unchecked or partial summary")
+            } catch {
+                switch failure {
+                case "limit": XCTAssertEqual(error as? LocalSummaryRuntimeError, .outputLimitExceeded)
+                case "malformed": XCTAssertEqual(error as? NarrativeSummaryError, .invalidResponse)
+                case "cancel": XCTAssertTrue(error is CancellationError)
+                case "memory": XCTAssertEqual(error as? LocalSummaryRuntimeError, .contextUnavailable)
+                default: XCTAssertEqual(error as? NarrativeSummaryError, .unsupportedEvidence)
+                }
+            }
+            let calls = await boundary.calls
+            XCTAssertEqual(calls.count, failure == "limit" || failure == "malformed" ? 4 : 1)
+            let snapshot = await pipeline.snapshot()
+            XCTAssertNil(snapshot.result)
+            XCTAssertEqual(snapshot.phase, failure == "cancel" ? .cancelled : .failed)
+        }
+    }
+
     func testCurrentPromptCompletesAndResumesWithTheRealCheckpointStore() async throws {
         // Exercise the actual persisted boundary for both direct and indexed
         // jobs. A mock store cannot catch a prompt/schema version mismatch.
@@ -312,7 +392,7 @@ private actor NeighborTopicBoundary {
                 return ["label": "Topic \(id)", "topic_ids": [id]]
             }])
         }
-        if prompt.hasPrefix("NARRATIVE_REVIEW") { return #"{"supported":true,"issues":[]}"# }
+        if prompt.hasPrefix("NARRATIVE_REVIEW") { return #"{"issues":[]}"# }
         let ids = try adaptiveRows(prompt, marker: "SOURCE_UNITS_JSON").compactMap { $0["id"] as? Int }
         if prompt.hasPrefix("NARRATIVE_INDEX") {
             return try adaptiveJSON(["topics": ids.map { id -> [String: Any] in ["label": "Topic \(id)", "source_ids": [id]] }])
@@ -382,15 +462,23 @@ private actor AdaptiveBoundary {
     let repairLateReview: Bool
     let indexFailure: String?
     let groupingFailure: Bool
+    let maximumDraftUnits: Int?
+    let maximumReviewUnits: Int?
+    let maximumOverviewBullets: Int?
+    let writingFailure: String?
     private(set) var compactRoutingSchemas: [Bool] = []
     private(set) var held = false
     private(set) var calls: [AdaptiveCall] = []
     private var indexCount = 0
     init(holdSecondIndex: Bool = false, omitLastIndexedID: Bool = false, repairLateReview: Bool = false,
-         indexFailure: String? = nil, groupingFailure: Bool = false) {
+         indexFailure: String? = nil, groupingFailure: Bool = false,
+         maximumDraftUnits: Int? = nil, maximumReviewUnits: Int? = nil,
+         maximumOverviewBullets: Int? = nil, writingFailure: String? = nil) {
         self.holdSecondIndex = holdSecondIndex; self.omitLastIndexedID = omitLastIndexedID
         self.repairLateReview = repairLateReview
         self.indexFailure = indexFailure; self.groupingFailure = groupingFailure
+        self.maximumDraftUnits = maximumDraftUnits; self.maximumReviewUnits = maximumReviewUnits
+        self.maximumOverviewBullets = maximumOverviewBullets; self.writingFailure = writingFailure
     }
 
     func generate(_ prompt: String, schema: StructuredJSONSchema, maximum: Int) async throws -> String {
@@ -399,6 +487,21 @@ private actor AdaptiveBoundary {
         let rows = (try? adaptiveRows(prompt, marker: "SOURCE_UNITS_JSON")) ?? []
         let ids = rows.compactMap { $0["id"] as? Int }
         calls.append(.init(marker: marker, ids: ids, maximum: maximum))
+        if marker == "NARRATIVE_DRAFT" {
+            switch writingFailure {
+            case "limit": throw LocalSummaryRuntimeError.outputLimitExceeded
+            case "malformed": return "{\"bullets\":["
+            case "cancel": throw CancellationError()
+            case "memory": throw LocalSummaryRuntimeError.contextUnavailable
+            case "source": throw NarrativeSummaryError.unsupportedEvidence
+            default: break
+            }
+            if let maximumDraftUnits, ids.count > maximumDraftUnits { throw LocalSummaryRuntimeError.outputLimitExceeded }
+        }
+        if marker == "NARRATIVE_OVERVIEW", let maximumOverviewBullets,
+           try adaptiveRows(prompt, marker: "BULLETS_JSON").count > maximumOverviewBullets {
+            throw LocalSummaryRuntimeError.outputLimitExceeded
+        }
         if marker == "NARRATIVE_INDEX" {
             compactRoutingSchemas.append(schema.compactWhitespace)
             indexCount += 1
@@ -424,10 +527,13 @@ private actor AdaptiveBoundary {
             return try adaptiveJSON(["groups": [["label": "Project Alpha launch", "topic_ids": topics.compactMap { $0["id"] as? Int }]]])
         }
         if marker == "NARRATIVE_REVIEW" {
-            if repairLateReview, prompt.contains("Condensed launch overview"), ids.contains(5) {
-                return #"{"supported":false,"issues":["The source at unit 5 qualifies the conclusion."]}"#
+            if let maximumReviewUnits, ids.count > maximumReviewUnits {
+                return #"{"issues":"none"}"#
             }
-            return #"{"supported":true,"issues":[]}"#
+            if repairLateReview, prompt.contains("Condensed launch overview"), ids.contains(5) {
+                return #"{"issues":["The source at unit 5 qualifies the conclusion."]}"#
+            }
+            return #"{"issues":[]}"#
         }
         guard let first = ids.first, let last = ids.last else { throw NarrativeSummaryError.invalidResponse }
         let references = first == last ? [first] : [first, last]
@@ -470,7 +576,7 @@ private actor AdaptiveCheckpointBoundary: SummaryCheckpointing {
 private func adaptiveRows(_ prompt: String, marker: String) throws -> [[String: Any]] {
     guard let range = prompt.range(of: marker + ":\n") else { throw NarrativeSummaryError.invalidResponse }
     let tail = String(prompt[range.upperBound...])
-    let json = tail.components(separatedBy: "\n\n").first ?? tail
+    let json = tail.components(separatedBy: "\n").first ?? tail
     guard let value = try JSONSerialization.jsonObject(with: Data(json.utf8)) as? [[String: Any]] else {
         throw NarrativeSummaryError.invalidResponse
     }

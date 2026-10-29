@@ -13,6 +13,29 @@ private struct ActualSummaryFixture: Decodable {
 
 @MainActor
 final class LocalSummaryRuntimeTests: XCTestCase {
+    func testNativeGrammarEnforcesBoundedStringsAndRequiredArrayItems() async throws {
+        let runtime = try LocalSummaryRuntime(modelURL: actualModelURL())
+        do {
+            let schema = StructuredJSONSchema(fields: [
+                .init(name: "labels", type: .array(element: .boundedString(maximumCharacters: 64),
+                    maximumItems: 2, minimumItems: 1))
+            ], promptIncludesSchema: true, compactWhitespace: true)
+            let output = try await runtime.generateJSON(prompt: """
+                Return only JSON with labels, an array of one or two short strings.
+                Label the subjects of a meeting about release timing and customer
+                support. Each label must be at most 64 characters.
+                """, schema: schema, maximumTokens: 192)
+            let object = try XCTUnwrap(try JSONSerialization.jsonObject(with: Data(output.utf8)) as? [String: Any])
+            let labels = try XCTUnwrap(object["labels"] as? [String])
+            XCTAssertTrue((1...2).contains(labels.count))
+            XCTAssertTrue(labels.allSatisfy { $0.unicodeScalars.count <= 64 })
+            await runtime.unload()
+        } catch {
+            await runtime.unload()
+            throw error
+        }
+    }
+
     private let prompt = """
     Extract only the following original fictional meeting evidence.
     [s1] Maya: We decided to ship the prototype on Friday.

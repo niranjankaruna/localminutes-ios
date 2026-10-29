@@ -23,7 +23,7 @@ public enum IntelligenceFailureMessage {
              MeetingQuestionError.evidenceExceedsBudget:
             return "A transcript section or the meeting notes exceeds this model's input limit. Shorten the notes or try another summary model."
         case LocalSummaryRuntimeError.outputLimitExceeded:
-            return "The model could not finish its response within the output limit. Try again or equip another summary model."
+            return "The model could not finish a complete response within its output limit. Your transcript is unchanged. Try again or equip another summary model."
         case SummaryCheckpointError.invalidInput:
             return "The app could not save summary progress because its checkpoint format was rejected. Your transcript is unchanged. Update the app and retry."
         case SummaryCheckpointError.corruptCheckpoint, SummaryCheckpointError.conflictingMap,
@@ -35,8 +35,10 @@ public enum IntelligenceFailureMessage {
             return "The model could not use the requested response format. Try another summary model and check for an app update."
         case GroundedSummaryError.invalidSource:
             return "The saved transcript has invalid source ranges. Transcribe the meeting again before summarizing it."
+        case NarrativeSummaryError.invalidResponse:
+            return "The model did not return a valid summary or source-check response after automatic retries. Nothing was saved. Try again or equip another summary model."
         case is GroundedSummaryError, NarrativeSummaryError.unsupportedEvidence,
-             NarrativeSummaryError.invalidResponse, MeetingQuestionError.invalidJSON, MeetingQuestionError.unsupportedEvidence:
+             MeetingQuestionError.invalidJSON, MeetingQuestionError.unsupportedEvidence:
             return "The model's response could not be verified against this transcript. Nothing was saved. Try again or equip another summary model."
         case LocalSummaryRuntimeError.generationFailed:
             return "The model could not complete a valid response. Try again or equip another summary model."

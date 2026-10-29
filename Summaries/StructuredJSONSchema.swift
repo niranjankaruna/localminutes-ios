@@ -2,13 +2,16 @@ import Foundation
 
 public indirect enum StructuredJSONType: Equatable, Sendable {
     case string
+    /// A generation bound on decoded JSON characters, including escape sequences.
+    /// This does not truncate an already generated response.
+    case boundedString(maximumCharacters: Int)
     case boolean
     case null
     case stringEnumeration([String])
     case stringArray(allowedValues: [String])
     case object([StructuredJSONField])
     case alternatives([StructuredJSONType])
-    case array(element: StructuredJSONType, maximumItems: Int)
+    case array(element: StructuredJSONType, maximumItems: Int, minimumItems: Int = 0)
     case nullable(StructuredJSONType)
     case integerEnumeration([Int64])
 }
@@ -110,6 +113,9 @@ public struct StructuredJSONSchema: Equatable, Sendable {
             }
             switch value {
             case .string: try append(name, "string")
+            case .boundedString(let maximumCharacters):
+                guard (1...8_192).contains(maximumCharacters) else { throw StructuredJSONSchemaError.invalidBounds }
+                try append(name, "\"\\\"\" json-char{0,\(maximumCharacters)} \"\\\"\" ws")
             case .boolean: try append(name, "boolean")
             case .null: try append(name, "\"null\" ws")
             case .stringEnumeration(let values):
@@ -137,18 +143,22 @@ public struct StructuredJSONSchema: Equatable, Sendable {
                     branches.append(branch)
                 }
                 try append(name, "(\(branches.joined(separator: " | "))) ws")
-            case .array(let element, let maximumItems):
-                guard (1...128).contains(maximumItems) else { throw StructuredJSONSchemaError.invalidBounds }
+            case .array(let element, let maximumItems, let minimumItems):
+                guard (1...128).contains(maximumItems), (0...maximumItems).contains(minimumItems) else {
+                    throw StructuredJSONSchemaError.invalidBounds
+                }
                 let item = name + "-item"
                 try type(element, name: item, depth: depth + 1)
+                let optional = minimumItems == 0 ? "?" : ""
                 if maximumItems == 1 {
-                    try append(name, "\"[\" ws (\(item))? \"]\" ws")
+                    try append(name, "\"[\" ws (\(item))\(optional) \"]\" ws")
                 } else {
                     for remaining in 1..<maximumItems {
                         let next = remaining == 1 ? "" : " \(name)-tail-\(remaining - 1)"
-                        try append("\(name)-tail-\(remaining)", "(\",\" ws \(item)\(next))?")
+                        let tailOptional = remaining > maximumItems - minimumItems ? "" : "?"
+                        try append("\(name)-tail-\(remaining)", "(\",\" ws \(item)\(next))\(tailOptional)")
                     }
-                    try append(name, "\"[\" ws (\(item) \(name)-tail-\(maximumItems - 1))? \"]\" ws")
+                    try append(name, "\"[\" ws (\(item) \(name)-tail-\(maximumItems - 1))\(optional) \"]\" ws")
                 }
             case .nullable(let wrapped):
                 let inner = name + "-value"
@@ -190,6 +200,7 @@ public struct StructuredJSONSchema: Equatable, Sendable {
                 guard level <= 8 else { return false }
                 switch type {
                 case .string: return atom("string")
+                case .boundedString(let maximumCharacters): return atom("boundedString") && atom(String(maximumCharacters))
                 case .boolean: return atom("boolean")
                 case .null: return atom("null")
                 case .stringEnumeration(let values), .stringArray(let values):
@@ -207,8 +218,8 @@ public struct StructuredJSONSchema: Equatable, Sendable {
                 case .alternatives(let values):
                     guard (1...256).contains(values.count), atom("alternatives"), atom(String(values.count)) else { return false }
                     return values.allSatisfy { visit($0, at: level + 1) }
-                case .array(let element, let maximumItems):
-                    return atom("array") && atom(String(maximumItems)) && visit(element, at: level + 1)
+                case .array(let element, let maximumItems, let minimumItems):
+                    return atom("array") && atom(String(maximumItems)) && atom(String(minimumItems)) && visit(element, at: level + 1)
                 case .nullable(let element):
                     return atom("nullable") && visit(element, at: level + 1)
                 }

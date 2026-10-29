@@ -33,6 +33,8 @@ final class NarrativeSummaryWriterTests: XCTestCase {
         XCTAssertTrue(calls[0].prompt.hasPrefix("NARRATIVE_DRAFT"))
         for call in calls.dropFirst() {
             XCTAssertTrue(call.prompt.hasPrefix("NARRATIVE_REVIEW"))
+            XCTAssertEqual(call.schema.fields.map(\.name), ["issues"],
+                "Approval is derived from issues; the model cannot emit a contradictory boolean verdict")
             XCTAssertTrue(call.prompt.contains(units[0].segments[0].text), "Review includes the earlier proposal")
             XCTAssertTrue(call.prompt.contains(units[1].segments[0].text), "Review includes the later correction")
         }
@@ -43,7 +45,7 @@ final class NarrativeSummaryWriterTests: XCTestCase {
         let corrected = NarrativeDraftParagraph(text: "A supplier delay moved the launch to Tuesday.", sourceIDs: [73])
         let boundary = NarrativeWriterBoundary(replies: [
             try draftJSON(stale, corrected),
-            #"{"supported":false,"issues":["Source 73 explicitly replaces Friday with Tuesday."]}"#,
+            #"{"issues":["Source 73 explicitly replaces Friday with Tuesday."]}"#,
             try paragraphJSON(corrected), approved, approved
         ])
         let result = try await writer(boundary).draft(units: revisedLaunchUnits(), notes: "")
@@ -61,7 +63,7 @@ final class NarrativeSummaryWriterTests: XCTestCase {
         let conditional = NarrativeDraftParagraph(text: "Maya may deploy on Friday if security approves; approval remains pending.", sourceIDs: [9])
         let boundary = NarrativeWriterBoundary(replies: [
             try draftJSON(unconditional, conditional),
-            #"{"supported":false,"issues":["The deployment depends on pending security approval in source 9."]}"#,
+            #"{"issues":["The deployment depends on pending security approval in source 9."]}"#,
             try paragraphJSON(conditional), approved, approved
         ])
         let result = try await writer(boundary).draft(units: units, notes: "")
@@ -72,7 +74,7 @@ final class NarrativeSummaryWriterTests: XCTestCase {
 
     func testRejectedRepairFailsVisiblyWithoutASecondRepairOrExtractiveFallback() async throws {
         let unsupported = NarrativeDraftParagraph(text: "The launch is scheduled for Friday.", sourceIDs: [41])
-        let rejected = #"{"supported":false,"issues":["Friday was explicitly superseded by Tuesday in source 73."]}"#
+        let rejected = #"{"issues":["Friday was explicitly superseded by Tuesday in source 73."]}"#
         let boundary = NarrativeWriterBoundary(replies: [
             try draftJSON(unsupported, unsupported), rejected, try paragraphJSON(unsupported), rejected
         ])
@@ -104,17 +106,17 @@ final class NarrativeSummaryWriterTests: XCTestCase {
             #"{"bullets":[{"text":"Launch timing changed.","source_ids":[73],"action":"invented"}],"overview":{"text":"Launch timing changed.","source_ids":[73]}}"#,
             #"{"bullets":[{"text":"Launch timing changed.","source_ids":[73]}],"overview":{"text":"Launch timing changed.","source_ids":[73]},"decisions":[]}"#
         ] {
-            let boundary = NarrativeWriterBoundary(replies: [json])
+            let boundary = NarrativeWriterBoundary(replies: [json, json])
             do {
                 _ = try await writer(boundary).draft(units: revisedLaunchUnits(), notes: "")
                 XCTFail("Malformed prose structure must be rejected")
             } catch { XCTAssertEqual(error as? NarrativeSummaryError, .invalidResponse) }
             let calls = await boundary.calls
-            XCTAssertEqual(calls.count, 1)
+            XCTAssertEqual(calls.count, 2, "Malformed responses get one bounded retry, never silent acceptance")
         }
     }
 
-    func testMalformedOrContradictoryReviewResponsesAreNotTreatedAsApproval() async throws {
+    func testMalformedOrLegacyContradictoryReviewResponsesAreNotTreatedAsApproval() async throws {
         let paragraph = NarrativeDraftParagraph(text: "A supplier delay moved the launch to Tuesday.", sourceIDs: [73])
         for review in [
             #"{"supported":true,"issues":["An unsupported date."]}"#,
@@ -246,7 +248,103 @@ final class NarrativeSummaryWriterTests: XCTestCase {
         } catch { XCTAssertTrue(error is CancellationError) }
     }
 
-    private var approved: String { #"{"supported":true,"issues":[]}"# }
+    func testOutputLimitRetriesBoundedProseWithAllOriginalSourcesAndTheSameTokenCap() async throws {
+        let paragraph = NarrativeDraftParagraph(text: "A supplier delay moved the launch to Tuesday.", sourceIDs: [73])
+        let boundary = NarrativeWriterBoundary(replies: ["", try draftJSON(paragraph, paragraph), approved, approved],
+            outputLimitCalls: [1])
+        let result = try await writer(boundary).draft(units: revisedLaunchUnits(), notes: "Keep qualifications.")
+        XCTAssertEqual(result.bullets, [paragraph])
+        let calls = await boundary.calls
+        XCTAssertEqual(calls.count, 4)
+        XCTAssertTrue(calls[1].prompt.hasPrefix("NARRATIVE_DRAFT\nRESPONSE_RECOVERY:"))
+        XCTAssertEqual(calls[0].maximumOutputTokens, calls[1].maximumOutputTokens)
+        XCTAssertTrue(try calls[1].schema.grammar().contains("json-char{0,"))
+        for unit in revisedLaunchUnits() { XCTAssertTrue(calls[1].prompt.contains(unit.text)) }
+        XCTAssertTrue(calls[1].prompt.contains("Keep qualifications."))
+        XCTAssertTrue(calls.dropFirst(2).allSatisfy { $0.prompt.hasPrefix("NARRATIVE_REVIEW") })
+    }
+
+    func testMalformedCheckingResponsesRetryWithoutTreatingTheFailureAsApproval() async throws {
+        let paragraph = NarrativeDraftParagraph(text: "A supplier delay moved the launch to Tuesday.", sourceIDs: [73])
+        for malformed in [
+            "{\"supported\":",
+            #"{"supported":true,"issues":["The date is unsupported."]}"#,
+            #"{"supported":false,"issues":[]}"#,
+            #"{"supported":"yes","issues":[]}"#,
+            #"{"issues":[" "]}"#,
+            #"{"issues":"none"}"#
+        ] {
+            let boundary = NarrativeWriterBoundary(replies: [try draftJSON(paragraph, paragraph), malformed, approved, approved])
+            let result = try await writer(boundary).draft(units: revisedLaunchUnits(), notes: "")
+            XCTAssertEqual(result.bullets, [paragraph])
+            let calls = await boundary.calls
+            XCTAssertEqual(calls.count, 4)
+            XCTAssertTrue(calls[2].prompt.hasPrefix("NARRATIVE_REVIEW\nRESPONSE_RECOVERY:"))
+            XCTAssertTrue(calls[2].prompt.contains("ALL original source units"))
+            XCTAssertEqual(calls[1].maximumOutputTokens, calls[2].maximumOutputTokens)
+            for unit in revisedLaunchUnits() { XCTAssertTrue(calls[2].prompt.contains(unit.text)) }
+        }
+    }
+
+    func testCheckingRepairAndOverviewOutputLimitsEachRecoverBeforePublishing() async throws {
+        let stale = NarrativeDraftParagraph(text: "The launch is scheduled for Friday.", sourceIDs: [41])
+        let corrected = NarrativeDraftParagraph(text: "A supplier delay moved the launch to Tuesday.", sourceIDs: [73])
+        let rejected = #"{"issues":["Source 73 replaces Friday with Tuesday."]}"#
+        let repair = NarrativeWriterBoundary(replies: ["", rejected, "", try paragraphJSON(corrected), approved],
+            outputLimitCalls: [1, 3])
+        let checked = try await writer(repair).checked(stale, units: revisedLaunchUnits(), notes: "")
+        XCTAssertEqual(checked, corrected)
+        let repairCalls = await repair.calls
+        XCTAssertEqual(repairCalls.count, 5)
+        XCTAssertTrue(repairCalls[1].prompt.hasPrefix("NARRATIVE_REVIEW\nRESPONSE_RECOVERY:"))
+        XCTAssertTrue(repairCalls[3].prompt.hasPrefix("NARRATIVE_REPAIR\nRESPONSE_RECOVERY:"))
+        XCTAssertTrue(repairCalls[4].prompt.hasPrefix("NARRATIVE_REVIEW"), "A recovered correction must still be checked")
+
+        let overview = NarrativeWriterBoundary(replies: ["", try paragraphJSON(corrected), approved], outputLimitCalls: [1])
+        let result = try await writer(overview).overview(bullets: [corrected], units: revisedLaunchUnits(), notes: "")
+        XCTAssertEqual(result, corrected)
+        let overviewCalls = await overview.calls
+        XCTAssertTrue(overviewCalls[1].prompt.hasPrefix("NARRATIVE_OVERVIEW\nRESPONSE_RECOVERY:"))
+    }
+
+    func testRetryCannotApproveAnUnsupportedRepairOrInventedReference() async throws {
+        let stale = NarrativeDraftParagraph(text: "The launch is scheduled for Friday.", sourceIDs: [41])
+        let rejected = #"{"issues":["Friday was replaced in source 73."]}"#
+        let boundary = NarrativeWriterBoundary(replies: ["{}", rejected, try paragraphJSON(stale), rejected])
+        do {
+            _ = try await writer(boundary).checked(stale, units: revisedLaunchUnits(), notes: "")
+            XCTFail("A format retry must not bypass a negative factual verdict")
+        } catch { XCTAssertEqual(error as? NarrativeSummaryError, .unsupportedEvidence) }
+        let calls = await boundary.calls
+        XCTAssertEqual(calls.count, 4)
+
+        let invented = NarrativeDraftParagraph(text: "A launch was agreed.", sourceIDs: [999])
+        let references = NarrativeWriterBoundary(replies: ["", try draftJSON(invented, invented)], outputLimitCalls: [1])
+        do {
+            _ = try await writer(references).draft(units: revisedLaunchUnits(), notes: "")
+            XCTFail("An invented reference is not a recoverable format error")
+        } catch { XCTAssertEqual(error as? NarrativeSummaryError, .unsupportedEvidence) }
+        let referenceCalls = await references.calls
+        XCTAssertEqual(referenceCalls.count, 2)
+    }
+
+    func testRetryPromptMustFitAndLargeInputsAreLimitedByResponseCapacity() async throws {
+        let boundary = NarrativeWriterBoundary(replies: [""], outputLimitCalls: [1])
+        let instance = try writer(boundary, tokenizer: { $0.contains("RESPONSE_RECOVERY:") ? 10_000 : 20 })
+        do {
+            _ = try await instance.draft(units: revisedLaunchUnits(), notes: "")
+            XCTFail("A retry cannot exceed the working context")
+        } catch { XCTAssertEqual(error as? LocalSummaryRuntimeError, .outputLimitExceeded) }
+        let calls = await boundary.calls
+        XCTAssertEqual(calls.count, 1)
+        let units = (0..<20).map { id in NarrativeSourceUnit(id: id, segments: [
+            .init(id: "s\(id)", startSample: Int64(id) * 16_000, endSample: Int64(id + 1) * 16_000, text: "Topic \(id).")
+        ]) }
+        let fits = try await instance.canDraft(units: units, notes: "")
+        XCTAssertFalse(fits, "Tiny input tokens do not imply that every topic will fit in the response")
+    }
+
+    private var approved: String { #"{"issues":[]}"# }
 
     private func writer(_ boundary: NarrativeWriterBoundary,
                         tokenizer: @escaping SummaryTokenCounter = { _ in 20 }) throws -> NarrativeSummaryWriter {
@@ -277,13 +375,18 @@ private actor NarrativeWriterBoundary {
     struct Call: Sendable {
         let prompt: String
         let maximumOutputTokens: Int
+        let schema: StructuredJSONSchema
     }
     private let replies: [String]
+    private let outputLimitCalls: Set<Int>
     private(set) var calls: [Call] = []
-    init(replies: [String]) { self.replies = replies }
+    init(replies: [String], outputLimitCalls: Set<Int> = []) {
+        self.replies = replies; self.outputLimitCalls = outputLimitCalls
+    }
     func generate(_ prompt: String, _ schema: StructuredJSONSchema, _ maximum: Int) throws -> String {
         _ = try schema.grammar()
-        calls.append(.init(prompt: prompt, maximumOutputTokens: maximum))
+        calls.append(.init(prompt: prompt, maximumOutputTokens: maximum, schema: schema))
+        if outputLimitCalls.contains(calls.count) { throw LocalSummaryRuntimeError.outputLimitExceeded }
         guard calls.count <= replies.count else { throw NarrativeSummaryError.invalidResponse }
         return replies[calls.count - 1]
     }

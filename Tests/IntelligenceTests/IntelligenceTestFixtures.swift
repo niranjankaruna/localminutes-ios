@@ -150,7 +150,7 @@ struct IntelligenceFixture {
     }
 
     func summaryReplies() throws -> [String] {
-        [try rawSummary()] + Array(repeating: "{\"supported\":true,\"issues\":[]}", count: 3)
+        [try rawSummary()] + Array(repeating: "{\"issues\":[]}", count: 3)
     }
 
     func rawAnswer() throws -> String {

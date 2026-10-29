@@ -2,6 +2,16 @@ import XCTest
 @testable import LocalMinutesSummary
 
 final class SummaryWorkProgressTests: XCTestCase {
+    func testWritingAndCheckingRetriesDescribeRecoveryWithoutHidingDiscussionCounts() {
+        for phase in [SummaryWorkPhase.writing, .checking, .correcting, .overview] {
+            let progress = SummaryWorkProgress(phase: phase, completedFraction: 0.4, operationFraction: 0.1,
+                item: 1, totalItems: 2, isRetry: true)
+            XCTAssertNotEqual(progress.title, phase.message)
+            XCTAssertEqual(progress.counterText, "Discussion 1 of 2")
+            XCTAssertTrue(progress.explanation.contains("source checks"))
+        }
+    }
+
     func testSingleTranscriptPartDoesNotLookLikeOneDiscoveredTopic() {
         let progress = SummaryWorkProgress(phase: .indexing, completedFraction: 0, operationFraction: 0.25,
             item: 1, totalItems: 1)

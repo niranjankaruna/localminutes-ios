@@ -345,7 +345,7 @@ private actor ResumeServiceRuntime: IntelligenceRuntime {
             object = ["bullets": bullets,
                 "overview": ["text": narrative, "source_ids": ids]]
         } else if prompt.hasPrefix("NARRATIVE_REVIEW") {
-            object = ["supported": true, "issues": []]
+            object = ["issues": []]
         } else if prompt.hasPrefix("NARRATIVE_OVERVIEW") || prompt.hasPrefix("NARRATIVE_REPAIR") {
             object = ["text": narrative, "source_ids": ids]
         } else { throw ResumeServiceFixtureError.invalidPrompt }

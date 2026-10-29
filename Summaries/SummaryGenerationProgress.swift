@@ -57,7 +57,15 @@ public struct SummaryWorkProgress: Equatable, Sendable {
     }
 
     public var title: String {
-        isRetry && phase == .indexing ? "Reading a smaller transcript part" : phase.message
+        guard isRetry else { return phase.message }
+        switch phase {
+        case .indexing: return "Reading a smaller transcript part"
+        case .writing: return "Writing a smaller summary part"
+        case .overview: return "Writing a shorter overview"
+        case .checking: return "Retrying the source check"
+        case .correcting: return "Writing a shorter correction"
+        default: return phase.message
+        }
     }
 
     /// Render separately from the phase so the total cannot be truncated at
@@ -75,8 +83,11 @@ public struct SummaryWorkProgress: Equatable, Sendable {
     }
 
     public var explanation: String {
-        isRetry ? "The model did not complete the last pass. Retrying smaller parts while keeping the full transcript."
-            : phase.explanation
+        guard isRetry else { return phase.explanation }
+        if phase == .indexing {
+            return "The model did not complete the last pass. Retrying smaller parts while keeping the full transcript."
+        }
+        return "The model's response was incomplete or invalid. Retrying with shorter responses or smaller parts while keeping the transcript and source checks."
     }
 }
 

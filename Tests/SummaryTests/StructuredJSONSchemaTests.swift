@@ -3,6 +3,43 @@ import XCTest
 @testable import LocalMinutesSummary
 
 final class StructuredJSONSchemaTests: XCTestCase {
+    func testRequiredArrayItemsCannotBeEmptyAndAreDistinctFromOptionalDomains() throws {
+        let grammar = try StructuredJSONSchema(fields: [
+            .init(name: "required", type: .array(element: .string, maximumItems: 1, minimumItems: 1)),
+            .init(name: "optional", type: .array(element: .string, maximumItems: 1)),
+            .init(name: "several", type: .array(element: .boolean, maximumItems: 4, minimumItems: 3))
+        ]).grammar()
+        XCTAssertTrue(grammar.contains("field-0 ::= \"[\" ws (field-0-item) \"]\" ws"))
+        XCTAssertTrue(grammar.contains("field-1 ::= \"[\" ws (field-1-item)? \"]\" ws"))
+        XCTAssertTrue(grammar.contains("field-2-tail-3 ::= (\",\" ws field-2-item field-2-tail-2)\n"))
+        XCTAssertTrue(grammar.contains("field-2-tail-2 ::= (\",\" ws field-2-item field-2-tail-1)\n"))
+        XCTAssertTrue(grammar.contains("field-2-tail-1 ::= (\",\" ws field-2-item)?\n"))
+        for minimum in [-1, 5] {
+            XCTAssertThrowsError(try StructuredJSONSchema(fields: [
+                .init(name: "items", type: .array(element: .string, maximumItems: 4, minimumItems: minimum))
+            ]).grammar()) { XCTAssertEqual($0 as? StructuredJSONSchemaError, .invalidBounds) }
+        }
+    }
+
+    func testBoundedStringsLimitCharactersWithoutChangingJSONEscapesOrCitationDomains() throws {
+        let grammar = try StructuredJSONSchema(fields: [
+            .init(name: "text", type: .boundedString(maximumCharacters: 240)),
+            .init(name: "issue", type: .boundedString(maximumCharacters: 64)),
+            .init(name: "duplicate", type: .boundedString(maximumCharacters: 240)),
+            .init(name: "source_ids", type: .array(element: .integerEnumeration([41, 73]), maximumItems: 2))
+        ], compactWhitespace: true).grammar()
+        XCTAssertTrue(grammar.contains("json-char{0,240}"))
+        XCTAssertTrue(grammar.contains("json-char{0,64}"))
+        XCTAssertTrue(grammar.contains("field-2 ::= field-0"))
+        XCTAssertTrue(grammar.contains("json-escape"), "Unicode and escaped newlines must remain valid JSON")
+        XCTAssertTrue(grammar.contains("\"41\" | \"73\""))
+        for limit in [Int.min, 0, 8_193, Int.max] {
+            XCTAssertThrowsError(try StructuredJSONSchema(fields: [
+                .init(name: "text", type: .boundedString(maximumCharacters: limit))
+            ]).grammar()) { XCTAssertEqual($0 as? StructuredJSONSchemaError, .invalidBounds) }
+        }
+    }
+
     func testUnknownMetadataCompilesAsNullOnlyInsteadOfAnUnconstrainedString() throws {
         let grammar = try StructuredJSONSchema(fields: [
             .init(name: "owner", type: .null), .init(name: "due", type: .null)
