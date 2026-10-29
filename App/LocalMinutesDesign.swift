@@ -126,7 +126,7 @@ struct MinutesMessage: View {
 
     var body: some View {
         Label {
-            Text(text).fixedSize(horizontal: false, vertical: true)
+            Text(text).fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
         } icon: {
             Image(systemName: symbol).foregroundStyle(isError ? MinutesStyle.recording : MinutesStyle.accent)
         }

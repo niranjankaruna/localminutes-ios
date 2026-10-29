@@ -49,6 +49,14 @@ final class IntelligenceProgressTracker {
         return stage == .waiting ? "Waiting for iOS to start generation…" : progress.detail
     }
 
+    var explanation: String? {
+        guard stage != .saving else { return "Saving the completed result on this iPhone." }
+        return currentWork?.explanation
+    }
+
+    var phaseTitle: String { stage == .saving ? detail : currentWork?.title ?? detail }
+    var counterText: String? { stage == .saving ? nil : currentWork?.counterText }
+
     @discardableResult
     func report(_ value: IntelligenceProgress, at now: ContinuousClock.Instant = .now) -> Bool {
         guard finishedAt == nil, progress.report(value) else { return false }

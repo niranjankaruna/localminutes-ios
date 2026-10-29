@@ -1,6 +1,7 @@
 import Foundation
 #if SWIFT_PACKAGE
 import LocalMinutesModels
+import LocalMinutesPersistence
 import LocalMinutesSummary
 import LocalMinutesQuestionAnswering
 #endif
@@ -23,6 +24,13 @@ public enum IntelligenceFailureMessage {
             return "A transcript section or the meeting notes exceeds this model's input limit. Shorten the notes or try another summary model."
         case LocalSummaryRuntimeError.outputLimitExceeded:
             return "The model could not finish its response within the output limit. Try again or equip another summary model."
+        case SummaryCheckpointError.invalidInput:
+            return "The app could not save summary progress because its checkpoint format was rejected. Your transcript is unchanged. Update the app and retry."
+        case SummaryCheckpointError.corruptCheckpoint, SummaryCheckpointError.conflictingMap,
+             SummaryCheckpointError.nonContiguousMap:
+            return "Saved summary progress could not be read safely. Choose Start from beginning to create fresh progress. Your transcript and saved summaries are unchanged."
+        case SummaryCheckpointError.limitExceeded:
+            return "The saved summary progress exceeded its storage limit. Your transcript and saved summaries are unchanged."
         case is StructuredJSONSchemaError:
             return "The model could not use the requested response format. Try another summary model and check for an app update."
         case GroundedSummaryError.invalidSource:
@@ -36,6 +44,24 @@ public enum IntelligenceFailureMessage {
             return "This meeting exceeded the summary processing limit. Try a model with more capacity. Your transcript and saved progress are unchanged."
         default:
             return "Generation could not be completed or saved. Try again. If it continues, reopen LocalMinutes and check the selected summary model."
+        }
+    }
+
+    /// A stable, copyable diagnostic reference with no transcript or file paths.
+    public static func code(for error: Error) -> String {
+        switch error {
+        case SummaryCheckpointError.invalidInput: return "LM-CHECKPOINT-FORMAT"
+        case SummaryCheckpointError.corruptCheckpoint: return "LM-CHECKPOINT-CORRUPT"
+        case SummaryCheckpointError.conflictingMap, SummaryCheckpointError.nonContiguousMap: return "LM-CHECKPOINT-SEQUENCE"
+        case SummaryCheckpointError.limitExceeded: return "LM-CHECKPOINT-LIMIT"
+        case is StructuredJSONSchemaError: return "LM-RESPONSE-FORMAT"
+        case LocalSummaryRuntimeError.contextUnavailable: return "LM-MODEL-MEMORY"
+        case LocalSummaryRuntimeError.contextExceeded, NarrativeSummaryError.contextExceeded: return "LM-INPUT-LIMIT"
+        case LocalSummaryRuntimeError.outputLimitExceeded: return "LM-OUTPUT-LIMIT"
+        case NarrativeSummaryError.invalidResponse: return "LM-INVALID-RESPONSE"
+        case NarrativeSummaryError.unsupportedEvidence: return "LM-SOURCE-CHECK"
+        case LocalSummaryRuntimeError.generationFailed: return "LM-GENERATION"
+        default: return "LM-SUMMARY-FAILED"
         }
     }
 }

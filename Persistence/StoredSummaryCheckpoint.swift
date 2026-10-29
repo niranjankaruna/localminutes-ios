@@ -240,7 +240,13 @@ public actor SummaryCheckpointStore {
         guard let meeting = object["meeting_id"] as? String, UUID(uuidString: meeting) == identity.meetingID else {
             throw SummaryCheckpointError.invalidInput
         }
-        if identity.promptVersion == "narrative-v1" {
+        // Prompt revisions change wording, not the stored index format. The
+        // payload declares its own schema; exact prompt identity is still
+        // checked by save/load before any checkpoint can be reused.
+        let narrativePrefix = "narrative-v"
+        let narrativeRevision = identity.promptVersion.hasPrefix(narrativePrefix)
+            ? Int(identity.promptVersion.dropFirst(narrativePrefix.count)) : nil
+        if let narrativeRevision, narrativeRevision > 0 {
             // The pipeline validates topic contents and references on resume.
             guard object["schema_version"] as? Int == 2, object["topics"] is [Any] else {
                 throw SummaryCheckpointError.invalidInput

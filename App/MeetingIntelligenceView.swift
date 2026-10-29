@@ -392,7 +392,8 @@ final class MeetingIntelligenceController {
                 self.message = nil
                 self.errorMessage = IntelligenceFailureMessage.message(for: error)
                 if case .summary = kind {
-                    self.errorMessage = (self.errorMessage ?? "Summary failed.") + "\n\nLast step: " + progress.detail
+                    self.errorMessage = (self.errorMessage ?? "Summary failed.") + "\n\nStopped while: " + progress.detail
+                        + "\nError code: " + IntelligenceFailureMessage.code(for: error)
                 }
             }
             self.finish(owned)
@@ -543,7 +544,9 @@ struct MeetingIntelligenceView: View {
                     TimelineView(.periodic(from: .now, by: 1)) { _ in
                         IntelligenceProgressView(title: progress.runningTitle,
                             detail: controller.isCancelling ? "Cancelling and releasing the local model…"
-                                : controller.cleanupPending ? "Finishing the current operation…" : progress.detail,
+                                : controller.cleanupPending ? "Finishing the current operation…" : progress.phaseTitle,
+                            counterText: controller.isCancelling || controller.cleanupPending ? nil : progress.counterText,
+                            explanation: controller.isCancelling || controller.cleanupPending ? nil : progress.explanation,
                             display: progress.display(), cancel: controller.cancel)
                     }.accessibilityIdentifier("meeting.intelligence.running")
                 } else {

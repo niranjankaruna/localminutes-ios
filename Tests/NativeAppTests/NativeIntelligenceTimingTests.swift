@@ -23,7 +23,7 @@ final class NativeIntelligenceTimingTests: XCTestCase {
         tracker.report(.generationStarted, at: start.advanced(by: .seconds(31)))
         tracker.report(.generating(.promptTokens(completed: 200, total: 400)), at: start.advanced(by: .seconds(32)))
         XCTAssertGreaterThan(tracker.progress.completedUnitCount, checking)
-        XCTAssertEqual(tracker.detail, "Checking facts and sources…")
+        XCTAssertEqual(tracker.detail, "Checking facts and sources")
         tracker.report(.summaryWork(.init(phase: .checking, completedFraction: 1, operationFraction: 0)),
             at: start.advanced(by: .seconds(60)))
         XCTAssertEqual(tracker.display(at: start).percentage, 98)
@@ -67,7 +67,7 @@ final class NativeIntelligenceTimingTests: XCTestCase {
         tracker.report(.generating(.responseTokens(completed: 1, limit: 1_024)), at: start.advanced(by: .seconds(1)))
         tracker.report(.generating(.responseTokens(completed: 4, limit: 1_024)), at: start.advanced(by: .seconds(12)))
         XCTAssertNil(tracker.display(at: start.advanced(by: .seconds(12))).remainingSeconds)
-        XCTAssertEqual(tracker.detail, "Finding meeting topics — section 1 of 20…")
+        XCTAssertEqual(tracker.detail, "Reading transcript · part 1 of 20")
 
         let calibrated = IntelligenceProgressTracker(operation: .summary, startedAt: start)
         for index in 0...3 {

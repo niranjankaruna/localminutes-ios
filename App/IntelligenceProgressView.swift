@@ -5,6 +5,8 @@ import SwiftUI
 struct IntelligenceProgressView: View {
     let title: String
     let detail: String
+    var counterText: String? = nil
+    var explanation: String? = nil
     let display: IntelligenceProgressDisplay
     let cancel: () -> Void
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -23,8 +25,26 @@ struct IntelligenceProgressView: View {
                 .accessibilityLabel("Generation progress")
                 .accessibilityValue("\(display.percentage) percent")
                 .accessibilityIdentifier("meeting.intelligence.progress")
-            Text(detail).font(.subheadline).foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 8) {
+                Text(detail).font(.subheadline.weight(.semibold))
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("meeting.intelligence.phase")
+                if let counterText {
+                    Text(counterText).font(.subheadline).monospacedDigit()
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .accessibilityIdentifier("meeting.intelligence.counter")
+                }
+                if let explanation {
+                    Text(explanation).font(.footnote).foregroundStyle(.secondary)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("meeting.intelligence.explanation")
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
             timingLayout {
                 metric("Elapsed", value: display.elapsedText, identifier: "meeting.intelligence.elapsed")
                 metric("Estimated remaining", value: display.remainingText, identifier: "meeting.intelligence.remaining")
@@ -52,6 +72,7 @@ struct IntelligenceProgressView: View {
         VStack(alignment: .leading, spacing: 5) {
             Text(label).font(.caption).foregroundStyle(.secondary)
             Text(value).font(.subheadline.weight(.medium)).monospacedDigit()
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)

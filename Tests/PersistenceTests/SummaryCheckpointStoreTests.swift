@@ -7,27 +7,33 @@ import XCTest
 @MainActor
 final class SummaryCheckpointStoreTests: XCTestCase {
     func testNarrativeIndexesRoundTripOnlyUnderNarrativePromptIdentity() async throws {
-        try await withSummaryCheckpointFixture { fixture in
-            let identity = fixture.identity(promptVersion: "narrative-v1")
-            let json = try JSONSerialization.data(withJSONObject: ["schema_version": 2,
-                "meeting_id": identity.meetingID.uuidString,
-                "topics": [["label": "Release preparation", "source_ids": [0, 1]]]])
-            let map = SummaryMapCheckpoint(index: 0, chunkSHA256: String(repeating: "3", count: 64), mapJSON: json)
-            try await fixture.checkpoints.save(map, matching: identity)
-            let reopened = try SummaryCheckpointStore(directoryURL: fixture.directory)
-            let restored = try await reopened.load(matching: identity)
-            XCTAssertEqual(restored?.maps, [map])
-            await expectSummaryCheckpointError(.identityMismatch) {
-                _ = try await reopened.load(matching: fixture.identity())
+        for version in ["narrative-v1", "narrative-v2", "narrative-v3"] {
+            try await withSummaryCheckpointFixture { fixture in
+                let identity = fixture.identity(promptVersion: version)
+                let json = try JSONSerialization.data(withJSONObject: ["schema_version": 2,
+                    "meeting_id": identity.meetingID.uuidString,
+                    "topics": [["label": "Release preparation", "source_ids": [0, 1]]]])
+                let map = SummaryMapCheckpoint(index: 0, chunkSHA256: String(repeating: "3", count: 64), mapJSON: json)
+                try await fixture.checkpoints.save(map, matching: identity)
+                let reopened = try SummaryCheckpointStore(directoryURL: fixture.directory)
+                let restored = try await reopened.load(matching: identity)
+                XCTAssertEqual(restored?.maps, [map])
+                await expectSummaryCheckpointError(.identityMismatch) {
+                    _ = try await reopened.load(matching: fixture.identity(
+                        promptVersion: version == "narrative-v1" ? "narrative-v2" : "narrative-v1"))
+                }
+                await expectSummaryCheckpointError(.identityMismatch) {
+                    _ = try await reopened.load(matching: fixture.identity())
+                }
+                try await reopened.remove(jobID: identity.jobID, meetingID: identity.meetingID)
+                await expectSummaryCheckpointError(.invalidInput) {
+                    try await reopened.save(map, matching: fixture.identity())
+                }
+                await expectSummaryCheckpointError(.invalidInput) {
+                    try await reopened.save(fixture.map(0), matching: identity)
+                }
+                try await fixture.assertOriginalsUnchanged()
             }
-            try await reopened.remove(jobID: identity.jobID, meetingID: identity.meetingID)
-            await expectSummaryCheckpointError(.invalidInput) {
-                try await reopened.save(map, matching: fixture.identity())
-            }
-            await expectSummaryCheckpointError(.invalidInput) {
-                try await reopened.save(fixture.map(0), matching: identity)
-            }
-            try await fixture.assertOriginalsUnchanged()
         }
     }
 

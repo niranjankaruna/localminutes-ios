@@ -10,16 +10,29 @@ public enum SummaryGenerationProgress: Equatable, Sendable {
 public typealias SummaryGenerationProgressReporter = @Sendable (SummaryGenerationProgress) -> Void
 
 public enum SummaryWorkPhase: String, Equatable, Sendable {
-    case indexing, organizing, writing, checking, correcting, overview
+    case indexing, organizing, writing, checking, correcting, overview, checkpointing
 
     public var message: String {
         switch self {
-        case .indexing: "Finding meeting topics…"
-        case .organizing: "Organizing related topics…"
-        case .writing: "Writing the summary…"
-        case .checking: "Checking facts and sources…"
-        case .correcting: "Correcting the summary…"
-        case .overview: "Writing the overview…"
+        case .indexing: "Reading transcript"
+        case .organizing: "Organizing the discussion"
+        case .writing: "Writing the summary"
+        case .checking: "Checking facts and sources"
+        case .correcting: "Correcting the summary"
+        case .overview: "Writing the overview"
+        case .checkpointing: "Saving reading progress"
+        }
+    }
+
+    public var explanation: String {
+        switch self {
+        case .indexing: "Reading the transcript before drafting your summary. Parts refer to transcript sections, not a count of topics."
+        case .organizing: "Connecting related discussion across the transcript."
+        case .writing: "Turning the discussion into bullet points for your overview and meeting minutes."
+        case .checking: "Comparing the drafted points with the transcript before saving."
+        case .correcting: "Revising a point that did not match its source."
+        case .overview: "Writing a brief overview of what the meeting was about."
+        case .checkpointing: "Keeping completed reading on this iPhone so it can be resumed."
         }
     }
 }
@@ -32,19 +45,38 @@ public struct SummaryWorkProgress: Equatable, Sendable {
     public let operationFraction: Double
     public let item: Int?
     public let totalItems: Int?
+    public let isRetry: Bool
 
     public init(phase: SummaryWorkPhase, completedFraction: Double, operationFraction: Double,
-                item: Int? = nil, totalItems: Int? = nil) {
+                item: Int? = nil, totalItems: Int? = nil, isRetry: Bool = false) {
         self.phase = phase
         self.completedFraction = completedFraction
         self.operationFraction = operationFraction
         self.item = item; self.totalItems = totalItems
+        self.isRetry = isRetry
+    }
+
+    public var title: String {
+        isRetry && phase == .indexing ? "Reading a smaller transcript part" : phase.message
+    }
+
+    /// Render separately from the phase so the total cannot be truncated at
+    /// the end of a long status sentence. Include even a single known part.
+    public var counterText: String? {
+        guard let item, let totalItems, totalItems > 0, item > 0, item <= totalItems else { return nil }
+        let unit = phase == .indexing || phase == .checkpointing ? "Part" : "Discussion"
+        return "\(unit) \(item) of \(totalItems)"
     }
 
     public var message: String {
-        guard let item, let totalItems, item > 0, item <= totalItems else { return phase.message }
-        let unit = phase == .indexing ? "section" : "topic"
-        return phase.message.replacingOccurrences(of: "…", with: "") + " — \(unit) \(item) of \(totalItems)…"
+        guard let item, let totalItems, totalItems > 1, item > 0, item <= totalItems else { return title }
+        let unit = phase == .indexing || phase == .checkpointing ? "part" : "discussion"
+        return title + " · \(unit) \(item) of \(totalItems)"
+    }
+
+    public var explanation: String {
+        isRetry ? "The model did not complete the last pass. Retrying smaller parts while keeping the full transcript."
+            : phase.explanation
     }
 }
 
@@ -54,21 +86,28 @@ struct SummaryWorkScope: Sendable {
     var span: Double = 1
     var item: Int? = nil
     var totalItems: Int? = nil
+    var isRetry = false
 
     func child(_ lower: Double, _ upper: Double) -> Self {
         .init(report: report, start: start + lower * span, span: (upper - lower) * span,
-            item: item, totalItems: totalItems)
+            item: item, totalItems: totalItems, isRetry: isRetry)
     }
 
     func counted(item: Int, total: Int) -> Self {
-        .init(report: report, start: start, span: span, item: item, totalItems: total)
+        .init(report: report, start: start, span: span, item: item, totalItems: total, isRetry: isRetry)
+    }
+
+    func retrying() -> Self {
+        .init(report: report, start: start, span: span, item: item, totalItems: totalItems, isRetry: true)
     }
 
     func begin(_ phase: SummaryWorkPhase) {
-        report?(.init(phase: phase, completedFraction: start, operationFraction: span, item: item, totalItems: totalItems))
+        report?(.init(phase: phase, completedFraction: start, operationFraction: span,
+            item: item, totalItems: totalItems, isRetry: isRetry))
     }
 
     func complete(_ phase: SummaryWorkPhase) {
-        report?(.init(phase: phase, completedFraction: start + span, operationFraction: 0, item: item, totalItems: totalItems))
+        report?(.init(phase: phase, completedFraction: start + span, operationFraction: 0,
+            item: item, totalItems: totalItems, isRetry: isRetry))
     }
 }

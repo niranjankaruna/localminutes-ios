@@ -137,6 +137,8 @@ public actor AdaptiveSummaryPipeline {
                         budget: budget, generator: bounded, progress: sectionWork)
                 }
                 if index >= recovered.count, let resume, let identity {
+                    let completed = direct ? 0 : 0.25 * Double(index + 1) / Double(batches.count)
+                    work.child(completed, completed).counted(item: index + 1, total: batches.count).begin(.checkpointing)
                     let bytes = try Self.encoded(IndexEnvelope(schemaVersion: 2, meetingID: selectedMeetingID, topics: current))
                     try await resume.checkpoints.save(.init(index: index, chunkSHA256: Self.digest(Data(batch.prompt.utf8)),
                         mapJSON: bytes), matching: identity)
@@ -323,9 +325,9 @@ public actor AdaptiveSummaryPipeline {
                 let left = Array(units[..<middle])
                 let right = Array(units[middle...])
                 let first = try await indexTopics(left, prompt: Self.indexPrompt(primary: left, context: [], notes: notes),
-                    notes: notes, budget: budget, generator: generator, progress: progress.child(0.5, 0.75), depth: depth + 1)
+                    notes: notes, budget: budget, generator: generator, progress: progress.child(0.5, 0.75).retrying(), depth: depth + 1)
                 let second = try await indexTopics(right, prompt: Self.indexPrompt(primary: right, context: [], notes: notes),
-                    notes: notes, budget: budget, generator: generator, progress: progress.child(0.75, 1), depth: depth + 1)
+                    notes: notes, budget: budget, generator: generator, progress: progress.child(0.75, 1).retrying(), depth: depth + 1)
                 return Self.mergeLabels(first + second)
             }
             progress.complete(.indexing)

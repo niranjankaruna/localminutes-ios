@@ -8,6 +8,24 @@ import XCTest
 /// These tests establish ownership, not physical locked-device execution time.
 @MainActor
 final class NativeIntelligenceBackgroundTests: XCTestCase {
+    func testImmediateCheckpointFailureDrainsTheLastPhaseBeforeFreezingProgress() async throws {
+        let provider = BackgroundTestProvider()
+        let runner = IntelligenceBackgroundExecution(provider: provider)
+        let tracker = IntelligenceProgressTracker(operation: .summary)
+        do {
+            let _: Int = try await runner.run(request(), progress: tracker) { report in
+                report(.summaryWork(.init(phase: .indexing, completedFraction: 0, operationFraction: 0.25)))
+                report(.summaryWork(.init(phase: .checkpointing, completedFraction: 0.25, operationFraction: 0)))
+                throw SummaryCheckpointError.invalidInput
+            }
+            XCTFail("Checkpoint rejection must fail the operation")
+        } catch { XCTAssertEqual(error as? SummaryCheckpointError, .invalidInput) }
+        XCTAssertEqual(tracker.detail, "Saving reading progress")
+        XCTAssertEqual(tracker.succeeded, false)
+        XCTAssertEqual(provider.activities.first?.reports.last,
+            .summaryWork(.init(phase: .checkpointing, completedFraction: 0.25, operationFraction: 0)))
+    }
+
     func testAllowanceStaysOwnedThroughWorkAndProgressUntilCompletion() async throws {
         let provider = BackgroundTestProvider()
         let runner = IntelligenceBackgroundExecution(provider: provider)

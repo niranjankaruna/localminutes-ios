@@ -1,10 +1,20 @@
 import Foundation
 import XCTest
 import LocalMinutesSummary
+import LocalMinutesPersistence
 import LocalMinutesQuestionAnswering
 @testable import LocalMinutesIntelligence
 
 final class IntelligenceFailureMessageTests: XCTestCase {
+    func testCheckpointFormatFailureIdentifiesTheAppStorageBoundaryInsteadOfBlamingTheModel() {
+        let error = SummaryCheckpointError.invalidInput
+        let message = IntelligenceFailureMessage.message(for: error)
+        XCTAssertTrue(message.contains("checkpoint format"))
+        XCTAssertFalse(message.contains("another summary model"))
+        XCTAssertEqual(IntelligenceFailureMessage.code(for: error), "LM-CHECKPOINT-FORMAT")
+        XCTAssertEqual(IntelligenceFailureMessage.code(for: SummaryCheckpointError.corruptCheckpoint), "LM-CHECKPOINT-CORRUPT")
+    }
+
     func testFailuresDistinguishModelLoadingInputBudgetAndUnsupportedOutput() {
         let errors: [any Error] = [IntelligenceSessionError.transcriptMissing,
             LocalSummaryRuntimeError.invalidModel, LocalSummaryRuntimeError.contextUnavailable,

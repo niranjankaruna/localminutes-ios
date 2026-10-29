@@ -7,6 +7,42 @@ import LocalMinutesPersistence
 /// tests do not measure the selected models' narrative or reasoning quality.
 @MainActor
 final class AdaptiveSummaryPipelineTests: XCTestCase {
+    func testCurrentPromptCompletesAndResumesWithTheRealCheckpointStore() async throws {
+        // Exercise the actual persisted boundary for both direct and indexed
+        // jobs. A mock store cannot catch a prompt/schema version mismatch.
+        for count in [2, 24] {
+            let parent = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().standardizedFileURL
+            let root = parent.appendingPathComponent("narrative-checkpoint-regression-\(UUID().uuidString)")
+            try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+            defer {
+                if root.deletingLastPathComponent() == parent,
+                   root.lastPathComponent.hasPrefix("narrative-checkpoint-regression-"),
+                   root.resolvingSymlinksInPath().standardizedFileURL == root {
+                    try? FileManager.default.removeItem(at: root)
+                } else { XCTFail("Refuse to remove a checkpoint fixture outside its owned directory") }
+            }
+            let directory = root.appendingPathComponent("Progress")
+            let store = try SummaryCheckpointStore(directoryURL: directory)
+            let source = adaptiveSource(count: count)
+            let boundary = AdaptiveBoundary()
+            let result = try await adaptivePipeline(boundary: boundary, unitTokens: 250, store: store)
+                .summarize(selectedMeetingID: source.meetingID, source: source)
+            XCTAssertEqual(result.provenance.promptVersion, AdaptiveSummaryPipeline.currentPromptVersion)
+            XCTAssertFalse(result.bullets.isEmpty)
+            let reopened = try SummaryCheckpointStore(directoryURL: directory)
+            let job = UUID(uuidString: "90000000-0000-0000-0000-000000000001")!
+            let saved = try await reopened.savedMapCount(jobID: job, meetingID: source.meetingID)
+            XCTAssertGreaterThan(saved, 0)
+            let resumed = AdaptiveBoundary()
+            let second = try await adaptivePipeline(boundary: resumed, unitTokens: 250, store: reopened)
+                .summarize(selectedMeetingID: source.meetingID, source: source)
+            XCTAssertEqual(second, result)
+            let calls = await resumed.calls
+            XCTAssertFalse(calls.contains { $0.marker == "NARRATIVE_INDEX" })
+            XCTAssertTrue(calls.contains { $0.marker == "NARRATIVE_DRAFT" })
+        }
+    }
+
     func testMalformedAndOverBudgetIndexesRecoverWithoutDroppingSourceOrCheckpointCoverage() async throws {
         for failure in ["limit", "malformed"] {
             let source = adaptiveSource(count: 24)
@@ -306,7 +342,7 @@ private func adaptiveSource(count: Int, compact: Bool = false) -> GroundedSummar
 }
 
 private func adaptivePipeline(boundary: AdaptiveBoundary, unitTokens: Int = 100,
-                              store: AdaptiveCheckpointBoundary? = nil,
+                              store: (any SummaryCheckpointing)? = nil,
                               revision: String = String(repeating: "a", count: 40),
                               outputTokens: Int = 1_024,
                               workProgress: (@Sendable (SummaryWorkProgress) -> Void)? = nil) -> AdaptiveSummaryPipeline {

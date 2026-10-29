@@ -46,28 +46,37 @@ final class IntelligenceBackgroundExecution {
             use.expired = true
             use.cancelWork?()
         }
+        // Keep phase changes and native counters in their emitted order. Drain
+        // them before freezing the tracker so an immediate failure cannot keep
+        // an older phase as its misleading "last step".
+        let updates = AsyncStream<IntelligenceProgress>.makeStream()
+        let progressDelivery = Task { @MainActor in
+            for await progress in updates.stream {
+                guard self.current === use, !use.expired else { continue }
+                if tracker.report(progress) { activity.report(progress) }
+            }
+        }
         let work = Task { @MainActor in
             try await activity.waitUntilReady()
             try Task.checkCancellation()
             guard !use.expired else { throw IntelligenceBackgroundError.expired }
-            return try await operation { [weak self, weak use] progress in
-                Task { @MainActor in
-                    guard let self, let use, self.current === use, !use.expired else { return }
-                    if tracker.report(progress) { activity.report(progress) }
-                }
-            }
+            return try await operation { progress in _ = updates.continuation.yield(progress) }
         }
         use.cancelWork = { work.cancel(); activity.cancelPendingStart() }
         if use.expired { use.cancelWork?() }
         return try await withTaskCancellationHandler {
             do {
                 let result = try await work.value
+                updates.continuation.finish()
+                await progressDelivery.value
                 // The operation includes native drain, unload, and persistence.
                 tracker.finish(success: true)
                 activity.finish(success: true)
                 use.cancelWork = nil; current = nil
                 return result
             } catch {
+                updates.continuation.finish()
+                await progressDelivery.value
                 tracker.finish(success: false)
                 activity.finish(success: false)
                 use.cancelWork = nil; current = nil
