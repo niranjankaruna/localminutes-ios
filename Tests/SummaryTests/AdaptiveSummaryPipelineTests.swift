@@ -7,6 +7,30 @@ import LocalMinutesPersistence
 /// tests do not measure the selected models' narrative or reasoning quality.
 @MainActor
 final class AdaptiveSummaryPipelineTests: XCTestCase {
+    func testProgressCoversDirectAndIndexedWritingAndEverySourceReview() async throws {
+        for count in [2, 12] {
+            let source = adaptiveSource(count: count)
+            let events = SummaryWorkRecorder()
+            let pipeline = adaptivePipeline(boundary: AdaptiveBoundary(), unitTokens: count == 2 ? 100 : 400,
+                workProgress: { events.append($0) })
+            _ = try await pipeline.summarize(selectedMeetingID: source.meetingID, source: source)
+            let reports = events.values
+            XCTAssertEqual(reports.first?.completedFraction, 0)
+            XCTAssertEqual(try XCTUnwrap(reports.last).completedFraction, 1, accuracy: 0.000001)
+            XCTAssertTrue(reports.contains { $0.phase == .writing && $0.operationFraction > 0 })
+            XCTAssertGreaterThan(reports.filter { $0.phase == .checking && $0.operationFraction > 0 }.count, 1)
+            XCTAssertEqual(reports.contains { $0.phase == .indexing }, count > 2)
+            for (previous, next) in zip(reports, reports.dropFirst()) {
+                XCTAssertGreaterThanOrEqual(next.completedFraction + 0.000001, previous.completedFraction)
+                XCTAssertLessThanOrEqual(next.completedFraction + next.operationFraction, 1.000001)
+            }
+            if count == 2 {
+                let firstDraft = try XCTUnwrap(reports.first { $0.phase == .writing && $0.operationFraction > 0 })
+                XCTAssertEqual(firstDraft.completedFraction, 0, "An instant direct index must not consume generation progress")
+            }
+        }
+    }
+
     func testFittingTopicsKeepTheirOwnSourcesAndAddNeighborsOnlyWhenBudgetAllows() async throws {
         let source = adaptiveSource(count: 3)
         let boundary = NeighborTopicBoundary()
@@ -96,12 +120,17 @@ final class AdaptiveSummaryPipelineTests: XCTestCase {
     func testLateTopicRepairRechecksEarlierOriginalSources() async throws {
         let source = adaptiveSource(count: 12)
         let boundary = AdaptiveBoundary(repairLateReview: true)
-        let pipeline = adaptivePipeline(boundary: boundary, unitTokens: 400)
+        let events = SummaryWorkRecorder()
+        let pipeline = adaptivePipeline(boundary: boundary, unitTokens: 400, workProgress: { events.append($0) })
         _ = try await pipeline.summarize(selectedMeetingID: source.meetingID, source: source)
         let calls = await boundary.calls
         let repair = try XCTUnwrap(calls.firstIndex { $0.marker == "NARRATIVE_REPAIR" })
         XCTAssertTrue(calls.dropFirst(repair + 1).contains { $0.marker == "NARRATIVE_REVIEW" && $0.ids.contains(1) },
                       "A late repair must be rechecked against an earlier non-anchor source")
+        XCTAssertTrue(events.values.contains { $0.phase == .correcting })
+        for (previous, next) in zip(events.values, events.values.dropFirst()) {
+            XCTAssertGreaterThanOrEqual(next.completedFraction + 0.000001, previous.completedFraction)
+        }
     }
 
     func testCancellationLeavesOnlyValidatedIndexAndResumeSkipsIt() async throws {
@@ -229,7 +258,8 @@ private func adaptiveSource(count: Int, compact: Bool = false) -> GroundedSummar
 private func adaptivePipeline(boundary: AdaptiveBoundary, unitTokens: Int = 100,
                               store: AdaptiveCheckpointBoundary? = nil,
                               revision: String = String(repeating: "a", count: 40),
-                              outputTokens: Int = 1_024) -> AdaptiveSummaryPipeline {
+                              outputTokens: Int = 1_024,
+                              workProgress: (@Sendable (SummaryWorkProgress) -> Void)? = nil) -> AdaptiveSummaryPipeline {
     let resume = store.map {
         SummaryPipelineResumeConfiguration(jobID: UUID(uuidString: "90000000-0000-0000-0000-000000000001")!,
             modelID: "test-narrative", modelSHA256: String(repeating: "c", count: 64), runtimeVersion: "test-runtime", checkpoints: $0)
@@ -243,7 +273,15 @@ private func adaptivePipeline(boundary: AdaptiveBoundary, unitTokens: Int = 100,
             if prompt.contains("TOPICS_JSON:") { return 100 + ((try? adaptiveRows(prompt, marker: "TOPICS_JSON"))?.count ?? 0) * 80 }
             if primary > 0 { return 100 + (primary + context) * unitTokens }
             return 20
-        }, generator: { try await boundary.generate($0, schema: $1, maximum: $2) }, resume: resume)
+        }, generator: { try await boundary.generate($0, schema: $1, maximum: $2) }, resume: resume,
+        workProgress: workProgress)
+}
+
+private final class SummaryWorkRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var storage: [SummaryWorkProgress] = []
+    func append(_ value: SummaryWorkProgress) { lock.withLock { storage.append(value) } }
+    var values: [SummaryWorkProgress] { lock.withLock { storage } }
 }
 
 private struct AdaptiveCall: Sendable {

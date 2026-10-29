@@ -5,6 +5,52 @@ import XCTest
 
 @MainActor
 final class NativeIntelligenceTimingTests: XCTestCase {
+    func testDirectSummaryDoesNotJumpToNinetyBeforeWritingAndReviewsAdvanceSeparately() {
+        let start = ContinuousClock.now
+        let tracker = IntelligenceProgressTracker(operation: .summary, startedAt: start)
+        tracker.report(.summaryWork(.init(phase: .writing, completedFraction: 0, operationFraction: 0)), at: start)
+        tracker.report(.summaryChunks(completed: 0, total: 1), at: start)
+        tracker.report(.summaryChunks(completed: 1, total: 1), at: start)
+        tracker.report(.consolidatingSummary(completed: 0, total: 1), at: start)
+        XCTAssertEqual(tracker.display(at: start).percentage, 10)
+        tracker.report(.summaryWork(.init(phase: .writing, completedFraction: 0, operationFraction: 0.45)), at: start)
+        tracker.report(.generationStarted, at: start)
+        tracker.report(.generating(.responseTokens(completed: 1_000, limit: 1_000)), at: start.advanced(by: .seconds(30)))
+        XCTAssertLessThan(tracker.display(at: start).percentage, 50)
+        tracker.report(.summaryWork(.init(phase: .checking, completedFraction: 0.45, operationFraction: 0.2)),
+            at: start.advanced(by: .seconds(31)))
+        let checking = tracker.progress.completedUnitCount
+        tracker.report(.generationStarted, at: start.advanced(by: .seconds(31)))
+        tracker.report(.generating(.promptTokens(completed: 200, total: 400)), at: start.advanced(by: .seconds(32)))
+        XCTAssertGreaterThan(tracker.progress.completedUnitCount, checking)
+        XCTAssertEqual(tracker.detail, "Checking facts and sources…")
+        tracker.report(.summaryWork(.init(phase: .checking, completedFraction: 1, operationFraction: 0)),
+            at: start.advanced(by: .seconds(60)))
+        XCTAssertEqual(tracker.display(at: start).percentage, 98)
+        tracker.report(.saving, at: start.advanced(by: .seconds(61)))
+        XCTAssertEqual(tracker.display(at: start).percentage, 99)
+        tracker.finish(success: true, at: start.advanced(by: .seconds(62)))
+        XCTAssertEqual(tracker.display(at: start).percentage, 100)
+    }
+
+    func testSummaryEstimateUsesWholeCallsAndDoesNotLearnFromRecoveredCheckpoints() throws {
+        let start = ContinuousClock.now
+        let tracker = IntelligenceProgressTracker(operation: .summary, startedAt: start)
+        tracker.report(.summaryWork(.init(phase: .indexing, completedFraction: 0.25, operationFraction: 0)), at: start)
+        XCTAssertNil(tracker.display(at: start).remainingSeconds)
+        tracker.report(.summaryWork(.init(phase: .writing, completedFraction: 0.3, operationFraction: 0.2)), at: start)
+        tracker.report(.generating(.promptTokens(completed: 0, total: 100)), at: start)
+        tracker.report(.generating(.promptTokens(completed: 100, total: 100)), at: start.advanced(by: .seconds(4)))
+        XCTAssertNil(tracker.display(at: start.advanced(by: .seconds(4))).remainingSeconds)
+        tracker.report(.summaryWork(.init(phase: .checking, completedFraction: 0.5, operationFraction: 0.1)),
+            at: start.advanced(by: .seconds(20)))
+        let estimate = try XCTUnwrap(tracker.display(at: start.advanced(by: .seconds(20))).remainingSeconds)
+        XCTAssertLessThanOrEqual(abs(estimate - 50), 1)
+        XCTAssertEqual(tracker.display(at: start.advanced(by: .seconds(25))).remainingSeconds, estimate,
+            "Time alone must not count an estimate down toward zero")
+        XCTAssertNil(tracker.display(at: start.advanced(by: .seconds(40))).remainingSeconds)
+    }
+
     func testPlanningAndFinalPassAdvanceWhileGenerationRemainsBelowCompletion() {
         let start = ContinuousClock.now
         let tracker = IntelligenceProgressTracker(operation: .summary, startedAt: start)
@@ -22,7 +68,7 @@ final class NativeIntelligenceTimingTests: XCTestCase {
         let reading = tracker.progress.completedUnitCount
         tracker.report(.generating(.responseTokens(completed: 12, limit: 256)), at: start.advanced(by: .seconds(93)))
         XCTAssertGreaterThan(tracker.progress.completedUnitCount, reading)
-        XCTAssertTrue(tracker.detail.contains("Combining"))
+        XCTAssertEqual(tracker.detail, IntelligenceProgress.consolidatingSummary(completed: 0, total: 1).message)
         tracker.report(.consolidatingSummary(completed: 1, total: 40), at: start.advanced(by: .seconds(94)))
         XCTAssertLessThan(tracker.display(at: start.advanced(by: .seconds(94))).percentage, 100)
         tracker.report(.saving, at: start.advanced(by: .seconds(95)))

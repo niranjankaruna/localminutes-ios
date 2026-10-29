@@ -25,6 +25,7 @@ public actor AdaptiveSummaryPipeline {
     private let mapProgress: (@Sendable (Int, Int) -> Void)?
     private let consolidationProgress: (@Sendable (Int, Int) -> Void)?
     private let planningProgress: (@Sendable (Int, Int, Int) -> Void)?
+    private let workProgress: (@Sendable (SummaryWorkProgress) -> Void)?
     private var state = NarrativeSummaryPipelineSnapshot(phase: .idle, meetingID: nil, result: nil)
 
     private struct Topic: Codable, Equatable, Sendable {
@@ -64,13 +65,15 @@ public actor AdaptiveSummaryPipeline {
                 resume: SummaryPipelineResumeConfiguration? = nil,
                 mapProgress: (@Sendable (Int, Int) -> Void)? = nil,
                 consolidationProgress: (@Sendable (Int, Int) -> Void)? = nil,
-                planningProgress: (@Sendable (Int, Int, Int) -> Void)? = nil) {
+                planningProgress: (@Sendable (Int, Int, Int) -> Void)? = nil,
+                workProgress: (@Sendable (SummaryWorkProgress) -> Void)? = nil) {
         self.modelRevision = modelRevision; self.promptVersion = promptVersion
         self.contextTokenLimit = contextTokenLimit; self.reservedOutputTokens = reservedOutputTokens
         self.workingContextTokenLimit = workingContextTokenLimit
         self.tokenizer = tokenizer; self.generator = generator; self.resume = resume
         self.mapProgress = mapProgress; self.consolidationProgress = consolidationProgress
         self.planningProgress = planningProgress
+        self.workProgress = workProgress
     }
 
     public func snapshot() -> NarrativeSummaryPipelineSnapshot { state }
@@ -114,6 +117,10 @@ public actor AdaptiveSummaryPipeline {
             }
             let identity = try resumeIdentity(source: source, batches: batches, budget: budget, direct: direct)
             let recovered = try await load(identity: identity, batches: batches, meetingID: selectedMeetingID)
+            let work = SummaryWorkScope(report: workProgress)
+            // Direct summaries do not spend their progress budget on an index
+            // that requires no inference. Most of their work is writing/review.
+            work.child(0, 0).begin(direct ? .writing : .indexing)
             var topics: [Topic] = []
             mapProgress?(0, batches.count)
             for (index, batch) in batches.enumerated() {
@@ -124,6 +131,8 @@ public actor AdaptiveSummaryPipeline {
                 } else if direct {
                     current = [.init(label: "Meeting discussion", sourceIDs: units.map(\.id))]
                 } else {
+                    work.child(0.25 * Double(index) / Double(batches.count),
+                        0.25 * Double(index + 1) / Double(batches.count)).begin(.indexing)
                     let schema = Self.indexSchema(ids: batch.units.map(\.id))
                     let response = try await bounded(batch.prompt, schema, budget.readingTokens)
                     current = try Self.decodeIndex(Data(response.utf8), units: batch.units)
@@ -135,25 +144,35 @@ public actor AdaptiveSummaryPipeline {
                 }
                 topics += current
                 mapProgress?(index + 1, batches.count)
+                if !direct {
+                    work.child(0, 0.25 * Double(index + 1) / Double(batches.count)).complete(.indexing)
+                }
             }
             try Task.checkCancellation()
             let draft: NarrativeSummaryDraft
             if direct {
                 consolidationProgress?(0, 1)
-                draft = try await writer.draft(units: units, notes: source.originalManualNotes)
+                draft = try await writer.draft(units: units, notes: source.originalManualNotes, progress: work)
                 consolidationProgress?(1, 1)
             } else {
+                work.child(0.25, 0.3).begin(.organizing)
                 let merged = try await reconcile(topics, units: units, budget: budget, generator: bounded)
+                work.child(0.25, 0.3).complete(.organizing)
                 var bullets: [NarrativeDraftParagraph] = []
                 consolidationProgress?(0, merged.count + 1)
                 for (index, topic) in merged.enumerated() {
+                    let topicWork = work.child(0.3 + 0.55 * Double(index) / Double(merged.count),
+                        0.3 + 0.55 * Double(index + 1) / Double(merged.count))
                     try Task.checkCancellation()
                     let topicUnits = units.filter { topic.sourceIDs.contains($0.id) }
                     let packets = try await writingPackets(topicUnits, allUnits: units, topic: topic.label,
                         notes: source.originalManualNotes, writer: writer)
                     var topicBullets: [NarrativeDraftParagraph] = []
-                    for packet in packets {
-                        let part = try await writer.draft(units: packet, notes: source.originalManualNotes, topic: topic.label)
+                    for (packetIndex, packet) in packets.enumerated() {
+                        let packetWork = topicWork.child(0.6 * Double(packetIndex) / Double(packets.count),
+                            0.6 * Double(packetIndex + 1) / Double(packets.count))
+                        let part = try await writer.draft(units: packet, notes: source.originalManualNotes,
+                            topic: topic.label, progress: packetWork)
                         topicBullets += part.bullets
                         guard topicBullets.count <= 4_096 else { throw NarrativeSummaryError.limitExceeded }
                     }
@@ -161,19 +180,20 @@ public actor AdaptiveSummaryPipeline {
                     if topicBullets.count == 1 { combined = topicBullets[0] }
                     else {
                         combined = try await meetingOverview(bullets: topicBullets, units: units,
-                            notes: source.originalManualNotes, writer: writer)
+                            notes: source.originalManualNotes, writer: writer, progress: topicWork.child(0.6, 0.75))
                     }
                     // Revisit every original topic span with the compact prose
                     // and its current supporting evidence. This catches updates
                     // that were separated by a writing-packet boundary.
                     bullets.append(try await reviewTopic(combined, topicUnits: topicUnits,
-                        allUnits: units, notes: source.originalManualNotes, writer: writer))
+                        allUnits: units, notes: source.originalManualNotes, writer: writer,
+                        progress: topicWork.child(0.75, 1)))
                     consolidationProgress?(index + 1, merged.count + 1)
                 }
                 // Each topic contributes reviewed prose; no fixed keep-half or
                 // first-N filter may discard a topic from the completed meeting.
                 let overview = try await meetingOverview(bullets: bullets, units: units,
-                    notes: source.originalManualNotes, writer: writer)
+                    notes: source.originalManualNotes, writer: writer, progress: work.child(0.85, 1))
                 draft = .init(bullets: bullets, overview: overview)
                 consolidationProgress?(merged.count + 1, merged.count + 1)
             }
@@ -488,11 +508,11 @@ public actor AdaptiveSummaryPipeline {
 
     private func reviewTopic(_ paragraph: NarrativeDraftParagraph, topicUnits: [NarrativeSourceUnit],
                              allUnits: [NarrativeSourceUnit], notes: String,
-                             writer: NarrativeSummaryWriter) async throws -> NarrativeDraftParagraph {
+                             writer: NarrativeSummaryWriter, progress: SummaryWorkScope) async throws -> NarrativeDraftParagraph {
         var current = paragraph
         // A late repair can invalidate an earlier check. Revisit originals
         // once after repairs; a second unstable sweep fails visibly.
-        for _ in 0..<2 {
+        for sweep in 0..<2 {
             var changed = false
             var offset = 0
             while offset < topicUnits.count {
@@ -518,31 +538,39 @@ public actor AdaptiveSummaryPipeline {
                     chosen = candidate; primaryCount = count; count += 1
                 }
                 guard primaryCount > 0 else { throw NarrativeSummaryError.contextExceeded }
-                let reviewed = try await writer.checked(current, units: chosen, notes: notes)
+                let scope = progress.child((Double(sweep) + Double(offset) / Double(topicUnits.count)) / 2,
+                    (Double(sweep) + Double(offset + primaryCount) / Double(topicUnits.count)) / 2)
+                let reviewed = try await writer.checked(current, units: chosen, notes: notes, progress: scope)
                 if reviewed != current { changed = true }
                 current = reviewed
                 // Repairs can change supporting IDs. Rebuild support from originals
                 // on the next iteration, rather than treating earlier prose as facts.
                 offset += primaryCount
             }
-            if !changed { return current }
+            if !changed {
+                progress.complete(.checking)
+                return current
+            }
         }
         throw NarrativeSummaryError.unsupportedEvidence
     }
 
     private func meetingOverview(bullets: [NarrativeDraftParagraph], units: [NarrativeSourceUnit],
-                                 notes: String, writer: NarrativeSummaryWriter) async throws -> NarrativeDraftParagraph {
+                                 notes: String, writer: NarrativeSummaryWriter,
+                                 progress: SummaryWorkScope) async throws -> NarrativeDraftParagraph {
         guard !bullets.isEmpty else { throw NarrativeSummaryError.invalidResponse }
         var current = bullets
-        for _ in 0..<8 {
+        for pass in 0..<8 {
             try Task.checkCancellation()
             func evidence(_ paragraphs: [NarrativeDraftParagraph]) -> [NarrativeSourceUnit] {
                 let wanted = Set(paragraphs.flatMap(\.sourceIDs))
                 return units.filter { wanted.contains($0.id) }
             }
             let allEvidence = evidence(current)
+            let lower = 1 - pow(0.5, Double(pass))
             if (try await writer.canOverview(bullets: current, units: allEvidence, notes: notes)) {
-                return try await writer.overview(bullets: current, units: allEvidence, notes: notes)
+                return try await writer.overview(bullets: current, units: allEvidence, notes: notes,
+                    progress: progress.child(lower, 1))
             }
             var next: [NarrativeDraftParagraph] = []
             var offset = 0
@@ -555,7 +583,11 @@ public actor AdaptiveSummaryPipeline {
                     selected = packet; count += 1
                 }
                 guard !selected.isEmpty else { throw NarrativeSummaryError.contextExceeded }
-                next.append(try await writer.overview(bullets: selected, units: evidence(selected), notes: notes))
+                let span = (1 - lower) / 2
+                let scope = progress.child(lower + span * Double(offset) / Double(current.count),
+                    lower + span * Double(offset + selected.count) / Double(current.count))
+                next.append(try await writer.overview(bullets: selected, units: evidence(selected), notes: notes,
+                    progress: scope))
                 offset += selected.count
             }
             guard next.count < current.count else { throw NarrativeSummaryError.contextExceeded }

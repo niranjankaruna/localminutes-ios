@@ -10,6 +10,76 @@ import XCTest
 @MainActor
 final class NativeSummarySelectionStartupTests: XCTestCase {
     private var openedStores: [SQLiteMeetingStore] = []
+
+    func testStartupRestoresSpeechWithoutOpeningModelSettings() async throws {
+        try await fixture { root, original in
+            let selected = try await self.installSpeech(in: original, root: root)
+            try await original.store.close()
+            let reopened = try self.reopen(root)
+            XCTAssertFalse(reopened.speechSelectionChecked)
+            await reopened.initialize()
+            XCTAssertTrue(reopened.speechSelectionChecked)
+            XCTAssertTrue(reopened.speechInstalled)
+            await reopened.modelBrowser.refresh()
+            XCTAssertEqual(reopened.modelBrowser.equippedSpeechID, selected.modelID)
+        }
+    }
+
+    func testStartupHonorsExplicitSpeechUnequipAndMissingInstallation() async throws {
+        for removed in [false, true] {
+            try await fixture { root, original in
+                let selected = try await self.installSpeech(in: original, root: root)
+                if removed { try await original.models.remove(modelID: selected.modelID) }
+                else { try await original.modelSelections.clear(for: .speechRecognition) }
+                try await original.store.close()
+                let reopened = try self.reopen(root)
+                await reopened.initialize()
+                XCTAssertTrue(reopened.speechSelectionChecked)
+                XCTAssertFalse(reopened.speechInstalled)
+                XCTAssertEqual(reopened.modelError != nil, removed)
+            }
+        }
+    }
+
+    func testBrokenSummarySelectionDoesNotHideInstalledSpeech() async throws {
+        try await fixture { root, services in
+            _ = try await self.installSpeech(in: services, root: root)
+            try await services.modelSelections.clear(for: .summary)
+            try Data("invalid selection".utf8).write(to: root.appendingPathComponent("ModelSelections/summary.json"))
+            await services.initialize()
+            XCTAssertTrue(services.speechInstalled)
+            await services.refreshModels()
+            XCTAssertTrue(services.speechInstalled)
+            XCTAssertFalse(services.summaryInstalled)
+        }
+    }
+
+    private func installSpeech(in services: LocalMinutesServices, root: URL) async throws -> ModelManifest {
+        let names = ["Encoder", "Decoder", "JointDecision", "Preprocessor"].flatMap { bundle in
+            ["coremldata.bin", "metadata.json", "model.mil"].map { bundle + ".mlmodelc/" + $0 }
+        } + ["parakeet_vocab.json"]
+        let input = root.appendingPathComponent("SpeechInput")
+        let revision = String(repeating: "d", count: 40)
+        let repository = URL(string: "https://huggingface.co/example/speech-startup")!
+        let artifacts = try names.map { name -> ModelArtifact in
+            let bytes = Data("Synthetic speech selection fixture: \(name)".utf8)
+            let file = input.appendingPathComponent(name)
+            try FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try bytes.write(to: file)
+            return .init(role: .coreMLAsset, fileName: name, byteCount: Int64(bytes.count),
+                sha256: SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined(),
+                downloadURL: repository.appendingPathComponent("resolve/\(revision)/\(name)"),
+                digestProvenance: .independentlyDownloaded)
+        }
+        let manifest = ModelManifest(modelID: "speech-startup-test", purpose: .speechRecognition,
+            upstreamRepository: repository, revision: revision, licenseIdentifier: "CC0-1.0",
+            licenseNotice: "Synthetic installation fixture, not an inference model.",
+            runtimeVersion: ParakeetModelPack.runtimeVersion, sampleRate: 16_000, featureDimension: 128,
+            artifacts: artifacts, parakeetConfiguration: .init(decoderContract: "parakeet-tdt-v2"))
+        _ = try await services.models.importDirectory(input, manifest: manifest)
+        _ = try await services.modelSelections.select(manifest: manifest, profile: .parakeetTDTCoreML, for: .speechRecognition)
+        return manifest
+    }
     func testRetiredSystemSelectionReopensAsUnequippedWithoutBlockingStartup() async throws {
         try await fixture { root, original in
             try await original.modelSelections.clear(for: .summary)

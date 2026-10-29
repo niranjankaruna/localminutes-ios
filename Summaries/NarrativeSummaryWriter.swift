@@ -53,7 +53,8 @@ struct NarrativeSummaryWriter: Sendable {
             outputTokens: budget.writingTokens * 2 + budget.checkingTokens, tokenizer: tokenizer)
     }
 
-    func draft(units: [NarrativeSourceUnit], notes: String, topic: String? = nil) async throws -> NarrativeSummaryDraft {
+    func draft(units: [NarrativeSourceUnit], notes: String, topic: String? = nil,
+               progress: SummaryWorkScope? = nil) async throws -> NarrativeSummaryDraft {
         try Task.checkCancellation()
         try validateUnits(units)
         guard try await canDraft(units: units, notes: notes, topic: topic) else { throw NarrativeSummaryError.contextExceeded }
@@ -61,6 +62,7 @@ struct NarrativeSummaryWriter: Sendable {
             .init(name: "bullets", type: .array(element: .object(paragraphFields(units)), maximumItems: bulletLimit)),
             .init(name: "overview", type: .object(paragraphFields(units)))
         ], promptIncludesSchema: true, compactWhitespace: true)
+        progress?.child(0, 0.45).begin(.writing)
         let data = try await generate(prompt: draftPrompt(units: units, notes: notes, topic: topic),
                                       schema: schema, outputTokens: budget.writingTokens)
         guard let object = try jsonObject(data), Set(object.keys) == ["bullets", "overview"],
@@ -73,23 +75,27 @@ struct NarrativeSummaryWriter: Sendable {
         // Check every reference before spending any inference on review.
         for paragraph in decoded.bullets + [decoded.overview] { try validate(paragraph, units: units) }
         var bullets: [NarrativeDraftParagraph] = []
-        for paragraph in decoded.bullets {
-            bullets.append(try await checked(paragraph, units: units, notes: notes))
+        let count = Double(decoded.bullets.count + 1)
+        for (index, paragraph) in decoded.bullets.enumerated() {
+            let scope = progress?.child(0.45 + 0.55 * Double(index) / count, 0.45 + 0.55 * Double(index + 1) / count)
+            bullets.append(try await checked(paragraph, units: units, notes: notes, progress: scope))
         }
-        let checkedOverview = try await checked(decoded.overview, units: units, notes: notes)
+        let checkedOverview = try await checked(decoded.overview, units: units, notes: notes,
+            progress: progress?.child(1 - 0.55 / count, 1))
         return .init(bullets: bullets, overview: checkedOverview)
     }
 
     func overview(bullets: [NarrativeDraftParagraph], units: [NarrativeSourceUnit],
-                  notes: String) async throws -> NarrativeDraftParagraph {
+                  notes: String, progress: SummaryWorkScope? = nil) async throws -> NarrativeDraftParagraph {
         try Task.checkCancellation()
         try validateUnits(units)
         guard !bullets.isEmpty, bullets.count <= 128 else { throw NarrativeSummaryError.invalidResponse }
         for paragraph in bullets { try validate(paragraph, units: units) }
         guard try await canOverview(bullets: bullets, units: units, notes: notes) else { throw NarrativeSummaryError.contextExceeded }
+        progress?.child(0, 0.6).begin(.overview)
         let paragraph = try await generateParagraph(
             prompt: overviewPrompt(bullets: bullets, units: units, notes: notes), units: units)
-        return try await checked(paragraph, units: units, notes: notes)
+        return try await checked(paragraph, units: units, notes: notes, progress: progress?.child(0.6, 1))
     }
 
     private func overviewPrompt(bullets: [NarrativeDraftParagraph], units: [NarrativeSourceUnit],
@@ -171,19 +177,26 @@ struct NarrativeSummaryWriter: Sendable {
     }
 
     func checked(_ paragraph: NarrativeDraftParagraph, units: [NarrativeSourceUnit],
-                 notes: String) async throws -> NarrativeDraftParagraph {
+                 notes: String, progress: SummaryWorkScope? = nil) async throws -> NarrativeDraftParagraph {
         try validate(paragraph, units: units)
         guard try await canReview(paragraph: paragraph, units: units, notes: notes) else {
             throw NarrativeSummaryError.contextExceeded
         }
+        progress?.child(0, 0.6).begin(.checking)
         let verdict = try await review(paragraph, units: units, notes: notes)
-        if verdict.supported { return paragraph }
+        if verdict.supported {
+            progress?.complete(.checking)
+            return paragraph
+        }
         // One targeted correction only. A second failed check is visible to the
         // caller; silently returning the original or a quote would hide failure.
+        progress?.child(0.6, 0.85).begin(.correcting)
         let repaired = try await generateParagraph(
             prompt: repairPrompt(paragraph, issues: verdict.issues, units: units, notes: notes), units: units)
+        progress?.child(0.85, 1).begin(.checking)
         let recheck = try await review(repaired, units: units, notes: notes)
         guard recheck.supported else { throw NarrativeSummaryError.unsupportedEvidence }
+        progress?.complete(.checking)
         return repaired
     }
 

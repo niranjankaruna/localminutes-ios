@@ -156,6 +156,8 @@ struct RecordingControlsView: View {
             } else if application.services == nil {
                 MinutesEmptyState(title: "Recording unavailable", symbol: "externaldrive.badge.exclamationmark",
                     detail: "Reopen LocalMinutes to load local storage.")
+            } else if !speechReady && application.services?.speechSelectionChecked == false {
+                MinutesProgress(title: "Checking your speech model", detail: "Restoring your saved selection.")
             } else if !speechReady {
                 MinutesEmptyState(title: "Set up transcription", symbol: "waveform",
                     detail: "Install a speech model before your first recording.",

@@ -46,6 +46,8 @@ final class LocalMinutesServices: PlaybackHardware {
     let intelligenceBackgroundExecution: IntelligenceBackgroundExecution
     @ObservationIgnored private var summaryStartupBinding: Task<Void, Never>?
     @ObservationIgnored private var summaryStartupBound = false
+    @ObservationIgnored private var speechStartupBinding: Task<Void, Never>?
+    private(set) var speechSelectionChecked = false
     let modelSelections: ModelSelectionStore
     @ObservationIgnored lazy var modelBrowser = ModelBrowserController(services: self)
     let metrics: TranscriptionMetricsRecorder?
@@ -238,6 +240,7 @@ final class LocalMinutesServices: PlaybackHardware {
         do {
             let report = try await startup.run()
             guard startup.state == .ready else { return }
+            await restoreSpeechSelectionForStartup()
             await restoreSummarySelectionForStartup()
             startupMessage = report.issues.isEmpty ? nil : "Some saved meetings need recovery review."
         } catch {
@@ -245,6 +248,32 @@ final class LocalMinutesServices: PlaybackHardware {
             // running/ready projection. No paths or raw database errors escape.
             guard startup.state == .failed else { return }
             startupMessage = "Saved meetings could not be prepared. Recording is paused. Reopen LocalMinutes and try again."
+        }
+    }
+
+    private func restoreSpeechSelectionForStartup() async {
+        if let binding = speechStartupBinding {
+            await binding.value
+            return
+        }
+        guard !speechSelectionChecked else { return }
+        let binding = Task { @MainActor in await self.refreshSpeechModel() }
+        speechStartupBinding = binding
+        await binding.value
+        speechStartupBinding = nil
+    }
+
+    private func refreshSpeechModel() async {
+        defer { speechSelectionChecked = true }
+        do {
+            if try await modelSelections.hasSelectionRecord(for: .speechRecognition) {
+                speechInstalled = try await modelSelections.resolve(for: .speechRecognition) != nil
+            } else {
+                speechInstalled = try await models.current(modelID: ParakeetCoreMLModel.manifest.modelID) != nil
+            }
+        } catch {
+            speechInstalled = false
+            modelError = "The selected speech model could not be verified. Check it in Settings."
         }
     }
 
@@ -398,12 +427,9 @@ final class LocalMinutesServices: PlaybackHardware {
     }
 
     func refreshModels() async {
+        if let binding = speechStartupBinding { await binding.value }
+        await refreshSpeechModel()
         do {
-            if try await modelSelections.hasSelectionRecord(for: .speechRecognition) {
-                speechInstalled = try await modelSelections.resolve(for: .speechRecognition) != nil
-            } else {
-                speechInstalled = try await models.current(modelID: ParakeetCoreMLModel.manifest.modelID) != nil
-            }
             let chosen: ModelManifest?
             if try await modelSelections.hasSelectionRecord(for: .summary) {
                 chosen = try await modelSelections.resolve(for: .summary)?.manifest
@@ -419,7 +445,7 @@ final class LocalMinutesServices: PlaybackHardware {
                 intelligenceManifest = chosen
             }
         } catch {
-            speechInstalled = false; summaryInstalled = false
+            summaryInstalled = false
             modelError = "An installed model did not pass verification. Download it again before use."
         }
     }

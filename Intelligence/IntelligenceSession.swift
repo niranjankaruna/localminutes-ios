@@ -340,6 +340,8 @@ public final class IntelligenceSession {
                     report?(.consolidatingSummary(completed: completed, total: total))
                 }, planningProgress: { completed, total, pass in
                     report?(.planningSummary(completed: completed, total: total, pass: pass))
+                }, workProgress: { work in
+                    report?(.summaryWork(work))
                 })
             let summary = try await pipeline.summarize(selectedMeetingID: request.meetingID, source: source)
             try check(use)

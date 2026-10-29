@@ -21,6 +21,11 @@ final class IntelligenceProgressTracker {
     private var stage = Stage.waiting
     private var samples: [Sample] = []
     private var consolidating = false
+    private var workStartedAt: ContinuousClock.Instant?
+    private var currentWork: SummaryWorkProgress?
+    private var measuredWorkSeconds: Double = 0
+    private var measuredWorkFraction: Double = 0
+    private var lastWorkReportAt: ContinuousClock.Instant?
 
     init(operation: IntelligenceOperation, startedAt: ContinuousClock.Instant = .now) {
         self.operation = operation; self.startedAt = startedAt
@@ -33,6 +38,9 @@ final class IntelligenceProgressTracker {
         switch operation { case .summary: "Summarizing"; case .question: "Finding an answer" }
     }
     var detail: String {
+        if stage == .saving {
+            switch operation { case .summary: return "Saving the summary…"; case .question: return "Saving the answer…" }
+        }
         if consolidating { return IntelligenceProgress.consolidatingSummary(completed: 0, total: 1).message }
         return stage == .waiting ? "Waiting for iOS to start generation…" : progress.detail
     }
@@ -45,6 +53,27 @@ final class IntelligenceProgressTracker {
         case .preparing, .loadingModel, .planningSummary: next = .loading
         case .summaryChunks, .answering, .generationStarted: next = .mapping
         case .consolidatingSummary: consolidating = true; next = .mapping
+        case .summaryWork(let work):
+            consolidating = false
+            // Learn from complete inference calls, including prompt processing,
+            // output, validation and repairs. Restored index checkpoints have
+            // no timed operation and cannot create an implausibly fast rate.
+            if let previous = currentWork, previous.operationFraction > 0,
+               let began = workStartedAt,
+               work.completedFraction + 0.000001 >= previous.completedFraction + previous.operationFraction {
+                let duration = Self.seconds(began.duration(to: now))
+                if duration >= 1 {
+                    measuredWorkSeconds = measuredWorkSeconds * 0.8 + duration
+                    // A successful check also retires its unused repair budget.
+                    measuredWorkFraction = measuredWorkFraction * 0.8
+                        + work.completedFraction - previous.completedFraction
+                }
+            }
+            currentWork = work
+            workStartedAt = work.operationFraction > 0 ? now : nil
+            lastWorkReportAt = now
+            samples = []
+            next = .mapping
         case .generating(.promptTokens): next = .reading
         case .generating(.responseTokens): next = .writing
         case .saving: consolidating = false; next = .saving
@@ -56,6 +85,7 @@ final class IntelligenceProgressTracker {
             samples = []
         }
         stage = next
+        if currentWork != nil { lastWorkReportAt = now }
         if next == .reading || next == .writing {
             if let last = samples.last {
                 if fraction > last.fraction, Self.seconds(last.time.duration(to: now)) >= 1 {
@@ -84,12 +114,27 @@ final class IntelligenceProgressTracker {
     }
 
     private func estimate(at now: ContinuousClock.Instant) -> Int64? {
+        if currentWork != nil {
+            guard finishedAt == nil, stage != .saving, let lastWorkReportAt,
+                  Self.seconds(lastWorkReportAt.duration(to: now)) <= 15 else { return nil }
+            if measuredWorkFraction > 0 {
+                let fraction = Double(progress.completedUnitCount) / Double(progress.totalUnitCount)
+                let remainingWork = max(0.01, (0.98 - fraction) / 0.88)
+                let seconds = remainingWork * measuredWorkSeconds / measuredWorkFraction
+                guard seconds.isFinite, seconds < 86_400 else { return nil }
+                // A token ceiling is not a known completion length. Do not
+                // count down between reports or reach zero before the save.
+                return Int64(max(1, seconds.rounded(.up)))
+            }
+            // Never extrapolate fast prompt ingestion over future writing.
+            guard stage == .writing else { return nil }
+        }
         guard finishedAt == nil, samples.count >= 2, let first = samples.first, let last = samples.last else { return nil }
         let measuredSeconds = Self.seconds(first.time.duration(to: last.time))
         let measuredWork = last.fraction - first.fraction
         let age = max(0, Self.seconds(last.time.duration(to: now)))
         guard measuredSeconds >= 3, measuredWork >= 0.001, age <= 15 else { return nil }
-        let seconds = (1 - last.fraction) * measuredSeconds / measuredWork - age
+        let seconds = (1 - last.fraction) * measuredSeconds / measuredWork - (currentWork == nil ? age : 0)
         guard seconds.isFinite, seconds < 86_400 else { return nil }
         // Finishing/saving can still take time; never promise zero before commit.
         return Int64(max(1, seconds.rounded(.up)))
