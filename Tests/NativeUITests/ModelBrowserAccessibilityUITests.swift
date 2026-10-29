@@ -4,6 +4,37 @@ import XCTest
 /// details; selection/removal announce the family, variant and model purpose.
 @MainActor
 final class ModelBrowserAccessibilityUITests: XCTestCase {
+    func testAttributionNoticeKeepsItsIdentifierAcrossDisclosureChangesInBothAppearances() {
+        for appearance in ["light", "dark"] {
+            let app = XCUIApplication()
+            app.launchArguments = ["--ui-test-library-fixture", "--ui-screenshots",
+                                   "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+            app.launchEnvironment["LOCALMINUTES_UI_LIBRARY_TOKEN"] = UUID().uuidString
+            app.launchEnvironment["LOCALMINUTES_SCREENSHOT_SCENE"] = "models_model_card"
+            app.launchEnvironment["LOCALMINUTES_UI_APPEARANCE"] = appearance
+            app.launch(); defer { app.terminate() }
+            XCTAssertTrue(minutesElement("screenshot.ready.models_model_card", in: app).waitForExistence(timeout: 40))
+
+            let toggle = app.buttons["models.license.open"]
+            let notice = app.staticTexts["models.license.notice"]
+            XCTAssertTrue(toggle.waitForExistence(timeout: 5))
+            guard notice.waitForExistence(timeout: 5) else {
+                XCTFail("The expanded attribution must keep its own identifier in \(appearance) mode.")
+                continue
+            }
+            XCTAssertTrue(notice.isHittable)
+            XCTAssertTrue(notice.label.contains("NVIDIA Parakeet TDT 0.6B v2"))
+            let originalText = notice.label
+            guard minutesTap(toggle, in: app) else { continue }
+            let collapsed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: notice)
+            XCTAssertEqual(XCTWaiter.wait(for: [collapsed], timeout: 5), .completed)
+            guard minutesTap(toggle, in: app) else { continue }
+            XCTAssertTrue(notice.waitForExistence(timeout: 5))
+            XCTAssertEqual(notice.label, originalText)
+            XCTAssertTrue(notice.isHittable)
+        }
+    }
+
     func testCatalogueOffersNamedFamiliesAndNoRepositoryLookupOrImport() {
         let app = launchModels(largestText: false)
         defer { app.terminate() }

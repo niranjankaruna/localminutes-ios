@@ -400,10 +400,15 @@ struct ModelPurposeView: View {
                         }
                     }
                 }
-                DisclosureGroup("Attribution & terms", isExpanded: $attributionExpanded) {
+                DisclosureGroup(isExpanded: $attributionExpanded) {
                     Text(variant.manifest.licenseNotice).font(.footnote).textSelection(.enabled)
                         .accessibilityIdentifier("models.license.notice")
-                }.accessibilityIdentifier("models.license.open").screenshotAnchor("models.card")
+                } label: {
+                    // Identify the toggle label, not the container: a container
+                    // identifier can replace the expanded notice's identifier.
+                    Text("Attribution & terms").accessibilityIdentifier("models.license.open")
+                }
+                .screenshotAnchor("models.card")
                 Link("View publisher repository", destination: variant.manifest.upstreamRepository)
                     .frame(minHeight: 44)
             } header: {
