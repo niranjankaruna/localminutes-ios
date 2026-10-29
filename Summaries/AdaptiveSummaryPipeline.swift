@@ -13,7 +13,7 @@ public struct NarrativeSummaryPipelineSnapshot: Equatable, Sendable {
 /// Adaptive reading, source-linked topic reconciliation, then reviewed prose.
 /// Intermediate labels organize original evidence; they never become evidence.
 public actor AdaptiveSummaryPipeline {
-    public static let currentPromptVersion = "narrative-v1"
+    public static let currentPromptVersion = "narrative-v2"
     private let modelRevision: String
     private let promptVersion: String
     private let contextTokenLimit: Int

@@ -102,12 +102,16 @@ struct NarrativeSummaryWriter: Sendable {
                                 notes: String) throws -> String {
         """
         NARRATIVE_OVERVIEW
-        Write one concise overview paragraph connecting the meeting's main themes
-        and its outcome. The supplied bullets are an outline, not new evidence.
+        Write a brief overview as one to three short, standalone bullet points
+        describing what the meeting was about, its main themes, and its outcome.
+        Put each point on its own line inside the text string, using escaped JSON
+        newlines. Do not combine the points into a paragraph or add bullet markers.
+        The app adds the meeting's recorded date and time; do not invent them.
+        The supplied bullets are an outline, not new evidence.
         Check the original sources; preserve unresolved questions, conditions,
         disagreement, and any later revision. Do not invent a shared conclusion.
         \(Self.writingRules)
-        Return one paragraph object with fields text (your actual overview string)
+        Return one object with fields text (your newline-separated overview points)
         then source_ids (the numeric IDs supporting it).
 
         BULLETS_JSON:
@@ -120,7 +124,13 @@ struct NarrativeSummaryWriter: Sendable {
         """
         NARRATIVE_DRAFT
         Write clear, natural meeting minutes. First compose up to \(bulletLimit)
-        narrative bullets, then an overview paragraph. Each bullet should connect
+        discussion bullets for the Minutes of Meetings section, then an overview.
+        The overview must contain one to three short, standalone points about
+        what the meeting was about, its main themes, and its outcome. Put each
+        overview point on its own line in overview.text using escaped JSON
+        newlines, without bullet markers. Do not write an overview paragraph.
+        The app adds the recorded meeting date and time; do not invent them.
+        Each discussion bullet should connect
         a topic with its explanation, reason, development, or outcome when the
         source establishes that connection. Cover substantive distinct topics;
         omit filler and repetition. A short meeting may need only one bullet.
@@ -130,8 +140,8 @@ struct NarrativeSummaryWriter: Sendable {
         source packet for context, corrections, or qualifications.
         \(Self.writingRules)
         Return JSON with exactly two fields in this order: bullets, then overview.
-        bullets is a nonempty array of paragraph objects; overview is one paragraph
-        object. Each paragraph has text (your actual summary string), then source_ids
+        bullets is a nonempty array of paragraph objects; overview is one object
+        containing the line-separated overview points. Each object has text, then source_ids
         (an array of the numeric source unit IDs supporting every claim).
 
         Use a neutral third-person narrator. Combine related remarks into coherent
@@ -207,6 +217,8 @@ struct NarrativeSummaryWriter: Sendable {
         Correct only the factual issues in this paragraph using original sources.
         Preserve its topic and readable style. Remove an unsupported claim when
         evidence cannot establish it. Do not replace synthesis with copied quotes.
+        If the input has separate overview points on separate lines, preserve
+        that line-separated structure when correcting them.
         If no substantive supported paragraph remains, return empty text and IDs
         so the application can report that generation failed.
         \(Self.writingRules)

@@ -27,6 +27,7 @@ final class MeetingIntelligenceController {
     let meetingID: UUID
     private let services: LocalMinutesServices
     private(set) var summary: StoredGeneratedDocument?
+    private(set) var meetingStartedAt: Date?
     private(set) var answers: [StoredGeneratedDocument] = []
     var summaryText = ""
     var question = ""
@@ -151,6 +152,7 @@ final class MeetingIntelligenceController {
         let token = UUID()
         loadID = token
         do {
+            let meeting = try await services.store.meeting(id: meetingID)
             let summaries = try await services.store.generatedDocuments(meetingID: meetingID, kind: .summary, limit: 1)
             let savedAnswers = try await services.store.generatedDocuments(meetingID: meetingID, kind: .questionAnswer, limit: 50)
             let rows = summaries + savedAnswers
@@ -160,6 +162,7 @@ final class MeetingIntelligenceController {
                 savedMaps = try? await services.summaryCheckpoints.savedMapCount(jobID: meetingID, meetingID: meetingID)
             } else { savedMaps = nil }
             guard loadID == token, !isDeletingSummary else { return }
+            meetingStartedAt = meeting?.createdAt
             sources = Dictionary(uniqueKeysWithValues: transcript.map { ($0.id, $0) })
             if !hasSummaryEdits && !isSaving {
                 summary = rows.first { $0.kind == .summary }
@@ -591,7 +594,8 @@ struct MeetingIntelligenceView: View {
 
     @ViewBuilder private var summaryContent: some View {
         if let document = controller.summary {
-            SummaryReadingView(document: document, text: controller.summaryText)
+            SummaryReadingView(document: document, text: controller.summaryText,
+                meetingStartedAt: controller.meetingStartedAt)
             citations(document)
             HStack {
                 Button("Edit summary") { editingSummary = true }

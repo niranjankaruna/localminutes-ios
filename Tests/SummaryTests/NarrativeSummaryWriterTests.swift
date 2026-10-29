@@ -6,6 +6,19 @@ import XCTest
 /// generations. They do not measure a real model's semantic accuracy.
 @MainActor
 final class NarrativeSummaryWriterTests: XCTestCase {
+    func testOverviewPointsKeepTheirLineBreaksThroughGenerationAndSourceReview() async throws {
+        let bullet = NarrativeDraftParagraph(text: "A supplier delay moved the launch to Tuesday.", sourceIDs: [73])
+        let overview = NarrativeDraftParagraph(text: "Discussed launch timing.\nRevised the plan after a supplier delay.", sourceIDs: [41, 73])
+        let boundary = NarrativeWriterBoundary(replies: [try draftJSON(bullet, overview), approved, approved])
+        let result = try await writer(boundary).draft(units: revisedLaunchUnits(), notes: "")
+        XCTAssertEqual(SummaryOverviewFormatting.points(result.overview.text),
+            ["Discussed launch timing.", "Revised the plan after a supplier delay."])
+        let calls = await boundary.calls
+        XCTAssertEqual(calls.count, 3, "The overview points must still pass source review")
+        XCTAssertTrue(calls[0].prompt.contains("Do not write an overview paragraph"))
+        XCTAssertTrue(calls[2].prompt.contains(try paragraphJSON(overview)))
+    }
+
     func testAcceptsParaphrasedProseAndReviewsWithCompleteOriginalContext() async throws {
         let units = revisedLaunchUnits()
         let bullet = NarrativeDraftParagraph(text: "A supplier delay moved the launch to Tuesday.", sourceIDs: [73])

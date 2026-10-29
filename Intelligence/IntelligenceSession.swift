@@ -345,7 +345,8 @@ public final class IntelligenceSession {
                 })
             let summary = try await pipeline.summarize(selectedMeetingID: request.meetingID, source: source)
             try check(use)
-            return try Self.document(summary: summary, request: request, revision: modelRevision)
+            return try Self.document(summary: summary, request: request, revision: modelRevision,
+                meetingStartedAt: meeting.createdAt)
         case .question(let question):
             use.progress?(.answering)
             let report = use.progress
@@ -438,19 +439,21 @@ public final class IntelligenceSession {
     }
 
     private static func document(summary: NarrativeSummary, request: IntelligenceRequest,
-                                 revision: String) throws -> StoredGeneratedDocument {
+                                 revision: String, meetingStartedAt: Date) throws -> StoredGeneratedDocument {
         func paragraph(_ value: NarrativeSummaryParagraph) -> [String: Any] {
             ["text": value.text, "evidence": value.evidence.map { evidence($0) }]
         }
         let origin = summary.provenance
+        let overviewItems = SummaryOverviewFormatting.meetingDetails(startedAt: meetingStartedAt)
+            + (summary.overview.map { SummaryOverviewFormatting.points($0.text) } ?? [])
         let payload: [String: Any] = ["schema_version": 2, "meeting_id": summary.meetingID.uuidString,
+            "meeting_started_at": meetingStartedAt.timeIntervalSince1970, "overview_items": overviewItems,
             "overview": summary.overview.map { paragraph($0) as Any } ?? NSNull(),
             "bullets": summary.bullets.map(paragraph),
             "provenance": ["model_revision": origin.modelRevision,
                            "prompt_version": origin.promptVersion, "map_index": origin.mapIndex]]
-        var sections: [String] = []
-        if let overview = summary.overview { sections.append("Overview\n" + overview.text) }
-        if !summary.bullets.isEmpty { sections.append(summary.bullets.map { "• " + $0.text }.joined(separator: "\n\n")) }
+        let sections = ["Overview\n" + overviewItems.map { "• " + $0 }.joined(separator: "\n\n"),
+            "Minutes of Meetings\n" + summary.bullets.map { "• " + $0.text }.joined(separator: "\n\n")]
         let text = sections.joined(separator: "\n\n")
         return try document(payload: payload, text: text, request: request, kind: .summary,
                             revision: revision, prompt: AdaptiveSummaryPipeline.currentPromptVersion, question: nil)

@@ -61,7 +61,7 @@ final class AdaptiveSummaryPipelineTests: XCTestCase {
         let result = try await pipeline.summarize(selectedMeetingID: source.meetingID, source: source)
         XCTAssertFalse(result.bullets.isEmpty)
         XCTAssertNotNil(result.overview)
-        XCTAssertEqual(result.provenance.promptVersion, "narrative-v1")
+        XCTAssertEqual(result.provenance.promptVersion, AdaptiveSummaryPipeline.currentPromptVersion)
         XCTAssertFalse(source.segments.contains { $0.text == result.bullets[0].text },
                        "Displayed minutes are paraphrases; citation quotes remain original")
         for evidence in result.bullets.flatMap(\.evidence) {
