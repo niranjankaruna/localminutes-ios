@@ -2,8 +2,8 @@ import Foundation
 
 /// Manifest names are relative archive-style paths, never URLs. The same
 /// bounded parser is used by installation, Files import and HTTP staging.
-enum ModelArtifactPath {
-    static func components(_ value: String) -> [String]? {
+public enum ModelArtifactPath {
+    public static func components(_ value: String) -> [String]? {
         guard !value.isEmpty, value.utf8.count <= 1_024, !value.contains("\\") else { return nil }
         let parts = value.split(separator: "/", omittingEmptySubsequences: false).map(String.init)
         guard (1...8).contains(parts.count), parts.allSatisfy(component) else { return nil }

@@ -37,7 +37,7 @@ public enum IntelligenceFailureMessage {
             return "The saved transcript has invalid source ranges. Transcribe the meeting again before summarizing it."
         case NarrativeSummaryError.invalidResponse:
             return "The model did not return a valid summary or source-check response after automatic retries. Nothing was saved. Try again or equip another summary model."
-        case is GroundedSummaryError, NarrativeSummaryError.unsupportedEvidence,
+        case is GroundedSummaryError, NarrativeSummaryError.unsupportedEvidence, NarrativeSummaryError.reviewRejected,
              MeetingQuestionError.invalidJSON, MeetingQuestionError.unsupportedEvidence:
             return "The model's response could not be verified against this transcript. Nothing was saved. Try again or equip another summary model."
         case LocalSummaryRuntimeError.generationFailed:
@@ -61,7 +61,7 @@ public enum IntelligenceFailureMessage {
         case LocalSummaryRuntimeError.contextExceeded, NarrativeSummaryError.contextExceeded: return "LM-INPUT-LIMIT"
         case LocalSummaryRuntimeError.outputLimitExceeded: return "LM-OUTPUT-LIMIT"
         case NarrativeSummaryError.invalidResponse: return "LM-INVALID-RESPONSE"
-        case NarrativeSummaryError.unsupportedEvidence: return "LM-SOURCE-CHECK"
+        case NarrativeSummaryError.unsupportedEvidence, NarrativeSummaryError.reviewRejected: return "LM-SOURCE-CHECK"
         case LocalSummaryRuntimeError.generationFailed: return "LM-GENERATION"
         default: return "LM-SUMMARY-FAILED"
         }

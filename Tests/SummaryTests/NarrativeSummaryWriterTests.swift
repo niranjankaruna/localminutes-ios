@@ -72,7 +72,7 @@ final class NarrativeSummaryWriterTests: XCTestCase {
         XCTAssertTrue(calls[2].prompt.contains("pending security approval"))
     }
 
-    func testRejectedRepairFailsVisiblyWithoutASecondRepairOrExtractiveFallback() async throws {
+    func testRejectedRepairIsDistinctFromInvalidSourceMembership() async throws {
         let unsupported = NarrativeDraftParagraph(text: "The launch is scheduled for Friday.", sourceIDs: [41])
         let rejected = #"{"issues":["Friday was explicitly superseded by Tuesday in source 73."]}"#
         let boundary = NarrativeWriterBoundary(replies: [
@@ -81,14 +81,14 @@ final class NarrativeSummaryWriterTests: XCTestCase {
         do {
             _ = try await writer(boundary).draft(units: revisedLaunchUnits(), notes: "")
             XCTFail("A rejected repair must not publish the original claim or a quote fallback")
-        } catch { XCTAssertEqual(error as? NarrativeSummaryError, .unsupportedEvidence) }
+        } catch { XCTAssertEqual(error as? NarrativeSummaryError, .reviewRejected) }
         let calls = await boundary.calls
         XCTAssertEqual(calls.count, 4)
         XCTAssertEqual(calls.filter { $0.prompt.hasPrefix("NARRATIVE_REPAIR") }.count, 1)
     }
 
-    func testInventedOrRepeatedReferencesFailBeforeAnyReview() async throws {
-        for sourceIDs in [[999], [41, 41], []] {
+    func testInventedOrEmptyReferencesFailBeforeAnyReview() async throws {
+        for sourceIDs in [[999], []] {
             let invalid = NarrativeDraftParagraph(text: "The launch moved.", sourceIDs: sourceIDs)
             let boundary = NarrativeWriterBoundary(replies: [try draftJSON(invalid, invalid)])
             do {
@@ -98,6 +98,37 @@ final class NarrativeSummaryWriterTests: XCTestCase {
             let calls = await boundary.calls
             XCTAssertEqual(calls.count, 1)
         }
+    }
+
+    func testRepeatedValidReferencesAreDeduplicatedAndStillReviewed() async throws {
+        let paragraph = NarrativeDraftParagraph(text: "A supplier delay moved the launch to Tuesday.", sourceIDs: [73, 73])
+        let boundary = NarrativeWriterBoundary(replies: [try draftJSON(paragraph, paragraph), approved, approved])
+        let result = try await writer(boundary).draft(units: revisedLaunchUnits(), notes: "")
+        XCTAssertEqual(result.bullets[0].sourceIDs, [73])
+        XCTAssertEqual(result.overview.sourceIDs, [73])
+        let calls = await boundary.calls
+        XCTAssertEqual(calls.count, 3, "Repeated citations must not skip semantic review or abort the summary")
+    }
+
+    func testOnlyExactAppOwnedExcerptsCanBypassModelReview() async throws {
+        let units = revisedLaunchUnits()
+        let excerpt = try NarrativeSourceExcerpt.paragraph(units)
+        let boundary = NarrativeWriterBoundary(replies: [])
+        let checked = try await writer(boundary).checked(excerpt, units: units, notes: "")
+        XCTAssertEqual(checked, excerpt)
+        XCTAssertTrue(checked.isSourceExcerpt)
+        XCTAssertTrue(checked.text.contains(units[0].text))
+        XCTAssertTrue(checked.text.contains(units[1].text))
+        let forged = NarrativeDraftParagraph(text: "Invented claim", sourceIDs: [41], isSourceExcerpt: true)
+        do {
+            _ = try await writer(boundary).checked(forged, units: units, notes: "")
+            XCTFail("An excerpt flag cannot bless invented prose")
+        } catch { XCTAssertEqual(error as? NarrativeSummaryError, .unsupportedEvidence) }
+        let calls = await boundary.calls
+        XCTAssertTrue(calls.isEmpty)
+        let decoded = try JSONDecoder().decode(NarrativeDraftParagraph.self,
+            from: Data(#"{"text":"Invented claim","source_ids":[41],"isSourceExcerpt":true}"#.utf8))
+        XCTAssertFalse(decoded.isSourceExcerpt, "The model cannot set app-only provenance")
     }
 
     func testEmptyBulletsAndAdditionalFieldsAreRejected() async throws {
@@ -314,7 +345,7 @@ final class NarrativeSummaryWriterTests: XCTestCase {
         do {
             _ = try await writer(boundary).checked(stale, units: revisedLaunchUnits(), notes: "")
             XCTFail("A format retry must not bypass a negative factual verdict")
-        } catch { XCTAssertEqual(error as? NarrativeSummaryError, .unsupportedEvidence) }
+        } catch { XCTAssertEqual(error as? NarrativeSummaryError, .reviewRejected) }
         let calls = await boundary.calls
         XCTAssertEqual(calls.count, 4)
 

@@ -13,7 +13,7 @@ public struct NarrativeSummaryPipelineSnapshot: Equatable, Sendable {
 /// Adaptive reading, source-linked topic reconciliation, then reviewed prose.
 /// Intermediate labels organize original evidence; they never become evidence.
 public actor AdaptiveSummaryPipeline {
-    public static let currentPromptVersion = "narrative-v3"
+    public static let currentPromptVersion = "narrative-v4"
     private let modelRevision: String
     private let promptVersion: String
     private let contextTokenLimit: Int
@@ -178,6 +178,14 @@ public actor AdaptiveSummaryPipeline {
                         topicBullets += part.bullets
                         guard topicBullets.count <= 4_096 else { throw NarrativeSummaryError.limitExceeded }
                     }
+                    if topicBullets.contains(where: \.isSourceExcerpt) {
+                        // A rejected synthesis must not become the topic's sole
+                        // account. Keep original coverage, including revisions.
+                        bullets += try NarrativeSourceExcerpt.paragraphs(topicUnits)
+                        topicWork.complete(.checking)
+                        consolidationProgress?(index + 1, merged.count + 1)
+                        continue
+                    }
                     let combined: NarrativeDraftParagraph
                     if topicBullets.count == 1 { combined = topicBullets[0] }
                     else {
@@ -187,9 +195,21 @@ public actor AdaptiveSummaryPipeline {
                     // Revisit every original topic span with the compact prose
                     // and its current supporting evidence. This catches updates
                     // that were separated by a writing-packet boundary.
-                    bullets.append(try await reviewTopic(combined, topicUnits: topicUnits,
-                        allUnits: units, notes: source.originalManualNotes, writer: writer,
-                        progress: topicWork.child(0.75, 1)))
+                    if combined.isSourceExcerpt {
+                        bullets += try NarrativeSourceExcerpt.paragraphs(topicUnits)
+                        topicWork.complete(.checking)
+                    } else {
+                        do {
+                            bullets.append(try await reviewTopic(combined, topicUnits: topicUnits,
+                                allUnits: units, notes: source.originalManualNotes, writer: writer,
+                                progress: topicWork.child(0.75, 1)))
+                        } catch {
+                            try Task.checkCancellation()
+                            guard Self.canRetainSources(after: error) else { throw error }
+                            bullets += try NarrativeSourceExcerpt.paragraphs(topicUnits)
+                            topicWork.complete(.checking)
+                        }
+                    }
                     consolidationProgress?(index + 1, merged.count + 1)
                 }
                 // Each topic contributes reviewed prose; no fixed keep-half or
@@ -209,7 +229,8 @@ public actor AdaptiveSummaryPipeline {
                 let evidence = value.sourceIDs.flatMap { byID[$0]!.evidence }
                     .filter { seen.insert(GroundedEvidenceKey($0)).inserted }
                     .sorted(by: SummarySourceValidation.evidenceLess)
-                return .init(text: value.text, evidence: evidence)
+                if value.isSourceExcerpt { try NarrativeSourceExcerpt.validate(value, units: units) }
+                return .init(text: value.text, evidence: evidence, isSourceExcerpt: value.isSourceExcerpt)
             }
             let result = try NarrativeSummary(meetingID: selectedMeetingID, overview: paragraph(draft.overview),
                 bullets: draft.bullets.map(paragraph), provenance: provenance)
@@ -563,8 +584,9 @@ public actor AdaptiveSummaryPipeline {
 
     /// Input fit does not predict completion length or format reliability.
     /// Subdivide recoverable responses, retaining both halves and revisions.
-    /// A single unit gets the writer's compact retry, then fails visibly if the
-    /// model still cannot complete it. No partial JSON becomes meeting prose.
+    /// A single unit gets the writer's compact retry, then becomes a labelled
+    /// original excerpt if the model cannot finish or pass review. Partial JSON
+    /// and rejected generated claims never become meeting prose.
     private func draftWithRecovery(units: [NarrativeSourceUnit], allUnits: [NarrativeSourceUnit],
                                    notes: String, topic: String? = nil, writer: NarrativeSummaryWriter,
                                    progress: SummaryWorkScope) async throws -> NarrativeSummaryDraft {
@@ -575,7 +597,12 @@ public actor AdaptiveSummaryPipeline {
             return draft
         } catch {
             try Task.checkCancellation()
-            guard NarrativeSummaryWriter.canRetry(error), units.count > 1 else { throw error }
+            guard Self.canRetainSources(after: error) else { throw error }
+            if units.count == 1 {
+                let excerpt = try NarrativeSourceExcerpt.paragraph(units)
+                progress.complete(.checking)
+                return .init(bullets: [excerpt], overview: excerpt)
+            }
         }
         let middle = units.count / 2
         let first = try await draftWithRecovery(units: Array(units[..<middle]), allUnits: allUnits,
@@ -583,11 +610,26 @@ public actor AdaptiveSummaryPipeline {
         let second = try await draftWithRecovery(units: Array(units[middle...]), allUnits: allUnits,
             notes: notes, topic: topic, writer: writer, progress: progress.child(0.65, 0.8).retrying())
         let paragraphs = first.bullets + second.bullets
+        if paragraphs.contains(where: \.isSourceExcerpt) {
+            // Each section stays explicit original speech when global checking
+            // cannot reliably reconcile it; never discard a later qualification.
+            progress.complete(.checking)
+            return .init(bullets: try NarrativeSourceExcerpt.paragraphs(units),
+                overview: try NarrativeSourceExcerpt.overview(units))
+        }
         var bullets: [NarrativeDraftParagraph] = []
         for (index, paragraph) in paragraphs.enumerated() {
-            bullets.append(try await reviewTopic(paragraph, topicUnits: units, allUnits: allUnits, notes: notes,
-                writer: writer, progress: progress.child(0.8 + 0.15 * Double(index) / Double(paragraphs.count),
-                    0.8 + 0.15 * Double(index + 1) / Double(paragraphs.count)).retrying()))
+            do {
+                bullets.append(try await reviewTopic(paragraph, topicUnits: units, allUnits: allUnits, notes: notes,
+                    writer: writer, progress: progress.child(0.8 + 0.15 * Double(index) / Double(paragraphs.count),
+                        0.8 + 0.15 * Double(index + 1) / Double(paragraphs.count)).retrying()))
+            } catch {
+                try Task.checkCancellation()
+                guard Self.canRetainSources(after: error) else { throw error }
+                progress.complete(.checking)
+                return .init(bullets: try NarrativeSourceExcerpt.paragraphs(units),
+                    overview: try NarrativeSourceExcerpt.overview(units))
+            }
         }
         let overview = try await meetingOverview(bullets: bullets, units: allUnits, notes: notes,
             writer: writer, progress: progress.child(0.95, 1).retrying())
@@ -641,7 +683,7 @@ public actor AdaptiveSummaryPipeline {
                 return current
             }
         }
-        throw NarrativeSummaryError.unsupportedEvidence
+        throw NarrativeSummaryError.reviewRejected
     }
 
     /// Split checking context while retaining every cited original in each
@@ -672,6 +714,30 @@ public actor AdaptiveSummaryPipeline {
     }
 
     private func meetingOverview(bullets: [NarrativeDraftParagraph], units: [NarrativeSourceUnit],
+                                 notes: String, writer: NarrativeSummaryWriter,
+                                 progress: SummaryWorkScope) async throws -> NarrativeDraftParagraph {
+        do {
+            return try await reducedOverview(bullets: bullets, units: units, notes: notes, writer: writer, progress: progress)
+        } catch {
+            try Task.checkCancellation()
+            guard Self.canRetainSources(after: error) else { throw error }
+            let ids = Set(bullets.flatMap(\.sourceIDs))
+            let originals = units.filter { ids.contains($0.id) }
+            guard originals.count == ids.count else { throw NarrativeSummaryError.unsupportedEvidence }
+            let excerpt = try NarrativeSourceExcerpt.overview(originals)
+            progress.complete(.overview)
+            return excerpt
+        }
+    }
+
+    private static func canRetainSources(after error: Error) -> Bool {
+        switch error {
+        case NarrativeSummaryError.reviewRejected, NarrativeSummaryError.contextExceeded: true
+        default: NarrativeSummaryWriter.canRetry(error)
+        }
+    }
+
+    private func reducedOverview(bullets: [NarrativeDraftParagraph], units: [NarrativeSourceUnit],
                                  notes: String, writer: NarrativeSummaryWriter,
                                  progress: SummaryWorkScope) async throws -> NarrativeDraftParagraph {
         guard !bullets.isEmpty else { throw NarrativeSummaryError.invalidResponse }

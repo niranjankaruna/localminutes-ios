@@ -96,7 +96,11 @@ The selected variant supplies the hard runtime limit, including for existing ins
 
 Output caps are ceilings, not target lengths, and are reserved inside the total context window. Qwen 2.5 uses its published 8,192-token generation limit; Qwen 3 uses its [16,384-token non-thinking/instruct limit](https://qwen.readthedocs.io/en/latest/getting_started/concepts.html). Gemma 3 uses the 8,192-token output limit reported in its [model card](https://huggingface.co/google/gemma-3-1b-it). Phi and Gemma 4 caps are app policies within their published context windows, not claims of separate vendor output limits. The narrative pipeline requests smaller phase-specific budgets: writing is capped at 1,536 tokens, topic indexing at 1,024, and factual checking at 512, always further limited by the selected model and working context. These are per-call ceilings, not final document word counts. Q&A still returns a bounded evidence quote using its separate 192-token response budget.
 
-Summary writing also accounts for output capacity when choosing source packets. Exhausted or malformed drafting, checking, correction, and overview responses get one concise retry with grammar-bounded prose and the same token ceiling. Required discussion and citation arrays cannot be empty. Source checks return one list of factual issues; the app derives approval from an empty list, eliminating contradictory verdict/issue fields. Persistent recoverable failures subdivide the original writing or checking context, or merge fewer overview paragraphs at a time. All source parts remain covered; partial JSON is discarded and recovered prose still needs source checks. Overview reduction must make measurable progress, and the total call guard scales with source-unit count. Cancellation, memory failures, invented citations, and rejected factual repairs are not converted into success. This removes a single-response limit on meeting length, but does not guarantee accurate reasoning from every model or remove device and storage limits. A larger output window alone cannot prevent `LM-INVALID-RESPONSE`. Prompt revision `narrative-v3` requires older unfinished jobs to start from the beginning; saved summaries and transcripts are unchanged.
+Summary writing also accounts for output capacity when choosing source packets. Exhausted or malformed drafting, checking, correction, and overview responses get one concise retry with grammar-bounded prose and the same token ceiling. Required discussion and citation arrays cannot be empty. Repeated valid citation IDs are deduplicated before review; unknown IDs remain errors. Source checks return one list of factual issues; the app derives approval from an empty list, eliminating contradictory verdict/issue fields. Persistent recoverable failures subdivide the original writing or checking context, or merge fewer overview paragraphs at a time. All source parts remain covered; partial JSON is discarded and recovered prose still needs source checks. Overview reduction must make measurable progress, and the total call guard scales with source-unit count.
+
+If a model still cannot finish a section or pass its factual review, that section is retained as clearly labelled **Transcript excerpts** from the original speech. Rejected model claims are discarded; excerpts preserve the source text and citations, including later corrections, and carry `source_excerpt` metadata. An unavailable overview uses explicitly quoted opening/closing passages while full discussion coverage remains below. Model JSON cannot claim excerpt provenance. Cancellation, memory failures, and invented references still stop the operation. This makes failures local to the affected discussion, but does not guarantee accurate reasoning from every model or remove device/storage limits. Prompt revision `narrative-v4` requires older unfinished jobs to start from the beginning; saved summaries and transcripts are unchanged.
+
+The native decoder checks whether the greedy candidate fits the JSON grammar before filtering the whole vocabulary, matching llama.cpp's rejection-sampling fast path. Forbidden candidates still use full grammar filtering, and each accepted token advances the grammar exactly once.
 
 ## GitHub workflows from Windows
 
@@ -111,6 +115,14 @@ After committing and pushing these files to GitHub, run all tests from the Actio
 ```powershell
 gh workflow run tests.yml
 ```
+
+For focused validation of summary recovery, real SQLite saving/reopening, the iOS build, and short/23-minute synthetic meetings using Qwen 2.5 0.5B and Qwen 3 0.6B:
+
+```powershell
+gh workflow run tests.yml -f scope=summaries
+```
+
+The native tests run the actual Swift pipeline and selected weights, with no canned review verdicts. They log stage timings, completion and excerpt counts; JSON-format-only smoke tests are not substitutes for this suite.
 
 To build and download on Windows, install Node.js 22 and GitHub CLI, authenticate with `gh auth login`, and run from a clean, pushed checkout:
 

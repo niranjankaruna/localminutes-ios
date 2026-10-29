@@ -10,7 +10,7 @@ final class AdaptiveSummaryPipelineTests: XCTestCase {
     func testWritingLimitsSubdivideDirectAndIndexedMeetingsWithoutLosingSources() async throws {
         for unitTokens in [100, 400] {
             let source = adaptiveSource(count: 12)
-            let boundary = AdaptiveBoundary(maximumDraftUnits: 3)
+            let boundary = AdaptiveBoundary(maximumDraftUnits: 2)
             let events = SummaryWorkRecorder()
             let pipeline = adaptivePipeline(boundary: boundary, unitTokens: unitTokens,
                 workProgress: { events.append($0) })
@@ -19,8 +19,8 @@ final class AdaptiveSummaryPipelineTests: XCTestCase {
             XCTAssertNotNil(result.overview)
             let calls = await boundary.calls
             let drafts = calls.filter { $0.marker == "NARRATIVE_DRAFT" }
-            XCTAssertTrue(drafts.contains { $0.ids.count > 3 }, "Exercise a real attempted packet that fails output admission")
-            let successful = drafts.filter { $0.ids.count <= 3 }
+            XCTAssertTrue(drafts.contains { $0.ids.count > 2 }, "Exercise a real attempted packet that fails output admission")
+            let successful = drafts.filter { $0.ids.count <= 2 }
             XCTAssertEqual(Set(successful.flatMap(\.ids)), Set(try NarrativeSourcePlanner.units(source: source).map(\.id)))
             XCTAssertTrue(events.values.contains { $0.phase == .writing && $0.isRetry })
             for (previous, next) in zip(events.values, events.values.dropFirst()) {
@@ -62,8 +62,24 @@ final class AdaptiveSummaryPipelineTests: XCTestCase {
         }
     }
 
-    func testPersistentLeafFailuresAreBoundedAndNeverPublishPartialResults() async throws {
-        for failure in ["limit", "malformed", "cancel", "memory", "source"] {
+    func testPersistentModelFailuresRetainLabelledOriginalsInsteadOfRejectedClaims() async throws {
+        for failure in ["limit", "malformed", "review"] {
+            let source = adaptiveSource(count: 2)
+            let boundary = AdaptiveBoundary(writingFailure: failure)
+            let result = try await adaptivePipeline(boundary: boundary).summarize(selectedMeetingID: source.meetingID, source: source)
+            XCTAssertEqual(result.bullets.count, 2)
+            XCTAssertTrue(result.bullets.allSatisfy(\.isSourceExcerpt))
+            for segment in source.segments {
+                XCTAssertTrue(result.bullets.contains { $0.text.contains(segment.text) })
+            }
+            XCTAssertTrue(result.bullets.allSatisfy { $0.text.hasPrefix("Transcript excerpt:") })
+            let calls = await boundary.calls
+            XCTAssertLessThanOrEqual(calls.count, 6, "Recovery stops at single original units")
+        }
+    }
+
+    func testCancellationMemoryAndInvalidSourcesDoNotBecomeFallbackSuccess() async throws {
+        for failure in ["cancel", "memory", "source"] {
             let source = adaptiveSource(count: 2)
             let boundary = AdaptiveBoundary(writingFailure: failure)
             let pipeline = adaptivePipeline(boundary: boundary)
@@ -72,15 +88,13 @@ final class AdaptiveSummaryPipelineTests: XCTestCase {
                 XCTFail("An unusable model must not publish an unchecked or partial summary")
             } catch {
                 switch failure {
-                case "limit": XCTAssertEqual(error as? LocalSummaryRuntimeError, .outputLimitExceeded)
-                case "malformed": XCTAssertEqual(error as? NarrativeSummaryError, .invalidResponse)
                 case "cancel": XCTAssertTrue(error is CancellationError)
                 case "memory": XCTAssertEqual(error as? LocalSummaryRuntimeError, .contextUnavailable)
                 default: XCTAssertEqual(error as? NarrativeSummaryError, .unsupportedEvidence)
                 }
             }
             let calls = await boundary.calls
-            XCTAssertEqual(calls.count, failure == "limit" || failure == "malformed" ? 4 : 1)
+            XCTAssertEqual(calls.count, 1)
             let snapshot = await pipeline.snapshot()
             XCTAssertNil(snapshot.result)
             XCTAssertEqual(snapshot.phase, failure == "cancel" ? .cancelled : .failed)
@@ -95,9 +109,9 @@ final class AdaptiveSummaryPipelineTests: XCTestCase {
             let root = parent.appendingPathComponent("narrative-checkpoint-regression-\(UUID().uuidString)")
             try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
             defer {
-                if root.deletingLastPathComponent() == parent,
+                if root.deletingLastPathComponent().standardizedFileURL.path == parent.path,
                    root.lastPathComponent.hasPrefix("narrative-checkpoint-regression-"),
-                   root.resolvingSymlinksInPath().standardizedFileURL == root {
+                   root.resolvingSymlinksInPath().standardizedFileURL.path == root.standardizedFileURL.path {
                     try? FileManager.default.removeItem(at: root)
                 } else { XCTFail("Refuse to remove a checkpoint fixture outside its owned directory") }
             }
@@ -494,6 +508,7 @@ private actor AdaptiveBoundary {
             case "cancel": throw CancellationError()
             case "memory": throw LocalSummaryRuntimeError.contextUnavailable
             case "source": throw NarrativeSummaryError.unsupportedEvidence
+            case "review": throw NarrativeSummaryError.reviewRejected
             default: break
             }
             if let maximumDraftUnits, ids.count > maximumDraftUnits { throw LocalSummaryRuntimeError.outputLimitExceeded }

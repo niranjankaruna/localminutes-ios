@@ -5,8 +5,9 @@ import Foundation
 public struct NarrativeSummaryParagraph: Equatable, Sendable {
     public let text: String
     public let evidence: [GroundedSummaryEvidence]
-    public init(text: String, evidence: [GroundedSummaryEvidence]) {
-        self.text = text; self.evidence = evidence
+    public let isSourceExcerpt: Bool
+    public init(text: String, evidence: [GroundedSummaryEvidence], isSourceExcerpt: Bool = false) {
+        self.text = text; self.evidence = evidence; self.isSourceExcerpt = isSourceExcerpt
     }
 }
 
@@ -35,7 +36,15 @@ struct NarrativeSourceUnit: Codable, Equatable, Sendable {
 struct NarrativeDraftParagraph: Codable, Equatable, Sendable {
     let text: String
     let sourceIDs: [Int]
+    // App-owned only: model JSON cannot set this flag. Excerpts are rebuilt and
+    // verified against original source bytes before bypassing model review.
+    var isSourceExcerpt = false
     enum CodingKeys: String, CodingKey { case text; case sourceIDs = "source_ids" }
+
+    var uniqueReferences: Self {
+        var seen: Set<Int> = []
+        return .init(text: text, sourceIDs: sourceIDs.filter { seen.insert($0).inserted }, isSourceExcerpt: isSourceExcerpt)
+    }
 }
 
 struct NarrativeSummaryDraft: Codable, Equatable, Sendable {
@@ -44,5 +53,5 @@ struct NarrativeSummaryDraft: Codable, Equatable, Sendable {
 }
 
 public enum NarrativeSummaryError: Error, Equatable, Sendable {
-    case invalidConfiguration, invalidTokenCount, invalidResponse, unsupportedEvidence, contextExceeded, limitExceeded, alreadyRunning
+    case invalidConfiguration, invalidTokenCount, invalidResponse, unsupportedEvidence, reviewRejected, contextExceeded, limitExceeded, alreadyRunning
 }

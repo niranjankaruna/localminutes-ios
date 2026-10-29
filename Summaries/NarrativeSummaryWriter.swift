@@ -74,9 +74,10 @@ struct NarrativeSummaryWriter: Sendable {
                   let rows = object["bullets"] as? [[String: Any]], !rows.isEmpty, rows.count <= bulletLimit,
                   rows.allSatisfy(Self.hasParagraphShape),
                   let overview = object["overview"] as? [String: Any], Self.hasParagraphShape(overview),
-                  let decoded = try? JSONDecoder().decode(NarrativeSummaryDraft.self, from: data) else {
+                  let raw = try? JSONDecoder().decode(NarrativeSummaryDraft.self, from: data) else {
                 throw NarrativeSummaryError.invalidResponse
             }
+            let decoded = NarrativeSummaryDraft(bullets: raw.bullets.map(\.uniqueReferences), overview: raw.overview.uniqueReferences)
             // Check every reference before spending any inference on review.
             for paragraph in decoded.bullets + [decoded.overview] { try validate(paragraph, units: units) }
             return decoded
@@ -197,6 +198,11 @@ struct NarrativeSummaryWriter: Sendable {
     func checked(_ paragraph: NarrativeDraftParagraph, units: [NarrativeSourceUnit],
                  notes: String, progress: SummaryWorkScope? = nil) async throws -> NarrativeDraftParagraph {
         try validate(paragraph, units: units)
+        if paragraph.isSourceExcerpt {
+            try NarrativeSourceExcerpt.validate(paragraph, units: units)
+            progress?.complete(.checking)
+            return paragraph
+        }
         guard try await canReview(paragraph: paragraph, units: units, notes: notes) else {
             throw NarrativeSummaryError.contextExceeded
         }
@@ -211,7 +217,7 @@ struct NarrativeSummaryWriter: Sendable {
             prompt: repairPrompt(paragraph, issues: verdict.issues, units: units, notes: notes), units: units,
             progress: progress?.child(0.6, 0.85), phase: .correcting)
         let recheck = try await review(repaired, units: units, notes: notes, progress: progress?.child(0.85, 1))
-        guard recheck.supported else { throw NarrativeSummaryError.unsupportedEvidence }
+        guard recheck.supported else { throw NarrativeSummaryError.reviewRejected }
         progress?.complete(.checking)
         return repaired
     }
@@ -225,8 +231,8 @@ struct NarrativeSummaryWriter: Sendable {
         evidence cannot establish it. Do not replace synthesis with copied quotes.
         If the input has separate overview points on separate lines, preserve
         that line-separated structure when correcting them.
-        If no substantive supported paragraph remains, return empty text and IDs
-        so the application can report that generation failed.
+        Return a concise statement supported by the sources. Do not invent facts
+        to fill the response or return empty text or empty source IDs.
         \(Self.writingRules)
         Return one paragraph object with fields text (your actual corrected string)
         then source_ids (the numeric IDs supporting it).
@@ -284,9 +290,10 @@ struct NarrativeSummaryWriter: Sendable {
         return try await generate(prompt: prompt, schema: schema, outputTokens: budget.writingTokens,
                                       progress: progress, phase: phase) { data in
             guard let object = try jsonObject(data), Self.hasParagraphShape(object),
-                  let paragraph = try? JSONDecoder().decode(NarrativeDraftParagraph.self, from: data) else {
+                  let raw = try? JSONDecoder().decode(NarrativeDraftParagraph.self, from: data) else {
                 throw NarrativeSummaryError.invalidResponse
             }
+            let paragraph = raw.uniqueReferences
             try validate(paragraph, units: units)
             return paragraph
         }

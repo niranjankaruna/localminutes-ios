@@ -441,7 +441,7 @@ public final class IntelligenceSession {
     private static func document(summary: NarrativeSummary, request: IntelligenceRequest,
                                  revision: String, meetingStartedAt: Date) throws -> StoredGeneratedDocument {
         func paragraph(_ value: NarrativeSummaryParagraph) -> [String: Any] {
-            ["text": value.text, "evidence": value.evidence.map { evidence($0) }]
+            ["text": value.text, "evidence": value.evidence.map { evidence($0) }, "source_excerpt": value.isSourceExcerpt]
         }
         let origin = summary.provenance
         let overviewItems = SummaryOverviewFormatting.meetingDetails(startedAt: meetingStartedAt)

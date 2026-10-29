@@ -2,6 +2,13 @@ name: Run all tests
 
 on:
   workflow_dispatch:
+    inputs:
+      scope:
+        description: Full application suite or focused summary validation
+        required: true
+        default: all
+        type: choice
+        options: [all, summaries]
 
 permissions:
   contents: read
@@ -14,7 +21,78 @@ env:
   DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
 
 jobs:
+  summary-ios:
+    name: iOS summary integration build
+    if: inputs.scope == 'summaries'
+    needs: summary-contracts
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare iOS project and native framework
+        run: bash scripts/prepare-ios.sh --device-only
+      - name: Compile the iPhone app with summary recovery
+        run: |
+          xcodebuild -quiet -project LocalMinutes.xcodeproj -scheme LocalMinutes -configuration Release \
+            -destination 'generic/platform=iOS' -derivedDataPath build/device \
+            -clonedSourcePackagesDirPath .agent-local/source-packages \
+            CODE_SIGNING_ALLOWED=NO LOCALMINUTES_SOURCE_COMMIT="$GITHUB_SHA" build
+
+  summary-contracts:
+    name: Summary recovery, cancellation and persistence
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare pinned native library
+        run: python3 scripts/fixtures/prepare_native_summary.py --framework-only
+      - name: Compile and run summary contract tests
+        run: |
+          mkdir -p .build
+          swift test --filter '(NarrativeSummaryWriterTests|AdaptiveSummaryPipelineTests|NarrativeSourcePlannerTests|StructuredJSONSchemaTests|NestedStructuredSchemaTests|SummaryWorkProgressTests|SummaryOverviewFormattingTests|SummaryResumeIntelligenceTests|SummaryFallbackIntelligenceTests|IntelligenceSessionTests|IntelligenceFailureMessageTests|SummaryCheckpointStoreTests)' 2>&1 | tee .build/summary-unit-tests.log
+          node scripts/verify-test-log.mjs .build/summary-unit-tests.log
+
+  summaries:
+    name: Complete summary flow — ${{ matrix.variant }}
+    needs: summary-contracts
+    runs-on: macos-15
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [qwen2.5-0.5b-instruct-q4_k_m, qwen3-0.6b-q8_0]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare pinned native runtime and selected small model
+        env:
+          CATALOG_VARIANT: ${{ matrix.variant }}
+        run: |
+          python3 scripts/fixtures/prepare_native_summary.py --framework-only
+          node scripts/fixtures/prepare_catalog_model.mjs --variant "$CATALOG_VARIANT" > .agent-local/catalog-fixture.json
+          node --input-type=module <<'JS'
+          import { appendFileSync, readFileSync } from 'node:fs';
+          const fixture = JSON.parse(readFileSync('.agent-local/catalog-fixture.json', 'utf8'));
+          appendFileSync(process.env.GITHUB_ENV,
+            'LOCALMINUTES_CATALOG_VARIANT_ID=' + fixture.variantID + '\n' +
+            'LOCALMINUTES_CATALOG_MODEL_PATH=' + fixture.modelPath + '\n');
+          JS
+      - name: Run actual selected-model summaries through SQLite save and reopen
+        run: |
+          mkdir -p .build
+          swift test --filter ActualSummaryEndToEndTests 2>&1 | tee .build/summary-native-tests.log
+          node scripts/verify-test-log.mjs .build/summary-native-tests.log
+
   swift:
+    if: inputs.scope != 'summaries'
     name: Swift, native models, and script tests
     runs-on: macos-15
     timeout-minutes: 120
@@ -41,13 +119,14 @@ jobs:
       - name: Run SwiftPM tests (catalogue inference runs in its required matrix)
         run: |
           mkdir -p .build
-          swift test --skip ActualCatalogAdapterIntegrationTests 2>&1 | tee .build/tests.log
+          swift test --skip '(ActualCatalogAdapterIntegrationTests|ActualSummaryEndToEndTests)' 2>&1 | tee .build/tests.log
           node scripts/verify-test-log.mjs .build/tests.log
       - name: Run script tests
         if: ${{ !cancelled() }}
         run: node --test scripts/tests/*.test.mjs
 
   catalog-matrix:
+    if: inputs.scope != 'summaries'
     name: Enumerate reviewed summary model variants
     runs-on: ubuntu-latest
     outputs:
@@ -103,6 +182,7 @@ jobs:
           node scripts/verify-test-log.mjs .build/catalog-tests.log
 
   ios:
+    if: inputs.scope != 'summaries'
     name: iOS app, UI, and packaging tests
     runs-on: macos-15
     timeout-minutes: 120

@@ -263,10 +263,30 @@ public actor LocalSummaryRuntime: SummaryModelRuntime {
         llama_sampler_chain_add(sampler, grammarSampler)
         guard let greedy = llama_sampler_init_greedy() else { throw failure(.greedySampler) }
         llama_sampler_chain_add(sampler, greedy)
+        guard let probe = llama_sampler_init_greedy() else { throw failure(.greedySampler) }
+        defer { llama_sampler_free(probe) }
 
         for _ in 0..<maximumTokens {
             try checkCancellation(cancellation)
-            let token = llama_sampler_sample(sampler, context, -1)
+            // Match llama.cpp's grammar rejection fast path: check the greedy
+            // candidate alone first, then mask the full vocabulary only when
+            // that candidate is forbidden. The chosen token is still exactly
+            // the highest-logit permitted token, and grammar state advances once.
+            let candidate = llama_sampler_sample(probe, context, -1)
+            var candidateData = llama_token_data(id: candidate, logit: 1, p: 0)
+            let allowed = withUnsafeMutablePointer(to: &candidateData) { pointer in
+                var single = llama_token_data_array(data: pointer, size: 1, selected: -1, sorted: false)
+                llama_sampler_apply(grammarSampler, &single)
+                return pointer.pointee.logit.isFinite
+            }
+            try checkCancellation(cancellation)
+            let token: llama_token
+            if allowed {
+                token = candidate
+                llama_sampler_accept(sampler, token)
+            } else {
+                token = llama_sampler_sample(sampler, context, -1)
+            }
             if llama_vocab_is_eog(resources.vocabulary, token) { endedWithEOG = true; break }
             diagnosticGeneratedTokens += 1
             var piece = [CChar](repeating: 0, count: 512)
