@@ -26,6 +26,10 @@ final class IntelligenceProgressTracker {
     private var measuredWorkSeconds: Double = 0
     private var measuredWorkFraction: Double = 0
     private var lastWorkReportAt: ContinuousClock.Instant?
+    private var completedWorkSamples = 0
+    private var estimateDeadline: ContinuousClock.Instant?
+    private var lastEstimateUpdate: ContinuousClock.Instant?
+    private var recalibratingEstimate = false
 
     init(operation: IntelligenceOperation, startedAt: ContinuousClock.Instant = .now) {
         self.operation = operation; self.startedAt = startedAt
@@ -67,6 +71,8 @@ final class IntelligenceProgressTracker {
                     // A successful check also retires its unused repair budget.
                     measuredWorkFraction = measuredWorkFraction * 0.8
                         + work.completedFraction - previous.completedFraction
+                    completedWorkSamples += 1
+                    updateSummaryEstimate(completedFraction: work.completedFraction, at: now)
                 }
             }
             currentWork = work
@@ -110,24 +116,48 @@ final class IntelligenceProgressTracker {
         let elapsed = max(0, startedAt.duration(to: finishedAt ?? max(startedAt, now)).components.seconds)
         let remaining = estimate(at: now)
         return .init(fraction: fraction, percentage: succeeded == true ? 100 : min(99, Int(fraction * 100)),
-            elapsedSeconds: elapsed, remainingSeconds: remaining, finished: finishedAt != nil)
+            elapsedSeconds: elapsed, remainingSeconds: remaining, finished: finishedAt != nil,
+            reestimating: currentWork != nil && (recalibratingEstimate
+                || estimateDeadline.map { Self.seconds(now.duration(to: $0)) <= 5 } == true))
+    }
+
+    /// Calibrate from several complete operations, never a handful of tokens
+    /// divided by a tiny weighted progress slice. A deadline provides a steady
+    /// countdown between samples. Small corrections cannot make it count up.
+    private func updateSummaryEstimate(completedFraction: Double, at now: ContinuousClock.Instant) {
+        guard completedWorkSamples >= 3, measuredWorkSeconds >= 15, measuredWorkFraction > 0,
+              completedFraction < 0.999 else { return }
+        let remaining = (1 - completedFraction) * measuredWorkSeconds / measuredWorkFraction + 3
+        guard remaining.isFinite, remaining > 5, remaining < 86_400 else { return }
+        if let deadline = estimateDeadline, let updated = lastEstimateUpdate {
+            let previousRemaining = Self.seconds(now.duration(to: deadline))
+            // A major slowdown or an expired estimate needs new evidence, not
+            // a jump from minutes to hours or a countdown stuck at one second.
+            if previousRemaining <= 5 || remaining > max(previousRemaining * 1.5, previousRemaining + 60) {
+                estimateDeadline = nil; lastEstimateUpdate = nil
+                completedWorkSamples = 0
+                measuredWorkSeconds = 0; measuredWorkFraction = 0
+                recalibratingEstimate = true
+                return
+            }
+            let elapsed = max(0, Self.seconds(updated.duration(to: now)))
+            let correction = min(elapsed * 0.25, max(-elapsed * 0.25, (remaining - previousRemaining) * 0.2))
+            estimateDeadline = deadline.advanced(by: .seconds(correction))
+        } else {
+            estimateDeadline = now.advanced(by: .seconds(remaining))
+        }
+        lastEstimateUpdate = now
+        recalibratingEstimate = false
     }
 
     private func estimate(at now: ContinuousClock.Instant) -> Int64? {
         if currentWork != nil {
             guard finishedAt == nil, stage != .saving, let lastWorkReportAt,
                   Self.seconds(lastWorkReportAt.duration(to: now)) <= 15 else { return nil }
-            if measuredWorkFraction > 0 {
-                let fraction = Double(progress.completedUnitCount) / Double(progress.totalUnitCount)
-                let remainingWork = max(0.01, (0.98 - fraction) / 0.88)
-                let seconds = remainingWork * measuredWorkSeconds / measuredWorkFraction
-                guard seconds.isFinite, seconds < 86_400 else { return nil }
-                // A token ceiling is not a known completion length. Do not
-                // count down between reports or reach zero before the save.
-                return Int64(max(1, seconds.rounded(.up)))
-            }
-            // Never extrapolate fast prompt ingestion over future writing.
-            guard stage == .writing else { return nil }
+            guard let deadline = estimateDeadline else { return nil }
+            let seconds = Self.seconds(now.duration(to: deadline))
+            guard seconds > 5 else { return nil }
+            return Int64(seconds.rounded(.up))
         }
         guard finishedAt == nil, samples.count >= 2, let first = samples.first, let last = samples.last else { return nil }
         let measuredSeconds = Self.seconds(first.time.duration(to: last.time))
@@ -151,16 +181,19 @@ struct IntelligenceProgressDisplay {
     let elapsedSeconds: Int64
     let remainingSeconds: Int64?
     let finished: Bool
+    var reestimating = false
 
     var elapsedText: String { MinutesStyle.duration(seconds: elapsedSeconds) }
     var remainingText: String {
-        remainingSeconds.map { "About \(MinutesStyle.duration(seconds: $0))" } ?? "Estimating…"
+        remainingSeconds.map { "About \(MinutesStyle.duration(seconds: $0))" }
+            ?? (reestimating ? "Re-estimating…" : "Estimating…")
     }
     var notificationSubtitle: String {
         if finished {
             return "\(percentage)% · \(elapsedText) elapsed · \(percentage == 100 ? "Complete" : "Stopped")"
         }
-        let remaining = remainingSeconds.map { "~\(MinutesStyle.duration(seconds: $0)) left" } ?? "Estimating…"
+        let remaining = remainingSeconds.map { "~\(MinutesStyle.duration(seconds: $0)) left" }
+            ?? (reestimating ? "Re-estimating…" : "Estimating…")
         return "\(percentage)% · \(elapsedText) elapsed · \(remaining)"
     }
 }

@@ -131,11 +131,10 @@ public actor AdaptiveSummaryPipeline {
                 } else if direct {
                     current = [.init(label: "Meeting discussion", sourceIDs: units.map(\.id))]
                 } else {
-                    work.child(0.25 * Double(index) / Double(batches.count),
-                        0.25 * Double(index + 1) / Double(batches.count)).begin(.indexing)
-                    let schema = Self.indexSchema(ids: batch.units.map(\.id))
-                    let response = try await bounded(batch.prompt, schema, budget.readingTokens)
-                    current = try Self.decodeIndex(Data(response.utf8), units: batch.units)
+                    let sectionWork = work.child(0.25 * Double(index) / Double(batches.count),
+                        0.25 * Double(index + 1) / Double(batches.count)).counted(item: index + 1, total: batches.count)
+                    current = try await indexTopics(batch.units, prompt: batch.prompt, notes: source.originalManualNotes,
+                        budget: budget, generator: bounded, progress: sectionWork)
                 }
                 if index >= recovered.count, let resume, let identity {
                     let bytes = try Self.encoded(IndexEnvelope(schemaVersion: 2, meetingID: selectedMeetingID, topics: current))
@@ -162,7 +161,7 @@ public actor AdaptiveSummaryPipeline {
                 consolidationProgress?(0, merged.count + 1)
                 for (index, topic) in merged.enumerated() {
                     let topicWork = work.child(0.3 + 0.55 * Double(index) / Double(merged.count),
-                        0.3 + 0.55 * Double(index + 1) / Double(merged.count))
+                        0.3 + 0.55 * Double(index + 1) / Double(merged.count)).counted(item: index + 1, total: merged.count)
                     try Task.checkCancellation()
                     let topicUnits = units.filter { topic.sourceIDs.contains($0.id) }
                     let packets = try await writingPackets(topicUnits, allUnits: units, topic: topic.label,
@@ -301,18 +300,57 @@ public actor AdaptiveSummaryPipeline {
         .init(fields: [.init(name: "topics", type: .array(element: .object([
             .init(name: "label", type: .string),
             .init(name: "source_ids", type: .array(element: .integerEnumeration(ids.map(Int64.init)), maximumItems: ids.count))
-        ]), maximumItems: min(16, ids.count)))], promptIncludesSchema: true)
+        ]), maximumItems: min(16, ids.count)))], promptIncludesSchema: true, compactWhitespace: true)
+    }
+
+    /// Topic indexes route original sources, not final claims. Retry an invalid
+    /// index on smaller complete packets, then retain an unclassified packet
+    /// instead of losing the meeting. Final prose still undergoes source checks.
+    private func indexTopics(_ units: [NarrativeSourceUnit], prompt: String, notes: String,
+                       budget: NarrativeSummaryBudget, generator: SummaryMapJSONGenerator,
+                       progress: SummaryWorkScope, depth: Int = 0) async throws -> [Topic] {
+        progress.child(0, 0.5).begin(.indexing)
+        do {
+            let response = try await generator(prompt, Self.indexSchema(ids: units.map(\.id)), budget.readingTokens)
+            let topics = try Self.decodeIndex(Data(response.utf8), units: units)
+            progress.complete(.indexing)
+            return topics
+        } catch {
+            try Task.checkCancellation()
+            guard Self.recoverableIndexError(error) else { throw error }
+            if units.count > 1, depth < 1 {
+                let middle = units.count / 2
+                let left = Array(units[..<middle])
+                let right = Array(units[middle...])
+                let first = try await indexTopics(left, prompt: Self.indexPrompt(primary: left, context: [], notes: notes),
+                    notes: notes, budget: budget, generator: generator, progress: progress.child(0.5, 0.75), depth: depth + 1)
+                let second = try await indexTopics(right, prompt: Self.indexPrompt(primary: right, context: [], notes: notes),
+                    notes: notes, budget: budget, generator: generator, progress: progress.child(0.75, 1), depth: depth + 1)
+                return Self.mergeLabels(first + second)
+            }
+            progress.complete(.indexing)
+            return [.init(label: "Discussion section \(units.first?.id ?? 0)", sourceIDs: units.map(\.id))]
+        }
+    }
+
+    private static func recoverableIndexError(_ error: Error) -> Bool {
+        switch error {
+        case LocalSummaryRuntimeError.outputLimitExceeded, NarrativeSummaryError.invalidResponse: true
+        default: false
+        }
     }
 
     private static func decodeIndex(_ data: Data, units: [NarrativeSourceUnit]) throws -> [Topic] {
         guard data.count <= 1_048_576,
-              let object = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let object = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
               Set(object.keys) == ["topics"],
               let rows = object["topics"] as? [[String: Any]],
               rows.allSatisfy({ Set($0.keys) == ["label", "source_ids"] }) else {
             throw NarrativeSummaryError.invalidResponse
         }
-        let response = try JSONDecoder().decode(IndexResponse.self, from: data)
+        guard let response = try? JSONDecoder().decode(IndexResponse.self, from: data) else {
+            throw NarrativeSummaryError.invalidResponse
+        }
         guard response.topics.count <= min(16, units.count) else { throw NarrativeSummaryError.invalidResponse }
         try validateTopics(response.topics, units: units, requireCoverage: false)
         let covered = Set(response.topics.flatMap(\.sourceIDs))
@@ -414,19 +452,33 @@ public actor AdaptiveSummaryPipeline {
 
     private func group(_ topics: [Topic], prompt: String, budget: NarrativeSummaryBudget,
                        generator: SummaryMapJSONGenerator) async throws -> [Topic] {
+        do { return try await grouped(topics, prompt: prompt, budget: budget, generator: generator) }
+        catch {
+            try Task.checkCancellation()
+            guard Self.recoverableIndexError(error) else { throw error }
+            // Failed grouping is not a reason to discard source-linked topics.
+            return topics
+        }
+    }
+
+    private func grouped(_ topics: [Topic], prompt: String, budget: NarrativeSummaryBudget,
+                         generator: SummaryMapJSONGenerator) async throws -> [Topic] {
         let schema = StructuredJSONSchema(fields: [.init(name: "groups", type: .array(element: .object([
             .init(name: "label", type: .string),
             .init(name: "topic_ids", type: .array(element: .integerEnumeration(topics.indices.map(Int64.init)), maximumItems: topics.count))
-        ]), maximumItems: topics.count))], promptIncludesSchema: true)
+        ]), maximumItems: topics.count))], promptIncludesSchema: true, compactWhitespace: true)
         let json = try await generator(prompt, schema, budget.readingTokens)
         let data = Data(json.utf8)
         guard data.count <= 1_048_576,
-              let object = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let object = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
               Set(object.keys) == ["groups"], let rows = object["groups"] as? [[String: Any]],
               rows.allSatisfy({ Set($0.keys) == ["label", "topic_ids"] }) else {
             throw NarrativeSummaryError.invalidResponse
         }
-        let groups = try JSONDecoder().decode(GroupResponse.self, from: data).groups
+        guard let response = try? JSONDecoder().decode(GroupResponse.self, from: data) else {
+            throw NarrativeSummaryError.invalidResponse
+        }
+        let groups = response.groups
         var seen: Set<Int> = []
         var result: [Topic] = []
         for group in groups {

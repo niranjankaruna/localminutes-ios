@@ -27,7 +27,7 @@ public enum IntelligenceProgress: Equatable, Sendable {
         case .answering: return "Reading meeting evidence…"
         case .generating(.promptTokens): return "Reading meeting text…"
         case .generationStarted: return "Reading meeting text…"
-        case .summaryWork(let work): return work.phase.message
+        case .summaryWork(let work): return work.message
         case .generating(.responseTokens): return "Writing a response…"
         case .consolidatingSummary: return "Writing the meeting summary and checking its sources…"
         case .saving: return "Saving on this iPhone…"

@@ -30,11 +30,21 @@ public struct SummaryWorkProgress: Equatable, Sendable {
     public let phase: SummaryWorkPhase
     public let completedFraction: Double
     public let operationFraction: Double
+    public let item: Int?
+    public let totalItems: Int?
 
-    public init(phase: SummaryWorkPhase, completedFraction: Double, operationFraction: Double) {
+    public init(phase: SummaryWorkPhase, completedFraction: Double, operationFraction: Double,
+                item: Int? = nil, totalItems: Int? = nil) {
         self.phase = phase
         self.completedFraction = completedFraction
         self.operationFraction = operationFraction
+        self.item = item; self.totalItems = totalItems
+    }
+
+    public var message: String {
+        guard let item, let totalItems, item > 0, item <= totalItems else { return phase.message }
+        let unit = phase == .indexing ? "section" : "topic"
+        return phase.message.replacingOccurrences(of: "…", with: "") + " — \(unit) \(item) of \(totalItems)…"
     }
 }
 
@@ -42,16 +52,23 @@ struct SummaryWorkScope: Sendable {
     let report: (@Sendable (SummaryWorkProgress) -> Void)?
     var start: Double = 0
     var span: Double = 1
+    var item: Int? = nil
+    var totalItems: Int? = nil
 
     func child(_ lower: Double, _ upper: Double) -> Self {
-        .init(report: report, start: start + lower * span, span: (upper - lower) * span)
+        .init(report: report, start: start + lower * span, span: (upper - lower) * span,
+            item: item, totalItems: totalItems)
+    }
+
+    func counted(item: Int, total: Int) -> Self {
+        .init(report: report, start: start, span: span, item: item, totalItems: total)
     }
 
     func begin(_ phase: SummaryWorkPhase) {
-        report?(.init(phase: phase, completedFraction: start, operationFraction: span))
+        report?(.init(phase: phase, completedFraction: start, operationFraction: span, item: item, totalItems: totalItems))
     }
 
     func complete(_ phase: SummaryWorkPhase) {
-        report?(.init(phase: phase, completedFraction: start + span, operationFraction: 0))
+        report?(.init(phase: phase, completedFraction: start + span, operationFraction: 0, item: item, totalItems: totalItems))
     }
 }

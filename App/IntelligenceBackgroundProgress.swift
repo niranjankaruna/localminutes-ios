@@ -104,7 +104,7 @@ struct IntelligenceBackgroundProgress {
         guard units >= completedUnitCount else { return false }
         completedUnitCount = units
         if case .saving = value { detail = value.message }
-        else { detail = summaryWork?.phase.message ?? value.message }
+        else { detail = summaryWork?.message ?? value.message }
         return true
     }
 

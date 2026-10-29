@@ -38,17 +38,64 @@ final class NativeIntelligenceTimingTests: XCTestCase {
         let tracker = IntelligenceProgressTracker(operation: .summary, startedAt: start)
         tracker.report(.summaryWork(.init(phase: .indexing, completedFraction: 0.25, operationFraction: 0)), at: start)
         XCTAssertNil(tracker.display(at: start).remainingSeconds)
-        tracker.report(.summaryWork(.init(phase: .writing, completedFraction: 0.3, operationFraction: 0.2)), at: start)
+        tracker.report(.summaryWork(.init(phase: .writing, completedFraction: 0.3, operationFraction: 0.1)), at: start)
         tracker.report(.generating(.promptTokens(completed: 0, total: 100)), at: start)
         tracker.report(.generating(.promptTokens(completed: 100, total: 100)), at: start.advanced(by: .seconds(4)))
         XCTAssertNil(tracker.display(at: start.advanced(by: .seconds(4))).remainingSeconds)
-        tracker.report(.summaryWork(.init(phase: .checking, completedFraction: 0.5, operationFraction: 0.1)),
+        tracker.report(.summaryWork(.init(phase: .checking, completedFraction: 0.4, operationFraction: 0.1)),
             at: start.advanced(by: .seconds(20)))
-        let estimate = try XCTUnwrap(tracker.display(at: start.advanced(by: .seconds(20))).remainingSeconds)
-        XCTAssertLessThanOrEqual(abs(estimate - 50), 1)
-        XCTAssertEqual(tracker.display(at: start.advanced(by: .seconds(25))).remainingSeconds, estimate,
-            "Time alone must not count an estimate down toward zero")
+        XCTAssertNil(tracker.display(at: start.advanced(by: .seconds(20))).remainingSeconds,
+            "One completed call is too little evidence for a whole-meeting ETA")
+        tracker.report(.summaryWork(.init(phase: .checking, completedFraction: 0.5, operationFraction: 0.1)),
+            at: start.advanced(by: .seconds(40)))
         XCTAssertNil(tracker.display(at: start.advanced(by: .seconds(40))).remainingSeconds)
+        tracker.report(.summaryWork(.init(phase: .writing, completedFraction: 0.6, operationFraction: 0.1)),
+            at: start.advanced(by: .seconds(60)))
+        let estimate = try XCTUnwrap(tracker.display(at: start.advanced(by: .seconds(60))).remainingSeconds)
+        XCTAssertLessThanOrEqual(abs(estimate - 83), 1)
+        let later = try XCTUnwrap(tracker.display(at: start.advanced(by: .seconds(65))).remainingSeconds)
+        XCTAssertEqual(later, estimate - 5, "A calibrated deadline counts down steadily")
+        XCTAssertNil(tracker.display(at: start.advanced(by: .seconds(80))).remainingSeconds,
+            "Stale native work must not continue promising a countdown")
+    }
+
+    func testTokenBurstsDoNotProduceHoursOfEstimatedTimeOrChangeCalibratedDeadline() throws {
+        let start = ContinuousClock.now
+        let tracker = IntelligenceProgressTracker(operation: .summary, startedAt: start)
+        tracker.report(.summaryWork(.init(phase: .indexing, completedFraction: 0, operationFraction: 0.001,
+            item: 1, totalItems: 20)), at: start)
+        tracker.report(.generating(.responseTokens(completed: 1, limit: 1_024)), at: start.advanced(by: .seconds(1)))
+        tracker.report(.generating(.responseTokens(completed: 4, limit: 1_024)), at: start.advanced(by: .seconds(12)))
+        XCTAssertNil(tracker.display(at: start.advanced(by: .seconds(12))).remainingSeconds)
+        XCTAssertEqual(tracker.detail, "Finding meeting topics — section 1 of 20…")
+
+        let calibrated = IntelligenceProgressTracker(operation: .summary, startedAt: start)
+        for index in 0...3 {
+            calibrated.report(.summaryWork(.init(phase: .writing, completedFraction: Double(index) / 10,
+                operationFraction: 0.1)), at: start.advanced(by: .seconds(index * 10)))
+        }
+        let before = try XCTUnwrap(calibrated.display(at: start.advanced(by: .seconds(30))).remainingSeconds)
+        calibrated.report(.generating(.responseTokens(completed: 1, limit: 1_024)), at: start.advanced(by: .seconds(31)))
+        calibrated.report(.generating(.responseTokens(completed: 900, limit: 1_024)), at: start.advanced(by: .seconds(35)))
+        let after = try XCTUnwrap(calibrated.display(at: start.advanced(by: .seconds(35))).remainingSeconds)
+        XCTAssertEqual(after, before - 5, "Output token bursts must not recalculate the whole-meeting estimate")
+    }
+
+    func testMajorSlowdownRecalibratesInsteadOfJumpingOrStallingAtOneSecond() throws {
+        let start = ContinuousClock.now
+        let tracker = IntelligenceProgressTracker(operation: .summary, startedAt: start)
+        for index in 0...3 {
+            tracker.report(.summaryWork(.init(phase: .writing, completedFraction: Double(index) / 10,
+                operationFraction: 0.1)), at: start.advanced(by: .seconds(index * 10)))
+        }
+        XCTAssertNotNil(tracker.display(at: start.advanced(by: .seconds(30))).remainingSeconds)
+        tracker.report(.summaryWork(.init(phase: .checking, completedFraction: 0.4, operationFraction: 0.1)),
+            at: start.advanced(by: .seconds(90)))
+        let revised = tracker.display(at: start.advanced(by: .seconds(90)))
+        XCTAssertNil(revised.remainingSeconds)
+        XCTAssertEqual(revised.remainingText, "Re-estimating…")
+        tracker.finish(success: false, at: start.advanced(by: .seconds(92)))
+        XCTAssertNil(tracker.display(at: start.advanced(by: .seconds(100))).remainingSeconds)
     }
 
     func testPlanningAndFinalPassAdvanceWhileGenerationRemainsBelowCompletion() {

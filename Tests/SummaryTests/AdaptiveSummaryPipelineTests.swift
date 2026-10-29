@@ -7,6 +7,56 @@ import LocalMinutesPersistence
 /// tests do not measure the selected models' narrative or reasoning quality.
 @MainActor
 final class AdaptiveSummaryPipelineTests: XCTestCase {
+    func testMalformedAndOverBudgetIndexesRecoverWithoutDroppingSourceOrCheckpointCoverage() async throws {
+        for failure in ["limit", "malformed"] {
+            let source = adaptiveSource(count: 24)
+            let boundary = AdaptiveBoundary(indexFailure: failure, groupingFailure: true)
+            let store = AdaptiveCheckpointBoundary()
+            let events = SummaryWorkRecorder()
+            let pipeline = adaptivePipeline(boundary: boundary, unitTokens: 250, store: store,
+                workProgress: { events.append($0) })
+            let result = try await pipeline.summarize(selectedMeetingID: source.meetingID, source: source)
+            XCTAssertFalse(result.bullets.isEmpty)
+            let calls = await boundary.calls
+            let expected = Set(try NarrativeSourcePlanner.units(source: source).map(\.id))
+            let written = Set(calls.filter { $0.marker == "NARRATIVE_DRAFT" }.flatMap(\.ids))
+            XCTAssertEqual(written, expected, "Routing failures must preserve every original source for prose generation")
+            let checkpoint = await store.snapshot()
+            let maps = try XCTUnwrap(checkpoint).maps
+            XCTAssertLessThanOrEqual(calls.filter { $0.marker == "NARRATIVE_INDEX" }.count, maps.count * 3,
+                "Index recovery permits only one subdivision, rather than repeatedly retrying slow calls")
+            let compact = await boundary.compactRoutingSchemas
+            XCTAssertFalse(compact.isEmpty)
+            XCTAssertTrue(compact.allSatisfy { $0 })
+            XCTAssertTrue(events.values.contains { $0.phase == .indexing && $0.totalItems != nil })
+            for (previous, next) in zip(events.values, events.values.dropFirst()) {
+                XCTAssertGreaterThanOrEqual(next.completedFraction + 0.000001, previous.completedFraction)
+            }
+            let resumed = AdaptiveBoundary()
+            _ = try await adaptivePipeline(boundary: resumed, unitTokens: 250, store: store)
+                .summarize(selectedMeetingID: source.meetingID, source: source)
+            let resumedCalls = await resumed.calls
+            XCTAssertFalse(resumedCalls.contains { $0.marker == "NARRATIVE_INDEX" })
+        }
+    }
+
+    func testIndexRecoveryDoesNotSwallowCancellationOrMemoryFailures() async throws {
+        for failure in ["cancel", "memory"] {
+            let source = adaptiveSource(count: 12)
+            let boundary = AdaptiveBoundary(indexFailure: failure)
+            do {
+                _ = try await adaptivePipeline(boundary: boundary, unitTokens: 400)
+                    .summarize(selectedMeetingID: source.meetingID, source: source)
+                XCTFail("An execution failure must stop the pipeline")
+            } catch {
+                if failure == "cancel" { XCTAssertTrue(error is CancellationError) }
+                else { XCTAssertEqual(error as? LocalSummaryRuntimeError, .contextUnavailable) }
+            }
+            let calls = await boundary.calls
+            XCTAssertEqual(calls.count, 1)
+        }
+    }
+
     func testProgressCoversDirectAndIndexedWritingAndEverySourceReview() async throws {
         for count in [2, 12] {
             let source = adaptiveSource(count: count)
@@ -294,12 +344,17 @@ private actor AdaptiveBoundary {
     let holdSecondIndex: Bool
     let omitLastIndexedID: Bool
     let repairLateReview: Bool
+    let indexFailure: String?
+    let groupingFailure: Bool
+    private(set) var compactRoutingSchemas: [Bool] = []
     private(set) var held = false
     private(set) var calls: [AdaptiveCall] = []
     private var indexCount = 0
-    init(holdSecondIndex: Bool = false, omitLastIndexedID: Bool = false, repairLateReview: Bool = false) {
+    init(holdSecondIndex: Bool = false, omitLastIndexedID: Bool = false, repairLateReview: Bool = false,
+         indexFailure: String? = nil, groupingFailure: Bool = false) {
         self.holdSecondIndex = holdSecondIndex; self.omitLastIndexedID = omitLastIndexedID
         self.repairLateReview = repairLateReview
+        self.indexFailure = indexFailure; self.groupingFailure = groupingFailure
     }
 
     func generate(_ prompt: String, schema: StructuredJSONSchema, maximum: Int) async throws -> String {
@@ -309,7 +364,15 @@ private actor AdaptiveBoundary {
         let ids = rows.compactMap { $0["id"] as? Int }
         calls.append(.init(marker: marker, ids: ids, maximum: maximum))
         if marker == "NARRATIVE_INDEX" {
+            compactRoutingSchemas.append(schema.compactWhitespace)
             indexCount += 1
+            switch indexFailure {
+            case "limit": throw LocalSummaryRuntimeError.outputLimitExceeded
+            case "malformed": return "{\"topics\":["
+            case "cancel": throw CancellationError()
+            case "memory": throw LocalSummaryRuntimeError.contextUnavailable
+            default: break
+            }
             if holdSecondIndex, indexCount == 2 {
                 held = true
                 try await Task.sleep(for: .seconds(30))
@@ -319,6 +382,8 @@ private actor AdaptiveBoundary {
             return try adaptiveJSON(["topics": selected.isEmpty ? [] : [["label": label, "source_ids": selected]]])
         }
         if marker == "NARRATIVE_RECONCILE" {
+            compactRoutingSchemas.append(schema.compactWhitespace)
+            if groupingFailure { throw LocalSummaryRuntimeError.outputLimitExceeded }
             let topics = try adaptiveRows(prompt, marker: "TOPICS_JSON")
             return try adaptiveJSON(["groups": [["label": "Project Alpha launch", "topic_ids": topics.compactMap { $0["id"] as? Int }]]])
         }

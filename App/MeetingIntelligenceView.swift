@@ -391,6 +391,9 @@ final class MeetingIntelligenceController {
             } catch {
                 self.message = nil
                 self.errorMessage = IntelligenceFailureMessage.message(for: error)
+                if case .summary = kind {
+                    self.errorMessage = (self.errorMessage ?? "Summary failed.") + "\n\nLast step: " + progress.detail
+                }
             }
             self.finish(owned)
         }
