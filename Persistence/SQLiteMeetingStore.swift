@@ -487,6 +487,41 @@ public actor SQLiteMeetingStore {
         return documents
     }
 
+    /// Delete this meeting's summary history only after the latest displayed
+    /// document and edit revision still match the user's confirmation. Removing
+    /// older versions prevents an earlier summary from resurfacing on reload.
+    @discardableResult
+    public func deleteGeneratedSummaries(meetingID: UUID, expectedDocumentID: UUID,
+                                         expectedRevision: Int64) throws -> Int {
+        guard expectedRevision >= 0 else { throw GeneratedDocumentStoreError.invalidInput }
+        try Task.checkCancellation()
+        let database = try connection.database()
+        var deleted = 0
+        try connection.transaction {
+            try Task.checkCancellation()
+            guard let current = try readGeneratedDocument(id: expectedDocumentID, meetingID: meetingID, database: database) else {
+                throw GeneratedDocumentStoreError.notFound
+            }
+            guard current.kind == .summary else { throw GeneratedDocumentStoreError.invalidInput }
+            guard current.editRevision == expectedRevision else { throw GeneratedDocumentStoreError.staleRevision }
+            let latest = try MeetingSQLiteStatement(database: database, sql:
+                "SELECT id FROM generated_documents WHERE meeting_id=? AND kind=? ORDER BY created_at DESC,id ASC LIMIT 1")
+            try latest.bind(meetingID.uuidString, at: 1)
+            try latest.bind(GeneratedDocumentKind.summary.rawValue, at: 2)
+            guard try latest.next(), try latest.text(at: 0) == expectedDocumentID.uuidString else {
+                throw GeneratedDocumentStoreError.staleRevision
+            }
+            let statement = try MeetingSQLiteStatement(database: database, sql:
+                "DELETE FROM generated_documents WHERE meeting_id=? AND kind=?")
+            try statement.bind(meetingID.uuidString, at: 1)
+            try statement.bind(GeneratedDocumentKind.summary.rawValue, at: 2)
+            try statement.finish()
+            deleted = Int(sqlite3_changes(database))
+            guard deleted > 0 else { throw MeetingStoreError.databaseFailure }
+        }
+        return deleted
+    }
+
     /// Compare-and-swap modifies only the user's display text and edit metadata.
     /// Meeting identity and expected revision are part of the bound SQL update,
     /// inside the same transaction as validation and the returned durable value.

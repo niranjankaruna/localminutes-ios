@@ -40,6 +40,7 @@ final class MeetingIntelligenceController {
     private(set) var isSaving = false
     private(set) var cleanupPending = false
     private(set) var isResetting = false
+    private(set) var isDeletingSummary = false
     private(set) var editConflict = false
     private(set) var citations: [UUID: [MeetingIntelligenceCitation]] = [:]
     var answerDrafts: [UUID: String] = [:]
@@ -61,7 +62,8 @@ final class MeetingIntelligenceController {
         self.meetingID = meetingID
     }
 
-    var busy: Bool { isRunning || cleanupPending || isResetting }
+    var busy: Bool { isRunning || cleanupPending || isResetting || isDeletingSummary }
+    var canDeleteSummary: Bool { summary != nil && !busy && !isSaving && !services.maintainingLibrary }
     func modelSelectionChanged() {
         if services.summaryInstalled { modelRequired = false }
     }
@@ -145,6 +147,7 @@ final class MeetingIntelligenceController {
     }
 
     func load() async {
+        guard !isDeletingSummary else { return }
         let token = UUID()
         loadID = token
         do {
@@ -156,7 +159,7 @@ final class MeetingIntelligenceController {
             if summaries.isEmpty {
                 savedMaps = try? await services.summaryCheckpoints.savedMapCount(jobID: meetingID, meetingID: meetingID)
             } else { savedMaps = nil }
-            guard loadID == token else { return }
+            guard loadID == token, !isDeletingSummary else { return }
             sources = Dictionary(uniqueKeysWithValues: transcript.map { ($0.id, $0) })
             if !hasSummaryEdits && !isSaving {
                 summary = rows.first { $0.kind == .summary }
@@ -181,7 +184,7 @@ final class MeetingIntelligenceController {
             }
             citations = Dictionary(uniqueKeysWithValues: (summaries + answers).map { ($0.id, validatedCitations(in: $0)) })
         } catch {
-            guard loadID == token else { return }
+            guard loadID == token, !isDeletingSummary else { return }
             errorMessage = "Saved generated notes could not be opened. Your original notes and transcript are unchanged."
         }
     }
@@ -201,11 +204,15 @@ final class MeetingIntelligenceController {
     @discardableResult
     func flushSummaryEdits() async -> Bool {
         debounce?.cancel()
+        // A confirmed deletion discards the display draft. Navigation/autosave
+        // must not enqueue a write while that deletion is being committed.
+        guard !isDeletingSummary else { return true }
         while true {
             if let existing = saveOperation {
                 guard await existing.task.value else { return false }
                 continue
             }
+            guard !isDeletingSummary else { return true }
             guard let document = summary, summaryText != document.editedText else { return true }
             guard !editConflict else { return false }
             let text = summaryText
@@ -239,6 +246,44 @@ final class MeetingIntelligenceController {
             saveOperation = (token, task)
             guard await task.value else { return false }
         }
+    }
+
+    @discardableResult
+    func deleteSummary(documentID: UUID, expectedRevision: Int64) async -> Bool {
+        guard canDeleteSummary, let document = summary else { return false }
+        guard document.id == documentID, document.editRevision == expectedRevision else {
+            errorMessage = "This summary changed after the confirmation opened. Review it and choose Delete summary again."
+            return false
+        }
+        isDeletingSummary = true
+        debounce?.cancel()
+        loadID = nil
+        defer { isDeletingSummary = false }
+        do {
+            try await services.store.deleteGeneratedSummaries(meetingID: meetingID,
+                expectedDocumentID: documentID, expectedRevision: expectedRevision)
+            summary = nil
+            summaryText = ""
+            citations.removeValue(forKey: documentID)
+            editConflict = false
+            generationProgress = nil
+            modelRequired = false
+            errorMessage = nil
+            message = "Summary deleted."
+            // Unfinished generation is independent of saved output. Deleting a
+            // document does not discard resumable work or the meeting's sources.
+            let savedMaps = try? await services.summaryCheckpoints.savedMapCount(jobID: meetingID, meetingID: meetingID)
+            summaryPaused = (savedMaps ?? 0) > 0
+            return true
+        } catch GeneratedDocumentStoreError.staleRevision {
+            editConflict = true
+            errorMessage = "This summary changed after you opened it. Reopen the saved summary before deleting it."
+        } catch GeneratedDocumentStoreError.notFound {
+            errorMessage = "This summary is no longer available. Reopen the meeting to refresh its saved content."
+        } catch {
+            errorMessage = "The summary could not be deleted. Your saved content is still available. Try again."
+        }
+        return false
     }
 
     func reopenSavedSummary() {
@@ -281,7 +326,7 @@ final class MeetingIntelligenceController {
     }
 
     private func begin(_ kind: IntelligenceOperation) {
-        guard request == nil, !isRunning, !cleanupPending, !isResetting, !services.maintainingLibrary else { return }
+        guard request == nil, !busy, !services.maintainingLibrary else { return }
         let owned = IntelligenceRequest(meetingID: meetingID, operation: kind,
             createdAt: Date(timeIntervalSince1970: Date().timeIntervalSince1970))
         request = owned
@@ -479,10 +524,15 @@ struct MeetingIntelligenceView: View {
     @State private var editingAnswer: StoredGeneratedDocument?
     @State private var showingDetails = false
     @State private var confirmingFreshSummary = false
+    @State private var confirmingSummaryDeletion = false
+    @State private var summaryPendingDeletion: StoredGeneratedDocument?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
-            if controller.busy {
+            if controller.isDeletingSummary {
+                ProgressView("Deleting summary…")
+                    .accessibilityIdentifier("meeting.summary.deleting")
+            } else if controller.busy {
                 if let progress = controller.generationProgress, !controller.isResetting {
                     TimelineView(.periodic(from: .now, by: 1)) { _ in
                         IntelligenceProgressView(title: progress.runningTitle,
@@ -526,6 +576,17 @@ struct MeetingIntelligenceView: View {
         } message: {
             Text("Unfinished progress is discarded. Saved summaries, notes, and the transcript stay available.")
         }
+        .confirmationDialog("Delete summary?", isPresented: $confirmingSummaryDeletion, titleVisibility: .visible) {
+            Button("Delete summary", role: .destructive) {
+                guard let document = summaryPendingDeletion else { return }
+                summaryPendingDeletion = nil
+                Task { await controller.deleteSummary(documentID: document.id, expectedRevision: document.editRevision) }
+            }
+            .accessibilityIdentifier("meeting.summary.delete.confirm")
+            Button("Cancel", role: .cancel) { summaryPendingDeletion = nil }
+        } message: {
+            Text("The summary, its edits, and earlier generated versions for this meeting will be deleted. Your recording, transcript, notes, and saved answers are kept.")
+        }
     }
 
     @ViewBuilder private var summaryContent: some View {
@@ -551,6 +612,15 @@ struct MeetingIntelligenceView: View {
                 .accessibilityIdentifier(controller.summary == nil ? "meeting.summary.resume" : "meeting.generatedSummary.generate")
             Button("Start from beginning…", role: .destructive) { confirmingFreshSummary = true }
                 .accessibilityIdentifier("meeting.summary.reset")
+            if let document = controller.summary {
+                Divider()
+                Button("Delete summary…", role: .destructive) {
+                    summaryPendingDeletion = document
+                    confirmingSummaryDeletion = true
+                }
+                .disabled(!controller.canDeleteSummary)
+                .accessibilityIdentifier("meeting.summary.delete")
+            }
         } label: { Label("Summary options", systemImage: "ellipsis.circle").frame(minHeight: 44) }
         .accessibilityIdentifier("meeting.summary.options")
         .disabled(controller.busy || controller.editConflict || controller.isSaving)

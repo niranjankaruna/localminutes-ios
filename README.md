@@ -55,6 +55,7 @@ Signing is disabled in the checked-in project configuration. Running on a physic
 2. In **Settings → Summaries & answers**, choose a family and variant, download it, and equip it. The catalogue includes Qwen 2.5 (0.5B/1.5B), Qwen 3 (0.6B/1.7B/4B/4B Instruct 2507), Phi-3 mini 4K, Phi-4 mini, Gemma 3 (1B/4B IT QAT), and Gemma 4 (E2B/E4B IT QAT). Each variant card shows its maximum context in tokens. Summaries use a bounded working window within that limit; answers retain their own evidence budget. There is no repository search or arbitrary model import. Qwen 2.5 3B is excluded.
 3. Start recording from **Record** or a recording Shortcut. Recording becomes active only after the audio session, microphone buffer, and Live Activity are ready. There is no recording-only fallback when speech preparation fails.
 4. Stop recording before requesting a summary or asking a question. Review generated content and its citations. Editable generated text is kept separately from the original output and transcript.
+5. To remove a generated summary, open **Summary options → Delete summary…** and confirm. This removes the meeting's summary versions and summary edits while keeping its recording, transcript, notes, saved answers, and any unfinished generation progress.
 
 Recording, playback, inference, and library maintenance share admission controls. A pending cleanup can temporarily block another operation until its resources are released. Interrupted audio remains available for recovery; recovery needs the exact speech-model installation originally pinned to the meeting.
 

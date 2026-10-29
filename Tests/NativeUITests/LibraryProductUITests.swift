@@ -4,6 +4,40 @@ import XCTest
 /// approved focused views; persistence and cross-meeting isolation remain real.
 @MainActor
 final class LibraryProductUITests: XCTestCase {
+    func testDeleteSummaryCanBeCancelledAndConfirmedWithoutDeletingMeetingContent() {
+        let app = minutesLibraryApp(token: UUID())
+        app.launch(); defer { app.terminate() }
+        guard minutesOpenMeeting("UI Library Beta", in: app) else { return }
+        let summary = app.staticTexts["meeting.generatedSummary.content"]
+        minutesWaitForValue("Seeded Beta generated summary.", summary)
+        guard minutesTap(app.buttons["meeting.summary.options"], in: app),
+              minutesTap(app.buttons["meeting.summary.delete"], in: app) else { return }
+        XCTAssertTrue(app.buttons["meeting.summary.delete.confirm"].waitForExistence(timeout: 5))
+        guard minutesTap(app.buttons["Cancel"].firstMatch, in: app) else { return }
+        minutesWaitForValue("Seeded Beta generated summary.", summary)
+
+        guard minutesTap(app.buttons["meeting.summary.options"], in: app),
+              minutesTap(app.buttons["meeting.summary.delete"], in: app),
+              minutesTap(app.buttons["meeting.summary.delete.confirm"], in: app) else { return }
+        XCTAssertTrue(app.staticTexts["No summary yet"].waitForExistence(timeout: 5))
+        XCTAssertFalse(summary.exists)
+        XCTAssertTrue(app.buttons["meeting.generatedSummary.generate"].exists)
+        guard minutesSelect("Ask", in: app) else { return }
+        XCTAssertTrue(app.staticTexts["Seeded Beta private answer."].waitForExistence(timeout: 5))
+        guard minutesSelect("Notes", in: app) else { return }
+        minutesWaitForValue("Original Beta manual note.", app.staticTexts["meeting.notes.content"])
+        guard minutesSelect("Transcript", in: app) else { return }
+        XCTAssertTrue(app.staticTexts["Beta shared-term original transcript."].waitForExistence(timeout: 5))
+
+        app.terminate(); app.launch()
+        guard minutesOpenMeeting("UI Library Beta", in: app) else { return }
+        XCTAssertTrue(app.staticTexts["No summary yet"].waitForExistence(timeout: 5))
+        XCTAssertFalse(summary.exists)
+        app.navigationBars.buttons["Meetings"].tap()
+        guard minutesOpenMeeting("UI Library Alpha", in: app) else { return }
+        minutesWaitForValue("Seeded Alpha generated summary.", summary)
+    }
+
     func testCitationOpensTheSelectedMeetingsTranscriptAndPlayback() {
         let app = minutesLibraryApp()
         app.launch(); defer { app.terminate() }

@@ -7,6 +7,129 @@ import XCTest
 /// These are persistence tests, not model inference or grounding evidence.
 @MainActor
 final class GeneratedDocumentStorageTests: XCTestCase {
+    func testDeletingAllSummaryVersionsIsDurableAndPreservesAnswersAndOriginalMeetingData() async throws {
+        try await withGeneratedStorageFixture { fixture in
+            let older = try generatedStorageDocument(100, meeting: 1, kind: .summary)
+            let latest = try generatedStorageDocument(110, meeting: 1, kind: .summary)
+            let answer = try generatedStorageDocument(120, meeting: 1, kind: .questionAnswer)
+            let otherSummary = try generatedStorageDocument(200, meeting: 2, kind: .summary)
+            let otherAnswer = try generatedStorageDocument(201, meeting: 2, kind: .questionAnswer)
+            for document in [older, latest, answer, otherSummary, otherAnswer] {
+                try await fixture.store.createGeneratedDocument(document)
+            }
+            let removed = try await fixture.store.deleteGeneratedSummaries(meetingID: fixture.selected,
+                expectedDocumentID: latest.id, expectedRevision: latest.editRevision)
+            XCTAssertEqual(removed, 2, "Delete all summary versions, even though the newer Q&A row is retained")
+            try await fixture.store.close()
+            let reopened = try SQLiteMeetingStore(databaseURL: fixture.database)
+            do {
+                let summaries = try await reopened.generatedDocuments(meetingID: fixture.selected, kind: .summary)
+                let selectedDocuments = try await reopened.generatedDocuments(meetingID: fixture.selected)
+                let foreignDocuments = try await reopened.generatedDocuments(meetingID: fixture.other)
+                XCTAssertTrue(summaries.isEmpty, "An older summary must not reappear after reopening")
+                XCTAssertEqual(selectedDocuments, [answer])
+                XCTAssertEqual(foreignDocuments, [otherAnswer, otherSummary])
+                for number in [1, 2] {
+                    let meetingID = generatedStorageUUID(number)
+                    let meeting = try await reopened.meeting(id: meetingID)
+                    let transcript = try await reopened.transcript(meetingID: meetingID)
+                    let note = try await reopened.manualNote(meetingID: meetingID)
+                    let evidence = try await reopened.retrieveEvidence(meetingID: meetingID, query: "original planning")
+                    XCTAssertEqual(meeting, generatedStorageMeeting(number))
+                    XCTAssertEqual(transcript, [generatedStorageSegment(number)])
+                    XCTAssertEqual(note, generatedStorageNote(number))
+                    XCTAssertEqual(evidence, transcript)
+                }
+                try await reopened.close()
+            } catch { try? await reopened.close(); throw error }
+            try withGeneratedStorageSQLite(fixture.database) { database in
+                XCTAssertEqual(try generatedStorageScalar(database, "SELECT count(*) FROM generated_documents"), 3,
+                    "Rows must be removed from SQLite, not merely hidden by the app")
+            }
+        }
+    }
+
+    func testSummaryDeleteRejectsForeignUnknownAndAnswerIDsWithoutChangingStoredContent() async throws {
+        try await withGeneratedStorageFixture { fixture in
+            let summary = try generatedStorageDocument(100, meeting: 1, kind: .summary)
+            let answer = try generatedStorageDocument(101, meeting: 1, kind: .questionAnswer)
+            let foreign = try generatedStorageDocument(200, meeting: 2, kind: .summary)
+            for document in [summary, answer, foreign] { try await fixture.store.createGeneratedDocument(document) }
+            let attempts: [(UUID, UUID, Int64, GeneratedDocumentStoreError)] = [
+                (fixture.selected, summary.id, -1, .invalidInput),
+                (fixture.selected, UUID(), 0, .notFound),
+                (fixture.selected, foreign.id, 0, .notFound),
+                (fixture.other, summary.id, 0, .notFound),
+                (fixture.selected, answer.id, 0, .invalidInput),
+                (fixture.selected, summary.id, 1, .staleRevision)
+            ]
+            for (meetingID, documentID, revision, expectedError) in attempts {
+                do {
+                    _ = try await fixture.store.deleteGeneratedSummaries(meetingID: meetingID,
+                        expectedDocumentID: documentID, expectedRevision: revision)
+                    XCTFail("An invalid deletion target must not remove a summary")
+                } catch { XCTAssertEqual(error as? GeneratedDocumentStoreError, expectedError) }
+                let selected = try await fixture.store.generatedDocuments(meetingID: fixture.selected)
+                let other = try await fixture.store.generatedDocuments(meetingID: fixture.other)
+                XCTAssertEqual(selected, [answer, summary]); XCTAssertEqual(other, [foreign])
+            }
+        }
+    }
+
+    func testSummaryDeleteRejectsAConcurrentEditOrNewLatestSummary() async throws {
+        try await withGeneratedStorageFixture { fixture in
+            let original = try generatedStorageDocument(100, meeting: 1, kind: .summary)
+            try await fixture.store.createGeneratedDocument(original)
+            let otherConnection = try SQLiteMeetingStore(databaseURL: fixture.database)
+            do {
+                let edited = try await otherConnection.saveGeneratedDocumentEdit(id: original.id,
+                    meetingID: fixture.selected, text: "Newer review saved from another controller.",
+                    expectedRevision: 0, modifiedAt: Date(timeIntervalSince1970: 5_000))
+                do {
+                    _ = try await fixture.store.deleteGeneratedSummaries(meetingID: fixture.selected,
+                        expectedDocumentID: original.id, expectedRevision: 0)
+                    XCTFail("A deletion based on an older edit must not erase the newer saved copy")
+                } catch { XCTAssertEqual(error as? GeneratedDocumentStoreError, .staleRevision) }
+                let afterEditConflict = try await fixture.store.generatedDocuments(meetingID: fixture.selected, kind: .summary)
+                XCTAssertEqual(afterEditConflict, [edited])
+                let newer = try generatedStorageDocument(110, meeting: 1, kind: .summary)
+                try await otherConnection.createGeneratedDocument(newer)
+                do {
+                    _ = try await fixture.store.deleteGeneratedSummaries(meetingID: fixture.selected,
+                        expectedDocumentID: original.id, expectedRevision: edited.editRevision)
+                    XCTFail("A newly generated latest summary must invalidate the old deletion target")
+                } catch { XCTAssertEqual(error as? GeneratedDocumentStoreError, .staleRevision) }
+                let afterGenerationConflict = try await fixture.store.generatedDocuments(meetingID: fixture.selected, kind: .summary)
+                XCTAssertEqual(afterGenerationConflict, [newer, edited])
+                try await otherConnection.close()
+            } catch { try? await otherConnection.close(); throw error }
+        }
+    }
+
+    func testLateAutosaveCannotResurrectDeletedSummariesAndFreshGenerationCanBeSaved() async throws {
+        try await withGeneratedStorageFixture { fixture in
+            let older = try generatedStorageDocument(100, meeting: 1, kind: .summary)
+            let latest = try generatedStorageDocument(110, meeting: 1, kind: .summary)
+            for document in [older, latest] { try await fixture.store.createGeneratedDocument(document) }
+            _ = try await fixture.store.deleteGeneratedSummaries(meetingID: fixture.selected,
+                expectedDocumentID: latest.id, expectedRevision: 0)
+            for document in [older, latest] {
+                do {
+                    _ = try await fixture.store.saveGeneratedDocumentEdit(id: document.id, meetingID: fixture.selected,
+                        text: "Late pending autosave.", expectedRevision: document.editRevision,
+                        modifiedAt: Date(timeIntervalSince1970: 6_000))
+                    XCTFail("An edit cannot recreate a deleted generated document")
+                } catch { XCTAssertEqual(error as? GeneratedDocumentStoreError, .notFound) }
+            }
+            let empty = try await fixture.store.generatedDocuments(meetingID: fixture.selected, kind: .summary)
+            XCTAssertTrue(empty.isEmpty)
+            let fresh = try generatedStorageDocument(130, meeting: 1, kind: .summary)
+            try await fixture.store.createGeneratedDocument(fresh)
+            let saved = try await fixture.store.generatedDocuments(meetingID: fixture.selected, kind: .summary)
+            XCTAssertEqual(saved, [fresh], "Deleting summaries must not disable future generation for the meeting")
+        }
+    }
+
     func testVersionThreeMigrationAddsSeparateGeneratedStorageWithoutChangingOriginalsOrFTS() async throws {
         try await withGeneratedStorageFixture { fixture in
             let meeting = try await fixture.store.meeting(id: fixture.selected)
