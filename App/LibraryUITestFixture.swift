@@ -26,6 +26,7 @@ enum LibraryUITestFixture {
         let pagination = ProcessInfo.processInfo.arguments.contains("--ui-test-library-pagination")
         let empty = ProcessInfo.processInfo.arguments.contains("--ui-test-library-empty")
             || AppScreenshotFixture.scene == .meetingsEmpty
+            || AppScreenshotFixture.scene == .meetingsLoading || AppScreenshotFixture.scene == .meetingsFailure
         let services = try LocalMinutesServices(rootURL: root)
         do {
             if FileManager.default.fileExists(atPath: marker.path) {
@@ -102,30 +103,47 @@ enum LibraryUITestFixture {
                 editRevision: 0, modifiedAt: date))
             return
         }
-        let text = "\(name) shared-term original transcript."
+        let structured = AppScreenshotFixture.scene == .meetingSummaryStructured && name == "Beta"
+        let text = structured ? "We agreed to review the updated meeting experience on Friday." : "\(name) shared-term original transcript."
         try await services.store.appendFinalizedSegments([
             .init(id: source, meetingID: id, sequence: 0, startSample: 0, endSample: 16_000,
                   text: text, modelRevision: ParakeetCoreMLModel.manifest.revision),
             .init(id: UUID(), meetingID: id, sequence: 1, startSample: 16_000, endSample: 32_000,
                   text: "\(name) separate-topic original transcript.", modelRevision: ParakeetCoreMLModel.manifest.revision)
         ], to: id)
-        try await services.store.saveManualNote(.init(meetingID: id, text: "Original \(name) manual note.",
+        try await services.store.saveManualNote(.init(meetingID: id,
+            text: AppScreenshotFixture.scene == .meetingNotesEmpty && name == "Beta" ? "" : "Original \(name) manual note.",
             editRevision: 0, modifiedAt: date))
         // Seed an explicitly synthetic prior result to exercise editing/citation
         // presentation without downloading, loading or pretending to run a model.
-        let original = try JSONSerialization.data(withJSONObject: [
+        var original = try JSONSerialization.data(withJSONObject: [
             "meeting_id": id.uuidString,
             "evidence": [["source_id": source.uuidString, "start_sample": 0,
                           "end_sample": 16_000, "quote": text]]
         ], options: [.sortedKeys])
-        try await services.store.createGeneratedDocument(.init(id: UUID(), meetingID: id, kind: .summary,
-            originalJSON: original, question: nil, editedText: "Seeded \(name) generated summary.",
+        let answerOriginal = original
+        if structured {
+            let evidence: [[String: Any]] = [["source_id": source.uuidString, "start_sample": 0, "end_sample": 16_000, "quote": text]]
+            original = try JSONSerialization.data(withJSONObject: [
+                "schema_version": 2, "meeting_id": id.uuidString,
+                "overview": ["text": "The team agreed on the next review.", "evidence": evidence],
+                "bullets": [["text": "Review the updated meeting experience on Friday.", "evidence": evidence]]
+            ])
+        }
+        let summaryID = UUID()
+        try await services.store.createGeneratedDocument(.init(id: summaryID, meetingID: id, kind: .summary,
+            originalJSON: original, question: nil, editedText: structured ? "The team agreed on the next review." : "Seeded \(name) generated summary.",
             modelRevision: LocalMinutesServices.summaryManifest.revision, promptVersion: "synthetic-ui-fixture-v1",
             createdAt: date, modifiedAt: date))
+        if AppScreenshotFixture.scene == .meetingSummaryEdited && name == "Beta" {
+            _ = try await services.store.saveGeneratedDocumentEdit(id: summaryID, meetingID: id,
+                text: "Reviewed summary: the team will review the updated meeting experience on Friday.",
+                expectedRevision: 0, modifiedAt: date)
+        }
         if name == "Beta" {
             let answerID = AppScreenshotFixture.requested ? UUID(uuidString: "30000000-0000-0000-0000-000000000002")! : UUID()
             try await services.store.createGeneratedDocument(.init(id: answerID, meetingID: id, kind: .questionAnswer,
-                originalJSON: original, question: "What is the Beta planning source?",
+                originalJSON: answerOriginal, question: "What is the Beta planning source?",
                 editedText: "Seeded Beta private answer.", modelRevision: LocalMinutesServices.summaryManifest.revision,
                 promptVersion: "synthetic-ui-fixture-v1", createdAt: date, modifiedAt: date))
         }
@@ -141,10 +159,20 @@ struct LibraryUITestFixtureRoot: View {
     var body: some View {
         Group {
             if let application {
-                if ProcessInfo.processInfo.environment["LOCALMINUTES_UI_LIBRARY_AX5"] == "1" {
+                if AppScreenshotFixture.scene?.isLaunch == true {
+                    ScreenshotLaunchView().screenshotReady(true)
+                } else if AppScreenshotFixture.scene?.isActivity == true {
+                    RecordingActivityTestScreen(application: application,
+                        finished: AppScreenshotFixture.scene == .activityFinished)
+                        .dynamicTypeSize(.large).screenshotReady(true)
+                } else if ProcessInfo.processInfo.environment["LOCALMINUTES_UI_LIBRARY_AX5"] == "1" {
                     LocalMinutesHomeView(application: application).dynamicTypeSize(.accessibility5)
                 } else {
-                    LocalMinutesHomeView(application: application)
+                    if AppScreenshotFixture.requested {
+                        LocalMinutesHomeView(application: application).dynamicTypeSize(.large).screenshotReady(true)
+                    } else {
+                        LocalMinutesHomeView(application: application)
+                    }
                 }
             }
             else if finished {

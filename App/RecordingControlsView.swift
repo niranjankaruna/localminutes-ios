@@ -159,6 +159,7 @@ struct RecordingControlsView: View {
         VStack(alignment: .leading, spacing: 28) {
             if stopping {
                 MinutesProgress(title: "Finishing recording", detail: "Waiting for audio cleanup.")
+                    .accessibilityIdentifier("recording.stopping")
                 if let failure = snapshot?.failure {
                     MinutesMessage(text: String(localized: RecordingIntentReplies.message(for: .blocked(failure), diagnostic: captureDiagnostic)), isError: true)
                     if failure == .captureUnavailable { captureErrorDetails }
@@ -167,6 +168,7 @@ struct RecordingControlsView: View {
                 activeRecording
             } else if preparing {
                 MinutesProgress(title: "Getting ready", detail: "Preparing the microphone and speech model. Keep the app open until Recording appears; then you can lock your iPhone.")
+                    .accessibilityIdentifier("recording.preparing")
             } else if let failure = snapshot?.failure, failure != .modelUnavailable {
                 failureView(failure)
             } else if application.services == nil {
@@ -178,7 +180,7 @@ struct RecordingControlsView: View {
                 MinutesEmptyState(title: "Set up transcription", symbol: "waveform",
                     detail: "Install a speech model before your first recording.",
                     actionTitle: "Choose speech model", action: { showingSetup = true },
-                    identifier: "recording.modelRequired")
+                    identifier: "recording.modelRequired", actionIdentifier: "recording.modelRequired.choose")
             } else {
                 readyToRecord
                 if snapshot?.failure == .modelUnavailable {
@@ -278,6 +280,7 @@ struct RecordingControlsView: View {
                     if transcript.finalized.isEmpty && transcript.partial.isEmpty {
                         Label("Listening for speech…", systemImage: "waveform")
                             .font(.body).foregroundStyle(.secondary).padding(.vertical, 12)
+                            .accessibilityIdentifier("recording.listening")
                     }
                     Color.clear.frame(height: 1).id(TranscriptAnchor.latest).accessibilityHidden(true)
                 }
@@ -337,13 +340,15 @@ struct RecordingControlsView: View {
         MinutesEmptyState(title: failure == .microphoneDenied ? "Microphone is off" : "Recording needs attention",
             symbol: failure == .microphoneDenied ? "mic.slash" : "exclamationmark.circle",
             detail: failure == .storageFull ? "Free up space on this iPhone, then try again." :
-                String(localized: RecordingIntentReplies.message(for: .blocked(failure), diagnostic: captureDiagnostic)))
+                String(localized: RecordingIntentReplies.message(for: .blocked(failure), diagnostic: captureDiagnostic)),
+            identifier: "recording.failure")
         if failure == .captureUnavailable { captureErrorDetails }
         if failure == .microphoneDenied || failure == .activityUnavailable {
             Button("Review recording permissions") { showingPermissions = true }
                 .buttonStyle(MinutesButtonStyle())
         }
         Button("Try again") { Task { await start() } }.buttonStyle(MinutesButtonStyle(kind: .secondary))
+            .accessibilityIdentifier("recording.retry")
         if let id = snapshot?.sessionID {
             Button("Review saved meeting") { openMeeting(id) }
                 .buttonStyle(MinutesButtonStyle(kind: .secondary))
@@ -370,7 +375,7 @@ struct RecordingControlsView: View {
             snapshot = .init(phase: .idle, sessionID: nil, readiness: .init(), failure: .modelUnavailable, cleanupPending: false)
             return
         }
-        if AppScreenshotFixture.recording {
+        if AppScreenshotFixture.scene?.usesRecordingProjection == true {
             snapshot = AppScreenshotFixture.snapshot; progress = AppScreenshotFixture.progress; return
         }
         #endif

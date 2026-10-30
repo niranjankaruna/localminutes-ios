@@ -36,15 +36,30 @@ struct MeetingDetailView: View {
         _intelligenceController = State(initialValue: services.intelligenceController(for: id))
         #if DEBUG
         switch AppScreenshotFixture.scene {
-        case .meetingNotes: _section = State(initialValue: .notes)
-        case .meetingTranscript, .meetingTranscriptSearch, .meetingNoTranscript: _section = State(initialValue: .transcript)
-        case .meetingAnswers: _section = State(initialValue: .ask)
+        case .meetingNotes, .meetingNotesEmpty, .meetingNotesEditor, .meetingNotesSaveFailure: _section = State(initialValue: .notes)
+        case .meetingTranscript, .meetingTranscriptSearch, .meetingNoTranscript,
+             .meetingTranscriptNoResults, .meetingTranscriptRecovering: _section = State(initialValue: .transcript)
+        case .meetingAnswers, .meetingQuestionsEmpty, .meetingQuestionComposer, .meetingAnswerEditor,
+             .meetingAnswerSources, .meetingAnswerConflict, .meetingAnswerReplace,
+             .meetingAnswerGenerating, .meetingAnswerFailure: _section = State(initialValue: .ask)
         default: break
         }
         #endif
     }
     private var unavailable: Bool { deleting || services.maintainingLibrary || application.isRestoringLibrary }
     private var transcript: [StoredTranscriptSegment] { recoveredTranscript ?? controller.transcript }
+    private var detailLoading: Bool {
+        #if DEBUG
+        if AppScreenshotFixture.scene == .meetingLoading { return true }
+        #endif
+        return controller.isLoadingDetail
+    }
+    private var transcriptRecovering: Bool {
+        #if DEBUG
+        if AppScreenshotFixture.scene == .meetingTranscriptRecovering { return true }
+        #endif
+        return services.recoveringMeetingID == id
+    }
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -53,11 +68,11 @@ struct MeetingDetailView: View {
                     heading.padding(.horizontal, MinutesStyle.pageInset).padding(.bottom, 16)
                     Section {
                         VStack(alignment: .leading, spacing: 20) {
-                            if controller.isLoadingDetail { MinutesProgress(title: "Loading meeting…") }
+                            if detailLoading { MinutesProgress(title: "Loading meeting…").accessibilityIdentifier("meeting.detail.loading") }
                             if let error = controller.errorMessage ?? deletionMessage {
                                 MinutesMessage(text: error, isError: true)
                             }
-                            if !controller.isLoadingDetail {
+                            if !detailLoading {
                                 switch section {
                                 case .summary, .ask:
                                     MeetingIntelligenceView(controller: intelligenceController,
@@ -92,7 +107,7 @@ struct MeetingDetailView: View {
             }
         }
         .safeAreaInset(edge: .bottom) {
-            if section == .ask && !controller.isLoadingDetail {
+            if section == .ask && !detailLoading {
                 MeetingQuestionComposer(controller: intelligenceController)
             }
         }
@@ -152,7 +167,11 @@ struct MeetingDetailView: View {
             if AppScreenshotFixture.scene == .meetingTranscriptSearch {
                 search = "shared-term"; await controller.search(search)
             }
-            if let scene = AppScreenshotFixture.scene, [.meetingExport, .meetingShare].contains(scene) { showingExport = true }
+            if AppScreenshotFixture.scene == .meetingTranscriptNoResults {
+                search = "No matching words"; await controller.search(search)
+            }
+            if let scene = AppScreenshotFixture.scene,
+               [.meetingExport, .meetingShare, .meetingExportMarkdown, .meetingExportUnsaved, .meetingExportFailure].contains(scene) { showingExport = true }
             if AppScreenshotFixture.scene?.isMeeting == true { screenshotPrepared = true }
             #endif
         }
@@ -215,9 +234,10 @@ struct MeetingDetailView: View {
 
     private var transcriptContent: some View {
         VStack(alignment: .leading, spacing: 24) {
-            if services.recoveringMeetingID == id {
+            if transcriptRecovering {
                 MinutesProgress(title: "Recovering transcript", detail: "Reading saved audio on this iPhone.",
                     cancel: { services.cancelTranscriptRecovery() })
+                    .accessibilityIdentifier("meeting.transcript.recovering")
             }
             if let message = services.libraryMessage { MinutesMessage(text: message) }
             if transcript.isEmpty {
@@ -243,7 +263,8 @@ struct MeetingDetailView: View {
                 .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
                 if !search.isEmpty && controller.matches.isEmpty {
                     MinutesEmptyState(title: "No matching words", symbol: "magnifyingglass",
-                        detail: "Try a different word or phrase.", actionTitle: "Clear search", action: { search = "" })
+                        detail: "Try a different word or phrase.", actionTitle: "Clear search", action: { search = "" },
+                        identifier: "meeting.transcript.noResults")
                 }
                 ForEach(search.isEmpty ? transcript : controller.matches) { segment in
                     VStack(alignment: .leading, spacing: 12) {
@@ -295,6 +316,7 @@ struct MeetingDetailView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(renameSaving ? "Saving…" : "Save", action: saveTitle)
+                        .accessibilityIdentifier("meeting.rename.save")
                         .disabled(renameSaving || title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }

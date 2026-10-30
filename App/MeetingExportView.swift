@@ -6,6 +6,12 @@ struct MeetingExportView: View {
     let intelligence: MeetingIntelligenceController
     @Environment(\.dismiss) private var dismiss
     @State private var markdown = false
+    private var meetingText: String? {
+        #if DEBUG
+        if AppScreenshotFixture.scene == .meetingExportFailure { return nil }
+        #endif
+        return try? controller.export(markdown: markdown)
+    }
     private var generatedEditsPending: Bool {
         intelligence.hasSummaryEdits || intelligence.isSaving || intelligence.hasAnswerEdits
             || !intelligence.savingAnswerIDs.isEmpty || !intelligence.answerEditConflicts.isEmpty
@@ -18,7 +24,7 @@ struct MeetingExportView: View {
                     MinutesChoicePicker(title: "Format", selection: $markdown,
                         options: [false, true], label: { $0 ? "Markdown" : "Text" })
                         .accessibilityIdentifier("meeting.export.format")
-                    if let text = try? controller.export(markdown: markdown) {
+                    if let text = meetingText {
                         ShareLink(item: text) { Label("Share meeting", systemImage: "square.and.arrow.up") }
                             .buttonStyle(MinutesButtonStyle())
                             .accessibilityLabel(markdown ? "Share Markdown" : "Share text")
@@ -27,6 +33,7 @@ struct MeetingExportView: View {
                         Label("This meeting could not be prepared for sharing. Close this sheet and try again.",
                               systemImage: "exclamationmark.circle")
                             .font(.callout).foregroundStyle(MinutesStyle.recording)
+                            .accessibilityIdentifier("meeting.export.unavailable")
                     }
                 } footer: { Text("Includes the title, original notes, and transcript.") }
                 if let text = intelligence.exportText {
@@ -38,6 +45,7 @@ struct MeetingExportView: View {
                     } footer: {
                         Text(generatedEditsPending ? "Save your generated content edits before sharing." :
                              "Shares your saved generated content separately from the original meeting.")
+                            .accessibilityIdentifier("meeting.export.pendingEdits")
                     }
                 }
             }

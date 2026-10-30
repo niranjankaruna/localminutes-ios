@@ -70,7 +70,34 @@ final class MeetingIntelligenceController {
     }
     #if DEBUG
     func prepareScreenshotState() {
-        if AppScreenshotFixture.scene == .meetingModelRequired { modelRequired = true }
+        guard let scene = AppScreenshotFixture.scene else { return }
+        if scene == .meetingModelRequired || scene == .meetingModelSetup { modelRequired = true }
+        if scene == .meetingQuestionsEmpty { answers = [] }
+        if scene == .meetingExportUnsaved { summaryText += " Unsaved review notes." }
+        if scene == .meetingSummaryFailure { errorMessage = "The summary could not be completed. Your recording and transcript are kept." }
+        if scene == .meetingAnswerFailure { errorMessage = "An answer could not be completed. Try asking a shorter question." }
+        if scene == .meetingSummaryPaused {
+            summary = nil; summaryText = ""; summaryPaused = true
+            message = "A previous summary was not completed. Tap Summarize meeting to generate from the full transcript."
+        }
+        if [.meetingSummaryGenerating, .meetingSummaryCancelling, .meetingAnswerGenerating].contains(scene) {
+            let operation: IntelligenceOperation = scene == .meetingAnswerGenerating ? .question("What are the next steps?") : .summary
+            let progress = IntelligenceProgressTracker(operation: operation, startedAt: .now.advanced(by: .seconds(-12)))
+            progress.report(scene == .meetingAnswerGenerating ? .answering : .summaryChunks(completed: 2, total: 5))
+            generationProgress = progress
+            isRunning = true
+            isCancelling = scene == .meetingSummaryCancelling
+        }
+        if [.meetingSummaryConflict, .meetingSummaryReplace].contains(scene) {
+            summaryText += " My unsaved review."
+            editConflict = true
+            errorMessage = "This summary changed elsewhere. Copy your draft before reopening the saved version."
+        }
+        if [.meetingAnswerConflict, .meetingAnswerReplace].contains(scene), let answer = answers.first {
+            answerDrafts[answer.id] = answer.editedText + " My unsaved review."
+            answerEditConflicts.insert(answer.id)
+            answerSaveErrors[answer.id] = "This answer changed elsewhere. Copy your draft before reopening the saved version."
+        }
     }
     #endif
     var hasSummaryEdits: Bool { summary.map { summaryText != $0.editedText } ?? false }
@@ -571,8 +598,12 @@ struct MeetingIntelligenceView: View {
                         .accessibilityIdentifier("meeting.intelligence.chooseModel")
                 }.minutesCard()
             }
-            if let error = controller.errorMessage { MinutesMessage(text: error, isError: true) }
-            if !controller.busy, let message = controller.message { MinutesMessage(text: message) }
+            if let error = controller.errorMessage {
+                MinutesMessage(text: error, isError: true).accessibilityIdentifier("meeting.intelligence.error")
+            }
+            if !controller.busy, let message = controller.message {
+                MinutesMessage(text: message).accessibilityIdentifier("meeting.intelligence.message")
+            }
             if content == .summary { summaryContent } else { questionsContent }
         }
         .sheet(isPresented: $editingSummary) { SummaryEditorView(controller: controller) }
@@ -609,11 +640,12 @@ struct MeetingIntelligenceView: View {
                 Divider()
                 MinutesActions {
                     Button { editingSummary = true } label: { Label("Edit summary", systemImage: "square.and.pencil") }
-                        .buttonStyle(MinutesButtonStyle(kind: .secondary))
+                        .buttonStyle(MinutesButtonStyle(kind: .secondary, fillsWidth: false))
                         .accessibilityIdentifier("meeting.summary.edit")
                         .disabled(controller.busy)
                     Button("Details") { showingDetails = true }
-                        .buttonStyle(MinutesButtonStyle(kind: .secondary))
+                        .buttonStyle(MinutesButtonStyle(kind: .secondary, fillsWidth: false))
+                        .accessibilityIdentifier("meeting.summary.details")
                 }
             }.minutesCard()
         } else if !controller.busy && !controller.modelRequired {
@@ -646,7 +678,7 @@ struct MeetingIntelligenceView: View {
         VStack(alignment: .leading, spacing: 24) {
             if controller.answers.isEmpty && !controller.busy && !controller.modelRequired {
                 MinutesEmptyState(title: "Ask this meeting", symbol: "bubble.left",
-                                  detail: "Find an answer in the conversation.")
+                                  detail: "Find an answer in the conversation.", identifier: "meeting.qa.empty")
             }
             ForEach(controller.answers) { answer in
                 VStack(alignment: .leading, spacing: 16) {
@@ -671,7 +703,7 @@ struct MeetingIntelligenceView: View {
     @ViewBuilder private func citations(_ document: StoredGeneratedDocument) -> some View {
         let sources = controller.citations[document.id] ?? []
         if !sources.isEmpty {
-            DisclosureGroup("Sources") {
+            DisclosureGroup {
                 VStack(alignment: .leading, spacing: 18) {
                     ForEach(sources) { citation in
                         VStack(alignment: .leading, spacing: 8) {
@@ -690,10 +722,11 @@ struct MeetingIntelligenceView: View {
                         Text("Sources refer to the original generated result.").font(.footnote).foregroundStyle(.secondary)
                     }
                 }.padding(.top, 12)
+            } label: {
+                Text("Sources").accessibilityIdentifier("meeting.sources.\(document.id.uuidString)")
             }
             .font(.subheadline.weight(.semibold))
             .frame(minHeight: 44)
-            .accessibilityIdentifier("meeting.sources.\(document.id.uuidString)")
         }
     }
 }
@@ -761,8 +794,10 @@ private struct SummaryEditorView: View {
                     if controller.editConflict {
                         Button("Copy my draft") { UIPasteboard.general.string = controller.summaryText }
                             .buttonStyle(MinutesButtonStyle(kind: .secondary))
+                            .accessibilityIdentifier("meeting.summary.conflict.copy")
                         Button("Reopen saved summary", role: .destructive) { confirmingReopen = true }
                             .buttonStyle(MinutesButtonStyle(kind: .destructiveSecondary))
+                            .accessibilityIdentifier("meeting.summary.conflict.reopen")
                     }
                     Text("Edits change this copy. Your original notes and transcript are preserved.")
                         .font(.footnote).foregroundStyle(.secondary)
@@ -786,6 +821,7 @@ private struct SummaryEditorView: View {
         .minutesSheet()
         .alert("Replace your draft?", isPresented: $confirmingReopen) {
             Button("Reopen saved summary", role: .destructive) { controller.reopenSavedSummary() }
+                .accessibilityIdentifier("meeting.summary.conflict.confirm")
             Button("Cancel", role: .cancel) {}
         } message: { Text("Your unsaved edits will be replaced by the saved summary. Copy your draft first if you want to keep it.") }
         .interactiveDismissDisabled(controller.hasSummaryEdits || controller.isSaving || controller.editConflict)
@@ -819,6 +855,7 @@ private struct AnswerEditorView: View {
                     if conflict {
                         Button("Copy my draft") { UIPasteboard.general.string = controller.answerDrafts[answer.id] ?? answer.editedText }
                             .buttonStyle(MinutesButtonStyle(kind: .secondary))
+                            .accessibilityIdentifier("meeting.answer.conflict.copy")
                         Button("Reopen saved answer", role: .destructive) {
                             confirmingReopen = true
                         }
@@ -850,6 +887,7 @@ private struct AnswerEditorView: View {
             Button("Reopen saved answer", role: .destructive) {
                 Task { await controller.reopenSavedAnswer(documentID: answer.id) }
             }
+            .accessibilityIdentifier("meeting.answer.conflict.confirm")
             Button("Cancel", role: .cancel) {}
         } message: { Text("Your unsaved edits will be replaced by the saved answer. Copy your draft first if you want to keep it.") }
         .interactiveDismissDisabled(changed || saving || conflict)
@@ -864,6 +902,7 @@ private struct GeneratedDetailsView: View {
             List {
                 Section {
                     MinutesLabeledValue(title: "Version", value: document.editRevision > 0 ? "Edited copy" : "Original")
+                        .accessibilityIdentifier("meeting.summary.details.version")
                     Text("Review generated content against its sources before sharing.").foregroundStyle(.secondary)
                 }
                 Section("Technical details") {

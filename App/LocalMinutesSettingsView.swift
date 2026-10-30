@@ -16,11 +16,16 @@ struct LocalMinutesSettingsView: View {
         self.services = services; self.application = application
         _actions = State(initialValue: actions)
         #if DEBUG
-        if let scene = AppScreenshotFixture.scene, scene.isModels {
+        if let scene = AppScreenshotFixture.scene, scene.isSettings {
             switch scene {
             case .modelsAbout: _path = State(initialValue: NavigationPath([MinutesSettingsRoute.about]))
             case .modelsDevice: _path = State(initialValue: NavigationPath([MinutesSettingsRoute.about, .device]))
             case .modelsStorage: _path = State(initialValue: NavigationPath([MinutesSettingsRoute.about, .storage]))
+            case .settingsHome: break
+            case .settingsPrivacy: _path = State(initialValue: NavigationPath([MinutesSettingsRoute.privacy]))
+            case .settingsPermissions: _path = State(initialValue: NavigationPath([MinutesSettingsRoute.recordingPermissions]))
+            case .settingsStorageFailure, .settingsStoragePreparing:
+                _path = State(initialValue: NavigationPath([MinutesSettingsRoute.about, .storage]))
             default: _path = State(initialValue: NavigationPath([scene.usesSummaryModels ? MinutesSettingsRoute.summary : .speech]))
             }
         }
@@ -168,7 +173,9 @@ struct StorageCheckView: View {
     var body: some View {
         List {
             Section {
-                if controller.isPreparingStorageCheck { ProgressView("Checking storage…") }
+                if controller.isPreparingStorageCheck {
+                    ProgressView("Checking storage…").accessibilityIdentifier("settings.storageAudit.progress")
+                }
                 if let report = controller.storageCheckReport {
                     Label(report.audit.status == .complete ? "Storage check ready" : "Storage check incomplete",
                           systemImage: report.audit.status == .complete ? "checkmark.shield" : "exclamationmark.shield")
@@ -218,6 +225,7 @@ struct MinutesPrivacyView: View {
                 Image(systemName: "lock.shield").font(.largeTitle).foregroundStyle(MinutesStyle.accent)
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Your meetings stay with you.").font(.title2.weight(.semibold))
+                        .accessibilityIdentifier("recording.privacy.overview")
                     Text("Audio, transcripts, summaries, and answers are processed on your iPhone. No account or cloud processing.")
                         .foregroundStyle(.secondary)
                 }

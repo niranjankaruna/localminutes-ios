@@ -11,6 +11,12 @@ struct LocalMinutesHomeView: View {
     @State private var libraryActions: LibraryActionsController
     @State private var selectedTab: LocalMinutesTab = .meetings
     @State private var meetingPath: [UUID] = []
+    private var restoringPresentation: Bool {
+        #if DEBUG
+        if AppScreenshotFixture.scene == .meetingsRestoring { return true }
+        #endif
+        return application.isRestoringLibrary
+    }
 
     init(application: RecordingApplication, privacy: RecordingPrivacyController? = nil) {
         self.application = application
@@ -18,7 +24,7 @@ struct LocalMinutesHomeView: View {
         _libraryActions = State(initialValue: LibraryActionsController(application: application))
         #if DEBUG
         if let scene = AppScreenshotFixture.scene {
-            _selectedTab = State(initialValue: scene.isModels ? .settings : scene.isRecord ? .record : .meetings)
+            _selectedTab = State(initialValue: scene.isSettings ? .settings : scene.isRecord ? .record : .meetings)
             _meetingPath = State(initialValue: scene.isMeeting ? [AppScreenshotFixture.detailMeetingID] : [])
         }
         #endif
@@ -52,12 +58,13 @@ struct LocalMinutesHomeView: View {
             }
             .id(application.services.map { ObjectIdentifier($0) })
             .tint(MinutesStyle.accent)
-            .disabled(application.isRestoringLibrary || application.services?.maintainingLibrary == true)
+            .disabled(restoringPresentation || application.services?.maintainingLibrary == true)
             .overlay {
-                if application.isRestoringLibrary {
+                if restoringPresentation {
                     ZStack {
                         MinutesStyle.background.ignoresSafeArea()
                         MinutesProgress(title: "Preparing your library", detail: "Keep LocalMinutes open.").padding(24)
+                            .accessibilityIdentifier("library.restoring.progress")
                     }.accessibilityIdentifier("library.restoring")
                 }
             }
@@ -115,6 +122,18 @@ private struct MeetingHistoryView: View {
         _actions = State(initialValue: actions)
     }
     private var unavailable: Bool { actions.unavailable || deleting }
+    private var historyLoading: Bool {
+        #if DEBUG
+        if AppScreenshotFixture.scene == .meetingsLoading { return true }
+        #endif
+        return services.library.isLoadingHistory
+    }
+    private var historyError: String? {
+        #if DEBUG
+        if AppScreenshotFixture.scene == .meetingsFailure { return "Your meetings could not be loaded. Pull down to try again." }
+        #endif
+        return services.library.errorMessage
+    }
     private var days: [Date] {
         Array(Set(services.library.meetings.map { Calendar.current.startOfDay(for: $0.createdAt) })).sorted(by: >)
     }
@@ -122,13 +141,13 @@ private struct MeetingHistoryView: View {
     var body: some View {
         NavigationStack(path: $path) {
             List {
-                if let error = services.library.errorMessage {
-                    Section { Text(error).foregroundStyle(MinutesStyle.recording) }
+                if let error = historyError {
+                    Section { Text(error).foregroundStyle(MinutesStyle.recording).accessibilityIdentifier("meeting.history.error") }
                 }
                 if let message = actions.message ?? services.libraryMessage {
-                    Section { Text(message).font(.callout).foregroundStyle(.secondary) }
+                    Section { Text(message).font(.callout).foregroundStyle(.secondary).accessibilityIdentifier("meeting.history.message") }
                 }
-                if services.library.meetings.isEmpty && !services.library.isLoadingHistory && services.library.errorMessage == nil {
+                if services.library.meetings.isEmpty && !historyLoading && historyError == nil {
                     MinutesEmptyState(title: query.isEmpty ? "No meetings yet" : "No matching meetings",
                         symbol: query.isEmpty ? "text.book.closed" : "magnifyingglass",
                         detail: query.isEmpty ? "Record a conversation. Keep the details." : "Try a different meeting title.",
@@ -155,7 +174,7 @@ private struct MeetingHistoryView: View {
                         }
                     }
                 }
-                if services.library.isLoadingHistory { ProgressView("Loading meetings…") }
+                if historyLoading { ProgressView("Loading meetings…").accessibilityIdentifier("meeting.history.loading") }
                 if services.library.hasMoreMeetings {
                     Button("Load more meetings") { Task { await services.library.loadMoreMeetings() } }
                         .accessibilityIdentifier("meeting.history.loadMore")
@@ -207,6 +226,7 @@ private struct MeetingHistoryView: View {
                     pendingDeletion = nil; deleting = true
                     Task { _ = await services.deleteMeeting(id: id); deleting = false }
                 }
+                .accessibilityIdentifier("meeting.history.delete.confirm")
                 Button("Cancel", role: .cancel) { pendingDeletion = nil }
             } message: {
                 Text("“\(services.library.meetings.first(where: { $0.id == pendingDeletion })?.title ?? "This meeting")” and its audio, transcript, notes, summaries, and answers will be permanently deleted. This cannot be undone.")
@@ -216,8 +236,13 @@ private struct MeetingHistoryView: View {
                 #if DEBUG
                 if let scene = AppScreenshotFixture.scene, scene.isHistory {
                     if scene == .meetingsSearch { query = "Alpha" }
+                    if scene == .meetingsNoResults { query = "No matching meeting fixture" }
                     await services.library.searchHistory(query)
-                    if scene == .meetingsBackup { showingBackup = true }
+                    if [.meetingsBackup, .meetingsBackupPreparing, .meetingsBackupFailure].contains(scene) { showingBackup = true }
+                    if scene == .meetingsRestoreConfirmation, let url = AppScreenshotFixture.restoreBackupURL {
+                        actions.chooseBackup(.success([url]))
+                    }
+                    actions.prepareScreenshotPresentation()
                     screenshotPrepared = true
                 }
                 #endif

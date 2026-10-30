@@ -12,6 +12,7 @@ enum AppScreenshotFixture {
 
     static let meetingID = UUID(uuidString: "10000000-0000-0000-0000-000000000001")!
     static let detailMeetingID = UUID(uuidString: "10000000-0000-0000-0000-000000000002")!
+    private(set) static var restoreBackupURL: URL?
     static var scene: AppScreenshotScene? {
         guard requested, let value = ProcessInfo.processInfo.environment["LOCALMINUTES_SCREENSHOT_SCENE"] else { return nil }
         return AppScreenshotScene(rawValue: value)
@@ -22,6 +23,7 @@ enum AppScreenshotFixture {
         UIView.setAnimationsEnabled(false)
         await services.initialize()
         prepareModels(services.modelBrowser)
+        if scene == .meetingsRestoreConfirmation { restoreBackupURL = try await application.exportLibraryBackup() }
         if scene == .modelsStorage {
             await services.modelBrowser.prepareStorageCheck(recordingOwner: application.owner)
         }
@@ -34,7 +36,7 @@ enum AppScreenshotFixture {
 
     static func scroll(_ proxy: ScrollViewProxy) {
         guard let scene else { return }
-        proxy.scrollTo(scene.anchor, anchor: .top)
+        if !scene.anchor.isEmpty { proxy.scrollTo(scene.anchor, anchor: .top) }
     }
 
     static var colorScheme: ColorScheme? {
@@ -47,17 +49,30 @@ enum AppScreenshotFixture {
     }
 
     static var snapshot: RecordingSnapshot {
-        .init(phase: .recording, sessionID: meetingID,
+        switch scene {
+        case .recordPreparing:
+            return .init(phase: .preparing, sessionID: meetingID, readiness: .init(), failure: nil, cleanupPending: false)
+        case .recordStopping:
+            return .init(phase: .stopping, sessionID: meetingID, readiness: .init(), failure: nil, cleanupPending: true)
+        case .recordMicrophoneDenied, .recordCaptureFailure, .recordStorageFull:
+            return .init(phase: .failed, sessionID: meetingID, readiness: .init(),
+                failure: scene == .recordMicrophoneDenied ? .microphoneDenied : scene == .recordStorageFull ? .storageFull : .captureUnavailable,
+                cleanupPending: false)
+        default: break
+        }
+        return .init(phase: .recording, sessionID: meetingID,
               readiness: .init(audioSessionActive: true, firstBufferAccepted: true, activityActive: true),
               failure: nil, cleanupPending: false)
     }
 
     static var progress: RecordingProgress {
-        .init(elapsedSeconds: 125, backlogSeconds: 2.5, status: .processing)
+        .init(elapsedSeconds: 125, backlogSeconds: scene == .recordCatchingUp ? 45 : 2.5,
+              status: scene == .recordCatchingUp ? .lagging : .processing)
     }
 
     static var transcript: LiveTranscriptSnapshot {
-        .init(sessionID: meetingID, finalized: [
+        if scene == .recordListening { return .init(sessionID: meetingID, finalized: [], receivedSampleCount: 0) }
+        return .init(sessionID: meetingID, finalized: [
             .init(id: UUID(uuidString: "20000000-0000-0000-0000-000000000001")!,
                   meetingID: meetingID, sequence: 0, startSample: 0, endSample: 80_000,
                   text: "We agreed to review the updated meeting experience on Friday.",
@@ -89,6 +104,36 @@ enum AppScreenshotFixture {
         return .init(sessionID: meetingID, partial: partial, finalized: segments,
                      receivedSampleCount: Int64(segments.count) * 80_000)
     }
+
+    static var permissions: RecordingPermissionsController? {
+        guard let scene, [.recordPermissions, .recordPermissionsDenied, .recordPermissionsAllowed,
+                          .recordActivitiesDisabled, .settingsPermissions].contains(scene) else { return nil }
+        return RecordingPermissionsController(source: ScreenshotPermissionsSource(
+            microphone: scene == .recordPermissionsDenied ? .denied :
+                [.recordPermissionsAllowed, .recordActivitiesDisabled].contains(scene) ? .allowed : .notRequested,
+            liveActivitiesEnabled: scene != .recordActivitiesDisabled))
+    }
+}
+
+@MainActor
+private final class ScreenshotPermissionsSource: RecordingPermissionsSource {
+    let microphone: RecordingMicrophonePermission
+    let liveActivitiesEnabled: Bool
+    init(microphone: RecordingMicrophonePermission, liveActivitiesEnabled: Bool) {
+        self.microphone = microphone; self.liveActivitiesEnabled = liveActivitiesEnabled
+    }
+    func requestMicrophone() async {}
+}
+
+/// The actual launch storyboard, hosted long enough to inspect its layout.
+/// Receipts explicitly identify this as hostedLaunch, not an OS launch capture.
+struct ScreenshotLaunchView: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> UIViewController {
+        let controller = UIStoryboard(name: "LaunchScreen", bundle: .main).instantiateInitialViewController()!
+        controller.overrideUserInterfaceStyle = AppScreenshotFixture.colorScheme == .dark ? .dark : .light
+        return controller
+    }
+    func updateUIViewController(_ controller: UIViewController, context: Context) {}
 }
 
 /// A separate accessibility leaf keeps the readiness identifier off production

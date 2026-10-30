@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { createHash, randomUUID } from 'node:crypto';
 import { copyFile, lstat, mkdir, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises';
 import { basename, dirname, join, resolve } from 'node:path';
@@ -10,30 +11,39 @@ const pngSignature = Buffer.from('89504e470d0a1a0a', 'hex');
 const retiredScenes = ['models_parakeet_compatibility', 'models_parakeet_requirements',
   'models_import_picker', 'models_pack_picker'];
 
-export const screenshotCategories = {
-  recording: ['record_idle', 'record_speech_model_required', 'record_active', 'record_live_transcript', 'record_live_notes'],
-  library: ['meetings_empty', 'meetings_history', 'meetings_actions', 'meetings_backup_ready',
-    'meetings_restore_picker', 'meetings_search', 'meeting_delete_confirmation'],
-  notes: ['meeting_notes'],
-  transcript: ['meeting_transcript', 'meeting_transcript_search', 'meeting_no_transcript'],
-  summary: ['meeting_summary', 'meeting_summary_reset_confirmation', 'meeting_no_summary', 'meeting_summary_model_required'],
-  questions: ['meeting_questions_and_answers'],
-  sharing: ['meeting_export', 'meeting_share_sheet'],
-  models: ['models_speech', 'models_summary'],
-  parakeet: ['models_parakeet_repository', 'models_parakeet_source', 'models_parakeet_download', 'models_model_card'],
-  downloads: ['models_downloading', 'models_verifying'],
-  'installed-models': ['models_installed_summary', 'models_installed_details', 'models_remove_confirmation'],
-  settings: ['models_storage_check', 'models_about', 'models_device']
-};
+export function parseScreenshotCatalog(source) {
+  const cases = [...source.matchAll(/^\s*case (\w+) = "([a-z0-9_]+)"$/gm)];
+  const definitions = [...source.matchAll(/^\s*case \.(\w+): #"(\{.*\})"#$/gm)];
+  assert.ok(cases.length > 0 && definitions.length === cases.length, 'Every scene needs a capture contract');
+  const byCase = new Map(definitions.map(([, name, json]) => [name, JSON.parse(json)]));
+  assert.equal(byCase.size, cases.length, 'Duplicate capture contracts');
+  const catalog = Object.fromEntries(cases.map(([, name, scene]) => {
+    const spec = byCase.get(name);
+    assert.ok(spec && /^[a-z][a-z-]*$/.test(spec.category), `Invalid category: ${scene}`);
+    assert.ok(['screen', 'sheet', 'menu', 'confirmation', 'systemSheet', 'systemPermission', 'hostedActivity', 'hostedLaunch'].includes(spec.presentation));
+    assert.ok(Array.isArray(spec.required) && spec.required.length > 0 && spec.required.every(id => typeof id === 'string' && id.length > 0));
+    assert.equal(new Set(spec.required).size, spec.required.length, `Duplicate targets: ${scene}`);
+    assert.ok(Array.isArray(spec.actions) && spec.actions.every(id => typeof id === 'string' && id.length > 0));
+    if (spec.expectedText) assert.ok(Object.entries(spec.expectedText).every(([id, value]) =>
+      spec.required.includes(id) && typeof value === 'string' && value.length > 0), `Invalid expected text: ${scene}`);
+    if (spec.presentation === 'confirmation') {
+      assert.ok(typeof spec.alertTitle === 'string' && spec.alertTitle.length > 0 && spec.required.includes('system.cancel'),
+        `Confirmation must check its title and Cancel: ${scene}`);
+    }
+    return [scene, spec];
+  }));
+  assert.equal(Object.keys(catalog).length, cases.length, 'Duplicate screenshot names');
+  return catalog;
+}
+
+export const screenshotSpecifications = parseScreenshotCatalog(readFileSync(sceneSource, 'utf8'));
+export const screenshotCategories = Object.entries(screenshotSpecifications).reduce((categories, [scene, spec]) => {
+  (categories[spec.category] ??= []).push(scene);
+  return categories;
+}, {});
 
 async function catalogScenes() {
-  const source = await readFile(sceneSource, 'utf8');
-  const names = [...source.matchAll(/^\s*case \w+ = "([a-z0-9_]+)"$/gm)].map(match => match[1]);
-  assert.ok(names.length > 0, 'The screenshot catalog must declare its scenes');
-  assert.equal(new Set(names).size, names.length, 'Duplicate screenshot names in the catalog');
-  assert.deepEqual(Object.values(screenshotCategories).flat().sort(), [...names].sort(),
-    'Every screenshot scene must belong to exactly one category');
-  return names;
+  return Object.keys(screenshotSpecifications);
 }
 
 function csv(value, label) {
@@ -124,6 +134,91 @@ async function logFacts(file) {
   return { sizeBytes: data.length, sha256: createHash('sha256').update(data).digest('hex') };
 }
 
+function checkedRect(value, label) {
+  assert.ok(Array.isArray(value) && value.length === 4 && value.every(Number.isFinite)
+    && value[2] > 0 && value[3] > 0, `Invalid ${label} bounds`);
+  return value;
+}
+
+function contains(outer, inner) {
+  const tolerance = 0.5;
+  return inner[0] >= outer[0] - tolerance && inner[1] >= outer[1] - tolerance
+    && inner[0] + inner[2] <= outer[0] + outer[2] + tolerance
+    && inner[1] + inner[3] <= outer[1] + outer[3] + tolerance;
+}
+
+function captureContract(spec) {
+  return { required: spec.required, presentation: spec.presentation, alertTitle: spec.alertTitle ?? '',
+    keyboard: spec.keyboard === true, expectedText: spec.expectedText ?? {} };
+}
+
+export function validateScreenshotEvidence(evidence, filename, image, { historical = false } = {}) {
+  const match = /^(.*)_(light|dark)\.png$/.exec(basename(filename));
+  assert.ok(match, 'Invalid screenshot name');
+  const [, scene, appearance] = match;
+  const spec = screenshotSpecifications[scene];
+  assert.ok(spec, 'Validation references an unknown scene');
+  assert.equal(evidence?.schemaVersion, 1, `Missing screenshot validation: ${filename}`);
+  const contract = evidence.contract;
+  assert.ok(contract && Array.isArray(contract.required) && contract.required.length > 0
+    && contract.required.every(id => typeof id === 'string') && new Set(contract.required).size === contract.required.length,
+    'Missing capture contract');
+  assert.ok(contract.expectedText && typeof contract.expectedText === 'object' && !Array.isArray(contract.expectedText));
+  assert.equal(typeof contract.alertTitle, 'string');
+  assert.equal(typeof contract.keyboard, 'boolean');
+  assert.ok(Object.entries(contract.expectedText).every(([id, value]) => contract.required.includes(id) && typeof value === 'string' && value.length > 0));
+  if (!historical) assert.deepEqual(contract, captureContract(spec), 'Capture contract does not match this build');
+  assert.equal(evidence.scene, scene, 'Validation scene mismatch');
+  assert.equal(evidence.appearance, appearance, 'Validation appearance mismatch');
+  assert.equal(evidence.presentation, contract.presentation, 'Validation presentation mismatch');
+  assert.equal(evidence.pixelWidth, image.width, 'Validation pixel width mismatch');
+  assert.equal(evidence.pixelHeight, image.height, 'Validation pixel height mismatch');
+  assert.ok(image.width >= 320 && image.height >= 480, 'Screenshot is too small for an iPhone capture');
+  const window = checkedRect(evidence.window, 'window');
+  const viewport = checkedRect(evidence.viewport, 'viewport');
+  assert.ok(contains(window, viewport), 'Viewport falls outside the screenshot');
+  const scale = image.width / window[2];
+  assert.ok(scale >= 1 && scale <= 4 && Math.abs(scale - image.height / window[3]) < 0.02,
+    'Screenshot does not match the captured window');
+  assert.ok(Number.isInteger(evidence.stableSamples) && evidence.stableSamples >= 3, 'Layout was not stable');
+  const chrome = evidence.chromeBounds ?? evidence.navigationBars;
+  assert.ok(Array.isArray(chrome));
+  for (const bar of chrome) assert.ok(contains(window, checkedRect(bar, 'chrome')));
+  assert.equal(typeof evidence.keyboardVisible, 'boolean');
+  assert.equal(evidence.keyboardVisible, contract.keyboard, 'Unexpected keyboard state');
+  assert.equal(evidence.alertTitle, contract.alertTitle, 'Incorrect confirmation title');
+  assert.ok(Array.isArray(evidence.checks));
+  assert.deepEqual(evidence.checks.map(check => check.identifier), contract.required, 'Required visible elements were not checked');
+  if (contract.presentation === 'confirmation') {
+    assert.ok(contract.alertTitle && contract.required.includes('system.cancel') && evidence.checks.every(check => check.enabled),
+      'Confirmation actions must be available');
+  }
+  for (const check of evidence.checks) {
+    const frame = checkedRect(check.frame, check.identifier);
+    assert.equal(typeof check.label, 'string');
+    assert.equal(typeof check.enabled, 'boolean');
+    assert.ok(['content', 'navigation', 'overlay'].includes(check.region), 'Unknown visibility region');
+    if (check.region === 'content') assert.ok(contains(viewport, frame), `Clipped content: ${check.identifier}`);
+    if (check.region === 'navigation') assert.ok(chrome.some(bar => contains(bar, frame)), 'Clipped toolbar control');
+    if (check.region === 'overlay') {
+      assert.ok(['confirmation', 'menu', 'systemSheet', 'systemPermission', 'hostedActivity', 'hostedLaunch'].includes(contract.presentation));
+      assert.ok(contains(window, frame), 'Clipped presentation');
+    }
+    if (check.identifier === 'system.cancel') assert.ok(check.enabled && check.label === 'Cancel', 'Confirmation cannot be cancelled');
+    if (contract.expectedText[check.identifier]) {
+      assert.ok((check.label + ' ' + (check.value ?? '')).toLowerCase().includes(contract.expectedText[check.identifier].toLowerCase()),
+        `Wrong visible state: ${check.identifier}`);
+    }
+  }
+  if (['models_speech_variants', 'models_summary_variants'].includes(scene)) {
+    const button = evidence.checks.find(check => check.identifier === 'buttonPrefix:models.download.');
+    const label = evidence.checks.find(check => check.identifier === 'textPrefix:models.download.label.');
+    assert.ok(button && label && label.label === 'Download' && contains(button.frame, label.frame), 'Download title is missing');
+    assert.ok(button.frame[2] >= 44 && button.frame[3] >= 44 && button.frame[3] <= 80, 'Download button has an invalid size');
+  }
+  return evidence;
+}
+
 function diagnosticPath(filename) {
   return filename.replace(/(^|\/)([^/]+)$/, '$1diagnostic_$2');
 }
@@ -167,9 +262,24 @@ export async function collectScreenshots({ attachmentsDirectory, outputDirectory
   assert.ok(Array.isArray(entries), 'Unexpected xcresult attachment manifest');
   const images = new Map();
   const diagnostics = new Map();
+  const validations = new Map();
   const expected = await expectedScreenshotNames(selection);
   for (const entry of entries) {
     for (const attachment of entry.attachments ?? []) {
+      const proof = /^appui_validation__(light|dark)__([a-z0-9]+(?:_[a-z0-9]+)*)__/.exec(attachment.suggestedHumanReadableName ?? '');
+      if (proof) {
+        const exported = attachment.exportedFileName;
+        assert.equal(typeof exported, 'string');
+        assert.match(exported, /^[A-Za-z0-9_.-]+\.json$/i, 'Unsafe validation attachment path');
+        const filename = screenshotPath(proof[2], proof[1]);
+        assert.ok(expected.includes(filename), `Unrequested screenshot validation: ${filename}`);
+        assert.ok(!validations.has(filename), `Duplicate capture validation: ${filename}`);
+        const path = join(attachmentsDirectory, exported);
+        const facts = await lstat(path);
+        assert.ok(facts.isFile() && facts.size <= 256 * 1024, 'Expected a regular validation attachment');
+        validations.set(filename, JSON.parse(await readFile(path, 'utf8')));
+        continue;
+      }
       const match = /^(appui|diagnostic)__(light|dark)__([a-z0-9]+(?:_[a-z0-9]+)*)__/.exec(attachment.suggestedHumanReadableName ?? '');
       if (!match) continue;
       const exported = attachment.exportedFileName;
@@ -183,16 +293,28 @@ export async function collectScreenshots({ attachmentsDirectory, outputDirectory
       collection.set(filename, join(attachmentsDirectory, exported));
     }
   }
+  const validationFailures = [];
+  for (const [filename, path] of images) {
+    const facts = await imageFacts(path);
+    try { validateScreenshotEvidence(validations.get(filename), filename, facts); }
+    catch (error) {
+      validationFailures.push({ filename, reason: error.message });
+      images.delete(filename);
+      diagnostics.set(diagnosticPath(filename), path);
+    }
+  }
   const missingScreenshots = expected.filter(filename => !images.has(filename));
   const complete = captureSucceeded && missingScreenshots.length === 0 && diagnostics.size === 0;
-  if (!allowIncomplete) assert.ok(complete, 'The screenshot set is incomplete');
+  if (!allowIncomplete) assert.ok(complete, 'The screenshot set is incomplete' +
+    (validationFailures.length ? `; ${validationFailures[0].reason}` : ''));
   await mkdir(outputDirectory);
   const screenshots = [];
   const diagnosticImages = [];
   for (const [filename, source] of [...images, ...diagnostics].sort(([a], [b]) => a.localeCompare(b))) {
     const facts = await imageFacts(source);
     await copyInto(source, outputDirectory, filename);
-    (images.has(filename) ? screenshots : diagnosticImages).push({ filename, ...facts });
+    (images.has(filename) ? screenshots : diagnosticImages).push({ filename, ...facts,
+      ...(images.has(filename) ? { validation: validations.get(filename) } : {}) });
   }
   let log;
   if (logFile) {
@@ -200,9 +322,9 @@ export async function collectScreenshots({ attachmentsDirectory, outputDirectory
     await copyFile(logFile, join(outputDirectory, log.filename));
   }
   await writeFile(join(outputDirectory, 'manifest.json'), JSON.stringify({
-    schemaVersion: 2, selection, sourceCommit, device, fixtureData: true,
+    schemaVersion: 3, selection, sourceCommit, device, fixtureData: true,
     capturedAt: new Date().toISOString(), complete, captureSucceeded, missingScreenshots,
-    screenshots, diagnostics: diagnosticImages, ...(log ? { log } : {})
+    screenshots, diagnostics: diagnosticImages, validationFailures, ...(log ? { log } : {})
   }, null, 2) + '\n');
   await verifyScreenshotBundle(outputDirectory, sourceCommit, selection);
   return outputDirectory;
@@ -213,16 +335,17 @@ export async function verifyScreenshotBundle(directory, sourceCommit, requestedS
   const manifestPath = join(directory, 'manifest.json');
   assert.ok((await lstat(manifestPath)).isFile(), 'Expected a regular screenshot manifest');
   const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
-  assert.ok([1, 2].includes(manifest.schemaVersion), 'Unknown screenshot manifest version');
+  assert.ok([1, 2, 3].includes(manifest.schemaVersion), 'Unknown screenshot manifest version');
   assert.equal(manifest.sourceCommit, sourceCommit, 'Screenshot source commit does not match the request');
   assert.equal(manifest.fixtureData, true);
   assert.ok(typeof manifest.device === 'string' && manifest.device.length > 0);
-  let selection = manifest.schemaVersion === 1 ? await resolveScreenshotSelection() : manifest.selection;
+  let selection = manifest.selection;
   if (manifest.schemaVersion === 1) {
     const reported = [...(manifest.screenshots ?? []).map(image => image.filename), ...(manifest.missingScreenshots ?? [])];
-    if (reported.some(name => retiredScenes.some(scene => ['light', 'dark'].some(appearance => name === `${scene}_${appearance}.png`)))) {
-      selection = { ...selection, scenes: [...selection.scenes, ...retiredScenes] };
-    }
+    const current = await resolveScreenshotSelection();
+    const historical = [...current.scenes, ...retiredScenes];
+    selection = { appearances: current.appearances,
+      scenes: historical.filter(scene => reported.some(name => ['light', 'dark'].some(appearance => basename(name) === `${scene}_${appearance}.png`))) };
   }
   assert.ok(selection, 'Missing screenshot selection');
   await checkedSelection(selection, { historical: true });
@@ -250,15 +373,18 @@ export async function verifyScreenshotBundle(directory, sourceCommit, requestedS
     files.push(filename);
   }
   await verifyContents(directory, files);
-  for (const { filename, ...expectedFacts } of [...manifest.screenshots, ...manifest.diagnostics]) {
-    assert.deepEqual(await imageFacts(join(directory, filename)), expectedFacts,
+  for (const { filename, validation, ...expectedFacts } of [...manifest.screenshots, ...manifest.diagnostics]) {
+    const facts = await imageFacts(join(directory, filename));
+    assert.deepEqual(facts, expectedFacts,
       `Screenshot checksum or dimensions do not match: ${filename}`);
+    if (validation || (manifest.schemaVersion === 3 && names.includes(filename))) validateScreenshotEvidence(validation, filename, facts);
   }
   return manifest;
 }
 
-export async function verifyScreenshots(directory, sourceCommit, selection) {
+export async function verifyScreenshots(directory, sourceCommit, selection, { requireValidation = false } = {}) {
   const report = await verifyScreenshotBundle(directory, sourceCommit, selection);
+  if (requireValidation) assert.equal(report.schemaVersion, 3, 'A new capture must include native visibility validation');
   assert.ok(report.complete, `Capture failed; ${report.missingScreenshots.length} screenshots missing. ` +
     `The capture report, available images, and any log remain at ${directory}. Previous screenshots were not replaced.`);
   return directory;
@@ -269,7 +395,7 @@ export async function verifyScreenshotGallery(directory) {
   const manifestPath = join(directory, 'manifest.json');
   assert.ok((await lstat(manifestPath)).isFile(), 'Expected a regular gallery manifest');
   const gallery = JSON.parse(await readFile(manifestPath, 'utf8'));
-  assert.equal(gallery.schemaVersion, 2);
+  assert.ok([2, 3].includes(gallery.schemaVersion));
   assert.equal(gallery.kind, 'gallery');
   assert.equal(gallery.fixtureData, true);
   const expected = await historicalScreenshotNames();
@@ -283,12 +409,13 @@ export async function verifyScreenshotGallery(directory) {
     files.push(gallery.log.filename);
   }
   await verifyContents(directory, files);
-  for (const { filename, sourceCommit, device, capturedAt, ...facts } of gallery.screenshots) {
+  for (const { filename, sourceCommit, device, capturedAt, validation, ...facts } of gallery.screenshots) {
     assert.match(sourceCommit, /^[0-9a-f]{40}$/);
     assert.ok(typeof device === 'string' && device.length > 0 && Number.isFinite(Date.parse(capturedAt)),
       'Missing screenshot provenance');
     assert.deepEqual(await imageFacts(join(directory, filename)), facts,
       `Screenshot checksum or dimensions do not match: ${filename}`);
+    if (validation) validateScreenshotEvidence(validation, filename, facts, { historical: true });
   }
   if (gallery.log) {
     const { filename, ...facts } = gallery.log;
@@ -322,7 +449,7 @@ export async function replaceScreenshots({ repositoryRoot, stagingDirectory, sou
   assert.match(basename(staging), /^screenshots-[0-9a-f-]{36}$/);
   await verifyScreenshots(staging, sourceCommit, selection);
   const report = await verifyScreenshotBundle(staging, sourceCommit, selection);
-  assert.equal(report.schemaVersion, 2, 'New captures must use the categorized screenshot format');
+  assert.ok([2, 3].includes(report.schemaVersion), 'New captures must use the categorized screenshot format');
   const destination = join(root, 'AppUI_Screenshots');
   const previous = await lstat(destination).catch(error => {
     if (error.code !== 'ENOENT') throw error;
@@ -345,7 +472,7 @@ export async function replaceScreenshots({ repositoryRoot, stagingDirectory, sou
   for (const [filename, { source }] of images) await copyInto(source, ready, filename);
   if (report.log) await copyInto(join(staging, report.log.filename), ready, report.log.filename);
   await writeFile(join(ready, 'manifest.json'), JSON.stringify({
-    schemaVersion: 2, kind: 'gallery', fixtureData: true,
+    schemaVersion: 3, kind: 'gallery', fixtureData: true,
     lastCapture: { sourceCommit, device, capturedAt, selection: report.selection },
     screenshots: [...images.values()].map(entry => entry.image).sort((a, b) => a.filename.localeCompare(b.filename)),
     ...(report.log ? { log: report.log } : {})

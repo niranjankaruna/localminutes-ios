@@ -53,6 +53,7 @@ struct IntelligenceProgressView: View {
             }
             Button("Cancel", role: .cancel, action: cancel)
                 .buttonStyle(MinutesButtonStyle(kind: .secondary))
+                .accessibilityIdentifier("meeting.intelligence.cancel")
         }
         .minutesCard()
         .accessibilityElement(children: .contain)

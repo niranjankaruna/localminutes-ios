@@ -1,5 +1,13 @@
 # Screen coverage
 
+## Automated capture catalog — 30 October 2026
+
+The [native/shared catalog](../Shared/AppScreenshotScene.swift) now declares **118 captures in each appearance (236 images)**, including all eight confirmation presentations, contextual model setup sheets, expanded variants, editors/conflicts, structured summaries, recovery, loading/progress/error states, permissions, and hosted launch/Live Activity views. The downloader reads the same contracts as the native capture runner; [README.md](../README.md) lists the categories and capture rules.
+
+New captures must include native receipts proving the required elements are fully visible and stable, the expected state is displayed, and confirmation actions are available. Variant captures explicitly check the Download label and button bounds. Failed or unverified images remain diagnostics and cannot replace the gallery. Previous galleries retain their original provenance and are not relabelled as newly verified.
+
+This is implemented capture coverage, **not a claim that new screenshots have been generated**. The native runner has not been executed on this Windows host. Physical Lock Screen/Dynamic Island behavior, OS launch timing, real recording/inference, and privacy-cover transitions remain device validation items.
+
 ## Native source coverage — 30 October 2026
 
 The supplied gallery contains **37 scenes × 2 appearances = 74 images**, all reviewed. It is not a complete application inventory. The following coverage comes from the current source, including branches and presentations absent from the gallery. “Reviewed” means source/design review; it does not mean these new layouts were rendered on iOS. See [implementation and validation](./IMPLEMENTATION.md#native-ui-review--30-october-2026).

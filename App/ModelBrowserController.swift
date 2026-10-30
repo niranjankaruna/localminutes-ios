@@ -105,7 +105,50 @@ final class ModelBrowserController {
             // inventory without presenting that normal lifecycle event as a failure.
             return
         } catch { errorMessage = Self.describe(error) }
+        #if DEBUG
+        prepareScreenshotPresentation()
+        #endif
     }
+
+    #if DEBUG
+    /// Frozen presentation inputs only. No transfer, selection or inference is
+    /// started by a screenshot fixture; Release contains none of these states.
+    func prepareScreenshotPresentation() {
+        guard let scene = AppScreenshotFixture.scene else { return }
+        if scene == .modelsStorageRequired {
+            resources = .init(freeDiskBytes: 0, totalMemoryBytes: resources.totalMemoryBytes,
+                              availableAppMemoryBytes: resources.availableAppMemoryBytes)
+        }
+        if scene == .settingsStorageFailure { storageCheckError = "Storage check could not finish. Try again when recording has stopped." }
+        if scene == .settingsStoragePreparing { isPreparingStorageCheck = true }
+        if scene == .modelsFailure { errorMessage = "Model information could not be loaded. Pull down to try again." }
+        if scene == .modelsSelected { equippedSummaryID = "ui-model-alpha" }
+        if scene == .modelsPreparing {
+            isDownloading = true; isWorking = true; downloadProgress = nil
+            return
+        }
+        let stage: ModelTransferStage
+        switch scene {
+        case .modelsDownloading, .modelsTransferDetails: stage = .downloading
+        case .modelsVerifying: stage = .verifying
+        case .modelsPaused: stage = .paused
+        case .modelsFailed: stage = .failed
+        case .modelsInstalling: stage = .installing
+        case .modelsCompleted: stage = .completed
+        default: return
+        }
+        transferManifest = families(for: .summary).first?.variants.first?.manifest
+        isDownloading = [.downloading, .verifying, .installing].contains(stage)
+        isWorking = isDownloading
+        downloadProgress = .init(stage: stage, fileName: "fixture.gguf",
+            completedBytes: stage == .completed ? 419_430_400 : 209_715_200, totalBytes: 419_430_400,
+            bytesPerSecond: stage == .downloading ? 10_485_760 : nil,
+            remainingSeconds: stage == .downloading ? 20 : nil, resumedBytes: 52_428_800,
+            fileIndex: 1, fileCount: 1, overallCompletedBytes: stage == .completed ? 419_430_400 : 209_715_200,
+            overallTotalBytes: 419_430_400)
+        if stage == .failed { errorMessage = "The download was interrupted. Your progress is saved." }
+    }
+    #endif
 
     private func selectionID(for purpose: ModelPurpose, services: LocalMinutesServices) async throws -> String? {
         if try await services.modelSelections.hasSelectionRecord(for: purpose) {

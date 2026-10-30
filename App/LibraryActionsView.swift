@@ -25,6 +25,11 @@ final class LibraryActionsController {
         message = nil
     }
     func createBackup() async {
+        #if DEBUG
+        if let scene = AppScreenshotFixture.scene, [.meetingsBackupPreparing, .meetingsBackupFailure].contains(scene) {
+            prepareScreenshotPresentation(); return
+        }
+        #endif
         guard !unavailable else { return }
         working = true; message = nil
         defer { working = false }
@@ -67,6 +72,17 @@ final class LibraryActionsController {
             report = text
         } catch { message = "The recording report could not be prepared yet." }
     }
+
+    #if DEBUG
+    func prepareScreenshotPresentation() {
+        switch AppScreenshotFixture.scene {
+        case .meetingsBackupPreparing: working = true
+        case .meetingsBackupFailure: message = "The backup could not be prepared. Stop recording and try again."
+        case .meetingsRestoreFailure: message = "The backup could not be restored. Your previous library is available."
+        default: break
+        }
+    }
+    #endif
 }
 
 struct LibraryRestoreModifier: ViewModifier {
@@ -96,6 +112,7 @@ struct LibraryBackupView: View {
                 VStack(spacing: 20) {
                     if controller.working {
                         MinutesProgress(title: "Preparing backup")
+                            .accessibilityIdentifier("meeting.history.backup.progress")
                     } else if let url = controller.backupURL {
                         MinutesEmptyState(title: "Backup is ready", symbol: "checkmark.shield",
                             detail: "Includes audio, transcripts, notes, summaries, and answers.")
@@ -106,9 +123,11 @@ struct LibraryBackupView: View {
                     }
                     if let message = controller.message {
                         MinutesMessage(text: message, isError: controller.backupURL == nil)
+                            .accessibilityIdentifier("meeting.history.backup.error")
                         if controller.backupURL == nil {
                             Button("Try again") { Task { await controller.createBackup() } }
                                 .buttonStyle(MinutesButtonStyle())
+                                .accessibilityIdentifier("meeting.history.backup.retry")
                         }
                     }
                 }.frame(maxWidth: 440).padding(MinutesStyle.pageInset).frame(maxWidth: .infinity)
@@ -128,6 +147,7 @@ struct RecordingReportView: View {
         List {
             Section {
                 Text("Observed recording and transcription performance.").foregroundStyle(.secondary)
+                    .accessibilityIdentifier("meeting.history.report.description")
                 if let report = controller.report {
                     ShareLink(item: report) { Label("Share report", systemImage: "square.and.arrow.up") }
                         .frame(minHeight: 44)

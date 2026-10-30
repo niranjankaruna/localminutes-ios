@@ -67,6 +67,7 @@ struct ModelPurposeView: View {
     @State private var screenshotPrepared = false
     @State private var screenshotDetailsPrepared = false
     @State private var attributionExpanded = false
+    @State private var sourceFilesExpanded = false
 
     init(controller: ModelBrowserController, purpose: ModelPurpose, application: RecordingApplication? = nil,
          onSelected: (() -> Void)? = nil) {
@@ -75,9 +76,10 @@ struct ModelPurposeView: View {
         #if DEBUG
         if let scene = AppScreenshotFixture.scene {
             switch scene {
-            case .modelsDownloading, .modelsVerifying:
+            case .modelsDownloading, .modelsVerifying, .modelsTransferDetails, .modelsPaused, .modelsFailed,
+                 .modelsInstalling, .modelsCompleted, .modelsPreparing, .modelsNoTransfer:
                 _captureRoute = State(initialValue: .transfer)
-            case .modelsInstalled, .modelsRemove:
+            case .modelsInstalled, .modelsRemove, .modelsSelected:
                 if let family = controller.families(for: purpose).first(where: {
                     $0.variants.contains(where: { $0.id == "ui-model-alpha" })
                 }) {
@@ -85,11 +87,18 @@ struct ModelPurposeView: View {
                 }
             case .modelsDetails:
                 _captureRoute = State(initialValue: .variant("ui-model-alpha"))
-            case .modelsRepository, .modelsSource, .modelsCard, .modelsDownload:
+            case .modelsSpeechVariants, .modelsSummaryVariants:
+                if let family = controller.families(for: purpose).first {
+                    _expandedFamilies = State(initialValue: [family.id])
+                }
+            case .modelsSummaryDetails, .modelsSummaryContext:
+                _captureRoute = State(initialValue: controller.families(for: .summary).first?.variants.first.map { .variant($0.id) })
+            case .modelsRepository, .modelsSource, .modelsCard, .modelsDownload, .modelsFiles, .modelsStorageRequired:
                 let variant = controller.families(for: .speechRecognition)
                     .first(where: { $0.id == "parakeet-v2" })?.variants.first
                 _captureRoute = State(initialValue: variant.map { .variant($0.id) })
                 _attributionExpanded = State(initialValue: scene == .modelsCard)
+                _sourceFilesExpanded = State(initialValue: scene == .modelsFiles)
             default: break
             }
         } else if controller.downloadProgress != nil {
@@ -151,7 +160,7 @@ struct ModelPurposeView: View {
                             .padding(.vertical, 8)
                         ForEach(family.variants, id: \.id) { variant in
                             variantRow(variant)
-                                .screenshotAnchor(variant.id)
+                                .screenshotAnchor(variantAnchor(variant))
                         }
                     } label: {
                         VStack(alignment: .leading, spacing: 6) {
@@ -218,6 +227,14 @@ struct ModelPurposeView: View {
         return variants
     }
 
+    private func variantAnchor(_ variant: ModelCatalogVariant) -> String {
+        #if DEBUG
+        if let scene = AppScreenshotFixture.scene, [.modelsSpeechVariants, .modelsSummaryVariants].contains(scene),
+           variant.id == families.first?.variants.first?.id { return "models.variants.capture" }
+        #endif
+        return variant.id
+    }
+
     private func variantRow(_ variant: ModelCatalogVariant) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 6) {
@@ -241,7 +258,7 @@ struct ModelPurposeView: View {
             MinutesActions {
                 modelActions(variant)
                 NavigationLink("Details", value: ModelScreen.variant(variant.id))
-                    .buttonStyle(MinutesButtonStyle(kind: .secondary))
+                    .buttonStyle(MinutesButtonStyle(kind: .secondary, fillsWidth: false))
                     .accessibilityLabel("Details for \(modelActionIdentity(variant.manifest))")
                     .accessibilityIdentifier("models.open.\(variant.id)")
             }
@@ -281,23 +298,27 @@ struct ModelPurposeView: View {
                     }
                 }
             }
-            .buttonStyle(MinutesButtonStyle())
+            .buttonStyle(MinutesButtonStyle(fillsWidth: false))
             .accessibilityLabel("\(controller.isEquipped(installed) ? "Using" : "Use") \(modelActionIdentity(variant.manifest))")
             .accessibilityIdentifier("models.equip.\(variant.id)")
             .disabled(busy || controller.isEquipped(installed))
             removeButton(variant)
         } else if controller.transferManifest?.modelID == variant.id && controller.isDownloading {
             Button("Pause", systemImage: "pause") { controller.cancelDownload() }
-                .buttonStyle(MinutesButtonStyle(kind: .secondary))
+                .buttonStyle(MinutesButtonStyle(kind: .secondary, fillsWidth: false))
                 .accessibilityLabel("Pause downloading \(modelActionIdentity(variant.manifest))")
                 .accessibilityIdentifier("models.pause.\(variant.id)")
         } else {
             Button {
                 controller.download(variant)
             } label: {
-                Label(controller.hasPartialDownload(variant.manifest) ? "Resume" : "Download", systemImage: "arrow.down")
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.down").accessibilityHidden(true)
+                    Text(controller.hasPartialDownload(variant.manifest) ? "Resume" : "Download")
+                        .accessibilityIdentifier("models.download.label.\(variant.id)")
+                }
             }
-            .buttonStyle(MinutesButtonStyle())
+            .buttonStyle(MinutesButtonStyle(fillsWidth: false))
             .accessibilityLabel("\(controller.hasPartialDownload(variant.manifest) ? "Resume downloading" : "Download") \(modelActionIdentity(variant.manifest))")
             .accessibilityIdentifier("models.download.\(variant.id)")
             .disabled(!controller.canDownload(variant))
@@ -309,7 +330,7 @@ struct ModelPurposeView: View {
         Button("Remove", role: .destructive) {
             pendingRemoval = variant.manifest; confirmingRemoval = true
         }
-        .buttonStyle(MinutesButtonStyle(kind: .destructiveSecondary))
+        .buttonStyle(MinutesButtonStyle(kind: .destructiveSecondary, fillsWidth: false))
         .accessibilityLabel("Remove \(modelActionIdentity(variant.manifest))")
         .accessibilityIdentifier("models.remove.\(variant.id)").disabled(busy)
     }
@@ -370,6 +391,7 @@ struct ModelPurposeView: View {
                         Link("Publisher context specifications", destination: url).frame(minHeight: 44)
                     }
                 }
+                .screenshotAnchor("models.context")
             }
             Section {
                 MinutesLabeledValue(title: "Download size", value: bytes(ModelBrowserController.downloadBytes(variant.manifest)))
@@ -379,6 +401,7 @@ struct ModelPurposeView: View {
                 if !busy, controller.installedManifest(for: variant.manifest) == nil, !controller.canDownload(variant) {
                     Text("Not enough free storage for this download. Remove another model and try again.")
                         .font(.callout).foregroundStyle(MinutesStyle.recording)
+                        .accessibilityIdentifier("models.storage.required")
                 }
             } header: {
                 Text("Download & storage").accessibilityIdentifier("models.download.heading")
@@ -389,12 +412,14 @@ struct ModelPurposeView: View {
                 MinutesLabeledValue(title: "License", value: variant.manifest.licenseIdentifier)
                 MinutesLabeledValue(title: "Runtime", value: variant.manifest.runtimeVersion)
                     .accessibilityIdentifier("models.runtime.\(variant.id)")
-                DisclosureGroup("Source revision & files") {
+                DisclosureGroup("Source revision & files", isExpanded: $sourceFilesExpanded) {
                     Text(variant.manifest.revision).font(.caption.monospaced()).textSelection(.enabled)
                         .accessibilityIdentifier("models.repository.revision")
                     ForEach(variant.manifest.artifacts, id: \.fileName) { artifact in
                         VStack(alignment: .leading, spacing: 6) {
                             Text(artifact.fileName).font(.footnote).textSelection(.enabled)
+                                .accessibilityIdentifier(artifact.fileName == variant.manifest.artifacts.first?.fileName
+                                    ? "models.source.firstFile" : "models.source.file.\(artifact.fileName)")
                             Text(bytes(artifact.byteCount)).font(.caption).foregroundStyle(.secondary)
                         }
                     }
@@ -449,7 +474,7 @@ struct ModelPurposeView: View {
                     }.padding(.vertical, 12)
                 }
                 Section {
-                    DisclosureGroup("Transfer details", isExpanded: $transferDetails) {
+                    DisclosureGroup(isExpanded: $transferDetails) {
                         Text("File \(progress.fileIndex) of \(progress.fileCount)").accessibilityIdentifier("models.download.file")
                         Text(progress.fileName).font(.footnote).textSelection(.enabled)
                             .accessibilityIdentifier("models.download.filename")
@@ -460,12 +485,14 @@ struct ModelPurposeView: View {
                         if progress.resumedBytes > 0 {
                             Text("Resumed \(bytes(progress.resumedBytes))").accessibilityIdentifier("models.download.resumed")
                         }
-                    }.accessibilityIdentifier("models.download.details")
+                    } label: {
+                        Text("Transfer details").accessibilityIdentifier("models.download.details")
+                    }
                 }
             } else if controller.isDownloading {
-                Section { ProgressView("Preparing download…") }
+                Section { ProgressView("Preparing download…").accessibilityIdentifier("models.download.preparing") }
             } else {
-                Section { Text("No download in progress.").foregroundStyle(.secondary) }
+                Section { Text("No download in progress.").foregroundStyle(.secondary).accessibilityIdentifier("models.transfer.empty") }
             }
             if !controller.isWorking, let manifest = controller.transferManifest,
                let variant = controller.variant(id: manifest.modelID) {

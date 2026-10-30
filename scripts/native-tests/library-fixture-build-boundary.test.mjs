@@ -13,6 +13,8 @@ const canary = 'LOCALMINUTES_DEBUG_LIBRARY_FIXTURE_CANARY_v1';
 const modelCanary = 'LOCALMINUTES_DEBUG_MODEL_ACCESSIBILITY_FIXTURE_CANARY_v1';
 const markers = [canary, '--ui-test-library-fixture', 'LOCALMINUTES_UI_LIBRARY_TOKEN',
   'LOCALMINUTES_UI_LIBRARY_AX5',
+  '--ui-screenshots', 'LOCALMINUTES_SCREENSHOT_SCENE',
+  'record_microphone_prompt', 'meeting_summary_replace_confirmation', 'models_summary_variants',
   '--ui-test-library-content-status',
   '--ui-test-library-pagination', 'UI Earlier Archive Target',
   'UI Library Alpha', 'UI Library Beta', 'Alpha shared-term original transcript.',

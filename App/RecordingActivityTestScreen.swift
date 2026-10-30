@@ -12,11 +12,16 @@ struct RecordingActivityTestScreen: View {
                                         0, 0, 0, 0, 0, 0, 0, 1))
 
     private var state: RecordingActivityAttributes.ContentState {
+        if AppScreenshotFixture.scene == .activityInterrupted {
+            return .init(status: "interrupted", recordingStartedAt: Date(timeIntervalSince1970: 1_000),
+                         recordingEndedAt: Date(timeIntervalSince1970: 1_065))
+        }
         if finished {
             return .init(status: "finished", recordingStartedAt: Date(timeIntervalSince1970: 1_000),
                          recordingEndedAt: Date(timeIntervalSince1970: 1_065))
         }
-        return .init(status: "recording", recordingStartedAt: Date.now.addingTimeInterval(-65))
+        return .init(status: "recording", recordingStartedAt: Date.now.addingTimeInterval(-65),
+                     recordingEndedAt: AppScreenshotFixture.scene == .activityRecording ? Date.now : nil)
     }
 
     var body: some View {

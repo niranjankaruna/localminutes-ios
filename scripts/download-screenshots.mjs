@@ -21,7 +21,7 @@ export async function captureAndDownload({ repositoryRoot, repository, ref, sour
   await downloadWorkflowArtifact({ repository, ref, sourceCommit, requestID, gh, sleep, cancelled, onProgress,
     outputDirectory: stagingDirectory, workflow: 'app-screenshots.yml', runNamePrefix: 'Screenshots',
     artifactName: 'app-ui-screenshots-transfer', workflowInputs: { appearance, categories, screens, related: String(related) },
-    verifyDownload: (directory, commit) => verifyScreenshots(directory, commit, selection) });
+    verifyDownload: (directory, commit) => verifyScreenshots(directory, commit, selection, { requireValidation: true }) });
   return replaceScreenshots({ repositoryRoot: root, stagingDirectory, sourceCommit, selection });
 }
 
@@ -37,6 +37,8 @@ async function main() {
       'No filters captures all screens in both appearances. Categories and screen names are combined.\n' +
       '--related includes every screen in the named screen\'s category. --list previews the selection without GitHub.\n' +
       'Output: AppUI_Screenshots/<appearance>/<category>/<screen>_<appearance>.png\n' +
+      'Each new image requires native visibility, layout-stability, and presentation checks.\n' +
+      'Live Activity scenes show the shared controls in an app-hosted fixture, not the Lock Screen.\n' +
       'Partial captures update only selected images; complete captures replace the gallery.\n' +
       'Requires Node.js 22, Git, and authenticated GitHub CLI with Actions write access.\n' +
       'The checkout must be clean and pushed. Temporary artifacts and the run are deleted.');

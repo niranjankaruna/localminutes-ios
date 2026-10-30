@@ -31,6 +31,7 @@ struct RecordingActivityControls: View {
                     .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                 Text(String(localized: status)).font(.headline)
                     .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("recording.activity.status")
                 RecordingActivityElapsed(state: state).font(.title2.weight(.medium))
                     .lineLimit(1).minimumScaleFactor(0.7)
             }

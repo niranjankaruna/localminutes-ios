@@ -4,6 +4,33 @@ import XCTest
 /// details; selection/removal announce the family, variant and model purpose.
 @MainActor
 final class ModelBrowserAccessibilityUITests: XCTestCase {
+    func testVariantDownloadKeepsItsVisibleTitleAndCompactBoundsInBothAppearances() {
+        for appearance in ["light", "dark"] {
+            for largestText in [false, true] {
+                let app = minutesLibraryApp(arguments: ["--ui-screenshots"])
+                app.launchEnvironment["LOCALMINUTES_SCREENSHOT_SCENE"] = "models_summary_variants"
+                app.launchEnvironment["LOCALMINUTES_UI_APPEARANCE"] = appearance
+                app.launchEnvironment["LOCALMINUTES_UI_LIBRARY_AX5"] = largestText ? "1" : "0"
+                app.launch(); defer { app.terminate() }
+                let id = "qwen2.5-0.5b-instruct-q4_k_m"
+                let button = app.buttons["models.download.\(id)"]
+                minutesReveal(button, in: app)
+                XCTAssertTrue(button.waitForExistence(timeout: 15))
+                guard button.exists else { return }
+                let title = app.staticTexts["models.download.label.\(id)"]
+                XCTAssertTrue(title.exists, "A spoken accessibility label cannot substitute for the visible Download text.")
+                XCTAssertEqual(title.label, "Download")
+                XCTAssertTrue(title.isHittable)
+                XCTAssertTrue(button.frame.contains(title.frame))
+                XCTAssertGreaterThanOrEqual(button.frame.width, 44)
+                XCTAssertGreaterThanOrEqual(button.frame.height, 44)
+                if !largestText { XCTAssertLessThanOrEqual(button.frame.height, 80, "The button must not grow into a vertical rail.") }
+                XCTAssertTrue(app.frame.contains(button.frame))
+                // Inspect only: this test must not start a real model download.
+            }
+        }
+    }
+
     func testAttributionNoticeKeepsItsIdentifierAcrossDisclosureChangesInBothAppearances() {
         for appearance in ["light", "dark"] {
             let app = XCUIApplication()

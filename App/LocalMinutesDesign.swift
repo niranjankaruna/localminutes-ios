@@ -52,16 +52,21 @@ enum MinutesStyle {
 struct MinutesButtonStyle: ButtonStyle {
     enum Kind { case primary, secondary, destructive, destructiveSecondary }
     var kind: Kind = .primary
+    // Intrinsic action rows must not propose an unbounded width while measuring
+    // their children. Full-width calls remain the default for standalone CTAs.
+    var fillsWidth = true
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.isEnabled) private var enabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
+            .labelStyle(.titleAndIcon)
             .font(.body.weight(.semibold))
             .multilineTextAlignment(.center)
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, minHeight: 24)
+            .fixedSize(horizontal: !fillsWidth && !typeSize.isAccessibilitySize, vertical: true)
+            .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 24)
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
             .foregroundStyle(foreground)

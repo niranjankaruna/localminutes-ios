@@ -80,6 +80,8 @@ struct ModelBrowserAccessibilityFixtureRoot: View {
             if let services {
                 if largestText {
                     ModelBrowserView(controller: services.modelBrowser).dynamicTypeSize(.accessibility5)
+                } else if AppScreenshotFixture.requested {
+                    ModelBrowserView(controller: services.modelBrowser).dynamicTypeSize(.large)
                 } else {
                     ModelBrowserView(controller: services.modelBrowser)
                 }

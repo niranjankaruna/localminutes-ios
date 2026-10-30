@@ -153,13 +153,13 @@ Choose an appearance, categories, or individual screens to avoid capturing the w
 # List category names and every exact screen name without starting a workflow.
 node scripts/download-screenshots.mjs --list
 
-# All transcript and summary screens, dark mode only (7 screenshots).
+# All transcript and summary screens, dark mode only (22 screenshots).
 node scripts/download-screenshots.mjs --appearance dark --categories transcript,summary
 
 # Just these two screens, in both appearances (4 screenshots).
 node scripts/download-screenshots.mjs --screens meeting_transcript,meeting_share_sheet
 
-# A screen and its category's related states, in both appearances (6 screenshots).
+# A screen and its category's related states, in both appearances (10 screenshots).
 node scripts/download-screenshots.mjs --screens meeting_transcript --related
 
 # Preview any selection by adding --list; this makes no GitHub requests.
@@ -168,22 +168,25 @@ node scripts/download-screenshots.mjs --appearance light --categories parakeet -
 
 `--appearance` accepts `both` (default), `light`, or `dark`. `--categories` and `--screens` accept comma-separated names; when both are supplied, their selections are combined without duplicates. `--related` requires `--screens` and adds every scene in each named screen's category. With neither category nor screen filters, all scenes are selected. Unknown names fail before dispatch. The workflow's manual inputs expose the same `appearance`, `categories`, `screens`, and `related` choices; the local command handles download and remote cleanup.
 
-The [scene catalog](./Shared/AppScreenshotScene.swift) defines 37 screen/section states (74 PNGs with both appearances). [app-screenshots.mjs](./scripts/app-screenshots.mjs) groups them as follows; counts are per appearance:
+The [shared capture catalog](./Shared/AppScreenshotScene.swift) defines **118 screen, section, sheet, and state captures (236 PNGs in both appearances)**. It supplies categories, navigation actions, required visible elements, expected state text, and confirmation titles to both the native runner and [app-screenshots.mjs](./scripts/app-screenshots.mjs). There is no separate JavaScript screen list. Counts are per appearance:
 
 | Category | Scenes | Included views |
 | --- | ---: | --- |
-| `recording` | 5 | Idle, model required, active recording, live transcript, live notes |
-| `library` | 7 | Empty/history, actions, search, backup, restore picker, meeting deletion |
-| `notes` | 1 | Meeting notes |
-| `transcript` | 3 | Transcript, transcript search, empty transcript |
-| `summary` | 4 | Summary, reset confirmation, empty summary, model required |
-| `questions` | 1 | Saved questions and answers |
-| `sharing` | 2 | Export and share sheet |
-| `models` | 2 | Speech and summary model lists |
-| `parakeet` | 4 | Model overview/repository, source and license, download/storage, expanded attribution |
-| `downloads` | 2 | Download and verification progress |
-| `installed-models` | 3 | Installed summary models, details, removal confirmation |
-| `settings` | 3 | Storage check, app version, device information |
+| `recording` | 13 | Idle/setup, active transcript/notes, preparing/stopping/listening/backlog, microphone/capture/storage errors, model setup sheet |
+| `library` | 20 | History/search/empty/loading/error, menus, rename, backup progress/ready/error, restore picker/confirmation/error/progress, report, both meeting-deletion entry points |
+| `notes` | 4 | Saved/empty notes, editor, save failure |
+| `transcript` | 5 | Transcript, search/no matches, unavailable, recovery |
+| `summary` | 17 | Plain/structured/edited/empty summaries, sources/details/editor, model requirement/setup sheet, generation/cancellation/paused/error, edit conflict, reset/delete/replace confirmations |
+| `questions` | 9 | Saved/empty answers, keyboard composer, editor/sources, generation/error, edit conflict/replace confirmation |
+| `sharing` | 5 | Text/Markdown export, native share sheet, pending edits, export failure |
+| `models` | 8 | Speech/summary lists and expanded variant cards, summary details/context, insufficient storage, error |
+| `parakeet` | 5 | Overview, source/license, download/storage, expanded attribution, expanded revision/files |
+| `downloads` | 9 | Preparing/downloading/verifying/installing/completed/paused/failed, transfer details, no transfer |
+| `installed-models` | 4 | Installed models, details, removal confirmation, selected model |
+| `settings` | 8 | Root, privacy, permissions, About/device, storage ready/preparing/error |
+| `permissions` | 7 | Unrequested/allowed/denied microphone, disabled Live Activities, native microphone prompt, privacy sheet and details |
+| `live-activity` | 3 | Recording/saved/interrupted shared controls in an app-hosted fixture |
+| `launch` | 1 | The real launch storyboard in an app-hosted fixture |
 
 Output is grouped by appearance first, then category, with stable filenames:
 
@@ -198,15 +201,19 @@ AppUI_Screenshots/
   manifest.json
 ```
 
-A successful partial run replaces only its selected images and preserves the rest. Each image's manifest entry retains its own commit, capture time, simulator, dimensions, and checksum, so a gallery can contain captures from several commits. An existing flat gallery is reorganized into this structure when it is next updated. Older 82-image galleries remain readable, including retired scenes, during partial updates. A full run replaces the whole set, removing obsolete filenames. An incomplete or invalid download leaves the previous gallery in place. Progress is numbered against the selected total, such as `[3/6]`, alongside XCTest's elapsed time.
+A successful partial run replaces only its selected images and preserves the rest. Each image retains its commit, capture time, simulator, dimensions, and checksum. New version-3 entries also retain the native visibility receipt and that build's capture contract. Older 74/82-image galleries remain readable and are preserved during partial updates; they do not gain validation evidence retroactively. A full run replaces the whole set, removing obsolete filenames. An incomplete or invalid download leaves the previous gallery in place. Progress is numbered against the selected total.
 
 The folder is ignored by Git; screenshots are not committed or published. Temporary GitHub artifacts and the screenshot workflow run are deleted after the local transfer. The same 15-minute cleanup and one-day retention fallback described above apply. If final folder replacement fails, the command reports where the new and previous sets remain without restoring files automatically.
 
-The [capture tests](./Tests/NativeUITests/AppScreenshotsUITests.swift) launch a fresh app instance and isolated sample library for each scene. The app selects the tab/meeting, loads data, expands the required section, and scrolls to a named anchor. Capture waits for a separate data-ready accessibility marker and the scene's visible accessibility target; the marker does not replace identifiers on app controls. For the model source/license and download/storage headings, if the form positions a heading behind the navigation bar, one drag calculated from the measured heading and navigation bounds uncovers it; capture also requires the entire heading to fit inside the visible content area. Native menus, share sheets, pickers, and confirmations use only their explicit presentation controls (at most two taps for the restore picker reached through its menu). There are no swipe searches or dependencies on a previous scene. Each scene has bounded readiness waits; failure records a diagnostic image and accessibility tree, then capture continues with the next scene.
+The [capture tests](./Tests/NativeUITests/AppScreenshotsUITests.swift) launch a fresh app and isolated sample library for every scene. They wait for data readiness, perform the declared presentation actions, and reveal the required content using bounded drags based on measured clipping. Required elements must fit entirely within their content or chrome region, above the tab bar/keyboard and clear of pinned controls. A group that cannot fit fails with a request to split the scene into section captures. Three stable layout samples are required before capture.
+
+All eight confirmation presentations check their expected dialog title, primary action, and visible Cancel button. Sheets check their relevant editor/share/setup controls and dismissal actions. Expanded model-variant captures additionally require visible Download text inside a button at least 44 points in both dimensions and no more than 80 points high at standard text size. The [native regression](./Tests/NativeUITests/ModelBrowserAccessibilityUITests.swift) also exercises these controls at the largest accessibility text size.
+
+Every successful image has an accompanying XCTest JSON attachment containing its scene/appearance, pixel dimensions, checked frames, chrome/content bounds, keyboard state, and capture contract. Collection validates this evidence and stores it in the manifest. Missing or invalid evidence makes the image diagnostic rather than publishable. A failed scene records its screenshot and accessibility tree and does not stop the remaining scenes; the incomplete set cannot replace the current gallery.
 
 The workflow selects an installed simulator runtime matching Xcode's iOS SDK. Simulator startup has a separate five-minute limit; a startup failure stops capture and reports the available devices. Screenshots retain the simulator's normal status bar, so its clock and indicators can vary between runs.
 
-Long pages have separate captures for their sections. Capture uses the production SwiftUI views with DEBUG-only sample meetings and display inputs. Recording/download states, missing-model messages, and installed model fixtures are presentation examples, not real microphone activity or inference. No model weights are downloaded for this workflow. The catalog omits the removed model import/pack pickers and compatibility/requirements pages; summary captures use the current model families. iOS-owned surfaces outside the app, such as the Lock Screen/Dynamic Island, are not part of the catalog. Screenshots use [XCTest screenshot attachments](https://developer.apple.com/documentation/xcuiautomation/xcuiscreenshot).
+Long pages have separate section captures. The runner uses production SwiftUI views with DEBUG-only sample meetings and frozen display states; it never executes deletion, restoration, model download, or inference. The native microphone-prompt scene resets the simulator app's microphone authorization and opens the real OS prompt without starting a recording. Launch and Live Activity captures are explicitly marked as hosted fixtures; they do not prove OS launch timing, Lock Screen delivery, or Dynamic Island rendering. Those surfaces still need device checks. Removed import/pack-picker routes are not reintroduced. Screenshots use [XCTest screenshot attachments](https://developer.apple.com/documentation/xcuiautomation/xcuiscreenshot).
 
 If capture or compilation fails after the capture step starts, the workflow transfers the available images, diagnostic images, `manifest.json`, and `capture.log`. The local command reports the failure and leaves that evidence in `.agent-local/screenshots-<request-id>/`; it preserves the previous `AppUI_Screenshots/` gallery and still deletes the temporary GitHub artifact and run. Simulator/setup failures before capture remain workflow errors without a screenshot bundle.
 

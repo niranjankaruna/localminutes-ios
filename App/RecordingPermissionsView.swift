@@ -9,6 +9,12 @@ struct RecordingPermissionsView: View {
     @State private var controller: RecordingPermissionsController
 
     init(controller: RecordingPermissionsController? = nil) {
+        #if DEBUG
+        if let screenshot = AppScreenshotFixture.permissions {
+            _controller = State(initialValue: controller ?? screenshot)
+            return
+        }
+        #endif
         _controller = State(initialValue: controller ?? RecordingPermissionsController())
     }
 
@@ -83,6 +89,7 @@ struct RecordingPermissionsView: View {
             if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
         }
         .buttonStyle(MinutesButtonStyle(kind: .secondary))
+        .accessibilityIdentifier("recording.permissions.openSettings")
     }
 }
 #endif

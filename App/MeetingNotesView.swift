@@ -19,6 +19,13 @@ final class MeetingNotesDraft {
     init(controller: MeetingLibraryController) {
         self.controller = controller
         text = controller.note?.text ?? ""
+        #if DEBUG
+        if AppScreenshotFixture.scene == .meetingNotesSaveFailure {
+            text += " My unsaved notes."
+            edit = controller.reserveManualNoteEdit(text)
+            error = "Your latest notes have not been saved. Try saving again."
+        }
+        #endif
     }
     var hasChanges: Bool { edit != nil }
 
@@ -81,10 +88,12 @@ struct MeetingNotesEditor: View {
                 .accessibilityIdentifier("meeting.notes.editor")
             if let error = draft.error {
                 MinutesMessage(text: error, isError: true)
+                    .accessibilityIdentifier("meeting.notes.error")
                 Button("Save notes") { Task { _ = await draft.flush() } }
                     .buttonStyle(MinutesButtonStyle())
                 Button("Copy notes") { UIPasteboard.general.string = draft.text }
                     .buttonStyle(MinutesButtonStyle(kind: .secondary))
+                    .accessibilityIdentifier("meeting.notes.copy")
             }
             if draft.saving { Text("Saving…").font(.footnote).foregroundStyle(.secondary) }
         }
