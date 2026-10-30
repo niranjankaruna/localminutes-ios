@@ -9,6 +9,8 @@ struct RecordingControlsView: View {
     var openMeeting: (UUID) -> Void = { _ in }
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     @ScaledMetric(relativeTo: .title) private var timerSize: CGFloat = 36
     @State private var snapshot: RecordingSnapshot?
     @State private var captureDiagnostic: CaptureFailureDiagnostic?
@@ -59,13 +61,15 @@ struct RecordingControlsView: View {
     }
     private var preparing: Bool { isStarting || snapshot?.phase == .preparing }
     private var stopping: Bool { isStopping || snapshot?.phase == .stopping || snapshot?.cleanupPending == true }
+    private var compactHeader: Bool { typeSize.isAccessibilitySize || verticalSizeClass == .compact }
 
     var body: some View {
         NavigationStack {
             ScrollViewReader { proxy in
                 ScrollView {
                     recordingContent
-                        .padding(24).frame(maxWidth: .infinity, alignment: .leading)
+                        .frame(maxWidth: MinutesStyle.readableWidth, alignment: .leading)
+                        .padding(MinutesStyle.pageInset).frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .accessibilityIdentifier("recording.content.scroll")
                 .task(id: transcriptScrollUpdate) {
@@ -81,7 +85,7 @@ struct RecordingControlsView: View {
             }
             .scrollDismissesKeyboard(.interactively)
             .background(MinutesStyle.background)
-            .navigationTitle(hasActiveSession ? "Recording" : "Record")
+            .navigationTitle(preparing ? "Getting ready" : stopping ? "Finishing recording" : hasActiveSession ? "Recording" : "Record")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -96,7 +100,7 @@ struct RecordingControlsView: View {
                 }
             }
             .safeAreaInset(edge: .top, spacing: 0) {
-                if hasActiveSession || (speechReady && (snapshot?.failure == nil || snapshot?.failure == .modelUnavailable)) {
+                if hasActiveSession {
                     recordingHeader
                 }
             }
@@ -111,13 +115,13 @@ struct RecordingControlsView: View {
                 NavigationStack {
                     MinutesPrivacyView()
                         .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showingPrivacy = false } } }
-                }
+                }.minutesSheet()
             }
             .sheet(isPresented: $showingPermissions) {
                 NavigationStack {
                     RecordingPermissionsView()
                         .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showingPermissions = false } } }
-                }
+                }.minutesSheet()
             }
             .screenshotReady(screenshotPrepared)
         }
@@ -186,36 +190,56 @@ struct RecordingControlsView: View {
     }
 
     private var recordingHeader: some View {
-        VStack(spacing: 8) {
-            if hasActiveSession { stopControl } else { startControl }
-            Text(hasActiveSession ? progress?.elapsedSeconds.map { MinutesStyle.duration(seconds: $0) } ?? "—" : "00:00")
-                .font(.system(size: timerSize, weight: .regular, design: .rounded))
-                .monospacedDigit().lineLimit(1).minimumScaleFactor(0.6)
-                .accessibilityLabel(hasActiveSession
-                    ? progress?.elapsedSeconds.map { "Elapsed \(MinutesStyle.duration(seconds: $0))" } ?? "Elapsed time unavailable"
-                    : "Ready to record")
-                .accessibilityIdentifier("recording.elapsed")
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .center, spacing: 16) {
+                VStack(alignment: .leading, spacing: 4) {
+                    if snapshot?.phase == .recording && !compactHeader {
+                        Label("Recording", systemImage: "record.circle.fill")
+                            .foregroundStyle(MinutesStyle.recording).font(.subheadline.weight(.semibold))
+                            .accessibilityIdentifier("recording.active")
+                    }
+                    recordingTimer
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                stopControl
+            }
             if snapshot?.phase == .recording {
-                Label("Recording", systemImage: "record.circle.fill")
-                    .foregroundStyle(MinutesStyle.recording).font(.subheadline.weight(.semibold))
-                    .accessibilityIdentifier("recording.active")
-                Text(transcriptionStatus).font(.footnote).foregroundStyle(.secondary)
-                    .accessibilityIdentifier("recording.backlog")
-                Picker("While recording", selection: $showingNotes) {
-                    Text("Transcript").tag(false)
-                    Text("Notes").tag(true)
-                }.pickerStyle(.segmented).frame(minHeight: 44)
+                if !compactHeader { transcriptionStatusLabel }
+                MinutesChoicePicker(title: "While recording", selection: $showingNotes,
+                    options: [false, true], label: { $0 ? "Notes" : "Transcript" })
                     .accessibilityIdentifier("recording.content.tabs")
             }
         }
+        .frame(maxWidth: MinutesStyle.readableWidth)
+        .padding(.horizontal, MinutesStyle.pageInset).padding(.top, 8).padding(.bottom, 8)
         .frame(maxWidth: .infinity)
-        .padding(.horizontal, 24).padding(.top, 8).padding(.bottom, 12)
-        .background(MinutesStyle.background)
+        .minutesChrome()
+    }
+
+    private var recordingTimer: some View {
+        Text(hasActiveSession ? progress?.elapsedSeconds.map { MinutesStyle.duration(seconds: $0) } ?? "—" : "00:00")
+            .font(.system(size: timerSize, weight: .medium, design: .rounded))
+            .monospacedDigit().lineLimit(1).minimumScaleFactor(0.6)
+            .accessibilityLabel(hasActiveSession
+                ? progress?.elapsedSeconds.map { "Elapsed \(MinutesStyle.duration(seconds: $0))" } ?? "Elapsed time unavailable"
+                : "Ready to record")
+            .accessibilityIdentifier("recording.elapsed")
     }
 
     private var readyToRecord: some View {
         VStack(spacing: 20) {
-            Text("New meeting").font(.title2.weight(.semibold))
+            VStack(spacing: 20) {
+                VStack(spacing: 8) {
+                    Text("New meeting").font(.title2.weight(.semibold)).accessibilityAddTraits(.isHeader)
+                    Text("Capture the conversation. Keep every detail.")
+                        .font(.body).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                }
+                recordingTimer
+                startControl
+            }
+            .padding(.vertical, 16)
+            .frame(maxWidth: .infinity)
+            .minutesCard()
             Button { showingSetup = true } label: {
                 HStack(spacing: 16) {
                     Image(systemName: "checkmark.circle").foregroundStyle(.green)
@@ -227,21 +251,23 @@ struct RecordingControlsView: View {
                     Image(systemName: "chevron.right").font(.footnote).foregroundStyle(.secondary)
                 }.minutesCard()
             }
-            .buttonStyle(.plain).accessibilityLabel("Speech model ready. Change model")
+            .buttonStyle(MinutesPressStyle()).accessibilityLabel("Speech model ready. Change model")
             Label("Only on this iPhone", systemImage: "lock").font(.footnote).foregroundStyle(.secondary)
         }.frame(maxWidth: .infinity)
     }
 
     private var activeRecording: some View {
         VStack(alignment: .leading, spacing: 24) {
+            if compactHeader { transcriptionStatusLabel }
             if let transcript = displayedTranscript {
                 if showingNotes, let services = application.services, let id = transcript.sessionID {
                     ActiveMeetingNotesView(services: services, id: id).id(id)
                 } else {
                     ForEach(transcript.finalized) { segment in
                         VStack(alignment: .leading, spacing: 10) {
-                            Text(MinutesStyle.timestamp(samples: segment.startSample)).font(.caption).foregroundStyle(.secondary)
-                            Text(segment.text).font(.title3).lineSpacing(5).textSelection(.enabled)
+                            Text(MinutesStyle.timestamp(samples: segment.startSample))
+                                .font(.subheadline.monospacedDigit()).foregroundStyle(.secondary)
+                            Text(segment.text).font(.body).lineSpacing(5).textSelection(.enabled)
                                 .accessibilityIdentifier("recording.liveTranscript.\(segment.id.uuidString)")
                         }
                     }
@@ -249,7 +275,10 @@ struct RecordingControlsView: View {
                         Text(transcript.partial).font(.body).lineSpacing(5).foregroundStyle(.secondary)
                             .accessibilityIdentifier("recording.liveTranscript.partial")
                     }
-                    if transcript.finalized.isEmpty && transcript.partial.isEmpty { Text("Listening…").foregroundStyle(.secondary) }
+                    if transcript.finalized.isEmpty && transcript.partial.isEmpty {
+                        Label("Listening for speech…", systemImage: "waveform")
+                            .font(.body).foregroundStyle(.secondary).padding(.vertical, 12)
+                    }
                     Color.clear.frame(height: 1).id(TranscriptAnchor.latest).accessibilityHidden(true)
                 }
                 if transcript.failure != nil {
@@ -270,6 +299,12 @@ struct RecordingControlsView: View {
         }
     }
 
+    private var transcriptionStatusLabel: some View {
+        Text(transcriptionStatus).font(.footnote).foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityIdentifier("recording.backlog")
+    }
+
     private var startControl: some View {
         VStack(spacing: 12) {
             Button { Task { await start() } } label: {
@@ -281,21 +316,21 @@ struct RecordingControlsView: View {
             Text("Start recording").font(.body.weight(.semibold)).foregroundStyle(MinutesStyle.recording)
         }
         .frame(maxWidth: .infinity).padding(.vertical, 6)
-        .background(MinutesStyle.background)
     }
 
     private var stopControl: some View {
         Button { Task { await stop() } } label: {
-            VStack(spacing: 10) {
+            VStack(spacing: 6) {
                 RoundedRectangle(cornerRadius: 7).fill(MinutesStyle.recording).frame(width: 28, height: 28)
-                    .frame(width: 72, height: 72).background(MinutesStyle.recording.opacity(0.1), in: Circle())
-                Text(preparing ? "Cancel preparation" : stopping ? "Stopping…" : "Stop recording")
-                    .font(.body.weight(.semibold)).foregroundStyle(MinutesStyle.recording)
-            }.frame(maxWidth: .infinity).padding(.vertical, 6)
+                    .frame(width: 56, height: 56).background(MinutesStyle.recording.opacity(0.1), in: Circle())
+                Text(preparing ? "Cancel" : stopping ? "Stopping…" : "Stop")
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(MinutesStyle.recording)
+                    .fixedSize(horizontal: false, vertical: true)
+            }.padding(.horizontal, 8).padding(.vertical, 6).contentShape(Rectangle())
         }
         .buttonStyle(MinutesPressStyle()).disabled(isStopping)
-        .accessibilityLabel("Stop Recording").accessibilityIdentifier("recording.stop")
-        .background(MinutesStyle.background)
+        .accessibilityLabel(preparing ? "Cancel preparation" : stopping ? "Stopping recording" : "Stop Recording")
+        .accessibilityIdentifier("recording.stop")
     }
 
     @ViewBuilder private func failureView(_ failure: RecordingFailure) -> some View {
@@ -310,7 +345,8 @@ struct RecordingControlsView: View {
         }
         Button("Try again") { Task { await start() } }.buttonStyle(MinutesButtonStyle(kind: .secondary))
         if let id = snapshot?.sessionID {
-            Button("Review saved meeting") { openMeeting(id) }.frame(minHeight: 44)
+            Button("Review saved meeting") { openMeeting(id) }
+                .buttonStyle(MinutesButtonStyle(kind: .secondary))
         }
     }
 
@@ -323,6 +359,7 @@ struct RecordingControlsView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.top, 8)
             }
+            .frame(minHeight: 44)
             .accessibilityIdentifier("recording.errorDetails")
         }
     }

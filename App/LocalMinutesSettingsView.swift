@@ -39,7 +39,9 @@ struct LocalMinutesSettingsView: View {
                     }.accessibilityIdentifier("settings.models.summary")
                 } header: { Text("Models") } footer: { Text("Models work on this iPhone.") }
                 Section("Recording") {
-                    NavigationLink("Recording permissions", value: MinutesSettingsRoute.recordingPermissions)
+                    NavigationLink(value: MinutesSettingsRoute.recordingPermissions) {
+                        settingsRow("Recording permissions", subtitle: "Microphone & Live Activities", symbol: "mic")
+                    }
                         .accessibilityIdentifier("settings.recordingPermissions")
                 }
                 Section("Library") {
@@ -52,9 +54,13 @@ struct LocalMinutesSettingsView: View {
                     if let message = actions.message { Text(message).font(.callout).foregroundStyle(.secondary) }
                 }
                 Section {
-                    NavigationLink("Privacy", value: MinutesSettingsRoute.privacy)
+                    NavigationLink(value: MinutesSettingsRoute.privacy) {
+                        Label("Privacy", systemImage: "lock.shield")
+                    }
                         .accessibilityIdentifier("settings.privacy")
-                    NavigationLink("About & diagnostics", value: MinutesSettingsRoute.about)
+                    NavigationLink(value: MinutesSettingsRoute.about) {
+                        Label("About & diagnostics", systemImage: "info.circle")
+                    }
                         .accessibilityIdentifier("settings.about")
                 }
             }
@@ -84,12 +90,16 @@ struct LocalMinutesSettingsView: View {
         return "Choose a model"
     }
     private func settingsRow(_ title: String, subtitle: String, symbol: String) -> some View {
-        Label {
+        HStack(spacing: 14) {
+            Image(systemName: symbol).font(.title3).foregroundStyle(MinutesStyle.accent)
+                .frame(width: 40, height: 40)
+                .background(MinutesStyle.accent.opacity(0.09), in: RoundedRectangle(cornerRadius: 11))
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 6) {
                 Text(title).foregroundStyle(.primary)
                 Text(subtitle).font(.subheadline).foregroundStyle(.secondary)
-            }.padding(.vertical, 8)
-        } icon: { Image(systemName: symbol).foregroundStyle(MinutesStyle.accent) }
+            }.fixedSize(horizontal: false, vertical: true)
+        }.padding(.vertical, 6)
     }
 }
 
@@ -100,13 +110,19 @@ struct MinutesAboutView: View {
     var body: some View {
         List {
             Section {
-                Text("LocalMinutes").font(.title2.weight(.semibold))
-                if let identity = AppBuildIdentity.current() {
-                    Text("Version \(identity.version) (build \(identity.build))")
-                        .foregroundStyle(.secondary).accessibilityIdentifier("settings.appBuildIdentity")
-                } else {
-                    Text("Version and build unavailable").accessibilityIdentifier("settings.appBuildIdentity")
-                }
+                VStack(alignment: .leading, spacing: 12) {
+                    Image("LocalMinutesMark").resizable().scaledToFit().frame(width: 56, height: 56)
+                        .foregroundStyle(MinutesStyle.accent)
+                        .accessibilityHidden(true)
+                    Text("LocalMinutes").font(.title2.weight(.semibold)).accessibilityAddTraits(.isHeader)
+                    Text("Record. Remember. Keep it local.").font(.body).foregroundStyle(.secondary)
+                    if let identity = AppBuildIdentity.current() {
+                        Text("Version \(identity.version) (build \(identity.build))")
+                            .foregroundStyle(.secondary).accessibilityIdentifier("settings.appBuildIdentity")
+                    } else {
+                        Text("Version and build unavailable").accessibilityIdentifier("settings.appBuildIdentity")
+                    }
+                }.padding(.vertical, 12)
             }
             Section {
                 NavigationLink("This iPhone") { ModelDeviceView(controller: controller) }
@@ -119,7 +135,7 @@ struct MinutesAboutView: View {
             }
             Section { NavigationLink("Privacy") { MinutesPrivacyView() } }
         }
-        .minutesList().navigationTitle("About & diagnostics")
+        .minutesList().navigationTitle("About & diagnostics").navigationBarTitleDisplayMode(.inline)
         .screenshotReady(true)
     }
 }
@@ -129,12 +145,11 @@ struct ModelDeviceView: View {
     var body: some View {
         List {
             Section {
-                LabeledContent("Free storage", value: MinutesStyle.bytes(controller.resources.freeDiskBytes))
-                LabeledContent("Total memory", value: MinutesStyle.bytes(controller.resources.totalMemoryBytes, memory: true))
-                LabeledContent("Available to this app") {
-                    Text(MinutesStyle.bytes(controller.resources.availableAppMemoryBytes, memory: true))
-                        .accessibilityIdentifier("models.device.availableMemory")
-                }
+                MinutesLabeledValue(title: "Free storage", value: MinutesStyle.bytes(controller.resources.freeDiskBytes))
+                MinutesLabeledValue(title: "Total memory", value: MinutesStyle.bytes(controller.resources.totalMemoryBytes, memory: true))
+                MinutesLabeledValue(title: "Available to this app",
+                    value: MinutesStyle.bytes(controller.resources.availableAppMemoryBytes, memory: true))
+                    .accessibilityIdentifier("models.device.availableMemory")
             } header: {
                 Text("This iPhone").accessibilityIdentifier("models.device.heading")
             } footer: {
@@ -155,7 +170,8 @@ struct StorageCheckView: View {
             Section {
                 if controller.isPreparingStorageCheck { ProgressView("Checking storage…") }
                 if let report = controller.storageCheckReport {
-                    Label(report.audit.status == .complete ? "Storage check ready" : "Storage check incomplete", systemImage: "checkmark.shield")
+                    Label(report.audit.status == .complete ? "Storage check ready" : "Storage check incomplete",
+                          systemImage: report.audit.status == .complete ? "checkmark.shield" : "exclamationmark.shield")
                         .font(.headline)
                         .accessibilityIdentifier(report.audit.status == .complete ? "settings.storageAudit.ready" : "settings.storageAudit.status")
                     Text("Environment: \(environment(report.audit.environment))")
@@ -214,6 +230,7 @@ struct MinutesPrivacyView: View {
                     Text("Microphone permission is used only for recordings you start. Allow access in Recording permissions; change an existing choice in iPhone Settings.")
                         .foregroundStyle(.secondary).accessibilityIdentifier("recording.microphoneExplanation")
                     NavigationLink("Recording permissions") { RecordingPermissionsView() }
+                        .buttonStyle(MinutesButtonStyle(kind: .secondary))
                 }
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Live Activity").font(.headline)
@@ -223,9 +240,11 @@ struct MinutesPrivacyView: View {
                 Button("Open iPhone Settings") {
                     if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
                 }.buttonStyle(MinutesButtonStyle(kind: .secondary))
-            }.font(.body).lineSpacing(4).padding(24)
+            }.font(.body).lineSpacing(4)
+                .frame(maxWidth: MinutesStyle.readableWidth, alignment: .leading)
+                .padding(MinutesStyle.pageInset).frame(maxWidth: .infinity)
         }
-        .background(MinutesStyle.background).navigationTitle("Privacy")
+        .background(MinutesStyle.background).navigationTitle("Privacy").navigationBarTitleDisplayMode(.inline)
     }
 }
 #endif

@@ -48,7 +48,7 @@ struct ModelSetupSheet: View {
             ModelPurposeView(controller: controller, purpose: purpose, application: application,
                              onSelected: { dismiss() })
                 .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
-        }.tint(MinutesStyle.accent)
+        }.minutesSheet()
     }
 }
 
@@ -58,7 +58,6 @@ struct ModelPurposeView: View {
     let purpose: ModelPurpose
     var application: RecordingApplication? = nil
     var onSelected: (() -> Void)? = nil
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var expandedFamilies: Set<String> = []
     @State private var captureRoute: ModelScreen?
@@ -116,22 +115,23 @@ struct ModelPurposeView: View {
                     Text(purpose == .speechRecognition
                         ? "Turn speech into text, on your iPhone."
                         : "Summarize meetings and ask questions, on your iPhone.")
-                        .font(.headline)
-                    Text("Download a model, then equip it to use it. Removing a download frees its storage.")
-                        .font(.subheadline).foregroundStyle(.secondary)
+                        .font(.body).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                     if let selected = controller.installed.first(where: {
                         $0.purpose == purpose && controller.isEquipped($0)
                     }) {
-                        Label("Equipped: \(ModelDisplay.name(selected))", systemImage: "checkmark.circle.fill")
-                            .font(.subheadline).foregroundStyle(MinutesStyle.accent)
+                        Label("In use: \(ModelDisplay.name(selected))", systemImage: "checkmark.circle.fill")
+                            .font(.subheadline.weight(.semibold)).foregroundStyle(MinutesStyle.accent)
                             .accessibilityIdentifier("models.selection")
                     } else {
-                        Text("No model equipped").font(.subheadline).foregroundStyle(.secondary)
+                        Text("Choose a model below to get started.").font(.subheadline).foregroundStyle(.secondary)
                             .accessibilityIdentifier("models.empty")
                     }
                     Text("\(bytes(controller.resources.freeDiskBytes)) free storage")
                         .font(.footnote).foregroundStyle(.secondary)
                 }.padding(.vertical, 8)
+            } footer: {
+                Text("Download once, then choose Use model. Models run offline on this iPhone.")
             }
             feedbackSection
             if controller.isDownloading || controller.downloadProgress != nil {
@@ -156,7 +156,7 @@ struct ModelPurposeView: View {
                     } label: {
                         VStack(alignment: .leading, spacing: 6) {
                             Label(family.title, systemImage: purpose == .speechRecognition ? "waveform" : "text.bubble")
-                                .font(.title3.weight(.semibold)).foregroundStyle(.primary)
+                                .font(.headline).foregroundStyle(.primary)
                             Text(familySubtitle(family)).font(.subheadline).foregroundStyle(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
@@ -170,7 +170,7 @@ struct ModelPurposeView: View {
         .minutesList().navigationTitle(title)
         .navigationDestination(for: ModelScreen.self, destination: page)
         .navigationDestination(item: $captureRoute, destination: page)
-        .confirmationDialog("Remove this model?", isPresented: $confirmingRemoval, titleVisibility: .visible) {
+        .alert("Remove this model?", isPresented: $confirmingRemoval) {
             Button("Remove model", role: .destructive) {
                 guard let manifest = pendingRemoval else { return }
                 pendingRemoval = nil
@@ -178,7 +178,7 @@ struct ModelPurposeView: View {
             }.accessibilityIdentifier("models.remove.confirm")
             Button("Cancel", role: .cancel) { pendingRemoval = nil }
         } message: {
-            Text("Downloaded model files and unfinished downloads will be deleted to free storage. Meetings and notes stay on this iPhone.")
+            Text(removalMessage)
         }
         .task {
             controller.purpose = purpose
@@ -187,6 +187,15 @@ struct ModelPurposeView: View {
         }
         .refreshable { await controller.refresh() }
         .screenshotReady(screenshotPrepared)
+    }
+
+    private var removalMessage: String {
+        guard let model = pendingRemoval else { return "Downloaded files will be removed. Your meetings are kept." }
+        let message = "Downloaded files for \(ModelDisplay.name(model)) will be removed. Your meetings are kept."
+        guard controller.isEquipped(model) else { return message }
+        return message + (model.purpose == .speechRecognition
+            ? " Choose another speech model to record again."
+            : " Choose another model for summaries and answers.")
     }
 
     private func familyExpansion(_ id: String) -> Binding<Bool> {
@@ -204,24 +213,23 @@ struct ModelPurposeView: View {
         if let equipped = family.variants.first(where: { variant in
             controller.installedManifest(for: variant.manifest).map { controller.isEquipped($0) } ?? false
         }) {
-            return "\(variants) · \(equipped.title) equipped"
+            return "\(variants) · \(equipped.title) in use"
         }
         return variants
     }
 
     private func variantRow(_ variant: ModelCatalogVariant) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text(variant.title).font(.headline)
                     .accessibilityIdentifier("models.title.\(variant.id)")
                 Text(bytes(ModelBrowserController.downloadBytes(variant.manifest)))
                     .font(.footnote).foregroundStyle(.secondary)
                     .accessibilityLabel("Download size: \(bytes(ModelBrowserController.downloadBytes(variant.manifest)))")
-                Spacer(minLength: 0)
                 if let installed = controller.installedManifest(for: variant.manifest) {
-                    Label(controller.isEquipped(installed) ? "Equipped" : "Downloaded",
+                    Label(controller.isEquipped(installed) ? "In use" : "Downloaded",
                           systemImage: controller.isEquipped(installed) ? "checkmark.circle.fill" : "checkmark.circle")
-                        .font(.caption.weight(.medium)).foregroundStyle(MinutesStyle.accent)
+                        .font(.subheadline.weight(.medium)).foregroundStyle(MinutesStyle.accent)
                         .accessibilityIdentifier("models.status.\(variant.id)")
                 }
             }
@@ -230,14 +238,14 @@ struct ModelPurposeView: View {
                 ProgressView(value: controller.downloadProgress?.overallFractionCompleted)
                     .accessibilityLabel("Downloading \(variant.title)")
             }
-            actionLayout {
+            MinutesActions {
                 modelActions(variant)
                 NavigationLink("Details", value: ModelScreen.variant(variant.id))
-                    .buttonStyle(.bordered).frame(minWidth: 44, minHeight: 44)
+                    .buttonStyle(MinutesButtonStyle(kind: .secondary))
                     .accessibilityLabel("Details for \(modelActionIdentity(variant.manifest))")
                     .accessibilityIdentifier("models.open.\(variant.id)")
             }
-        }.padding(.vertical, 4)
+        }.padding(.vertical, 12)
     }
 
     @ViewBuilder private func variantContext(_ variant: ModelCatalogVariant) -> some View {
@@ -263,15 +271,9 @@ struct ModelPurposeView: View {
         }
     }
 
-    private var actionLayout: AnyLayout {
-        dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
-            : AnyLayout(HStackLayout(alignment: .center, spacing: 8))
-    }
-
     @ViewBuilder private func modelActions(_ variant: ModelCatalogVariant) -> some View {
         if let installed = controller.installedManifest(for: variant.manifest) {
-            Button(controller.isEquipped(installed) ? "Equipped" : "Equip") {
+            Button(controller.isEquipped(installed) ? "In use" : "Use model") {
                 Task {
                     await controller.equip(variant.manifest)
                     if let current = controller.installedManifest(for: variant.manifest), controller.isEquipped(current) {
@@ -279,30 +281,23 @@ struct ModelPurposeView: View {
                     }
                 }
             }
-            .buttonStyle(.borderedProminent).frame(minWidth: 44, minHeight: 44)
-            .accessibilityLabel("\(controller.isEquipped(installed) ? "Equipped" : "Equip") \(modelActionIdentity(variant.manifest))")
+            .buttonStyle(MinutesButtonStyle())
+            .accessibilityLabel("\(controller.isEquipped(installed) ? "Using" : "Use") \(modelActionIdentity(variant.manifest))")
             .accessibilityIdentifier("models.equip.\(variant.id)")
             .disabled(busy || controller.isEquipped(installed))
             removeButton(variant)
         } else if controller.transferManifest?.modelID == variant.id && controller.isDownloading {
             Button("Pause", systemImage: "pause") { controller.cancelDownload() }
-                .buttonStyle(.bordered).frame(minWidth: 44, minHeight: 44)
+                .buttonStyle(MinutesButtonStyle(kind: .secondary))
                 .accessibilityLabel("Pause downloading \(modelActionIdentity(variant.manifest))")
                 .accessibilityIdentifier("models.pause.\(variant.id)")
         } else {
             Button {
                 controller.download(variant)
             } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "arrow.down")
-                        .symbolRenderingMode(.monochrome)
-                        .foregroundStyle(.white)
-                        .accessibilityHidden(true)
-                    Text(controller.hasPartialDownload(variant.manifest) ? "Resume" : "Download")
-                }
-                .foregroundStyle(.white)
+                Label(controller.hasPartialDownload(variant.manifest) ? "Resume" : "Download", systemImage: "arrow.down")
             }
-            .buttonStyle(.borderedProminent).frame(minWidth: 44, minHeight: 44)
+            .buttonStyle(MinutesButtonStyle())
             .accessibilityLabel("\(controller.hasPartialDownload(variant.manifest) ? "Resume downloading" : "Download") \(modelActionIdentity(variant.manifest))")
             .accessibilityIdentifier("models.download.\(variant.id)")
             .disabled(!controller.canDownload(variant))
@@ -314,7 +309,7 @@ struct ModelPurposeView: View {
         Button("Remove", role: .destructive) {
             pendingRemoval = variant.manifest; confirmingRemoval = true
         }
-        .buttonStyle(.bordered).frame(minWidth: 44, minHeight: 44)
+        .buttonStyle(MinutesButtonStyle(kind: .destructiveSecondary))
         .accessibilityLabel("Remove \(modelActionIdentity(variant.manifest))")
         .accessibilityIdentifier("models.remove.\(variant.id)").disabled(busy)
     }
@@ -349,19 +344,23 @@ struct ModelPurposeView: View {
     private func modelDetails(_ variant: ModelCatalogVariant) -> some View {
         Form {
             Section {
-                Text(variant.title).font(.title2.weight(.semibold))
-                    .accessibilityIdentifier("models.details.title")
-                Text(variant.detail).foregroundStyle(.secondary)
-                Text(repositoryName(variant.manifest)).font(.subheadline).textSelection(.enabled)
-                    .accessibilityIdentifier("models.repository.title")
-                actionLayout { modelActions(variant) }
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(ModelDisplay.name(variant.manifest)).font(.title2.weight(.semibold))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityAddTraits(.isHeader).accessibilityIdentifier("models.details.title")
+                    Text(variant.detail).foregroundStyle(.secondary)
+                    Text(repositoryName(variant.manifest)).font(.footnote).foregroundStyle(.secondary)
+                        .textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("models.repository.title")
+                    MinutesActions { modelActions(variant) }.padding(.top, 4)
+                }.padding(.vertical, 8)
             }.screenshotAnchor("models.repository")
             feedbackSection
             if let context = variant.contextWindow {
                 Section("Context window") {
-                    LabeledContent("Maximum context", value: "\(context.maximumTokens.formatted()) tokens")
+                    MinutesLabeledValue(title: "Maximum context", value: "\(context.maximumTokens.formatted()) tokens")
                         .accessibilityIdentifier("models.details.context")
-                    LabeledContent("Summary output limit", value: "\(context.outputTokenLimit.formatted()) tokens")
+                    MinutesLabeledValue(title: "Summary output limit", value: "\(context.outputTokenLimit.formatted()) tokens")
                         .accessibilityIdentifier("models.details.output")
                     Text("Used automatically for summaries and answers. Includes the input and generated response.")
                         .font(.footnote).foregroundStyle(.secondary)
@@ -373,8 +372,8 @@ struct ModelPurposeView: View {
                 }
             }
             Section {
-                LabeledContent("Download size", value: bytes(ModelBrowserController.downloadBytes(variant.manifest)))
-                LabeledContent("Free storage", value: bytes(controller.resources.freeDiskBytes))
+                MinutesLabeledValue(title: "Download size", value: bytes(ModelBrowserController.downloadBytes(variant.manifest)))
+                MinutesLabeledValue(title: "Free storage", value: bytes(controller.resources.freeDiskBytes))
                 Text("Installation temporarily needs up to twice the download size. Model memory requirements are additional and depend on your iPhone.")
                     .font(.footnote).foregroundStyle(.secondary)
                 if !busy, controller.installedManifest(for: variant.manifest) == nil, !controller.canDownload(variant) {
@@ -386,9 +385,9 @@ struct ModelPurposeView: View {
             }
             .screenshotAnchor("models.download")
             Section {
-                LabeledContent("Format", value: ModelDisplay.engine(variant.manifest))
-                LabeledContent("License", value: variant.manifest.licenseIdentifier)
-                Text(variant.manifest.runtimeVersion).font(.footnote).textSelection(.enabled)
+                MinutesLabeledValue(title: "Format", value: ModelDisplay.engine(variant.manifest))
+                MinutesLabeledValue(title: "License", value: variant.manifest.licenseIdentifier)
+                MinutesLabeledValue(title: "Runtime", value: variant.manifest.runtimeVersion)
                     .accessibilityIdentifier("models.runtime.\(variant.id)")
                 DisclosureGroup("Source revision & files") {
                     Text(variant.manifest.revision).font(.caption.monospaced()).textSelection(.enabled)
@@ -432,16 +431,19 @@ struct ModelPurposeView: View {
                             .accessibilityIdentifier("models.download.stage")
                         Text((progress.stage == .downloading ? progress.overallFractionCompleted : progress.fractionCompleted)
                             .formatted(.percent.precision(.fractionLength(0))))
-                            .monospacedDigit().accessibilityIdentifier("models.download.percent")
+                            .font(.largeTitle.weight(.semibold)).monospacedDigit()
+                            .accessibilityIdentifier("models.download.percent")
                         ProgressView(value: progress.stage == .downloading ? progress.overallFractionCompleted : progress.fractionCompleted)
                             .accessibilityIdentifier("models.download.progress")
                         Text("\(bytes(progress.overallCompletedBytes)) of \(bytes(progress.overallTotalBytes))")
                             .font(.subheadline).foregroundStyle(.secondary).accessibilityIdentifier("models.download.bytes")
                         if controller.isDownloading {
-                            Button("Pause download") { controller.cancelDownload() }.frame(minHeight: 44)
+                            Button("Pause download") { controller.cancelDownload() }
+                                .buttonStyle(MinutesButtonStyle(kind: .secondary))
                                 .accessibilityIdentifier("models.download.pause")
                         } else if progress.stage == .paused || progress.stage == .failed {
-                            Button("Resume download") { controller.resumeDownload() }.frame(minHeight: 44)
+                            Button("Resume download") { controller.resumeDownload() }
+                                .buttonStyle(MinutesButtonStyle())
                                 .disabled(busy).accessibilityIdentifier("models.download.resume")
                         }
                     }.padding(.vertical, 12)
@@ -467,7 +469,7 @@ struct ModelPurposeView: View {
             }
             if !controller.isWorking, let manifest = controller.transferManifest,
                let variant = controller.variant(id: manifest.modelID) {
-                Section { actionLayout { modelActions(variant) } }
+                Section { MinutesActions { modelActions(variant) } }
             }
             feedbackSection
         }.minutesList().navigationTitle("Model transfer").screenshotReady(true)
@@ -499,7 +501,7 @@ struct ModelPurposeView: View {
         case .downloading: "Downloading"
         case .verifying: "Verifying files"
         case .installing: "Installing"
-        case .completed: "Ready to equip"
+        case .completed: "Ready to use"
         case .paused: "Download paused"
         case .failed: "Download interrupted"
         }

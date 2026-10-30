@@ -140,7 +140,13 @@ struct LibraryUITestFixtureRoot: View {
     @State private var finished = false
     var body: some View {
         Group {
-            if let application { LocalMinutesHomeView(application: application) }
+            if let application {
+                if ProcessInfo.processInfo.environment["LOCALMINUTES_UI_LIBRARY_AX5"] == "1" {
+                    LocalMinutesHomeView(application: application).dynamicTypeSize(.accessibility5)
+                } else {
+                    LocalMinutesHomeView(application: application)
+                }
+            }
             else if finished {
                 Text("Library fixture unavailable.").accessibilityIdentifier("ui.fixture.library.failure")
             } else { ProgressView("Preparing library fixture…") }

@@ -69,6 +69,14 @@ struct MeetingNotesEditor: View {
                 .font(.body).lineSpacing(5)
                 .scrollContentBackground(.hidden)
                 .frame(minHeight: 300)
+                .padding(12)
+                .background(MinutesStyle.surface, in: RoundedRectangle(cornerRadius: 16))
+                .overlay(alignment: .topLeading) {
+                    if draft.text.isEmpty {
+                        Text("Add your notes…").foregroundStyle(.secondary)
+                            .padding(20).allowsHitTesting(false).accessibilityHidden(true)
+                    }
+                }
                 .accessibilityLabel("Original meeting notes")
                 .accessibilityIdentifier("meeting.notes.editor")
             if let error = draft.error {
@@ -76,7 +84,7 @@ struct MeetingNotesEditor: View {
                 Button("Save notes") { Task { _ = await draft.flush() } }
                     .buttonStyle(MinutesButtonStyle())
                 Button("Copy notes") { UIPasteboard.general.string = draft.text }
-                    .frame(minHeight: 44)
+                    .buttonStyle(MinutesButtonStyle(kind: .secondary))
             }
             if draft.saving { Text("Saving…").font(.footnote).foregroundStyle(.secondary) }
         }
@@ -98,7 +106,8 @@ struct MeetingNotesEditView: View {
     }
     var body: some View {
         NavigationStack {
-            ScrollView { MeetingNotesEditor(draft: draft).padding(24) }
+            ScrollView { MeetingNotesEditor(draft: draft).padding(MinutesStyle.pageInset) }
+                .scrollDismissesKeyboard(.interactively)
                 .background(MinutesStyle.background)
                 .navigationTitle("Notes").navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -109,7 +118,7 @@ struct MeetingNotesEditView: View {
                     }
                 }
         }
-        .tint(MinutesStyle.accent)
+        .minutesSheet()
         .interactiveDismissDisabled(draft.hasChanges || draft.saving)
     }
 }

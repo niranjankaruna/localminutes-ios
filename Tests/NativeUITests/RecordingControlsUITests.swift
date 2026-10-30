@@ -89,7 +89,10 @@ final class RecordingControlsUITests: XCTestCase {
         XCTAssertEqual(stop.frame.minY, initialStopFrame.minY, accuracy: 1)
         let timer = app.staticTexts["recording.elapsed"]
         XCTAssertTrue(timer.isHittable)
-        XCTAssertLessThanOrEqual(stop.frame.maxY, timer.frame.minY)
+        let tabs = app.segmentedControls["recording.content.tabs"]
+        XCTAssertFalse(stop.frame.intersects(timer.frame), "The compact recording controls must not overlap.")
+        XCTAssertLessThanOrEqual(stop.frame.maxY, tabs.frame.minY)
+        XCTAssertLessThanOrEqual(timer.frame.maxY, tabs.frame.minY)
     }
 
     func testGrowingPartialTranscriptScrollsItsLastLineIntoView() async throws {

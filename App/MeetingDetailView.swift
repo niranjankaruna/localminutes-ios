@@ -28,6 +28,7 @@ struct MeetingDetailView: View {
     @State private var selectedTranscriptSegmentID: UUID?
     @State private var citationNavigationRequestID: UUID?
     @State private var screenshotPrepared = false
+    @FocusState private var renameFocused: Bool
 
     init(services: LocalMinutesServices, application: RecordingApplication, id: UUID) {
         self.services = services; self.application = application; self.id = id
@@ -48,26 +49,35 @@ struct MeetingDetailView: View {
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    heading
-                    MeetingContentPicker(selection: $section)
-                    if controller.isLoadingDetail { ProgressView("Loading meeting…") }
-                    if let error = controller.errorMessage ?? deletionMessage {
-                        MinutesMessage(text: error, isError: true)
-                    }
-                    if !controller.isLoadingDetail {
-                        switch section {
-                        case .summary, .ask:
-                            MeetingIntelligenceView(controller: intelligenceController,
-                                content: section, chooseModel: { showingModels = true },
-                                playCitation: playCitation)
-                                .id("meeting.intelligence.top")
-                        case .transcript: transcriptContent
-                        case .notes: notesContent
+                LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
+                    heading.padding(.horizontal, MinutesStyle.pageInset).padding(.bottom, 16)
+                    Section {
+                        VStack(alignment: .leading, spacing: 20) {
+                            if controller.isLoadingDetail { MinutesProgress(title: "Loading meeting…") }
+                            if let error = controller.errorMessage ?? deletionMessage {
+                                MinutesMessage(text: error, isError: true)
+                            }
+                            if !controller.isLoadingDetail {
+                                switch section {
+                                case .summary, .ask:
+                                    MeetingIntelligenceView(controller: intelligenceController,
+                                        content: section, chooseModel: { showingModels = true },
+                                        playCitation: playCitation)
+                                        .id("meeting.intelligence.top")
+                                case .transcript: transcriptContent
+                                case .notes: notesContent
+                                }
+                            }
                         }
+                        .padding(MinutesStyle.pageInset)
+                    } header: {
+                        MeetingContentPicker(selection: $section)
+                            .padding(.horizontal, MinutesStyle.pageInset).padding(.vertical, 8)
+                            .minutesChrome()
                     }
                 }
-                .padding(.horizontal, 24).padding(.bottom, 32)
+                .frame(maxWidth: MinutesStyle.readableWidth)
+                .frame(maxWidth: .infinity).padding(.bottom, 24)
             }
             .background(MinutesStyle.background)
             .scrollDismissesKeyboard(.interactively)
@@ -102,11 +112,13 @@ struct MeetingDetailView: View {
                     Button("Recover transcript", systemImage: "arrow.clockwise") {
                         section = .transcript; resumeTranscript()
                     }.disabled(intelligenceController.busy || services.recoveringMeetingID != nil)
+                    Divider()
                     Button("Delete meeting", systemImage: "trash", role: .destructive) { confirmingDeletion = true }
                         .accessibilityIdentifier("meeting.delete")
                         .disabled(intelligenceController.busy || services.recoveringMeetingID != nil)
                 } label: { Image(systemName: "ellipsis.circle").frame(minWidth: 44, minHeight: 44) }
                 .accessibilityLabel("Meeting actions").accessibilityIdentifier("meeting.actions")
+                .disabled(controller.selected == nil)
             }
         }
         .sheet(isPresented: $editingNotes) { MeetingNotesEditView(controller: controller) }
@@ -117,7 +129,7 @@ struct MeetingDetailView: View {
             ModelSetupSheet(controller: services.modelBrowser, application: application, purpose: .summary)
         }
         .sheet(isPresented: $renaming) { renameSheet }
-        .confirmationDialog("Delete this meeting?", isPresented: $confirmingDeletion, titleVisibility: .visible) {
+        .alert("Delete this meeting?", isPresented: $confirmingDeletion) {
             Button("Delete meeting", role: .destructive) {
                 deleting = true; stopOwnedPlayback()
                 Task {
@@ -128,7 +140,7 @@ struct MeetingDetailView: View {
             }.accessibilityIdentifier("meeting.delete.confirm")
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Its audio, transcript, notes, summaries, and answers will be permanently deleted.")
+            Text("“\(controller.selected?.title ?? "This meeting")” and its audio, transcript, notes, summaries, and answers will be permanently deleted. This cannot be undone.")
         }
         .disabled(unavailable)
         .task(id: id) {
@@ -172,21 +184,33 @@ struct MeetingDetailView: View {
                 .font(.title.bold()).tracking(-0.5)
                 .accessibilityAddTraits(.isHeader).accessibilityIdentifier("meeting.title")
             if let meeting = controller.selected {
-                Text("\(meeting.createdAt.formatted(date: .abbreviated, time: .shortened)) · \(meeting.capturedSampleCount / 16_000 / 60) min")
+                Text("\(meeting.createdAt.formatted(date: .abbreviated, time: .shortened)) · \(MinutesStyle.meetingDuration(samples: meeting.capturedSampleCount))")
                     .font(.subheadline).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }.frame(maxWidth: .infinity, alignment: .leading).padding(.top, 12)
     }
 
     private var notesContent: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            Text(controller.note?.text.isEmpty == false ? controller.note!.text : "No notes yet.")
-                .font(.body).lineSpacing(5).textSelection(.enabled)
-                .frame(maxWidth: .infinity, minHeight: 240, alignment: .topLeading)
-                .accessibilityIdentifier("meeting.notes.content")
-            Button("Edit notes") { editingNotes = true }
-                .frame(minHeight: 44).accessibilityIdentifier("meeting.notes.edit")
+        VStack(alignment: .leading, spacing: 16) {
+            if let note = controller.note, !note.text.isEmpty {
+                Text("Your notes").font(.headline).accessibilityAddTraits(.isHeader)
+                Text(note.text)
+                    .font(.body).lineSpacing(5).textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityIdentifier("meeting.notes.content")
+                Divider()
+                Button { editingNotes = true } label: { Label("Edit notes", systemImage: "square.and.pencil") }
+                    .buttonStyle(MinutesButtonStyle(kind: .secondary)).accessibilityIdentifier("meeting.notes.edit")
+            } else {
+                MinutesEmptyState(title: "Your thoughts, alongside the conversation", symbol: "square.and.pencil",
+                    detail: "Add details, reminders, or anything you want to remember.",
+                    identifier: "meeting.notes.content")
+                Button("Add notes") { editingNotes = true }
+                    .buttonStyle(MinutesButtonStyle()).accessibilityIdentifier("meeting.notes.edit")
+            }
         }
+        .minutesCard()
     }
 
     private var transcriptContent: some View {
@@ -208,15 +232,18 @@ struct MeetingDetailView: View {
                     TextField("Find in this transcript", text: $search)
                         .accessibilityIdentifier("meeting.transcript.search")
                         .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
                     if !search.isEmpty {
-                        Button { search = "" } label: { Image(systemName: "xmark.circle.fill") }
-                            .accessibilityLabel("Clear search").frame(minWidth: 44, minHeight: 44)
+                        Button { search = "" } label: {
+                            Image(systemName: "xmark.circle.fill").frame(minWidth: 44, minHeight: 44)
+                        }.accessibilityLabel("Clear search")
                     }
                 }
                 .padding(.horizontal, 14).frame(minHeight: 48)
                 .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
                 if !search.isEmpty && controller.matches.isEmpty {
-                    Text("No matching transcript.").foregroundStyle(.secondary)
+                    MinutesEmptyState(title: "No matching words", symbol: "magnifyingglass",
+                        detail: "Try a different word or phrase.", actionTitle: "Clear search", action: { search = "" })
                 }
                 ForEach(search.isEmpty ? transcript : controller.matches) { segment in
                     VStack(alignment: .leading, spacing: 12) {
@@ -228,7 +255,7 @@ struct MeetingDetailView: View {
                         Text(segment.text).font(.body).lineSpacing(5).textSelection(.enabled)
                             .accessibilityIdentifier("meeting.transcript.segment.\(segment.id.uuidString)")
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading).padding(14)
+                    .frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 12).padding(.horizontal, 16)
                     .background(selectedTranscriptSegmentID == segment.id ? MinutesStyle.accent.opacity(0.12) : Color.clear,
                                 in: RoundedRectangle(cornerRadius: 16))
                     .id(segment.id)
@@ -236,6 +263,7 @@ struct MeetingDetailView: View {
                 }
                 if !search.isEmpty && controller.hasMoreTranscriptMatches {
                     Button("Load more matches") { Task { await controller.loadMoreTranscriptMatches() } }
+                        .buttonStyle(MinutesButtonStyle(kind: .secondary))
                         .accessibilityIdentifier("meeting.transcript.loadMore")
                 }
             }
@@ -252,24 +280,37 @@ struct MeetingDetailView: View {
     private var renameSheet: some View {
         NavigationStack {
             Form {
-                Section("Meeting name") { TextField("Meeting name", text: $title).submitLabel(.done) }
+                Section("Meeting name") {
+                    TextField("Meeting name", text: $title)
+                        .focused($renameFocused).submitLabel(.done)
+                        .accessibilityIdentifier("meeting.rename.title")
+                        .onSubmit(saveTitle)
+                }
                 if let error = controller.errorMessage { Text(error).foregroundStyle(MinutesStyle.recording) }
             }
             .minutesList().navigationTitle("Rename meeting").navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { renaming = false } }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { renaming = false }.disabled(renameSaving)
+                }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        renameSaving = true
-                        Task {
-                            await controller.rename(title.trimmingCharacters(in: .whitespacesAndNewlines))
-                            renameSaving = false
-                            if controller.errorMessage == nil { renaming = false }
-                        }
-                    }.disabled(renameSaving || title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    Button(renameSaving ? "Saving…" : "Save", action: saveTitle)
+                        .disabled(renameSaving || title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
-        }.presentationDetents([.medium, .large]).interactiveDismissDisabled(renameSaving)
+            .onAppear { renameFocused = true }
+        }.minutesSheet(compact: true).interactiveDismissDisabled(renameSaving)
+    }
+
+    private func saveTitle() {
+        let value = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !renameSaving, !value.isEmpty else { return }
+        renameSaving = true
+        Task {
+            await controller.rename(value)
+            renameSaving = false
+            if controller.errorMessage == nil { renaming = false }
+        }
     }
 
     private func resumeTranscript() {

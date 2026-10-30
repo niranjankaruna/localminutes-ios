@@ -562,8 +562,10 @@ struct MeetingIntelligenceView: View {
             }
             if controller.modelRequired {
                 VStack(alignment: .leading, spacing: 16) {
-                    Text("Choose a model for summaries and answers.")
+                    Label("Choose a summary model", systemImage: "sparkles").font(.headline)
                         .accessibilityIdentifier("meeting.intelligence.modelRequired")
+                    Text("Download a model to summarize meetings and find answers on this iPhone.")
+                        .font(.body).foregroundStyle(.secondary)
                     Button("Choose model", action: chooseModel)
                         .buttonStyle(MinutesButtonStyle())
                         .accessibilityIdentifier("meeting.intelligence.chooseModel")
@@ -578,14 +580,14 @@ struct MeetingIntelligenceView: View {
         .sheet(isPresented: $showingDetails) {
             if let document = controller.summary { GeneratedDetailsView(document: document) }
         }
-        .confirmationDialog("Start a fresh summary?", isPresented: $confirmingFreshSummary, titleVisibility: .visible) {
+        .alert("Start a fresh summary?", isPresented: $confirmingFreshSummary) {
             Button("Start fresh", role: .destructive) { controller.startFreshSummary() }
                 .accessibilityIdentifier("meeting.summary.reset.confirm")
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("Unfinished progress is discarded. Saved summaries, notes, and the transcript stay available.")
         }
-        .confirmationDialog("Delete summary?", isPresented: $confirmingSummaryDeletion, titleVisibility: .visible) {
+        .alert("Delete summary?", isPresented: $confirmingSummaryDeletion) {
             Button("Delete summary", role: .destructive) {
                 guard let document = summaryPendingDeletion else { return }
                 summaryPendingDeletion = nil
@@ -600,21 +602,25 @@ struct MeetingIntelligenceView: View {
 
     @ViewBuilder private var summaryContent: some View {
         if let document = controller.summary {
-            SummaryReadingView(document: document, text: controller.summaryText,
-                meetingStartedAt: controller.meetingStartedAt)
-            citations(document)
-            HStack {
-                Button("Edit summary") { editingSummary = true }
-                    .frame(minHeight: 44).accessibilityIdentifier("meeting.summary.edit")
-                    .disabled(controller.busy)
-                Spacer()
-                Button("Details") { showingDetails = true }.frame(minHeight: 44)
-            }
+            VStack(alignment: .leading, spacing: 20) {
+                SummaryReadingView(document: document, text: controller.summaryText,
+                    meetingStartedAt: controller.meetingStartedAt)
+                citations(document)
+                Divider()
+                MinutesActions {
+                    Button { editingSummary = true } label: { Label("Edit summary", systemImage: "square.and.pencil") }
+                        .buttonStyle(MinutesButtonStyle(kind: .secondary))
+                        .accessibilityIdentifier("meeting.summary.edit")
+                        .disabled(controller.busy)
+                    Button("Details") { showingDetails = true }
+                        .buttonStyle(MinutesButtonStyle(kind: .secondary))
+                }
+            }.minutesCard()
         } else if !controller.busy && !controller.modelRequired {
             MinutesEmptyState(title: "No summary yet", symbol: "sparkles",
-                              detail: "Create a summary from this meeting's full transcript.")
-            Button("Summarize meeting") { controller.generateSummary() }
-                .buttonStyle(MinutesButtonStyle()).accessibilityIdentifier("meeting.generatedSummary.generate")
+                detail: "Create a summary from this meeting's full transcript.",
+                actionTitle: "Summarize meeting", action: { controller.generateSummary() },
+                actionIdentifier: "meeting.generatedSummary.generate")
                 .disabled(controller.editConflict)
         }
         Menu {
@@ -645,12 +651,13 @@ struct MeetingIntelligenceView: View {
             ForEach(controller.answers) { answer in
                 VStack(alignment: .leading, spacing: 16) {
                     Text(answer.question ?? "Saved question").font(.title3.weight(.semibold)).textSelection(.enabled)
+                        .accessibilityAddTraits(.isHeader)
                     Text(controller.answerDrafts[answer.id] ?? answer.editedText)
                         .font(.body).lineSpacing(5).textSelection(.enabled)
                         .accessibilityIdentifier("meeting.qa.answer.content.\(answer.id.uuidString)")
                     citations(answer)
                     Button("Edit answer") { editingAnswer = answer }
-                        .frame(minHeight: 44).disabled(controller.busy)
+                        .buttonStyle(MinutesButtonStyle(kind: .secondary)).disabled(controller.busy)
                         .accessibilityIdentifier("meeting.qa.answer.edit.\(answer.id.uuidString)")
                     if answer.editRevision > 0 {
                         Text("Edited").font(.footnote).foregroundStyle(.secondary)
@@ -685,6 +692,7 @@ struct MeetingIntelligenceView: View {
                 }.padding(.top, 12)
             }
             .font(.subheadline.weight(.semibold))
+            .frame(minHeight: 44)
             .accessibilityIdentifier("meeting.sources.\(document.id.uuidString)")
         }
     }
@@ -693,11 +701,13 @@ struct MeetingIntelligenceView: View {
 struct MeetingQuestionComposer: View {
     @Bindable var controller: MeetingIntelligenceController
     @Environment(\.colorScheme) private var colorScheme
+    @FocusState private var questionFocused: Bool
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             if controller.busy { Text("Working on this iPhone…").font(.footnote).foregroundStyle(.secondary) }
             HStack(alignment: .bottom, spacing: 12) {
                 TextField("Ask about this meeting", text: $controller.question, axis: .vertical)
+                    .focused($questionFocused)
                     .font(.body).lineLimit(1...5).padding(14)
                     .background(MinutesStyle.surface, in: RoundedRectangle(cornerRadius: 18))
                     .accessibilityIdentifier("meeting.qa.question").disabled(controller.busy)
@@ -719,20 +729,30 @@ struct MeetingQuestionComposer: View {
             }
         }
         .padding(.horizontal, 20).padding(.vertical, 12)
-        .background(.bar)
+        .minutesChrome()
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") { questionFocused = false }
+            }
+        }
     }
 }
 
 private struct SummaryEditorView: View {
     @Bindable var controller: MeetingIntelligenceController
     @Environment(\.dismiss) private var dismiss
+    @FocusState private var focused: Bool
+    @State private var confirmingReopen = false
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     TextEditor(text: $controller.summaryText)
-                        .font(.body).lineSpacing(5).frame(minHeight: 380)
+                        .focused($focused)
+                        .font(.body).lineSpacing(5).frame(minHeight: 300)
                         .scrollContentBackground(.hidden)
+                        .padding(12).background(MinutesStyle.surface, in: RoundedRectangle(cornerRadius: 16))
                         .accessibilityLabel("Generated meeting summary")
                         .accessibilityIdentifier("meeting.generatedSummary.editor")
                         .onChange(of: controller.summaryText) { _, _ in controller.summaryChanged() }
@@ -741,13 +761,14 @@ private struct SummaryEditorView: View {
                     if controller.editConflict {
                         Button("Copy my draft") { UIPasteboard.general.string = controller.summaryText }
                             .buttonStyle(MinutesButtonStyle(kind: .secondary))
-                        Button("Reopen saved summary", role: .destructive) { controller.reopenSavedSummary() }
-                            .frame(minHeight: 44)
+                        Button("Reopen saved summary", role: .destructive) { confirmingReopen = true }
+                            .buttonStyle(MinutesButtonStyle(kind: .destructiveSecondary))
                     }
                     Text("Edits change this copy. Your original notes and transcript are preserved.")
                         .font(.footnote).foregroundStyle(.secondary)
-                }.padding(24)
+                }.padding(MinutesStyle.pageInset)
             }
+            .scrollDismissesKeyboard(.interactively)
             .background(MinutesStyle.background)
             .navigationTitle("Edit summary").navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -756,8 +777,17 @@ private struct SummaryEditorView: View {
                         .accessibilityIdentifier("meeting.summary.save")
                         .disabled(controller.busy || controller.isSaving || controller.editConflict)
                 }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") { focused = false }
+                }
             }
         }
+        .minutesSheet()
+        .alert("Replace your draft?", isPresented: $confirmingReopen) {
+            Button("Reopen saved summary", role: .destructive) { controller.reopenSavedSummary() }
+            Button("Cancel", role: .cancel) {}
+        } message: { Text("Your unsaved edits will be replaced by the saved summary. Copy your draft first if you want to keep it.") }
         .interactiveDismissDisabled(controller.hasSummaryEdits || controller.isSaving || controller.editConflict)
     }
 }
@@ -766,6 +796,8 @@ private struct AnswerEditorView: View {
     @Bindable var controller: MeetingIntelligenceController
     let answer: StoredGeneratedDocument
     @Environment(\.dismiss) private var dismiss
+    @FocusState private var focused: Bool
+    @State private var confirmingReopen = false
     private var changed: Bool { (controller.answerDrafts[answer.id] ?? answer.editedText) != (controller.answers.first { $0.id == answer.id }?.editedText ?? answer.editedText) }
     private var saving: Bool { controller.savingAnswerIDs.contains(answer.id) }
     private var conflict: Bool { controller.answerEditConflicts.contains(answer.id) }
@@ -776,8 +808,10 @@ private struct AnswerEditorView: View {
                     Text(answer.question ?? "Saved question").font(.title2.weight(.semibold))
                     TextEditor(text: Binding(get: { controller.answerDrafts[answer.id] ?? answer.editedText },
                                             set: { controller.answerDrafts[answer.id] = $0 }))
+                        .focused($focused)
                         .font(.body).lineSpacing(5).frame(minHeight: 300)
                         .scrollContentBackground(.hidden)
+                        .padding(12).background(MinutesStyle.surface, in: RoundedRectangle(cornerRadius: 16))
                         .accessibilityLabel("Saved answer")
                         .accessibilityIdentifier("meeting.qa.answer.editor.\(answer.id.uuidString)")
                     if saving { ProgressView("Saving…") }
@@ -786,12 +820,15 @@ private struct AnswerEditorView: View {
                         Button("Copy my draft") { UIPasteboard.general.string = controller.answerDrafts[answer.id] ?? answer.editedText }
                             .buttonStyle(MinutesButtonStyle(kind: .secondary))
                         Button("Reopen saved answer", role: .destructive) {
-                            Task { await controller.reopenSavedAnswer(documentID: answer.id) }
-                        }.accessibilityIdentifier("meeting.qa.answer.reopen.\(answer.id.uuidString)")
+                            confirmingReopen = true
+                        }
+                        .buttonStyle(MinutesButtonStyle(kind: .destructiveSecondary))
+                        .accessibilityIdentifier("meeting.qa.answer.reopen.\(answer.id.uuidString)")
                     }
                     Text("Sources refer to the original answer.").font(.footnote).foregroundStyle(.secondary)
-                }.padding(24)
+                }.padding(MinutesStyle.pageInset)
             }
+            .scrollDismissesKeyboard(.interactively)
             .background(MinutesStyle.background)
             .navigationTitle("Edit answer").navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -802,8 +839,20 @@ private struct AnswerEditorView: View {
                     .accessibilityIdentifier("meeting.qa.answer.save.\(answer.id.uuidString)")
                     .disabled(controller.busy || saving || conflict)
                 }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") { focused = false }
+                }
             }
-        }.interactiveDismissDisabled(changed || saving || conflict)
+        }
+        .minutesSheet()
+        .alert("Replace your draft?", isPresented: $confirmingReopen) {
+            Button("Reopen saved answer", role: .destructive) {
+                Task { await controller.reopenSavedAnswer(documentID: answer.id) }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: { Text("Your unsaved edits will be replaced by the saved answer. Copy your draft first if you want to keep it.") }
+        .interactiveDismissDisabled(changed || saving || conflict)
     }
 }
 
@@ -814,11 +863,11 @@ private struct GeneratedDetailsView: View {
         NavigationStack {
             List {
                 Section {
-                    LabeledContent("Version", value: document.editRevision > 0 ? "Edited copy" : "Original")
+                    MinutesLabeledValue(title: "Version", value: document.editRevision > 0 ? "Edited copy" : "Original")
                     Text("Review generated content against its sources before sharing.").foregroundStyle(.secondary)
                 }
                 Section("Technical details") {
-                    LabeledContent("Prompt", value: document.promptVersion)
+                    MinutesLabeledValue(title: "Prompt", value: document.promptVersion)
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Model revision").font(.subheadline).foregroundStyle(.secondary)
                         Text(document.modelRevision).font(.footnote.monospaced()).textSelection(.enabled)
@@ -827,7 +876,7 @@ private struct GeneratedDetailsView: View {
             }
             .minutesList().navigationTitle("Generation details").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
-        }
+        }.minutesSheet(compact: true)
     }
 }
 #endif

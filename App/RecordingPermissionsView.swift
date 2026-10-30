@@ -15,15 +15,16 @@ struct RecordingPermissionsView: View {
     var body: some View {
         List {
             Section {
-                LabeledContent("Microphone", value: microphoneStatus)
+                MinutesLabeledValue(title: "Microphone", value: microphoneStatus)
                     .accessibilityIdentifier("recording.permissions.microphone")
                 switch controller.microphone {
                 case .notRequested:
-                    Text("Allow microphone access here. The microphone switch may not appear in iPhone Settings until you respond to the permission prompt.")
+                    Text("Allow access to record conversations you choose. This opens the iPhone microphone permission prompt.")
                         .foregroundStyle(.secondary)
                     Button(controller.requestingMicrophone ? "Requesting access…" : "Allow microphone") {
                         Task { await controller.requestMicrophone() }
                     }
+                    .buttonStyle(MinutesButtonStyle())
                     .disabled(controller.requestingMicrophone)
                     .accessibilityIdentifier("recording.permissions.allowMicrophone")
                 case .denied:
@@ -39,7 +40,7 @@ struct RecordingPermissionsView: View {
             }
 
             Section {
-                LabeledContent("Live Activities", value: controller.liveActivitiesEnabled ? "Enabled" : "Disabled")
+                MinutesLabeledValue(title: "Live Activities", value: controller.liveActivitiesEnabled ? "Enabled" : "Disabled")
                     .accessibilityIdentifier("recording.permissions.liveActivities")
                 Text(controller.liveActivitiesEnabled
                     ? "A Live Activity shows recording status and a Stop button on the Lock Screen."
@@ -49,7 +50,16 @@ struct RecordingPermissionsView: View {
             } header: { Text("Recording status") }
 
             Section("Action Button & Shortcuts") {
-                Text("Choose Open Recording, Open Meetings, or Open Last Meeting for the Action Button or Shortcuts. These actions open the app without starting a recording. To record, allow microphone access, equip a speech model in Settings → Speech, then tap Record in the app. Once Recording appears, you can lock your iPhone and recording continues. The Live Activity shows recording status and lets you stop.")
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Choose Open Recording, Open Meetings, or Open Last Meeting in the Action Button or Shortcuts settings.")
+                    Text("These shortcuts open the app. Start recording when you are ready.")
+                        .foregroundStyle(.secondary)
+                }.padding(.vertical, 4)
+            }
+            Section("Record with your iPhone locked") {
+                Text("Allow microphone access and choose a speech model in Settings → Speech. Start recording in the app, then wait until Recording appears before locking your iPhone.")
+                    .foregroundStyle(.secondary)
+                Text("The Live Activity shows recording status and lets you stop from the Lock Screen.")
                     .foregroundStyle(.secondary)
             }
         }
@@ -72,6 +82,7 @@ struct RecordingPermissionsView: View {
         Button("Open iPhone Settings") {
             if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
         }
+        .buttonStyle(MinutesButtonStyle(kind: .secondary))
     }
 }
 #endif

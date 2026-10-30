@@ -79,10 +79,11 @@ struct SummaryReadingView: View {
     var body: some View {
         if let presentation = SummaryPresentation(document: document, text: text, meetingStartedAt: meetingStartedAt) {
             VStack(alignment: .leading, spacing: 28) {
-                ForEach(presentation.sections) { section in
+                ForEach(presentation.sections.filter { !$0.items.isEmpty }) { section in
                     VStack(alignment: .leading, spacing: 16) {
                         if !section.title.isEmpty {
-                            JustifiedSummaryText(text: section.title, isHeading: true)
+                            Text(section.title).font(.title3.weight(.semibold))
+                                .accessibilityAddTraits(.isHeader)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         ForEach(Array(section.items.enumerated()), id: \.offset) { _, item in

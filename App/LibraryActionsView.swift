@@ -77,9 +77,9 @@ struct LibraryRestoreModifier: ViewModifier {
                           allowsMultipleSelection: false) { result in
                 Task { @MainActor in controller.chooseBackup(result) }
             }
-            .confirmationDialog("Use this backup?", isPresented: $controller.confirmingRestore,
-                                titleVisibility: .visible) {
-                Button("Use backup", role: .destructive) { Task { await controller.restore() } }
+            .alert("Restore this backup?", isPresented: $controller.confirmingRestore) {
+                Button("Restore backup") { Task { await controller.restore() } }
+                    .accessibilityIdentifier("meeting.history.backup.restore.confirm")
                 Button("Cancel", role: .cancel) { controller.cancelRestore() }
             } message: {
                 Text("This becomes your active library. The previous library is retained, and installed models stay available.")
@@ -93,7 +93,7 @@ struct LibraryBackupView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: 20) {
                     if controller.working {
                         MinutesProgress(title: "Preparing backup")
                     } else if let url = controller.backupURL {
@@ -111,14 +111,14 @@ struct LibraryBackupView: View {
                                 .buttonStyle(MinutesButtonStyle())
                         }
                     }
-                }.padding(24)
+                }.frame(maxWidth: 440).padding(MinutesStyle.pageInset).frame(maxWidth: .infinity)
             }
             .background(MinutesStyle.background)
             .navigationTitle("Back up meetings").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
             .screenshotReady(!controller.working && controller.backupURL != nil)
             .task { if controller.backupURL == nil { await controller.createBackup() } }
-        }.tint(MinutesStyle.accent)
+        }.minutesSheet(compact: true)
     }
 }
 
@@ -129,17 +129,19 @@ struct RecordingReportView: View {
             Section {
                 Text("Observed recording and transcription performance.").foregroundStyle(.secondary)
                 if let report = controller.report {
-                    ShareLink("Share report", item: report)
+                    ShareLink(item: report) { Label("Share report", systemImage: "square.and.arrow.up") }
+                        .frame(minHeight: 44)
                         .accessibilityIdentifier("meeting.history.report.share")
                 } else if let message = controller.message { Text(message) }
                 Button("Prepare recording report") { controller.prepareReport() }
+                    .frame(minHeight: 44)
                     .accessibilityIdentifier("meeting.history.report.prepare")
                     .disabled(controller.unavailable)
             } footer: {
                 Text("Sampled measurements are not a guarantee of recording performance.")
             }
         }
-        .minutesList().navigationTitle("Recording report")
+        .minutesList().navigationTitle("Recording report").navigationBarTitleDisplayMode(.inline)
         .task { controller.prepareReport() }
     }
 }

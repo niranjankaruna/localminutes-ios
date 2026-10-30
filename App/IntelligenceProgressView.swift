@@ -12,12 +12,13 @@ struct IntelligenceProgressView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 20) {
             headingLayout {
-                Text(title).font(.headline)
+                Text(title).font(.headline).fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
                 if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 8) }
                 Text("\(display.percentage)%")
-                    .font(.title2.weight(.semibold)).monospacedDigit()
+                    .font(.title2.weight(.semibold)).monospacedDigit().fixedSize()
                     .accessibilityLabel("\(display.percentage) percent complete")
                     .accessibilityIdentifier("meeting.intelligence.percentage")
             }
@@ -45,6 +46,7 @@ struct IntelligenceProgressView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            Divider()
             timingLayout {
                 metric("Elapsed", value: display.elapsedText, identifier: "meeting.intelligence.elapsed")
                 metric("Estimated remaining", value: display.remainingText, identifier: "meeting.intelligence.remaining")

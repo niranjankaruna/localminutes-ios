@@ -15,21 +15,24 @@ struct MeetingExportView: View {
             List {
                 Section {
                     Text(controller.selected?.title ?? "Meeting").font(.title3.weight(.semibold))
-                    Picker("Format", selection: $markdown) {
-                        Text("Text").tag(false)
-                        Text("Markdown").tag(true)
-                    }.pickerStyle(.segmented).accessibilityIdentifier("meeting.export.format")
+                    MinutesChoicePicker(title: "Format", selection: $markdown,
+                        options: [false, true], label: { $0 ? "Markdown" : "Text" })
+                        .accessibilityIdentifier("meeting.export.format")
                     if let text = try? controller.export(markdown: markdown) {
                         ShareLink(item: text) { Label("Share meeting", systemImage: "square.and.arrow.up") }
-                            .frame(minHeight: 44)
+                            .buttonStyle(MinutesButtonStyle())
                             .accessibilityLabel(markdown ? "Share Markdown" : "Share text")
                             .accessibilityIdentifier(markdown ? "meeting.export.markdown" : "meeting.export.text")
+                    } else {
+                        Label("This meeting could not be prepared for sharing. Close this sheet and try again.",
+                              systemImage: "exclamationmark.circle")
+                            .font(.callout).foregroundStyle(MinutesStyle.recording)
                     }
                 } footer: { Text("Includes the title, original notes, and transcript.") }
                 if let text = intelligence.exportText {
                     Section {
                         ShareLink(item: text) { Label("Share summary & answers", systemImage: "sparkles") }
-                            .frame(minHeight: 44)
+                            .buttonStyle(MinutesButtonStyle(kind: .secondary))
                             .accessibilityIdentifier("meeting.intelligence.share")
                             .disabled(generatedEditsPending)
                     } footer: {
@@ -42,8 +45,7 @@ struct MeetingExportView: View {
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
             .screenshotReady(controller.selected != nil)
         }
-        .presentationDetents([.medium, .large])
-        .tint(MinutesStyle.accent)
+        .minutesSheet(compact: true)
     }
 }
 #endif

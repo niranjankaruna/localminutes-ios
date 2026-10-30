@@ -25,17 +25,19 @@ struct RecordingActivityControls: View {
     }
 
     var body: some View {
-        HStack(spacing: 18) {
-            VStack(alignment: .leading, spacing: 10) {
+        HStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 6) {
                 Label("LocalMinutes", systemImage: "mic.fill")
                     .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                 Text(String(localized: status)).font(.headline)
-                RecordingActivityElapsed(state: state).font(.title2)
+                    .fixedSize(horizontal: false, vertical: true)
+                RecordingActivityElapsed(state: state).font(.title2.weight(.medium))
+                    .lineLimit(1).minimumScaleFactor(0.7)
             }
             Spacer(minLength: 12)
             Button(intent: StopRecordingActivityIntent(sessionID: meetingID.uuidString)) {
                 Image(systemName: "stop.fill")
-                    .font(.title3).foregroundStyle(.red)
+                    .font(.title3.weight(.semibold)).foregroundStyle(.red)
                     .frame(width: 52, height: 52)
                     .background(.red.opacity(0.12), in: Circle())
             }

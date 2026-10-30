@@ -136,6 +136,7 @@ private struct MeetingHistoryView: View {
                         action: { if query.isEmpty { startRecording() } else { query = "" } },
                         identifier: "meeting.history.empty")
                         .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                 }
                 ForEach(days, id: \.self) { day in
                     Section(dayTitle(day)) {
@@ -167,6 +168,13 @@ private struct MeetingHistoryView: View {
             .task(id: query) { await services.library.searchHistory(query) }
             .onChange(of: path) { _, value in if value.isEmpty { Task { await services.library.refresh() } } }
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(action: startRecording) {
+                        Label("Record a meeting", systemImage: "mic")
+                    }
+                    .accessibilityIdentifier("meeting.history.record")
+                    .disabled(unavailable)
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         if services.library.hasMoreMeetings {
@@ -193,7 +201,7 @@ private struct MeetingHistoryView: View {
             .navigationDestination(isPresented: $showingReport) { RecordingReportView(controller: actions) }
             .sheet(isPresented: $showingBackup) { LibraryBackupView(controller: actions) }
             .modifier(LibraryRestoreModifier(controller: actions))
-            .confirmationDialog("Delete this meeting?", isPresented: $confirmingDeletion, titleVisibility: .visible) {
+            .alert("Delete this meeting?", isPresented: $confirmingDeletion) {
                 Button("Delete meeting", role: .destructive) {
                     guard let id = pendingDeletion else { return }
                     pendingDeletion = nil; deleting = true
@@ -201,7 +209,7 @@ private struct MeetingHistoryView: View {
                 }
                 Button("Cancel", role: .cancel) { pendingDeletion = nil }
             } message: {
-                Text("Its audio, transcript, notes, summaries, and answers will be permanently deleted.")
+                Text("“\(services.library.meetings.first(where: { $0.id == pendingDeletion })?.title ?? "This meeting")” and its audio, transcript, notes, summaries, and answers will be permanently deleted. This cannot be undone.")
             }
             .screenshotReady(screenshotPrepared)
             .task {
@@ -230,16 +238,27 @@ private struct MeetingHistoryView: View {
 private struct MeetingHistoryRow: View {
     let meeting: MeetingRecord
     let content: MeetingContentStatus
+    @Environment(\.dynamicTypeSize) private var typeSize
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(meeting.title).font(.headline)
-                .accessibilityIdentifier("meeting.history.title.\(meeting.id.uuidString)")
-            Text("\(meeting.createdAt.formatted(date: .omitted, time: .shortened)) · \(meeting.capturedSampleCount / 16_000 / 60) min")
-                .font(.subheadline).foregroundStyle(.secondary)
-            if let attention {
-                Label(attention, systemImage: "info.circle")
-                    .font(.footnote).foregroundStyle(.secondary)
-                    .accessibilityIdentifier("meeting.history.attention")
+        HStack(alignment: .top, spacing: 14) {
+            if !typeSize.isAccessibilitySize {
+                Image(systemName: "waveform")
+                    .font(.title3).foregroundStyle(MinutesStyle.accent)
+                    .frame(width: 42, height: 46)
+                    .background(MinutesStyle.accent.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+                    .accessibilityHidden(true)
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                Text(meeting.title).font(.headline)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("meeting.history.title.\(meeting.id.uuidString)")
+                Text("\(meeting.createdAt.formatted(date: .omitted, time: .shortened)) · \(MinutesStyle.meetingDuration(samples: meeting.capturedSampleCount))")
+                    .font(.subheadline).foregroundStyle(.secondary)
+                if let attention {
+                    Label(attention, systemImage: "info.circle")
+                        .font(.footnote).foregroundStyle(.secondary)
+                        .accessibilityIdentifier("meeting.history.attention")
+                }
             }
         }
         .padding(.vertical, 9)
