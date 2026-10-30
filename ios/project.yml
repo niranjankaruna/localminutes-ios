@@ -1,0 +1,160 @@
+name: LocalMinutes
+options:
+  minimumXcodeGenVersion: 2.46.0
+  xcodeVersion: '26.2'
+  deploymentTarget:
+    iOS: '18.0'
+settings:
+  base:
+    SWIFT_VERSION: '6.0'
+    MARKETING_VERSION: '1.0'
+    CURRENT_PROJECT_VERSION: '7'
+    TARGETED_DEVICE_FAMILY: '1'
+    CODE_SIGNING_ALLOWED: 'NO'
+packages:
+  FluidAudio:
+    url: https://github.com/FluidInference/FluidAudio.git
+    revision: c79c4106b954f81205113c3343e5a7e59a1089b5
+    traits: []
+targets:
+  LocalMinutes:
+    type: application
+    platform: iOS
+    sources:
+      - App
+      - Core
+      - Recording
+      - Models
+      - Persistence
+      - Transcription
+      - MeetingLibrary
+      - Summaries
+      - QuestionAnswering
+      - Intelligence
+      - Shared
+      - Resources
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: LocalMinutes
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LocalMinutesSourceCommit: $(LOCALMINUTES_SOURCE_COMMIT)
+        NSMicrophoneUsageDescription: Record meetings you explicitly start and transcribe them on this iPhone.
+        NSLocalNetworkUsageDescription: Copy your meetings directly between this iPhone and your paired Windows PC on your local Wi-Fi.
+        NSCameraUsageDescription: Scan a LocalMinutes pairing invitation displayed on your Windows PC.
+        NSBonjourServices: [_localminutes._tcp]
+        UIBackgroundModes: [audio, processing]
+        BGTaskSchedulerPermittedIdentifiers:
+          - $(PRODUCT_BUNDLE_IDENTIFIER).intelligence.*
+        NSSupportsLiveActivities: true
+        UILaunchStoryboardName: LaunchScreen
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.niranjankaruna.localminutes
+        PRODUCT_NAME: LocalMinutes
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        GENERATE_INFOPLIST_FILE: 'NO'
+      configs:
+        Debug:
+          ENABLE_TESTABILITY: 'YES'
+    dependencies:
+      - framework: .agent-local/native-llm/llama.xcframework
+        embed: true
+        codeSign: false
+      - package: FluidAudio
+        product: FluidAudio
+      - sdk: libsqlite3.tbd
+      - target: LocalMinutesLiveActivity
+        embed: true
+        codeSign: false
+  LocalMinutesLiveActivity:
+    type: app-extension
+    platform: iOS
+    sources:
+      - LiveActivityExtension
+      - Shared
+    info:
+      path: LiveActivityExtension/Info.plist
+      properties:
+        CFBundleDisplayName: LocalMinutes
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LocalMinutesSourceCommit: $(LOCALMINUTES_SOURCE_COMMIT)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.niranjankaruna.localminutes.LiveActivity
+        PRODUCT_NAME: LocalMinutesLiveActivity
+        APPLICATION_EXTENSION_API_ONLY: 'YES'
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: '$(inherited) LOCALMINUTES_EXTENSION'
+        SKIP_INSTALL: 'YES'
+        GENERATE_INFOPLIST_FILE: 'NO'
+  LocalMinutesAppTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: '18.0'
+    sources:
+      - Tests/RecordingTests/RecordingSessionOwnerTests.swift
+      - Tests/NativeAppTests
+    dependencies:
+      - target: LocalMinutes
+      - sdk: libsqlite3.tbd
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.niranjankaruna.localminutes.AppTests
+        GENERATE_INFOPLIST_FILE: 'YES'
+        CODE_SIGNING_ALLOWED: 'NO'
+  LocalMinutesUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: '18.0'
+    sources:
+      - Tests/NativeUITests
+      - Shared/AppScreenshotScene.swift
+    dependencies:
+      - target: LocalMinutes
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.niranjankaruna.localminutes.UITests
+        GENERATE_INFOPLIST_FILE: 'YES'
+        CODE_SIGNING_ALLOWED: 'NO'
+schemes:
+  LocalMinutesUIValidation:
+    build:
+      targets:
+        LocalMinutes: all
+        LocalMinutesUITests: [test]
+    test:
+      config: Debug
+      targets:
+        - name: LocalMinutesUITests
+          parallelizable: false
+  LocalMinutesFocusedValidation:
+    build:
+      targets:
+        LocalMinutes: all
+        LocalMinutesAppTests: [test]
+    test:
+      config: Debug
+      targets:
+        - name: LocalMinutesAppTests
+          parallelizable: false
+  LocalMinutes:
+    build:
+      targets:
+        LocalMinutes: all
+        LocalMinutesAppTests: [test]
+        LocalMinutesUITests: [test]
+    test:
+      config: Debug
+      targets:
+        - name: LocalMinutesAppTests
+          parallelizable: false
+        - name: LocalMinutesUITests
+          parallelizable: false
+    run:
+      config: Debug
+    archive:
+      config: Release

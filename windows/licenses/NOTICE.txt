@@ -1,0 +1,72 @@
+LocalMinutes for Windows - bundled dependency notices
+
+llama.cpp b11900 (MIT), ggml-org / Georgi Gerganov and contributors.
+Source: https://github.com/ggml-org/llama.cpp/tree/b11900
+License: llama.cpp-MIT.txt. The native runtime also includes LICENSE-LLVM-OpenMP.
+
+sherpa-onnx 2.0.1 (Apache-2.0), Xiaomi Corporation and contributors.
+Source revision: af2d8d81dbfa61c4cea4c568da78f3982edca005
+Source: https://github.com/k2-fsa/sherpa-onnx
+License: sherpa-onnx-Apache-2.0.txt.
+
+ONNX Runtime 1.28.2 (MIT), Microsoft Corporation and contributors.
+Source: https://github.com/microsoft/onnxruntime/tree/v1.28.2
+License and third-party notices: onnxruntime-MIT.txt, onnxruntime-third-party.txt.
+
+.NET 10 runtime and Windows desktop libraries (MIT), .NET Foundation and contributors.
+Source: https://github.com/dotnet/runtime and https://github.com/dotnet/wpf
+License and third-party notices: dotnet-MIT.txt, dotnet-third-party.txt.
+
+Microsoft.Data.Sqlite 10.0.14 (MIT), .NET Foundation and contributors.
+Source: https://github.com/dotnet/efcore/tree/v10.0.14
+License: Microsoft.Data.Sqlite-MIT.txt.
+
+SQLitePCLRaw 2.1.13 (Apache-2.0), Copyright 2014-2024 SourceGear, LLC.
+Source: https://github.com/ericsink/SQLitePCL.raw
+The full Apache 2.0 text is included in sherpa-onnx-Apache-2.0.txt.
+SQLite itself is dedicated to the public domain: https://sqlite.org/copyright.html
+
+NAudio 2.2.1 (MIT), Mark Heath and contributors.
+Source: https://github.com/naudio/NAudio/tree/v2.2.1
+License: NAudio-MIT.txt.
+
+QRCoder 1.6.0 (MIT), Raffael Herrmann and contributors.
+Source revision: bd980577640c47f8bb881cf24c8443415a579d36
+Source: https://github.com/codebude/QRCoder
+License: QRCoder-MIT.txt.
+
+Model weights are not bundled. Summary model publisher/revision/license URLs
+are retained in the embedded SummaryCatalog.json. Windows speech uses the
+Parakeet v3 conversion at:
+https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8/tree/2bda32ec70b097a55adaa07d9a7173915b43cc78
+Original publisher: https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3
+The model's publisher terms apply separately from the runtime license.
+
+Local network discovery includes Makaretu.Dns.Multicast 0.27.0 and Makaretu.Dns
+2.0.1 (MIT), Richard Schneider, 2018-2019.
+Sources: https://github.com/richardschneider/net-mdns and
+https://github.com/richardschneider/net-dns
+Licenses: Makaretu.Dns.Multicast-MIT.txt and Makaretu.Dns-MIT.txt.
+
+IPNetwork2 2.1.2 (BSD-2-Clause), Luc Duchosal.
+Source: https://github.com/lduchosal/ipnetwork
+License: IPNetwork2-BSD.txt.
+
+Tmds.LibC 0.2.0 (MIT), Tom Deseyn.
+Source: https://github.com/tmds/Tmds.LibC
+License: Tmds.LibC-MIT.txt.
+
+Common.Logging and Common.Logging.Core 3.4.1 (Apache-2.0), Aleksandar Seovic,
+Mark Pollack, Erich Eichinger, Stephen Bohlen and contributors.
+Source: https://github.com/net-commons/common-logging
+SimpleBase 1.3.1 (Apache-2.0), Copyright 2014-2017 Sedat Kapanoglu.
+Source: https://github.com/ssg/SimpleBase
+The full Apache 2.0 text is included in sherpa-onnx-Apache-2.0.txt.
+
+Microsoft Visual C++ runtime 14.44.35211.0 is deployed app-locally from the
+Microsoft-signed x64 redistributable. Its terms are included in
+Microsoft-Visual-Cpp-Runtime.rtf. No redistributable installer is executed.
+
+The CUDA edition additionally includes NVIDIA CUDA runtime and cuBLAS 13.4
+libraries from the pinned llama.cpp redistributable bundle. See
+NVIDIA-CUDA-EULA.html for the NVIDIA CUDA Toolkit terms.

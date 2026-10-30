@@ -9,8 +9,8 @@ DerivedData/
 *.xcarchive/
 *.ipa
 *.dSYM/
-App/Info.plist
-LiveActivityExtension/Info.plist
+ios/App/Info.plist
+ios/LiveActivityExtension/Info.plist
 
 # Models, downloaded native binaries and caches
 models-downloaded/
@@ -33,7 +33,7 @@ Native/Artifacts/
 *.key
 secrets/
 .agent-local/
-/AppUI_Screenshots/
+ios/AppUI_Screenshots/
 
 # Real meeting/device data: never commit
 recordings/
@@ -49,7 +49,7 @@ diagnostics-raw/
 *.caf
 *.m4a
 *.wav
-!Tests/Fixtures/**/*.wav
+!ios/Tests/Fixtures/**/*.wav
 
 # System/editor artifacts
 .DS_Store
@@ -60,3 +60,13 @@ Thumbs.db
 # Python fixture preparation caches are local build output.
 __pycache__/
 *.pyc
+
+# Windows build output, portable state, native dependencies and SDK
+**/bin/
+**/obj/
+**/TestResults/
+windows/dist/
+windows/.native/
+**/LocalMinutes.Data/
+**/Models.Downloaded/
+*.onnx

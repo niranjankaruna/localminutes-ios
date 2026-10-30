@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.14" />
+    <PackageReference Include="NAudio" Version="2.2.1" />
+    <PackageReference Include="org.k2fsa.sherpa.onnx" Version="2.0.1" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.14" />
+    <PackageReference Include="Makaretu.Dns.Multicast" Version="0.27.0" />
+  </ItemGroup>
+  <ItemGroup><EmbeddedResource Include="Resources/SummaryCatalog.json" /></ItemGroup>
+</Project>

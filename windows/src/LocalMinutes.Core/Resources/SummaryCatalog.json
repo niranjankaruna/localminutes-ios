@@ -1,0 +1,234 @@
+{
+  "schemaVersion": 1,
+  "verifiedAt": "2026-10-26",
+  "contextVerifiedAt": "2026-10-29",
+  "families": [
+    {
+      "id": "qwen25",
+      "title": "Qwen 2.5",
+      "detail": "Compact instruction models for meeting summaries and answers.",
+      "variants": [
+        {
+          "id": "qwen2.5-0.5b-instruct-q4_k_m",
+          "contextWindow": { "maximumTokens": 32768, "maximumOutputTokens": 8192 },
+          "contextSourceURL": "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF",
+          "title": "0.5B",
+          "detail": "Q4_K_M · Small download",
+          "family": "qwen25",
+          "repository": "Qwen/Qwen2.5-0.5B-Instruct-GGUF",
+          "revision": "9217f5db79a29953eb74d5343926648285ec7e67",
+          "fileName": "qwen2.5-0.5b-instruct-q4_k_m.gguf",
+          "byteCount": 491400032,
+          "sha256": "74a4da8c9fdbcd15bd1f6d01d621410d31c6fc00986f5eb687824e7b93d7a9db",
+          "licenseIdentifier": "Apache-2.0",
+          "licenseURL": "https://www.apache.org/licenses/LICENSE-2.0"
+        },
+        {
+          "id": "qwen2.5-1.5b-instruct-q4_k_m",
+          "contextWindow": { "maximumTokens": 32768, "maximumOutputTokens": 8192 },
+          "contextSourceURL": "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF",
+          "title": "1.5B",
+          "detail": "Q4_K_M · More capacity for detailed meetings",
+          "family": "qwen25",
+          "repository": "Qwen/Qwen2.5-1.5B-Instruct-GGUF",
+          "revision": "91cad51170dc346986eccefdc2dd33a9da36ead9",
+          "fileName": "qwen2.5-1.5b-instruct-q4_k_m.gguf",
+          "byteCount": 1117320736,
+          "sha256": "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e",
+          "licenseIdentifier": "Apache-2.0",
+          "licenseURL": "https://www.apache.org/licenses/LICENSE-2.0"
+        }
+      ]
+    },
+    {
+      "id": "qwen3",
+      "title": "Qwen 3",
+      "detail": "Text models configured for direct answers without a thinking transcript.",
+      "variants": [
+        {
+          "id": "qwen3-0.6b-q8_0",
+          "contextWindow": { "maximumTokens": 32768, "maximumOutputTokens": 16384 },
+          "contextSourceURL": "https://huggingface.co/Qwen/Qwen3-0.6B-GGUF",
+          "title": "0.6B",
+          "detail": "Q8_0 · Small download",
+          "family": "qwen3",
+          "repository": "Qwen/Qwen3-0.6B-GGUF",
+          "revision": "23749fefcc72300e3a2ad315e1317431b06b590a",
+          "fileName": "Qwen3-0.6B-Q8_0.gguf",
+          "byteCount": 639446688,
+          "sha256": "9465e63a22add5354d9bb4b99e90117043c7124007664907259bd16d043bb031",
+          "licenseIdentifier": "Apache-2.0",
+          "licenseURL": "https://www.apache.org/licenses/LICENSE-2.0"
+        },
+        {
+          "id": "qwen3-1.7b-q8_0",
+          "contextWindow": { "maximumTokens": 32768, "maximumOutputTokens": 16384 },
+          "contextSourceURL": "https://huggingface.co/Qwen/Qwen3-1.7B-GGUF",
+          "title": "1.7B",
+          "detail": "Q8_0 · Compact text model",
+          "family": "qwen3",
+          "repository": "Qwen/Qwen3-1.7B-GGUF",
+          "revision": "90862c4b9d2787eaed51d12237eafdfe7c5f6077",
+          "fileName": "Qwen3-1.7B-Q8_0.gguf",
+          "byteCount": 1834426016,
+          "sha256": "061b54daade076b5d3362dac252678d17da8c68f07560be70818cace6590cb1a",
+          "licenseIdentifier": "Apache-2.0",
+          "licenseURL": "https://www.apache.org/licenses/LICENSE-2.0"
+        },
+        {
+          "id": "qwen3-4b-q4_k_m",
+          "contextWindow": { "maximumTokens": 131072, "yarnOriginalContextTokens": 32768, "maximumOutputTokens": 16384 },
+          "contextSourceURL": "https://huggingface.co/Qwen/Qwen3-4B-GGUF",
+          "title": "4B",
+          "detail": "Q4_K_M · Higher memory use",
+          "family": "qwen3",
+          "repository": "Qwen/Qwen3-4B-GGUF",
+          "revision": "bc640142c66e1fdd12af0bd68f40445458f3869b",
+          "fileName": "Qwen3-4B-Q4_K_M.gguf",
+          "byteCount": 2497280256,
+          "sha256": "7485fe6f11af29433bc51cab58009521f205840f5b4ae3a32fa7f92e8534fdf5",
+          "licenseIdentifier": "Apache-2.0",
+          "licenseURL": "https://www.apache.org/licenses/LICENSE-2.0"
+        },
+        {
+          "id": "qwen3-4b-instruct-2507-q4_k_m",
+          "contextWindow": { "maximumTokens": 262144, "maximumOutputTokens": 16384 },
+          "contextSourceURL": "https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507",
+          "title": "4B Instruct 2507",
+          "detail": "Q4_K_M · Dedicated non-thinking model",
+          "family": "qwen3",
+          "repository": "unsloth/Qwen3-4B-Instruct-2507-GGUF",
+          "revision": "a06e946bb6b655725eafa393f4a9745d460374c9",
+          "fileName": "Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+          "byteCount": 2497281120,
+          "sha256": "3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597",
+          "licenseIdentifier": "Apache-2.0",
+          "licenseURL": "https://www.apache.org/licenses/LICENSE-2.0",
+          "sourceRepository": "Qwen/Qwen3-4B-Instruct-2507",
+          "variant": "qwen3Instruct2507"
+        }
+      ]
+    },
+    {
+      "id": "phi3",
+      "title": "Phi-3",
+      "detail": "Microsoft's compact instruction model for grounded summaries and questions.",
+      "variants": [
+        {
+          "id": "phi3-mini-4k-instruct-q4",
+          "contextWindow": { "maximumTokens": 4096, "maximumOutputTokens": 2048 },
+          "contextSourceURL": "https://huggingface.co/microsoft/Phi-3-mini-4k-instruct",
+          "title": "Mini 3.8B · 4K",
+          "detail": "Q4 · Microsoft release",
+          "family": "phi3",
+          "repository": "microsoft/Phi-3-mini-4k-instruct-gguf",
+          "revision": "a64113399c2f6b8ad3e11c394733a2ddadaa7f33",
+          "fileName": "Phi-3-mini-4k-instruct-q4.gguf",
+          "byteCount": 2393231072,
+          "sha256": "8a83c7fb9049a9b2e92266fa7ad04933bb53aa1e85136b7b30f1b8000ff2edef",
+          "licenseIdentifier": "MIT",
+          "licenseURL": "https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf/blob/a64113399c2f6b8ad3e11c394733a2ddadaa7f33/LICENSE"
+        }
+      ]
+    },
+    {
+      "id": "phi4",
+      "title": "Phi-4",
+      "detail": "Microsoft's newer mini instruction model, converted by Unsloth.",
+      "variants": [
+        {
+          "id": "phi4-mini-instruct-q4_k_m",
+          "contextWindow": { "maximumTokens": 131072, "maximumOutputTokens": 16384 },
+          "contextSourceURL": "https://huggingface.co/microsoft/Phi-4-mini-instruct",
+          "title": "Mini 3.8B",
+          "detail": "Q4_K_M · Text-only instruction model",
+          "family": "phi4",
+          "repository": "unsloth/Phi-4-mini-instruct-GGUF",
+          "revision": "78eb92a46fc37e6b524df991ed9aca9bc6aa7b80",
+          "fileName": "Phi-4-mini-instruct-Q4_K_M.gguf",
+          "byteCount": 2491874272,
+          "sha256": "88c00229914083cd112853aab84ed51b87bdf6b9ce42f532d8c85c7c63b1730a",
+          "licenseIdentifier": "MIT",
+          "licenseURL": "https://huggingface.co/microsoft/Phi-4-mini-instruct/blob/main/LICENSE",
+          "sourceRepository": "microsoft/Phi-4-mini-instruct"
+        }
+      ]
+    },
+    {
+      "id": "gemma3",
+      "title": "Gemma 3",
+      "detail": "Google instruction models with quantization-aware training. GGUF releases by the llama.cpp organization.",
+      "variants": [
+        {
+          "id": "gemma3-1b-it-qat-q4_0",
+          "contextWindow": { "maximumTokens": 32768, "maximumOutputTokens": 8192 },
+          "contextSourceURL": "https://developers.googleblog.com/gemma-explained-whats-new-in-gemma-3/",
+          "title": "1B",
+          "detail": "QAT Q4_0 · Compact text model",
+          "family": "gemma3",
+          "repository": "ggml-org/gemma-3-1b-it-qat-GGUF",
+          "revision": "c2531de7eec944fecd05bb2c23804c50d5a915c4",
+          "fileName": "gemma-3-1b-it-qat-Q4_0.gguf",
+          "byteCount": 720425600,
+          "sha256": "ef60e4e91a738c99ae9976b050657dfe68a4007a0ccca121b55ec0c413dccd58",
+          "licenseIdentifier": "Gemma",
+          "licenseURL": "https://ai.google.dev/gemma/terms/",
+          "sourceRepository": "google/gemma-3-1b-it-qat-q4_0-gguf"
+        },
+        {
+          "id": "gemma3-4b-it-qat-q4_0",
+          "contextWindow": { "maximumTokens": 131072, "maximumOutputTokens": 8192 },
+          "contextSourceURL": "https://developers.googleblog.com/gemma-explained-whats-new-in-gemma-3/",
+          "title": "4B",
+          "detail": "QAT Q4_0 · Higher memory use",
+          "family": "gemma3",
+          "repository": "ggml-org/gemma-3-4b-it-qat-GGUF",
+          "revision": "bbcac0d065076c47042838c0675c602411b0dd4c",
+          "fileName": "gemma-3-4b-it-qat-Q4_0.gguf",
+          "byteCount": 2526080992,
+          "sha256": "ee91c3e7a4ab95d8c95672f9fcb58bf236b257e9f217966bcf53a5a6df4ab49a",
+          "licenseIdentifier": "Gemma",
+          "licenseURL": "https://ai.google.dev/gemma/terms/",
+          "sourceRepository": "google/gemma-3-4b-it-qat-q4_0-gguf"
+        }
+      ]
+    },
+    {
+      "id": "gemma4",
+      "title": "Gemma 4",
+      "detail": "Google's on-device instruction models. Larger downloads need more available memory.",
+      "variants": [
+        {
+          "id": "gemma4-e2b-it-qat-q4_0",
+          "contextWindow": { "maximumTokens": 131072, "maximumOutputTokens": 16384 },
+          "contextSourceURL": "https://huggingface.co/google/gemma-4-E2B-it-qat-q4_0-gguf",
+          "title": "E2B",
+          "detail": "QAT Q4_0 · Text generation",
+          "family": "gemma4",
+          "repository": "google/gemma-4-E2B-it-qat-q4_0-gguf",
+          "revision": "675cff42a74c774d6cb76f76d8eacb49b48c9b93",
+          "fileName": "gemma-4-E2B_q4_0-it.gguf",
+          "byteCount": 3349516256,
+          "sha256": "fa401b55b07ee70a54c6dae3903c783a6e65064312529ea57175cb5f8dec6634",
+          "licenseIdentifier": "Apache-2.0",
+          "licenseURL": "https://www.apache.org/licenses/LICENSE-2.0"
+        },
+        {
+          "id": "gemma4-e4b-it-qat-q4_0",
+          "contextWindow": { "maximumTokens": 131072, "maximumOutputTokens": 16384 },
+          "contextSourceURL": "https://huggingface.co/google/gemma-4-E4B-it-qat-q4_0-gguf",
+          "title": "E4B",
+          "detail": "QAT Q4_0 · Highest memory use",
+          "family": "gemma4",
+          "repository": "google/gemma-4-E4B-it-qat-q4_0-gguf",
+          "revision": "4b4a2c1d584be7264f87aac328a1bc739ce81b6c",
+          "fileName": "gemma-4-E4B_q4_0-it.gguf",
+          "byteCount": 5154941280,
+          "sha256": "676c35070db6dbe52f93e9c864ee0fba4eddea94b9c875d9cb10daff453fbaee",
+          "licenseIdentifier": "Apache-2.0",
+          "licenseURL": "https://www.apache.org/licenses/LICENSE-2.0"
+        }
+      ]
+    }
+  ]
+}

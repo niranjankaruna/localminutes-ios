@@ -1,0 +1,244 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0-windows7.0": {
+      "Makaretu.Dns.Multicast": {
+        "type": "Direct",
+        "requested": "[0.27.0, )",
+        "resolved": "0.27.0",
+        "contentHash": "MTMq3vca9yw8sMW0knox/lZcAkDghmH6FVLTRInJZWbuYE99QI/9k9EujsXusWQ8oDySXb/gX92bfZipKehQgw==",
+        "dependencies": {
+          "Common.Logging": "3.4.1",
+          "IPNetwork2": "2.1.2",
+          "Makaretu.Dns": "2.0.1",
+          "Tmds.LibC": "0.2.0"
+        }
+      },
+      "Microsoft.Data.Sqlite": {
+        "type": "Direct",
+        "requested": "[10.0.14, )",
+        "resolved": "10.0.14",
+        "contentHash": "muyroan6rKrf0omZL8UF7Kw5uOGp/yBg1L/XWvkFN3WhKaNtK2IWqRZw93nIwVqjhTVDO0l4CEGhHIh+mb+sKg==",
+        "dependencies": {
+          "Microsoft.Data.Sqlite.Core": "10.0.14",
+          "SQLitePCLRaw.bundle_e_sqlite3": "2.1.13",
+          "SQLitePCLRaw.core": "2.1.13"
+        }
+      },
+      "NAudio": {
+        "type": "Direct",
+        "requested": "[2.2.1, )",
+        "resolved": "2.2.1",
+        "contentHash": "c0DzwiyyklM0TP39Y7RObwO3QkWecgM6H60ikiEnsV/aEAJPbj5MFCLaD8BSfKuZe0HGuh9GRGWWlJmSxDc9MA==",
+        "dependencies": {
+          "NAudio.Asio": "2.2.1",
+          "NAudio.Core": "2.2.1",
+          "NAudio.Midi": "2.2.1",
+          "NAudio.Wasapi": "2.2.1",
+          "NAudio.WinForms": "2.2.1",
+          "NAudio.WinMM": "2.2.1"
+        }
+      },
+      "org.k2fsa.sherpa.onnx": {
+        "type": "Direct",
+        "requested": "[2.0.1, )",
+        "resolved": "2.0.1",
+        "contentHash": "MhAwBN2IabHyuJl6e8gs7uDtzP+qPxMHnfUeu0y71cWmxDqs3xuQvK8TduyiAFtRcE9y99dY0WVdILGwySnbwQ==",
+        "dependencies": {
+          "org.k2fsa.sherpa.onnx.runtime.android-arm64": "2.0.1",
+          "org.k2fsa.sherpa.onnx.runtime.android-x64": "2.0.1",
+          "org.k2fsa.sherpa.onnx.runtime.linux-arm64": "2.0.1",
+          "org.k2fsa.sherpa.onnx.runtime.linux-x64": "2.0.1",
+          "org.k2fsa.sherpa.onnx.runtime.osx-arm64": "2.0.1",
+          "org.k2fsa.sherpa.onnx.runtime.osx-x64": "2.0.1",
+          "org.k2fsa.sherpa.onnx.runtime.win-arm64": "2.0.1",
+          "org.k2fsa.sherpa.onnx.runtime.win-x64": "2.0.1",
+          "org.k2fsa.sherpa.onnx.runtime.win-x86": "2.0.1"
+        }
+      },
+      "System.Security.Cryptography.ProtectedData": {
+        "type": "Direct",
+        "requested": "[10.0.14, )",
+        "resolved": "10.0.14",
+        "contentHash": "UuaBUHgmtc9h6CMxaQqFDDJxkS5JVy7XEB+DbtCvD68GFcVM9/AccuNwFpARx8nwCnvjaxzoOBjG3gPz32P1Eg=="
+      },
+      "Common.Logging": {
+        "type": "Transitive",
+        "resolved": "3.4.1",
+        "contentHash": "5eZ/vgEOqzLg4PypZqnJ+wMhhgHyckicbZY4iDxqQ4FtOz0CpdYZ0xQ78aszMzeAJZiLLb5VdR9tPfunVQLz6g==",
+        "dependencies": {
+          "Common.Logging.Core": "3.4.1"
+        }
+      },
+      "Common.Logging.Core": {
+        "type": "Transitive",
+        "resolved": "3.4.1",
+        "contentHash": "wLHldZHvxsSD6Ahonfj00/SkfHfKqO+YT6jsUwVm8Rch1REL9IArHAcSLXxYxYfu5/4ydGtmXvOtaH3AkVPu0A=="
+      },
+      "IPNetwork2": {
+        "type": "Transitive",
+        "resolved": "2.1.2",
+        "contentHash": "DZF2SbtyqukkLSzyu0KqcXUBdhDXQ/K3QWM27vlvdPo3W+iI81pgUCNTwyynNyVc5Q9AIn0znFVVhHGbhiofUg==",
+        "dependencies": {
+          "NETStandard.Library": "1.6.1"
+        }
+      },
+      "Makaretu.Dns": {
+        "type": "Transitive",
+        "resolved": "2.0.1",
+        "contentHash": "qe/5w5Q/i2Xz2ZnCq3E49kLAtVFRuuBn40C1mQPWbLDwlHM0KVDzCkFqwxDedv7JgQis66Z9AZKyo1zCTRrdYA==",
+        "dependencies": {
+          "SimpleBase": "1.3.1"
+        }
+      },
+      "Microsoft.Data.Sqlite.Core": {
+        "type": "Transitive",
+        "resolved": "10.0.14",
+        "contentHash": "1p9rO3Q2X/L/9YrYog3vaDzi8u+WZfJCOkDYoHqmofqYP0DLPLPyZcS2Rnh/79JXAodgbs1AgsaNwLpIvC3Xew==",
+        "dependencies": {
+          "SQLitePCLRaw.core": "2.1.13"
+        }
+      },
+      "Microsoft.NETCore.Platforms": {
+        "type": "Transitive",
+        "resolved": "1.1.0",
+        "contentHash": "kz0PEW2lhqygehI/d6XsPCQzD7ff7gUJaVGPVETX611eadGsA3A877GdSlU0LRVMCTH/+P3o2iDTak+S08V2+A=="
+      },
+      "NAudio.Asio": {
+        "type": "Transitive",
+        "resolved": "2.2.1",
+        "contentHash": "hQglyOT5iT3XuGpBP8ZG0+aoqwRfidHjTNehpoWwX0g6KJEgtH2VaqM2nuJ2mheKZa/IBqB4YQTZVvrIapzfOA==",
+        "dependencies": {
+          "NAudio.Core": "2.2.1"
+        }
+      },
+      "NAudio.Core": {
+        "type": "Transitive",
+        "resolved": "2.2.1",
+        "contentHash": "GgkdP6K/7FqXFo7uHvoqGZTJvW4z8g2IffhOO4JHaLzKCdDOUEzVKtveoZkCuUX8eV2HAINqi7VFqlFndrnz/g=="
+      },
+      "NAudio.Midi": {
+        "type": "Transitive",
+        "resolved": "2.2.1",
+        "contentHash": "6r23ylGo5aeP02WFXsPquz0T0hFJWyh+7t++tz19tc3Kr38NHm+Z9j+FiAv+xkH8tZqXJqus9Q8p6u7bidIgbw==",
+        "dependencies": {
+          "NAudio.Core": "2.2.1"
+        }
+      },
+      "NAudio.Wasapi": {
+        "type": "Transitive",
+        "resolved": "2.2.1",
+        "contentHash": "lFfXoqacZZe0WqNChJgGYI+XV/n/61LzPHT3C1CJp4khoxeo2sziyX5wzNYWeCMNbsWxFvT3b3iXeY1UYjBhZw==",
+        "dependencies": {
+          "NAudio.Core": "2.2.1"
+        }
+      },
+      "NAudio.WinForms": {
+        "type": "Transitive",
+        "resolved": "2.2.1",
+        "contentHash": "DlDkewY1myY0A+3NrYRJD+MZhZV0yy1mNF6dckB27IQ9XCs/My5Ip8BZcoSHOsaPSe2GAjvoaDnk6N9w8xTv7w==",
+        "dependencies": {
+          "NAudio.WinMM": "2.2.1"
+        }
+      },
+      "NAudio.WinMM": {
+        "type": "Transitive",
+        "resolved": "2.2.1",
+        "contentHash": "xFHRFwH4x6aq3IxRbewvO33ugJRvZFEOfO62i7uQJRUNW2cnu6BeBTHUS0JD5KBucZbHZaYqxQG8dwZ47ezQuQ==",
+        "dependencies": {
+          "NAudio.Core": "2.2.1"
+        }
+      },
+      "NETStandard.Library": {
+        "type": "Transitive",
+        "resolved": "1.6.1",
+        "contentHash": "WcSp3+vP+yHNgS8EV5J7pZ9IRpeDuARBPN28by8zqff1wJQXm26PVU8L3/fYLBJVU7BtDyqNVWq2KlCVvSSR4A==",
+        "dependencies": {
+          "Microsoft.NETCore.Platforms": "1.1.0"
+        }
+      },
+      "org.k2fsa.sherpa.onnx.runtime.android-arm64": {
+        "type": "Transitive",
+        "resolved": "2.0.1",
+        "contentHash": "S3qoO7ucnwm1i6E9Z+KFMoRoFfdpwTdARF5oxCYo2hK7FcmvEPuSargPWKvfSWZCYaD9zYngQ4jqsiPPUK8jQA=="
+      },
+      "org.k2fsa.sherpa.onnx.runtime.android-x64": {
+        "type": "Transitive",
+        "resolved": "2.0.1",
+        "contentHash": "4AYX2+QkC/a9jnUdOfmSmFUhXdQFgj3sqPmYThfId0wquu7FtDkxHXxIPluDZoNr0Es7pkqwARayrouU5oLlpw=="
+      },
+      "org.k2fsa.sherpa.onnx.runtime.linux-arm64": {
+        "type": "Transitive",
+        "resolved": "2.0.1",
+        "contentHash": "nhwWg51fRBiRx8P+9GstjFoJJSi0XsC5ByXofIpqp1fvAo7KoUfXeXtKgzd0Ejse/HQPuTnm+/Bs/obrPZD6PA=="
+      },
+      "org.k2fsa.sherpa.onnx.runtime.linux-x64": {
+        "type": "Transitive",
+        "resolved": "2.0.1",
+        "contentHash": "cZc5qxCM6eObNM1tukHZYUozOLoVD1luHXjUT4qnPX8CHXP3FDNCpO5r8iwI+O7GuBvHFYdfzkyzeyzgICv6xg=="
+      },
+      "org.k2fsa.sherpa.onnx.runtime.osx-arm64": {
+        "type": "Transitive",
+        "resolved": "2.0.1",
+        "contentHash": "pOkQsBphYlOTgBCz0vTUWQ++9jyP1tfRMaox6jalQUW0gr62d18x4lt5WbtiFOonrsXkAfHZ9jq9MJiOvroqsg=="
+      },
+      "org.k2fsa.sherpa.onnx.runtime.osx-x64": {
+        "type": "Transitive",
+        "resolved": "2.0.1",
+        "contentHash": "w7/reqvWcbzpBq+Up508APH8MC8nTquo2ytwyvvJLam1fBbAg+ydperLCSvGSoMk3dcBJby0lmj4AJXl0NjBRg=="
+      },
+      "org.k2fsa.sherpa.onnx.runtime.win-arm64": {
+        "type": "Transitive",
+        "resolved": "2.0.1",
+        "contentHash": "Bj7N+J991Ve7tfLz49JfMDVayND9luTiZXyVbH1O9GcvBjG1ma3GSdM+DzI/1u7X35Pa0ohz8bT7BBG+NFfc6A=="
+      },
+      "org.k2fsa.sherpa.onnx.runtime.win-x64": {
+        "type": "Transitive",
+        "resolved": "2.0.1",
+        "contentHash": "nd0yI2PVscOnABbzQ59DP7pqxFOOerm6sXF3krCK75tOBrkO3ezqHgRYAyTdmqkG42D/WRVuP3jHYoegSLXzhg=="
+      },
+      "org.k2fsa.sherpa.onnx.runtime.win-x86": {
+        "type": "Transitive",
+        "resolved": "2.0.1",
+        "contentHash": "F0g6rQ8blDpm1xrnXUOuS6u7MC1F4+yqa3ViAZ7hWSMPxnq0u929djEQDJlbNW1yj1eUv6PHWBZ3a9Ak6Z6LZQ=="
+      },
+      "SimpleBase": {
+        "type": "Transitive",
+        "resolved": "1.3.1",
+        "contentHash": "TqqQc+WFg3s10/PdnI2Dio0U7xEmVXhkf+ey4tOGZzjyd054rnNOLNVahJhMYmfBQdS7/jkVqC8xzLm/bkR3EA=="
+      },
+      "SQLitePCLRaw.bundle_e_sqlite3": {
+        "type": "Transitive",
+        "resolved": "2.1.13",
+        "contentHash": "NlDixlC7uHmo+ojXRgkNvN0tQtVGpLDZ3x2OpgNj+G07VHh5cXSszFDrAiC4BpUiPwkcaeuQkMV9WQ123xVtmQ==",
+        "dependencies": {
+          "SQLitePCLRaw.lib.e_sqlite3": "2.1.13",
+          "SQLitePCLRaw.provider.e_sqlite3": "2.1.13"
+        }
+      },
+      "SQLitePCLRaw.core": {
+        "type": "Transitive",
+        "resolved": "2.1.13",
+        "contentHash": "2joofoinuHBFs0nMX3nKuXgxpXryRkCOdM2Ua6HBqQLLy6IW+5f28ZI+HAvMyF8vG7XfNz/lwfBfE6V4juru8Q=="
+      },
+      "SQLitePCLRaw.lib.e_sqlite3": {
+        "type": "Transitive",
+        "resolved": "2.1.13",
+        "contentHash": "D2UAuiGxFYBqeRXjjjGgvJ5UQifzn6wefmSqeKU7XcNGKLbJRP6X7kcPZ6opOBJGdCIlgbSxTvDpBbLvsN594A=="
+      },
+      "SQLitePCLRaw.provider.e_sqlite3": {
+        "type": "Transitive",
+        "resolved": "2.1.13",
+        "contentHash": "ZU60dSqoSNRe49KcQDUmOVgdRtjITOssVXFtiISs+zJXDI4D2Sndwpn2NOtzDQNPu0ZAvpoLPQ+GLKv6iEZn8Q==",
+        "dependencies": {
+          "SQLitePCLRaw.core": "2.1.13"
+        }
+      },
+      "Tmds.LibC": {
+        "type": "Transitive",
+        "resolved": "0.2.0",
+        "contentHash": "+RvLuNHOLW7cxzgDe9yHLoayBgjsuH2/gJtJnuVMxweKrxxYT6TwQNAmt06SFWpjwk68aRcwwD4FfMMA6tZvVA=="
+      }
+    }
+  }
+}

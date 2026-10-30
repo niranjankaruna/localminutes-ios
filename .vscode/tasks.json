@@ -1,0 +1,102 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build Windows core",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"windows/scripts/dotnet.ps1",
+				"build",
+				"src/LocalMinutes.Core/LocalMinutes.Core.csproj"
+			],
+			"isBackground": false,
+			"problemMatcher": [
+				"$msCompile"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Build Windows app",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"windows/scripts/dotnet.ps1",
+				"build",
+				"src/LocalMinutes.Desktop/LocalMinutes.Desktop.csproj"
+			],
+			"isBackground": false,
+			"problemMatcher": [
+				"$msCompile"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Test Windows",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"windows/scripts/dotnet.ps1",
+				"test",
+				"tests/LocalMinutes.Tests/LocalMinutes.Tests.csproj"
+			],
+			"isBackground": false,
+			"problemMatcher": [
+				"$msCompile"
+			],
+			"group": "test"
+		},
+		{
+			"label": "Smoke test local inference",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"windows/scripts/dotnet.ps1",
+				"run",
+				"--project",
+				"tests/LocalMinutes.NativeSmoke/LocalMinutes.NativeSmoke.csproj",
+				"--",
+				"C:/Users/NiMo/repositories/Localminutes/.agent-local/native-model-smoke/qwen2.5-0.5b-instruct-q4_k_m.gguf",
+				"C:/Users/NiMo/repositories/Localminutes/windows/.native/llama-cpu",
+				"C:/Users/NiMo/repositories/Localminutes/.agent-local/native-model-smoke/data"
+			],
+			"isBackground": false,
+			"problemMatcher": [
+				"$msCompile"
+			],
+			"group": "test"
+		},
+		{
+			"label": "Publish portable Windows app",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"windows/scripts/publish.ps1"
+			],
+			"isBackground": false,
+			"problemMatcher": [
+				"$msCompile"
+			]
+		}
+	]
+}

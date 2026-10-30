@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>LocalMinutes</AssemblyName>
+    <Version>0.1.0</Version>
+    <PublishTrimmed>false</PublishTrimmed>
+    <DebugType>embedded</DebugType>
+    <NativeBackend Condition="'$(NativeBackend)' == ''">cpu</NativeBackend>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../LocalMinutes.Core/LocalMinutes.Core.csproj" />
+    <PackageReference Include="QRCoder" Version="1.6.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="../../.native/vc-runtime/*.dll" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../.native/llama-$(NativeBackend)/ggml*.dll;../../.native/llama-$(NativeBackend)/llama.dll;../../.native/llama-$(NativeBackend)/llama-common.dll;../../.native/llama-$(NativeBackend)/llama-completion-impl.dll;../../.native/llama-$(NativeBackend)/mtmd.dll;../../.native/llama-$(NativeBackend)/libomp.dll;../../.native/llama-$(NativeBackend)/cudart*.dll;../../.native/llama-$(NativeBackend)/cublas*.dll;../../.native/llama-$(NativeBackend)/msvcp*.dll;../../.native/llama-$(NativeBackend)/vcruntime*.dll;../../.native/llama-$(NativeBackend)/concrt*.dll" Exclude="../../.native/llama-$(NativeBackend)/ggml-rpc.dll" Link="runtimes/llama/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../.native/llama-$(NativeBackend)/llama-completion.exe;../../.native/llama-$(NativeBackend)/llama-tokenize.exe;../../.native/llama-$(NativeBackend)/LICENSE*" Link="runtimes/llama/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
