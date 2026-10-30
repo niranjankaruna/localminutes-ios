@@ -31,6 +31,8 @@ if not any(re.fullmatch(r"python3\d+\.dll", name) for name in names):
     raise ValueError("Python interpreter is missing.")
 if not any(name.endswith("sherpa_onnx/lib/onnxruntime.dll") for name in names):
     raise ValueError("Speech runtime is missing.")
+if not any(name.startswith("soxr/") and name.endswith(".pyd") for name in names):
+    raise ValueError("Microphone resampling runtime is missing.")
 if not any(name.endswith("PySide6/Qt6Widgets.dll") for name in names):
     raise ValueError("Desktop wrapper is missing.")
 if not any("pyi-runtime-tmpdir %APPDATA%\\LocalMinutes\\runtime" == option for option in archive.options):

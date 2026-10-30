@@ -19,9 +19,9 @@ def chat_format(model, system: str, user: str) -> str:
         return value
     system, user = escape(system), escape(user)
     family = model["family"]
-    if family in ("qwen25", "qwen3"):
+    if family in ("qwen25", "qwen3", "qwen35", "qwen38"):
         prompt = f"<|im_start|>system\n{system}<|im_end|>\n<|im_start|>user\n{user}<|im_end|>\n<|im_start|>assistant\n"
-        if family == "qwen3" and "2507" not in model["id"]:
+        if family in ("qwen35", "qwen38") or (family == "qwen3" and "2507" not in model["id"]):
             prompt += "<think>\n\n</think>\n\n"
     elif family == "phi3":
         prompt = f"<|user|>\n{system}\n\n{user}<|end|>\n<|assistant|>\n"
@@ -31,11 +31,38 @@ def chat_format(model, system: str, user: str) -> str:
         prompt = f"<start_of_turn>user\n{system}\n\n{user.strip()}<end_of_turn>\n<start_of_turn>model\n"
     elif family == "gemma4":
         prompt = f"<|turn>system\n{system.strip()}<turn|>\n<|turn>user\n{user.strip()}<turn|>\n<|turn>model\n"
+        if model.get("variant") in ("gemma4Unified", "gemma4Dense"):
+            prompt += "<|channel>thought\n<channel|>"
     else:
         raise ValueError("Unsupported model prompt format.")
     if len(prompt.encode("utf-8")) > 8 * 1024 * 1024:
         raise ValueError("Meeting exceeds the prompt byte limit.")
     return prompt
+
+
+def context_budget(model, input_count):
+    """Budget against the hardware preset as well as the model's trained limit."""
+    preset = model.get("inferencePreset", {})
+    context_limit = min(model["contextWindow"]["maximumTokens"], preset.get("contextTokens", model["contextWindow"]["maximumTokens"]))
+    output_limit = min(model["contextWindow"]["maximumOutputTokens"], preset.get("maximumOutputTokens", model["contextWindow"]["maximumOutputTokens"]))
+    output_count = min(output_limit, max(1024 if preset else 512, input_count // 4))
+    required = input_count + output_count + 64
+    if required > context_limit:
+        limit_name = "Windows GPU preset" if preset else "model context"
+        raise ValueError(f"The complete meeting needs {required:,} tokens; this {limit_name} allows {context_limit:,}, including output. Choose a larger-context preset or a shorter meeting. Nothing was truncated.")
+    return required, output_count
+
+
+def inference_arguments(model, use_gpu):
+    preset = model.get("inferencePreset")
+    if not preset:
+        return ["--temp", "0", "--threads", "4", "--gpu-layers", "auto" if use_gpu else "0"]
+    return ["--gpu-layers", preset["gpuLayers"] if use_gpu else "0", "--fit", "on" if use_gpu else "off",
+            "--fit-target", preset["fitTargetMiB"], "--flash-attn", preset["flashAttention"] if use_gpu else "off",
+            "--cache-type-k", preset["cacheTypeK"] if use_gpu else "f16", "--cache-type-v", preset["cacheTypeV"] if use_gpu else "f16",
+            "--batch-size", preset["batchSize"], "--ubatch-size", preset["microBatchSize"], "--threads", preset["threads"],
+            "--temp", preset["temperature"], "--top-k", preset["topK"], "--top-p", preset["topP"], "--min-p", preset["minP"],
+            "--repeat-penalty", preset["repeatPenalty"], "--presence-penalty", preset["presencePenalty"]]
 
 
 def run_native(runtime: Path, executable: str, arguments, cancel=None, maximum=2 * 1024 * 1024, timeout=3600) -> str:
@@ -168,12 +195,11 @@ class Intelligence:
                 if not isinstance(tokens, list) or any(type(token) is not int for token in tokens):
                     raise ValueError("The tokenizer returned an invalid response.")
                 input_count = len(tokens)
-                output_count = min(model["contextWindow"]["maximumOutputTokens"], max(512, input_count // 4))
-                required = input_count + output_count + 64
-                if required > model["contextWindow"]["maximumTokens"]:
-                    raise ValueError(f"The complete meeting needs {required:,} tokens. Choose a model with a larger context. Nothing was truncated.")
-                arguments = ["-m", self.models.path(model), "-f", prompt_path, "--json-schema-file", schema_path, "--ctx-size", required, "--predict", output_count, "--temp", "0", "--no-conversation", "--no-context-shift", "--no-display-prompt", "--no-escape", "--simple-io", "--no-warmup", "--log-verbosity", "0", "--offline", "--threads", "4", "--gpu-layers", "auto" if self.use_gpu else "0"]
-                if original := model["contextWindow"].get("yarnOriginalContextTokens"):
+                required, output_count = context_budget(model, input_count)
+                arguments = ["-m", self.models.path(model), "-f", prompt_path, "--json-schema-file", schema_path, "--ctx-size", required, "--predict", output_count, "--no-conversation", "--no-context-shift", "--no-display-prompt", "--no-escape", "--simple-io", "--no-warmup", "--log-verbosity", "0", "--offline"]
+                arguments.extend(inference_arguments(model, self.use_gpu))
+                original = model["contextWindow"].get("yarnOriginalContextTokens")
+                if original and required > original:
                     arguments.extend(["--rope-scaling", "yarn", "--yarn-orig-ctx", original, "--rope-freq-scale", "0.25"])
                 progress(f"Generating from {input_count:,} input tokens…")
                 output = run_native(self.runtime, "llama-completion.exe", arguments, cancel)

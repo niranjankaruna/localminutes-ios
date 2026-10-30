@@ -8,7 +8,7 @@ import sys
 root = Path(__file__).resolve().parents[1]
 destination = root / "licenses" / "python"
 destination.mkdir(parents=True, exist_ok=True)
-packages = ["PySide6-Essentials", "shiboken6", "sherpa-onnx", "sherpa-onnx-core", "sounddevice", "numpy", "cryptography",
+packages = ["PySide6-Essentials", "shiboken6", "sherpa-onnx", "sherpa-onnx-core", "sounddevice", "soxr", "numpy", "cryptography",
             "zeroconf", "qrcode", "ifaddr", "cffi", "pycparser", "colorama", "PyInstaller", "pywin32-ctypes"]
 for name in packages:
     package = metadata.distribution(name)

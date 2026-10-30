@@ -14,7 +14,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from . import __version__
-from .audio import open_recognizer, recognize
+from .audio import MicrophonePCM, open_recognizer, recognize
 from .files import Profile, atomic_write, copy_file, default_data_root, identifier, json_bytes, runtime_path
 from .store import Store
 from .ui import MainWindow
@@ -55,7 +55,10 @@ def self_check(window, arguments):
     if not report["cudaBundled"]:
         raise ValueError("CUDA runtime is missing from this build.")
     if arguments.smoke_model:
-        model = next(model for model in window.models.summaries if model["id"] == "qwen2.5-0.5b-instruct-q4_k_m")
+        model_id = arguments.smoke_model_id or window.models.recommended_id
+        model = next((model for model in window.models.summaries if model["id"] == model_id), None)
+        if model is None:
+            raise ValueError("The requested smoke model is not in the Windows catalog.")
         copy_file(arguments.smoke_model, window.models.path(model))
         try:
             window.models.verify_summary(model); window.models.equip(model)
@@ -65,6 +68,7 @@ def self_check(window, arguments):
             if "Minutes of Meetings" not in summary["editedText"] or "Thursday" not in answer["editedText"]:
                 raise ValueError("Synthetic inference did not produce the expected supported answer.")
             report["cudaInferencePassed"] = True
+            report["smokeModelId"] = model_id
         finally:
             window.models.path(model).unlink(missing_ok=True)
     if arguments.speech_directory and arguments.speech_wav:
@@ -76,6 +80,17 @@ def self_check(window, arguments):
         if "friday" not in transcript.casefold() or "thursday" not in transcript.casefold():
             raise ValueError("Synthetic speech recognition failed.")
         report["speechInferencePassed"] = True
+        # Exercise the packaged converter with simulated 48 kHz microphone input.
+        import numpy as np
+        import soxr
+        simulated = soxr.resample(np.frombuffer(pcm, dtype="<i2"), 16000, 48000).astype("<i2").tobytes()
+        converter = MicrophonePCM(48000, 1)
+        converted = b"".join(converter.convert(simulated[i:i + 9600]) for i in range(0, len(simulated), 9600))
+        converted += converter.convert(b"", last=True)
+        converted_text = recognize(open_recognizer(arguments.speech_directory), converted)
+        if "friday" not in converted_text.casefold() or "thursday" not in converted_text.casefold() or len(converted) != len(pcm):
+            raise ValueError("Microphone sample-rate conversion failed the synthetic speech check.")
+        report["resampledSpeechInferencePassed"] = True
     atomic_write(arguments.self_check, json.dumps(report, indent=2).encode("utf-8"))
 
 
@@ -103,6 +118,7 @@ def main(argv=None):
     parser.add_argument("--self-check", type=Path)
     parser.add_argument("--preview", type=Path)
     parser.add_argument("--smoke-model", type=Path)
+    parser.add_argument("--smoke-model-id")
     parser.add_argument("--speech-directory", type=Path)
     parser.add_argument("--speech-wav", type=Path)
     arguments = parser.parse_args(argv)

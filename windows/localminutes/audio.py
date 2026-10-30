@@ -10,8 +10,9 @@ import time
 import numpy as np
 import sounddevice as sd
 import sherpa_onnx
+import soxr
 
-from .files import atomic_write, identifier, json_bytes, read_json, require_regular, safe_path
+from .files import atomic_write, check_cancel, identifier, json_bytes, read_json, require_regular, safe_path
 
 
 RATE = 16000
@@ -164,6 +165,40 @@ def recognize(recognizer, pcm: bytes) -> str:
     return stream.result.text.strip()
 
 
+def microphone_format(device):
+    """Negotiate the device format; Parakeet's rate is not a hardware requirement."""
+    info = sd.query_devices(device, "input")
+    channels = list(dict.fromkeys((1, min(2, info["max_input_channels"]))))
+    rates = list(dict.fromkeys((RATE, int(info["default_samplerate"]), 48000, 44100, 8000)))
+    for rate in rates:
+        for count in channels:
+            if count < 1:
+                continue
+            try:
+                sd.check_input_settings(device=device, channels=count, dtype="int16", samplerate=rate)
+                return rate, count
+            except sd.PortAudioError:
+                continue
+    raise ValueError("This microphone has no supported recording format. Select another microphone in Record or check its Windows sound settings.")
+
+
+class MicrophonePCM:
+    """Stateful, band-limited conversion to the shared 16 kHz mono PCM format."""
+    def __init__(self, rate, channels):
+        self.channels = channels
+        self.resampler = soxr.ResampleStream(rate, RATE, 1, dtype="int16", quality="HQ") if rate != RATE else None
+
+    def convert(self, pcm: bytes, *, last=False) -> bytes:
+        if len(pcm) % (2 * self.channels):
+            raise ValueError("Incomplete microphone frame.")
+        samples = np.frombuffer(pcm, dtype="<i2")
+        if self.channels > 1:
+            samples = np.rint(samples.reshape(-1, self.channels).astype(np.float32).mean(axis=1)).astype(np.int16)
+        if self.resampler:
+            samples = self.resampler.resample_chunk(samples, last=last)
+        return samples.astype("<i2", copy=False).tobytes()
+
+
 class Recorder:
     def __init__(self, profile, store, models, changed=lambda text: None):
         self.profile, self.store, self.models = profile, store, models
@@ -183,14 +218,19 @@ class Recorder:
 
     @staticmethod
     def microphones():
-        return [(i, device["name"]) for i, device in enumerate(sd.query_devices()) if device["max_input_channels"] > 0]
+        devices = [(i, device["name"]) for i, device in enumerate(sd.query_devices())
+                   if device["max_input_channels"] > 0 and not any(name in device["name"].casefold() for name in ("stereo mix", "loopback", "what u hear"))]
+        # Do not default to a system-audio loopback or a disconnected line input.
+        return sorted(devices, key=lambda device: (not any(name in device[1].casefold() for name in ("microphone", "headset")), device[0] != sd.default.device[0]))
 
     def start(self, device: int, cancel=None):
         if self.active:
             raise ValueError("A recording is already active.")
+        rate, channels = microphone_format(device)
+        converter = MicrophonePCM(rate, channels)
         self.models.verify_speech(cancel)
         recognizer = open_recognizer(self.models.speech_directory)
-        sd.check_input_settings(device=device, channels=1, dtype="int16", samplerate=RATE)
+        check_cancel(cancel)
         meeting = self.store.create("Meeting " + time.strftime("%d %b %H:%M"), "recording")
         self.meeting_id = meeting["id"]
         writer = CaptureWriter(self.profile.meeting_dir(self.meeting_id), self.meeting_id)
@@ -231,16 +271,18 @@ class Recorder:
                         modelRevision="parakeet-v3-onnx@" + self.models.speech_revision))
                     self.changed(text)
                 sequence += 1
-            try:
-                while not self.stopping.is_set() or not chunks.empty():
-                    try:
-                        data = chunks.get(timeout=0.1)
-                    except queue.Empty:
-                        continue
-                    writer.append(data)
+            def save(data):
+                # Split after resampling so every transcript timestamp uses the
+                # same exact sample clock as the saved audio, including the tail.
+                offset = 0
+                while offset < len(data):
+                    count = min(160000 - len(window), len(data) - offset)
+                    part = data[offset:offset + count]
+                    writer.append(part)
                     self.frames = writer.total
-                    window.extend(data)
-                    if len(window) >= 160000:
+                    window.extend(part)
+                    offset += count
+                    if len(window) == 160000:
                         if self.error is None:
                             try:
                                 decode(window)
@@ -248,6 +290,14 @@ class Recorder:
                                 self.error = error
                                 self.stopping.set()
                         window.clear()
+            try:
+                while not self.stopping.is_set() or not chunks.empty():
+                    try:
+                        data = chunks.get(timeout=0.1)
+                    except queue.Empty:
+                        continue
+                    save(converter.convert(data))
+                save(converter.convert(b"", last=True))
                 if window and self.error is None:
                     decode(window)
             except Exception as error:
@@ -263,7 +313,8 @@ class Recorder:
                     self.changed("Recording interrupted. Saved original audio is retained.")
 
         try:
-            self.stream = sd.RawInputStream(device=device, channels=1, samplerate=RATE, dtype="int16", blocksize=1600, callback=callback, finished_callback=finished)
+            self.stream = sd.RawInputStream(device=device, channels=channels, samplerate=rate, dtype="int16", blocksize=round(rate / 10),
+                                            callback=callback, finished_callback=finished, latency="high")
             self.worker = threading.Thread(target=work, name="meeting-capture", daemon=True)
             self.worker.start()
             self.started = time.monotonic()

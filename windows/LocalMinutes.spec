@@ -16,7 +16,7 @@ binaries += [(str(path), '.') for path in (root / '.native' / 'vc-runtime').glob
 binaries += collect_dynamic_libs('sherpa_onnx')
 datas = [(str(root / 'localminutes' / 'resources'), 'localminutes/resources'),
          (str(root / 'licenses'), 'licenses'), (str(root / 'README.md'), '.')]
-for package in ('sherpa-onnx', 'sherpa-onnx-core', 'sounddevice', 'qrcode', 'zeroconf', 'cryptography'):
+for package in ('sherpa-onnx', 'sherpa-onnx-core', 'sounddevice', 'soxr', 'qrcode', 'zeroconf', 'cryptography'):
     datas += copy_metadata(package)
 
 a = Analysis([str(root / 'launch.py')], pathex=[str(root)], binaries=binaries, datas=datas,

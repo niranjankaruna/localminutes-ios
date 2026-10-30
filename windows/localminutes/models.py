@@ -26,11 +26,17 @@ class Models:
     def __init__(self, profile):
         self.profile = profile
         catalog = read_json(Path(__file__).parent / "resources" / "SummaryCatalog.json")
-        self.summaries = [model for family in catalog["families"] for model in family["variants"]]
+        self.recommended_id = catalog.get("recommendedModelId")
+        self.summaries = [dict(model, familyTitle=family["title"]) for family in catalog["families"] for model in family["variants"]]
+        self.summaries.sort(key=lambda model: (model["id"] != self.recommended_id, "inferencePreset" not in model))
         self.selection_path = profile.root / "model-selection.json"
         self.selected_id = read_json(self.selection_path, 4096) if self.selection_path.exists() else None
         self.speech_directory = safe_path(profile.models, "parakeet-v3-onnx")
         self.lock = threading.Lock()
+
+    @staticmethod
+    def name(model):
+        return model.get("familyTitle", model["family"]) + " " + model["title"]
 
     @property
     def selected(self):

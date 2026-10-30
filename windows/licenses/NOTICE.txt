@@ -29,6 +29,11 @@ ONNX Runtime (MIT), Microsoft Corporation and contributors.
 Source: https://github.com/microsoft/onnxruntime
 License and notices: onnxruntime-MIT.txt, onnxruntime-third-party.txt.
 
+Python-SoXR 1.1.0: LGPL-2.1-or-later, with bundled libsoxr notices.
+Used for streaming microphone conversion to 16 kHz mono.
+Source: https://github.com/dofuuz/python-soxr/tree/v1.1.0
+Exact wheel licenses and notices are included under licenses/python.
+
 Microsoft Visual C++ runtime 14.44.35211.0 is deployed app-locally from the
 Microsoft-signed x64 redistributable. See Microsoft-Visual-Cpp-Runtime.rtf.
 No redistributable installer is executed.
