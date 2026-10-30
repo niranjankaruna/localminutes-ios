@@ -14,7 +14,7 @@ if(-not(Test-Path -LiteralPath $archive)) {
 if((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant() -ne 'cc0ff0eb1dc3f5188ae6300faef32bf5beeba4bdd6e8e445a9184072096b713b'){throw 'VC runtime checksum mismatch.'}
 $signature=Get-AuthenticodeSignature -LiteralPath $archive
 if($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'Microsoft Corporation'){throw 'VC runtime Microsoft signature was not verified.'}
-& node (Join-Path $PSScriptRoot 'extract-cabinets.mjs') $archive $cabinets
+& (Join-Path $windowsRoot '.venv/Scripts/python.exe') (Join-Path $PSScriptRoot 'extract_cabinets.py') $archive $cabinets
 if($LASTEXITCODE -ne 0){throw 'Cabinet validation failed.'}
 & expand.exe (Join-Path $cabinets 'container-0.cab') '-F:0' $payload | Out-Null
 if($LASTEXITCODE -ne 0){throw 'Manifest extraction failed.'}

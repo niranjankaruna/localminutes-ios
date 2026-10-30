@@ -1,36 +1,41 @@
 # Windows and local sync implementation status
 
-Updated 30 October 2026. All work remains on `main`; no push or GitHub Actions execution has occurred.
+Updated 30 October 2026. Work remains on main. No GitHub Actions were started by this implementation.
 
-## Implemented
+## Current Windows implementation
 
-- Existing application code, assets, tests and build helpers moved under [ios](../ios/), with no missing tracked source files. Existing workflow definitions retain their root location and use the corrected working directories.
-- Native [.NET 10/WPF Windows application](../windows/src/LocalMinutes.Desktop/) following the desktop Figcraft structure, with local SQLite, persistent device and process IDs, meeting history/search, notes, original audio playback, generated content edits/citations, export/import, model downloads and microphone recording.
-- Bundled llama.cpp `b11900` summaries/Q&A with full-input token counting and validated citation membership; sherpa-onnx `2.0.1` / Parakeet v3 speech inference. NVIDIA CUDA 13.4 and CPU distributions are supported. The [Windows model catalog](../windows/src/LocalMinutes.Core/Resources/SummaryCatalog.json) can be expanded independently of iOS.
-- Sender-wins logical exchange, no propagated deletions or model transfers, TLS pairing and resumed file transfers. [Protocol details](./sync/PROTOCOL.md) describe the actual PC-listener/foreground-phone implementation.
-- Bonjour/DNS-SD advertisement on Windows and paired-PC discovery on iPhone. Queued PC sends persist across Windows restarts, remain bound to the selected phone and can be cancelled.
-- iPhone Sync controls, camera/code pairing, Keychain trust, Network-framework TLS client, version-6 persistence additions and generation-based library merge, implemented in source.
-- Self-contained portable packaging with app-local Visual C++ runtime files, notices, SHA-256 receipt and package/dependency audits.
+Windows is a Python application with a thin PySide6 desktop window. It replaces the earlier .NET/WPF implementation. The distribution is one CUDA executable, with models, meetings, settings and runtime extraction under %APPDATA%/LocalMinutes.
 
-## Verified locally
+- [Python services and UI](../windows/localminutes/) implement SQLite meeting storage, notes, generated documents, microphone recording, original CAF playback, model downloads, summaries/Q&A, library import/export and local sync.
+- [build-cuda.ps1](../windows/scripts/build-cuda.ps1) prepares pinned dependencies, packages the application as one EXE, checks its contents and runs an isolated self-check. Rebuilds replace one output instead of creating additional release folders and ZIPs.
+- Bundled llama.cpp b11900 provides CUDA summaries/Q&A. Parakeet v3 / sherpa-onnx 2.0.1 provides speech recognition. The [Windows model catalog](../windows/localminutes/resources/SummaryCatalog.json) remains independent of iOS.
+- The Apple-inspired layout uses a sidebar, a meeting list, a reading workspace, explicit pressed/focus feedback, and light/dark appearances.
+
+## Sync and iOS
+
+The iOS source, assets, tests and build helpers remain under [ios](../ios/). Sync controls, QR/code pairing, Keychain trust, TLS transport, schema-version-6 additions and generation-based merge are implemented in source.
+
+The [shared protocol](./sync/PROTOCOL.md) uses sender-wins updates, retains receiver-only records, and excludes deletion propagation and model binaries. Transfers verify hashes, resume interrupted files and preserve immutable source/audio identities. Queued PC sends survive restart and remain bound to their original recipient. Windows advertises Bonjour; the phone verifies its paired TLS identity after discovery.
+
+## Validation
 
 | Check | Result |
 | --- | --- |
-| Windows build | Passed with warnings treated as errors |
-| Windows automated tests | 26 passed, including real loopback TLS, interruption/resume, persistent queued sends/cancellation, both data directions and sender-wins/no-delete behavior |
-| Windows discovery | Actual multicast DNS-SD query found the advertised instance |
-| Existing iOS JavaScript helpers | 127 passed after source relocation |
-| Actual llama.cpp CPU inference | Synthetic summary and grounded Q&A passed using the pinned Qwen 2.5 0.5B model |
-| Actual llama.cpp CUDA inference | The same synthetic flow passed on NVIDIA RTX 5070 Ti, driver 617.42 / CUDA 13.4 |
-| Actual Parakeet inference | Correctly transcribed a synthetic 16 kHz mono speech WAV; no microphone recording was performed for this test |
-| WPF visual verification | Light, dark and 1280x800 window layouts rendered and inspected |
-| Packaged EXE self-check | Loaded its own .NET 10.0.14 runtime, WPF layout and bundled native engines successfully |
-| Package audit | No model/meeting data; required native dependencies and notices present |
+| Python storage and real TLS tests | 22 passed, including device-disconnection cleanup and prompt TLS shutdown |
+| Python UI interaction test | Passed note-draft persistence across selection/navigation and theme changes |
+| Actual Python CUDA inference | Synthetic summary and grounded Q&A passed on RTX 5070 Ti |
+| Actual Python speech inference | Parakeet correctly recognized the synthetic WAV |
+| UI visual review | Light/dark meeting layouts, recording, sync, settings and smaller window rendered |
+| Packaged Python app | Started with its bundled interpreter; copied single EXE also passed actual CUDA summary/Q&A and Parakeet inference |
+| Single-EXE audit | Bundled Python/UI/CUDA checked; no model weights, meeting data or retired .NET application |
+| Existing iOS JavaScript helpers | 127 passed after source relocation; unchanged by the Python rewrite |
 
-## Not yet verified or completed
+The earlier portable profile was copied into %APPDATA%/LocalMinutes and verified byte-for-byte, including protected pairing compatibility. The old .NET source, its build scripts, CPU runtime and timestamped release folders/ZIPs were removed. The retained release output is LocalMinutes-CUDA.exe.
 
-Native Swift compilation, the added Swift tests and physical iPhone 17 Pro/iOS 27.2 interoperability require Mac/Xcode/signing access. The Windows environment cannot establish those results. No GitHub-hosted verification has been substituted.
+## Remaining validation and follow-up
 
-Cross-platform retranscription/versioning, configurable transfer/rollback retention and a receipt ledger surviving manual backup rollback remain follow-up work. This first implementation uses a QR/address pairing flow and requires the Sync screen to stay open on iPhone. The phone-side Bonjour discovery code still needs native validation alongside the rest of the iOS integration. See the [Windows usage and limitation notes](../windows/README.md).
+Native Swift compilation, the added Swift tests and physical iPhone 17 Pro/iOS 27.2 interoperability require Mac/Xcode/signing access. Those results have not been established on this Windows machine.
 
-The portable build is unsigned and has not been qualified on a completely clean Windows installation. The native-import audit and real EXE/inference checks provide useful evidence, but are not a replacement for that final deployment test.
+Automatic cross-platform retranscription/versioning, configurable transfer/rollback retention, a receipt ledger surviving manual backup rollback, clean-machine qualification and signed Windows distribution remain follow-up work. Keep the Sync screen open on iPhone for transfers.
+
+See [Windows usage and build instructions](../windows/README.md).

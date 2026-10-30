@@ -1,17 +1,17 @@
 # LocalMinutes Windows app and local Wi-Fi sync plan
 
-Planning date: 30 October 2026. This is an implementation plan, not a completed Windows application. Implementation has started; the source folders now follow the ios/windows split. See ../windows/README.md for current implementation status. The accompanying Figcraft desktop concepts are design references with illustrative content.
+Planning date: 30 October 2026. Updated to the user's final Windows decision: a Python application with a thin PySide6 window, one portable CUDA EXE, and writable state under %APPDATA%/LocalMinutes. The earlier .NET/WPF implementation has been replaced. See [current implementation status](./IMPLEMENTATION_STATUS.md) for verified results and remaining work. Figcraft concepts contain illustrative content.
 
 Deliverables: [editable Figcraft desktop design](../windows/Design/LocalMinutes-Windows-Plan.figcraft), [meeting workspace preview](../windows/Design/windows-plan-previews/meetings-summary.png), [sync preview](../windows/Design/windows-plan-previews/sync-ready.png), and [all ten screen previews](../windows/Design/windows-plan-previews/). Open the Figcraft file and use the Windows workspace, Send PC meeting data to iPhone, or Pair devices review flow.
 
-Build a native Windows application with the existing meeting workflows, package it as a portable folder launched by an EXE, and add explicit local-network sending to both platforms. Keep Swift/iOS and Windows implementation separate, joined by a versioned data contract. No hosted service, account system, internet connection, or downloaded model transfer is required for sync.
+Build a Python Windows application with the existing meeting workflows, package it as one portable CUDA EXE, and add explicit local-network sending to both platforms. Keep Swift/iOS and Windows implementation separate, joined by a versioned data contract. No hosted service, account system, internet connection, or downloaded model transfer is required for sync.
 
 ## Confirmed product decisions
 
 | Topic | Agreed behavior |
 | --- | --- |
 | Windows device | Windows 11, AMD Ryzen 7 eight-core processor, 64 GB RAM, user-reported NVIDIA RTX 5070 Ti with 16 GB VRAM. Exact CPU model, GPU driver and available disk space are checked during implementation. |
-| Packaging | A portable folder with an executable, supporting runtime files, data and separately downloaded models is acceptable. No installer. |
+| Packaging | One self-contained Python/CUDA EXE. Models, settings, meeting data and automatically extracted runtime files stay under %APPDATA%/LocalMinutes. No installer. |
 | Direction | Pressing Sync on iPhone sends iPhone data to Windows. Pressing Sync on Windows sends Windows data to iPhone. |
 | Conflicting edits | The sending device wins, including when its edit is older by wall-clock time. |
 | Deletions | Copy and update only. Deleting on one device does not delete on the other. |
@@ -38,52 +38,46 @@ The current summary/Q&A implementation uses llama.cpp; obsolete references to Ap
 
 ## Windows architecture and portable distribution
 
-Use **C# with .NET 10 LTS, WPF and SQLite**. WPF supplies Windows layout, text, keyboard and accessibility facilities without requiring a browser runtime. .NET 10 has published support through November 2028. Pin SDK and dependency versions at implementation time. [Microsoft WPF documentation](https://learn.microsoft.com/en-us/dotnet/desktop/wpf/overview/) and [.NET support policy](https://dotnet.microsoft.com/en-us/platform/support/policy/dotnet-core).
+Use **Python, PySide6 and SQLite**. Python owns persistence, audio, model management, inference orchestration and sync. The desktop window is a thin wrapper with Apple-inspired spacing and typography. Keep Windows window behavior and accessibility controls familiar.
 
-Tauri remains technically possible, but adds Rust/web integration and a WebView2 deployment decision. For this Windows-only application, WPF is the simpler starting point. This is an architecture recommendation, not a claim that portable Tauri apps are impossible. [Tauri Windows distribution guidance](https://v2.tauri.app/distribute/windows-installer/).
+Use **PyInstaller one-file packaging** with the Python interpreter, Qt UI libraries, sherpa-onnx, llama.cpp and CUDA dependencies embedded. Set the runtime extraction directory to %APPDATA%/LocalMinutes/runtime. The user launches one EXE without installing Python or unpacking a ZIP. [PyInstaller packaging documentation](https://pyinstaller.org/en/stable/operating-mode.html).
 
-Publish a self-contained `win-x64` release. Bundle the .NET runtime; keep native inference dependencies alongside the executable where that makes loading and updates simpler. Do not trim the WPF application initially. Single-file publishing is optional inside the portable package: it does not remove the need for writable recordings/models, and bundled native libraries can extract at launch. [Microsoft deployment guidance](https://learn.microsoft.com/en-us/dotnet/core/deploying/single-file/overview).
+The distribution is LocalMinutes-CUDA.exe. Persistent application data is independent of the executable:
 
-Proposed distribution, not yet generated:
+    %APPDATA%/LocalMinutes/
+      library/       SQLite and original meeting audio
+      models/        independently downloaded model weights
+      identity/      local IDs and protected pairing credentials
+      runtime/       extracted dependencies and temporary work
+      sync-incoming/
+      sync-outgoing/
+      rollback/
+      settings.json
+      model-selection.json
 
-```text
-LocalMinutes-Windows-x64/
-  LocalMinutes.exe
-  runtimes/                   verified native dependencies
-  licenses/
-  LocalMinutes.Data/
-    identity/
-    libraries/
-    sync-staging/
-    rollback/
-    settings.json
-  Models/                     independently downloaded model packs
-```
-
-Use `AppContext.BaseDirectory` to resolve the default data root, never the shell's current directory, `Assembly.Location` under single-file publishing, or a temporary extraction directory. If it is unwritable, show a folder chooser. Keep user data outside versioned application binaries; updates replace application files without replacing data or models. Test moving the folder and paths containing spaces and non-ASCII characters.
-
-Portable does not mean completely stateless: the app writes data, the OS may store trust material, GPU acceleration requires a compatible NVIDIA driver, and Windows may request firewall permission. A clean Windows machine must not need a separate .NET, Python, Node, developer-tool or inference-server installation. Audit native runtime redistribution requirements and include permitted app-local dependencies. Code signing and checksums are release tasks; signing cannot guarantee removal of every Windows reputation prompt.
+Builds replace one stable output after validation. Updating or moving the EXE does not remove data. A compatible NVIDIA driver is required; runtime libraries are bundled. Clean-machine testing and signing remain separate release checks.
 
 ### Windows implementation boundaries
 
-| Module under the proposed Windows solution | Responsibility |
+| Python module | Responsibility |
 | --- | --- |
-| `LocalMinutes.Desktop` | WPF views, view models, navigation, themes, accessibility and dialogs |
-| `LocalMinutes.Domain` | Meeting contracts, operation ownership, admission rules and errors |
-| `LocalMinutes.Persistence` | SQLite migrations, transactions, FTS5, notes, documents and sync metadata |
-| `LocalMinutes.Audio` | Microphone selection/capture, normalization, durable segments, recovery and playback |
-| `LocalMinutes.Transcription` | Windows recognizer adapter, live-window handling and replay |
-| `LocalMinutes.Intelligence` | llama.cpp interop, prompts, token budgets, validation, summaries and Q&A |
-| `LocalMinutes.Models` | Catalogs, hash-verified downloads, installation leases and local selections |
-| `LocalMinutes.Sync` | Identity, trust, discovery, transport, staging, sender-wins import and receipts |
+| [ui.py](../windows/localminutes/ui.py) and [theme.py](../windows/localminutes/theme.py) | Window layout, navigation, themes, dialogs and UI operation ownership |
+| [files.py](../windows/localminutes/files.py) | Profile IDs, single-writer lock, safe paths and atomic files |
+| [store.py](../windows/localminutes/store.py) | SQLite schema, transactions, notes and generated content |
+| [audio.py](../windows/localminutes/audio.py) | Microphone capture, CAF storage/playback and Parakeet adapter |
+| [intelligence.py](../windows/localminutes/intelligence.py) | Bundled llama.cpp tools, prompts, full-input budgets and evidence validation |
+| [models.py](../windows/localminutes/models.py) | Independent catalog, verified downloads and equipped selection |
+| [exchange.py](../windows/localminutes/exchange.py) | Transfer snapshots, sender-wins merge, receipts and recovery |
+| [sync.py](../windows/localminutes/sync.py) | DPAPI identity, TLS pairing, discovery and resumed transfers |
+| [library.py](../windows/localminutes/library.py) | iPhone backup conversion, deletion recovery and document evidence |
 
-Preserve the current application's single-owner approach to recording, playback, inference and maintenance. UI cancellation must drain native work before releasing resources; a late callback must not write into a different meeting.
+Preserve exclusive operation ownership for recording, inference and library maintenance. Cancellation must drain native work before releasing resources.
 
 ### Offline inference
 
 Use a pinned Windows llama.cpp build with a small owned interop boundary. Start by checking the existing `b11900` API/model compatibility; do not pair an arbitrary wrapper with a different native ABI. Preserve the current full-transcript prompt, context admission, JSON validation, citations, original-versus-edited text, and failure behavior. Windows builds and CPU/GPU backends are documented by the [llama.cpp maintainers](https://github.com/ggml-org/llama.cpp/blob/master/docs/build.md).
 
-Evaluate sherpa-onnx with compatible Parakeet ONNX v2/v3 packs for Windows speech recognition. FluidAudio/Core ML model files cannot run unchanged on Windows. The maintainer provides a [C# API](https://k2-fsa.github.io/sherpa/onnx/csharp-api/index.html) and [Parakeet model conversions](https://k2-fsa.github.io/sherpa/onnx/pretrained_models/offline-transducer/nemo-transducer-models.html). These are candidate dependencies pending pinned-version integration tests. The relevant recognizers are offline models; live transcription needs explicitly tested windowing, overlap, finalization and timestamp behavior, not an assumption of native streaming parity.
+Evaluate sherpa-onnx with compatible Parakeet ONNX v2/v3 packs for Windows speech recognition. FluidAudio/Core ML model files cannot run unchanged on Windows. The maintainer provides a [Python API](https://k2-fsa.github.io/sherpa/onnx/python/install.html) and [Parakeet model conversions](https://k2-fsa.github.io/sherpa/onnx/pretrained_models/offline-transducer/nemo-transducer-models.html). These are candidate dependencies pending pinned-version integration tests. The relevant recognizers are offline models; live transcription needs explicitly tested windowing, overlap, finalization and timestamp behavior, not an assumption of native streaming parity.
 
 Establish CPU correctness first, then qualify GPU inference on the user's RTX 5070 Ti. Verify exact device capability, driver, CUDA build and redistribution requirements against [NVIDIA Blackwell compatibility guidance](https://docs.nvidia.com/cuda/blackwell-compatibility-guide/). Benchmark actual memory use, transcription throughput, first-token latency and generation speed. Do not infer a supported context length or real-time speed from 16 GB VRAM alone. Retain a tested CPU fallback.
 
@@ -187,7 +181,7 @@ New local retranscription creates a separate transcript version, with its own ve
 
 ### Discovery, pairing and transport
 
-Use Bonjour/DNS-SD with a declared `_localminutes._tcp` service. On iOS, use Network framework browsing/connections/listeners; on Windows, use the native DNS-SD API and a .NET TLS stream adapter. Validate native API behavior in a small interoperability spike. [Windows DNS-SD discovery](https://learn.microsoft.com/en-us/windows/win32/api/windns/nf-windns-dnsservicebrowse).
+Use Bonjour/DNS-SD with a declared `_localminutes._tcp` service. On iOS, use Network framework browsing/connections/listeners; on Windows, use Python zeroconf for discovery and the standard-library ssl transport. Discovery is only a routing hint; certificate pinning and pairing credentials establish trust.
 
 Use TLS with paired peer identities. First pairing should offer a short-lived QR invitation containing the full fingerprint and a high-entropy invitation value, or a correctly implemented transcript-bound comparison code confirmed on both devices. A short code must not be the sole encryption secret. Pin trusted identities, reject identity changes until re-paired, expire/rate-limit invitations and authenticate before accepting manifests. Certificate/key provisioning and mutual verification are early spike requirements, using [Apple's local-network TLS guidance](https://developer.apple.com/documentation/network/creating-an-identity-for-local-network-tls).
 
@@ -235,9 +229,12 @@ Localminutes/
     ARCHITECTURE.md
     Design/                   existing iOS reference and brand assets
   windows/
-    LocalMinutes.sln
-    src/                      Windows modules listed above
-    tests/
+    launch.py                 Python application entry point
+    LocalMinutes.spec         single CUDA EXE packaging
+    localminutes/             Python services, UI and resources
+    python-tests/
+    requirements.txt
+    requirements-build.txt
     scripts/                  local build, native dependency and publish helpers
     Design/                   desktop Figcraft document and exports
     README.md
@@ -253,9 +250,9 @@ Existing workflow paths may need edits to point at `ios/`; keep workflow definit
 
 | Milestone | Work | Required evidence before proceeding |
 | --- | --- | --- |
-| 1. Compatibility spikes | Portable WPF with real native dependencies; CAF round trip; Windows Parakeet/llama sample; iPhone-to-Windows TLS/discovery | Clean Windows launch, real sample audio playback on both platforms, model output, authenticated connection in both directions |
+| 1. Compatibility spikes | Portable Python/PySide6 with real native dependencies; CAF round trip; Windows Parakeet/llama sample; iPhone-to-Windows TLS/discovery | Clean Windows launch, real sample audio playback on both platforms, model output, authenticated connection in both directions |
 | 2. Repository move | Move iOS sources and helpers, add Windows solution layout, repair all paths | Path/script checks; local Mac/Xcode generation and native iOS validation when a Mac is available; installed data identity preserved |
-| 3. Shared contract | Specify manifest/records/media, add identity and metadata migrations, golden fixtures | Swift and C# agree on IDs, timestamps, canonical hashes, original JSON and schema rejection |
+| 3. Shared contract | Specify manifest/records/media, add identity and metadata migrations, golden fixtures | Swift and Python agree on IDs, timestamps, canonical hashes, original JSON and schema rejection |
 | 4. Windows library | Navigation, reading, playback, notes, edits, export, local deletion, backups | Existing iOS fixture data renders correctly; edits survive restart; citations seek correctly; no models needed for saved data |
 | 5. End-to-end sync | Pairing, discovery, buttons, immutable snapshots, sender-wins import, resumable transfer and receipts | Both directions copy all saved data, target-only data survives, repeat send is idempotent, models excluded |
 | 6. Windows recording and intelligence | Microphone capture, durable segments, recovery, live transcription, summaries/Q&A, downloads and GPU option | Measured local inference, crash-safe recordings, prompt/evidence parity, CPU fallback and resource admission tests |

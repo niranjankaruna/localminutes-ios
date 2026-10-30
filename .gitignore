@@ -70,3 +70,6 @@ windows/.native/
 **/LocalMinutes.Data/
 **/Models.Downloaded/
 *.onnx
+.venv/
+windows/.python-build/
+.pytest_cache/

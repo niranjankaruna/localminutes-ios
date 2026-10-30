@@ -1,6 +1,6 @@
 # LocalMinutes local sync version 1
 
-This documents the implemented protocol in the [Windows host](../../windows/src/LocalMinutes.Core/SyncHost.cs) and [iPhone client](../../ios/App/LocalSyncController.swift). It uses no hosted service. Windows owns a TCP/TLS listener and the foreground iPhone connection carries either direction of transfer.
+This documents the implemented protocol in the [Python Windows host](../../windows/localminutes/sync.py) and [iPhone client](../../ios/App/LocalSyncController.swift). It uses no hosted service. Windows owns a TCP/TLS listener and the foreground iPhone connection carries either direction of transfer.
 
 ## Identity and trust
 
@@ -81,4 +81,4 @@ The current implementation keeps receipts with the library and retains transfer/
 
 ## Verification
 
-[Windows tests](../../windows/tests/LocalMinutes.Tests/) cover real loopback TLS pairing, incorrect-token rejection, interrupted/resumed uploads, both data directions, sender-wins/no-delete behavior, >1,000 saved documents, immutable collision rollback and CAF sample seeking. [Swift persistence tests](../../ios/Tests/PersistenceTests/LocalSyncPersistenceTests.swift) cover the matching import contract, but require a Mac to execute. A physical iPhone/Windows round trip remains required before release sign-off.
+[Python Windows tests](../../windows/python-tests/) cover real loopback TLS pairing, incorrect-token rejection, interrupted/resumed uploads, both data directions, sender-wins/no-delete behavior, immutable collision rollback, CAF media and queued-send restart/cancellation. [Swift persistence tests](../../ios/Tests/PersistenceTests/LocalSyncPersistenceTests.swift) cover the matching import contract, but require a Mac to execute. A physical iPhone/Windows round trip remains required before release sign-off.
