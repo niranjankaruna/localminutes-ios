@@ -25,7 +25,7 @@ The [PyInstaller bootloader](https://pyinstaller.org/en/stable/operating-mode.ht
 
 ## First use
 
-1. In Settings, download **Parakeet v3**, then download **Qwen 3.8 27B Q8_0** (recommended for quality) or **Gemma 4 31B Q8_0**, and select **Use model**.
+1. In Settings, download **Parakeet v3**, then choose one of the four model groups, download a model, and select **Use model**.
 2. In Record, select your microphone and start recording. Stop before generating a summary, asking a question or syncing.
 3. Meetings provides Summary, Transcript, Notes and Ask views. Notes save automatically. Generated edits remain separate from original JSON. Sources verifies citations against the transcript; double-click a source to play its original audio.
 4. Settings imports iPhone .localminutesbackup or .lmtransfer directory packages. Export includes saved meeting data and original audio, excluding models and credentials.
@@ -34,7 +34,7 @@ The window follows the [Figcraft layout](./Design/LocalMinutes-Windows-Plan.figc
 
 Original audio is 16 kHz mono signed 16-bit PCM CAF in segments of up to 60 seconds. Microphones are opened at a supported rate and channel count; a streaming SoXR converter mixes stereo to mono and converts 44.1/48 kHz microphones or 8 kHz headsets to 16 kHz. This fixes `Invalid sample rate [PaErrorCode -9997]` on devices that cannot capture directly at 16 kHz. The converter flushes its final samples before the recording finishes. Known system-audio loopback devices are excluded from the microphone list.
 
-NVIDIA Parakeet v3 is the speech model; the bundled sherpa-onnx engine runs it on the **CPU**, independently of CUDA summary generation. Transcription uses five-second windows. Following a crash, validated closed segments remain playable and the meeting is marked interrupted; unfinished tails are retained. Automatic cross-platform transcription replay/versioning is not implemented.
+NVIDIA Parakeet v3 runs its encoder, decoder and joiner neural graphs on **CUDA** in a private worker process. Download the new **2.55 GB floating-point CUDA pack** in Settings; the former INT8 CPU pack is not used. CUDA startup checks refuse neural CPU fallback. ONNX retains audited shape/index bookkeeping on CPU; all neural layers run on the GPU. Audio input, resampling, tokenization and UI coordination also use the CPU. Transcription uses five-second windows. Following a crash, validated closed segments remain playable and the meeting is marked interrupted; unfinished tails are retained. Automatic cross-platform transcription replay/versioning is not implemented.
 
 ## Wi-Fi sync
 
@@ -53,7 +53,7 @@ There is no hosted service or account system. Windows owns the TLS listener; a f
 
 ## Build the single CUDA EXE
 
-On Windows 11 x64, install Python 3.12 or newer. Python **3.14.7** is the verified interpreter. From the repository root:
+On Windows 11 x64, install Python 3.12 or newer. Python **3.14.7** is the verified interpreter. CUDA speech wheels are pinned for Python 3.12–3.15. From the repository root:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File windows/scripts/build-cuda.ps1
 
@@ -72,20 +72,26 @@ TLS tests use Windows DPAPI; restricted execution sandboxes can prevent access t
 
 ## Windows model catalog
 
-The [Windows catalog](./localminutes/resources/SummaryCatalog.json) is independent of iOS. It now contains only large summary/answer models, chosen for quality on the user's **RTX 5070 Ti 16 GB + 64 GB system RAM**. Smaller summary models have been removed from the list. Existing downloaded files are not silently deleted, and a removed selection requires explicitly choosing one of the new models. Parakeet remains separate because it performs speech recognition.
+The [Windows catalog](./localminutes/resources/SummaryCatalog.json) contains four selectable groups, with separate Qwen and Gemma choices:
 
-| Model | Parameters | Quantization | Download | Purpose |
-| --- | --- | --- | --- | --- |
-| [Qwen 3.8 27B](https://huggingface.co/Qwen/Qwen3.8-27B) | 27.3 billion in the GGUF | Q8_0 | 29.05 GB | Recommended quality-first preset |
-| [Gemma 4 31B](https://huggingface.co/google/gemma-4-31B-it) | 30.7 billion | Q8_0 | 32.64 GB | Large alternative for summaries and answers |
+| Group | Qwen | Gemma | Execution |
+| --- | --- | --- | --- |
+| Current larger models | Qwen 3.8 27B Q8_0 · 29.05 GB | Gemma 4 31B Q8_0 · 32.64 GB | CUDA plus CPU/system-RAM offload allowed |
+| Large | Qwen 3.8 27B UD-Q3_K_XL · 13.15 GB | Gemma 4 31B Q3_K_S · 13.21 GB | GPU only |
+| Medium | Qwen 3.5 9B Q8_0 · 9.53 GB | Gemma 4 12B Q6_K · 9.79 GB | GPU only |
+| Small | Qwen 3.5 4B Q8_0 · 4.48 GB | Gemma 4 E2B QAT Q4_0 · 3.35 GB | GPU only |
 
-The GGUF weights work through the bundled llama.cpp **CUDA** backend on NVIDIA. They are not Apple-specific. Neither Q8 model fits completely into 16 GB VRAM. Automatic layer placement uses available GPU memory and keeps the remaining layers in system RAM; expect slower generation and additional model-loading time. Only one model is loaded per operation. These are curated choices, not a claim that one model wins every task.
+The large GPU-only variants retain the larger parameter counts with lower weight precision. Medium models offer higher precision and more room for context. These are tradeoffs, not a universal quality ranking. GGUF works with the bundled NVIDIA CUDA engine and is not Apple-specific. Existing downloaded files and model selections are preserved.
 
-Both presets use a **32,768-token application context cap**, including up to **4,096 output tokens**, Flash Attention, Q8 key/value cache, automatic GPU placement with a 1,536 MiB GPU reserve, batch 512 / microbatch 128, and eight CPU threads. Sampling uses temperature 0.2, min-p 0, repeat penalty 1 and presence penalty 0; Qwen uses top-k 20 / top-p 0.8, while Gemma uses top-k 64 / top-p 0.95. These conservative sampling settings are application choices for evidence-backed meeting JSON, not the publishers' general-chat defaults. Thinking is disabled with each publisher's direct-answer prompt format. Settings displays the selected preset; changing the model applies it automatically when the model is equipped.
+**Thinking is enabled. There is no fixed 32K application context cap, 4K output cap, thinking-token cap, or generation timeout.** A grammar allows unrestricted thinking tokens until the model's reasoning-end marker, then structures the final JSON. Only the verified final answer is saved; reasoning is not mistaken for meeting content. Cancellation remains available.
 
-The publishers advertise larger contexts; the application deliberately caps them for this hardware. The complete prompt is tokenized before inference. Input, reserved output and a margin must fit the application cap; oversized requests fail without truncation. The GPU reserve is a runtime fitting target, not a guarantee against other applications changing available memory. Runtime failures do not save incomplete documents.
+The native memory planner starts from the model's supported context (262,144 tokens, or 131,072 for Gemma E2B). For GPU-only models it allocates the largest context that fits current VRAM with every model tensor and the KV cache on CUDA. It verifies zero host model/KV allocation, then runs with fitting disabled so placement cannot change silently. There is no fixed VRAM reserve. The original Q8 group retains the full native context and may place layers in CPU/system RAM.
 
-Downloads pin the publisher repository revision, filename, byte count, SHA-256 and license. Qwen uses the [Unsloth Qwen 3.8 GGUF release](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF/tree/4ca720788d1e01f1bff70c033e0d0028fd02e502); Gemma uses the [Unsloth Gemma 4 GGUF release](https://huggingface.co/unsloth/gemma-4-31B-it-GGUF/tree/c1ac76e99d5513b141e8adde7288b85c3f9c32ec). New prompt formats need an adapter in [intelligence.py](./localminutes/intelligence.py).
+Physical memory and the model's architecture still impose limits. If the complete prompt cannot fit, the app reports an error without truncating the meeting or falling back to CPU. Generation stops at the model's end token or when the available context is full; incomplete results are rejected. Context capacity includes input, thinking and the final answer, and varies with other GPU applications.
+
+All variants use Flash Attention, Q8 KV cache, batch 2048 / microbatch 512 and eight host coordination threads. Thinking sampling uses temperature 1.0, top-p 0.95, min-p 0 and repeat penalty 1. Qwen uses top-k 20 / presence penalty 1.5; Gemma uses top-k 64 / presence penalty 0. Settings shows these parameters and the selected execution policy. GPU-only is not a promise of zero CPU usage for loading, tokenization, I/O or UI work.
+
+Publisher references: [Qwen 3.8](https://huggingface.co/Qwen/Qwen3.8-27B), [Qwen 3.5](https://huggingface.co/Qwen/Qwen3.5-9B), [Gemma 4](https://huggingface.co/google/gemma-4-31B-it). Downloads pin exact GGUF revisions, filenames, sizes, SHA-256 and licenses. The iOS catalog is unchanged.
 
 ## Validation and limits
 

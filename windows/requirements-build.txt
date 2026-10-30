@@ -15,5 +15,4 @@ Pygments==2.21.0
 pyinstaller-hooks-contrib==2026.9
 pywin32-ctypes==0.2.3
 setuptools==84.2.1
-sherpa-onnx-core==2.0.1
 shiboken6==6.12.0

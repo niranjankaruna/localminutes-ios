@@ -1,5 +1,13 @@
 PySide6-Essentials==6.12.0
-sherpa-onnx==2.0.1
+sherpa-onnx @ https://huggingface.co/csukuangfj2/sherpa-onnx-wheels/resolve/a095349253fe0776ec06c8f8fa7fb3bc572c0589/cuda/2.0.1/sherpa_onnx-2.0.1%2Bcuda12.cudnn9-cp312-cp312-win_amd64.whl#sha256=054018f0f9faba420d7be1f3cc6278ab5d0c7c767ae597775fbdd9a6a62a9fed ; python_version == "3.12"
+sherpa-onnx @ https://huggingface.co/csukuangfj2/sherpa-onnx-wheels/resolve/a095349253fe0776ec06c8f8fa7fb3bc572c0589/cuda/2.0.1/sherpa_onnx-2.0.1%2Bcuda12.cudnn9-cp313-cp313-win_amd64.whl#sha256=21b5bd9166b225f6e8209451fba6d058ff5a74220bb09b992a214a6742a000bc ; python_version == "3.13"
+sherpa-onnx @ https://huggingface.co/csukuangfj2/sherpa-onnx-wheels/resolve/a095349253fe0776ec06c8f8fa7fb3bc572c0589/cuda/2.0.1/sherpa_onnx-2.0.1%2Bcuda12.cudnn9-cp314-cp314-win_amd64.whl#sha256=9f2e2582986477748cb2ae3ebe58a9859563f00d12ccd907c321621de864f28f ; python_version == "3.14"
+sherpa-onnx @ https://huggingface.co/csukuangfj2/sherpa-onnx-wheels/resolve/a095349253fe0776ec06c8f8fa7fb3bc572c0589/cuda/2.0.1/sherpa_onnx-2.0.1%2Bcuda12.cudnn9-cp315-cp315-win_amd64.whl#sha256=7523da9102ac4302db7bf0b6dd2486f5f2db7d34a4aa018d857ce2b92d71c543 ; python_version == "3.15"
+nvidia-cuda-runtime-cu12==12.9.79
+nvidia-cuda-nvrtc-cu12==12.9.86
+nvidia-cublas-cu12==12.9.2.10
+nvidia-cufft-cu12==11.4.1.4
+nvidia-cudnn-cu12==9.27.0.42
 sounddevice==0.5.6
 soxr==1.1.0
 numpy==2.5.4

@@ -69,6 +69,7 @@ def self_check(window, arguments):
                 raise ValueError("Synthetic inference did not produce the expected supported answer.")
             report["cudaInferencePassed"] = True
             report["smokeModelId"] = model_id
+            report["inferencePlan"] = window.intelligence.last_run
         finally:
             window.models.path(model).unlink(missing_ok=True)
     if arguments.speech_directory and arguments.speech_wav:
@@ -76,10 +77,6 @@ def self_check(window, arguments):
             if (source.getframerate(), source.getnchannels(), source.getsampwidth()) != (16000, 1, 2):
                 raise ValueError("Expected a synthetic 16 kHz mono speech fixture.")
             pcm = source.readframes(source.getnframes())
-        transcript = recognize(open_recognizer(arguments.speech_directory), pcm)
-        if "friday" not in transcript.casefold() or "thursday" not in transcript.casefold():
-            raise ValueError("Synthetic speech recognition failed.")
-        report["speechInferencePassed"] = True
         # Exercise the packaged converter with simulated 48 kHz microphone input.
         import numpy as np
         import soxr
@@ -87,7 +84,13 @@ def self_check(window, arguments):
         converter = MicrophonePCM(48000, 1)
         converted = b"".join(converter.convert(simulated[i:i + 9600]) for i in range(0, len(simulated), 9600))
         converted += converter.convert(b"", last=True)
-        converted_text = recognize(open_recognizer(arguments.speech_directory), converted)
+        with open_recognizer(arguments.speech_directory, runtime_directory=window.profile.root / "runtime" / "speech") as recognizer:
+            transcript = recognize(recognizer, pcm)
+            converted_text = recognize(recognizer, converted)
+            report["speechCudaPlacement"] = recognizer.placement
+        if "friday" not in transcript.casefold() or "thursday" not in transcript.casefold():
+            raise ValueError("Synthetic speech recognition failed.")
+        report["speechInferencePassed"] = True
         if "friday" not in converted_text.casefold() or "thursday" not in converted_text.casefold() or len(converted) != len(pcm):
             raise ValueError("Microphone sample-rate conversion failed the synthetic speech check.")
         report["resampledSpeechInferencePassed"] = True

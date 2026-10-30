@@ -1,25 +1,49 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "verifiedAt": "2026-10-30",
-  "contextVerifiedAt": "2026-10-30",
-  "recommendedModelId": "qwen3.8-27b-q8_0",
+  "recommendedModelId": "qwen3.8-27b-ud-q3_k_xl",
+  "groups": [
+    {
+      "id": "hybrid",
+      "title": "Current larger models · GPU + RAM",
+      "allowCpuOffload": true,
+      "detail": "Original Q8 models. This group alone may offload layers to CPU/system RAM."
+    },
+    {
+      "id": "gpuLarge",
+      "title": "Large · GPU only",
+      "allowCpuOffload": false,
+      "detail": "27B/31B models quantized to fit in 16 GB VRAM. Lower precision than the original Q8 versions."
+    },
+    {
+      "id": "medium",
+      "title": "Medium · GPU only",
+      "allowCpuOffload": false,
+      "detail": "9B/12B models with higher precision and more room for context."
+    },
+    {
+      "id": "small",
+      "title": "Small · GPU only",
+      "allowCpuOffload": false,
+      "detail": "Compact current-generation models with the most GPU headroom."
+    }
+  ],
   "families": [
     {
       "id": "qwen38",
       "title": "Qwen 3.8",
-      "detail": "Quality-first Windows presets for 16 GB NVIDIA graphics and 64 GB system RAM.",
+      "detail": "Current Qwen 27B instruction and reasoning models.",
       "variants": [
         {
           "contextWindow": {
-            "maximumTokens": 262144,
-            "maximumOutputTokens": 16384
+            "maximumTokens": 262144
           },
           "quantization": "Q8_0",
           "licenseIdentifier": "Apache-2.0",
           "licenseURL": "https://www.apache.org/licenses/LICENSE-2.0",
           "id": "qwen3.8-27b-q8_0",
           "title": "27B · Q8_0",
-          "detail": "Recommended for quality. High-precision weights; uses GPU and system RAM. Generation is slower than a model that fits entirely in VRAM.",
+          "detail": "Original high-precision Q8 model. CPU/system-RAM offload is allowed only in this group.",
           "family": "qwen38",
           "parameterCountBillions": 27.3,
           "contextSourceURL": "https://huggingface.co/Qwen/Qwen3.8-27B/blob/1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0/README.md",
@@ -30,24 +54,131 @@
           "byteCount": 29047086048,
           "sha256": "a680f44a06920e5d689774823782006aa3acc8db95750323373b24139b67e348",
           "inferencePreset": {
-            "targetGpuMemoryGiB": 16,
-            "targetSystemMemoryGiB": 64,
-            "contextTokens": 32768,
-            "maximumOutputTokens": 4096,
-            "gpuLayers": "auto",
-            "fitTargetMiB": 1536,
             "flashAttention": "on",
             "cacheTypeK": "q8_0",
             "cacheTypeV": "q8_0",
-            "batchSize": 512,
-            "microBatchSize": 128,
+            "batchSize": 2048,
+            "microBatchSize": 512,
             "threads": 8,
-            "temperature": 0.2,
+            "temperature": 1.0,
             "topK": 20,
-            "topP": 0.8,
-            "minP": 0,
-            "repeatPenalty": 1,
-            "presencePenalty": 0
+            "topP": 0.95,
+            "minP": 0.0,
+            "repeatPenalty": 1.0,
+            "presencePenalty": 1.5
+          },
+          "group": "hybrid"
+        },
+        {
+          "id": "qwen3.8-27b-ud-q3_k_xl",
+          "title": "27B · UD-Q3_K_XL",
+          "detail": "Large Qwen model with mixed low-bit weights. All tensors and KV cache remain on the GPU.",
+          "group": "gpuLarge",
+          "family": "qwen38",
+          "parameterCountBillions": 27.3,
+          "quantization": "UD-Q3_K_XL",
+          "contextWindow": {
+            "maximumTokens": 262144
+          },
+          "contextSourceURL": "https://huggingface.co/Qwen/Qwen3.8-27B",
+          "sourceRepository": "Qwen/Qwen3.8-27B",
+          "repository": "unsloth/Qwen3.8-27B-GGUF",
+          "revision": "4ca720788d1e01f1bff70c033e0d0028fd02e502",
+          "fileName": "Qwen3.8-27B-UD-Q3_K_XL.gguf",
+          "byteCount": 13146393504,
+          "sha256": "8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e",
+          "licenseIdentifier": "Apache-2.0",
+          "licenseURL": "https://www.apache.org/licenses/LICENSE-2.0",
+          "inferencePreset": {
+            "flashAttention": "on",
+            "cacheTypeK": "q8_0",
+            "cacheTypeV": "q8_0",
+            "batchSize": 2048,
+            "microBatchSize": 512,
+            "threads": 8,
+            "temperature": 1.0,
+            "topK": 20,
+            "topP": 0.95,
+            "minP": 0.0,
+            "repeatPenalty": 1.0,
+            "presencePenalty": 1.5
+          }
+        }
+      ]
+    },
+    {
+      "id": "qwen35",
+      "title": "Qwen 3.5",
+      "detail": "Compact Qwen instruction and reasoning models.",
+      "variants": [
+        {
+          "id": "qwen3.5-9b-q8_0",
+          "title": "9B · Q8_0",
+          "detail": "High-precision 9B Qwen with room for longer context on a 16 GB GPU.",
+          "group": "medium",
+          "family": "qwen35",
+          "parameterCountBillions": 9,
+          "quantization": "Q8_0",
+          "contextWindow": {
+            "maximumTokens": 262144
+          },
+          "contextSourceURL": "https://huggingface.co/Qwen/Qwen3.5-9B",
+          "sourceRepository": "Qwen/Qwen3.5-9B",
+          "repository": "unsloth/Qwen3.5-9B-GGUF",
+          "revision": "3885219b6810b007914f3a7950a8d1b469d598a5",
+          "fileName": "Qwen3.5-9B-Q8_0.gguf",
+          "byteCount": 9527502048,
+          "sha256": "809626574d0cb43d4becfa56169980da2bb448f2299270f7be443cb89d0a6ae4",
+          "licenseIdentifier": "Apache-2.0",
+          "licenseURL": "https://www.apache.org/licenses/LICENSE-2.0",
+          "inferencePreset": {
+            "flashAttention": "on",
+            "cacheTypeK": "q8_0",
+            "cacheTypeV": "q8_0",
+            "batchSize": 2048,
+            "microBatchSize": 512,
+            "threads": 8,
+            "temperature": 1.0,
+            "topK": 20,
+            "topP": 0.95,
+            "minP": 0.0,
+            "repeatPenalty": 1.0,
+            "presencePenalty": 1.5
+          }
+        },
+        {
+          "id": "qwen3.5-4b-q8_0",
+          "title": "4B · Q8_0",
+          "detail": "Compact high-precision Qwen for faster local summaries and answers.",
+          "group": "small",
+          "family": "qwen35",
+          "parameterCountBillions": 4,
+          "quantization": "Q8_0",
+          "contextWindow": {
+            "maximumTokens": 262144
+          },
+          "contextSourceURL": "https://huggingface.co/Qwen/Qwen3.5-4B",
+          "sourceRepository": "Qwen/Qwen3.5-4B",
+          "repository": "unsloth/Qwen3.5-4B-GGUF",
+          "revision": "e87f176479d0855a907a41277aca2f8ee7a09523",
+          "fileName": "Qwen3.5-4B-Q8_0.gguf",
+          "byteCount": 4482403488,
+          "sha256": "10cc391b403021dd11c614679d2fd92f611c3681d29e29651b717316965d61e1",
+          "licenseIdentifier": "Apache-2.0",
+          "licenseURL": "https://www.apache.org/licenses/LICENSE-2.0",
+          "inferencePreset": {
+            "flashAttention": "on",
+            "cacheTypeK": "q8_0",
+            "cacheTypeV": "q8_0",
+            "batchSize": 2048,
+            "microBatchSize": 512,
+            "threads": 8,
+            "temperature": 1.0,
+            "topK": 20,
+            "topP": 0.95,
+            "minP": 0.0,
+            "repeatPenalty": 1.0,
+            "presencePenalty": 1.5
           }
         }
       ]
@@ -55,19 +186,18 @@
     {
       "id": "gemma4",
       "title": "Gemma 4",
-      "detail": "Google's larger dense instruction model, quantized by Unsloth.",
+      "detail": "Google instruction and reasoning models.",
       "variants": [
         {
           "contextWindow": {
-            "maximumTokens": 262144,
-            "maximumOutputTokens": 16384
+            "maximumTokens": 262144
           },
           "quantization": "Q8_0",
           "licenseIdentifier": "Apache-2.0",
           "licenseURL": "https://www.apache.org/licenses/LICENSE-2.0",
           "id": "gemma4-31b-it-q8_0",
           "title": "31B · Q8_0",
-          "detail": "Large high-precision alternative for detailed summaries and questions. Uses GPU and system RAM; allow extra time for generation.",
+          "detail": "Original high-precision Q8 model. CPU/system-RAM offload is allowed only in this group.",
           "family": "gemma4",
           "variant": "gemma4Dense",
           "parameterCountBillions": 30.7,
@@ -79,24 +209,124 @@
           "byteCount": 32635677632,
           "sha256": "d5808e5874e660a85ab45b2da00c9e3b4a003621249a333772232d1a703e4d67",
           "inferencePreset": {
-            "targetGpuMemoryGiB": 16,
-            "targetSystemMemoryGiB": 64,
-            "contextTokens": 32768,
-            "maximumOutputTokens": 4096,
-            "gpuLayers": "auto",
-            "fitTargetMiB": 1536,
             "flashAttention": "on",
             "cacheTypeK": "q8_0",
             "cacheTypeV": "q8_0",
-            "batchSize": 512,
-            "microBatchSize": 128,
+            "batchSize": 2048,
+            "microBatchSize": 512,
             "threads": 8,
-            "temperature": 0.2,
+            "temperature": 1.0,
             "topK": 64,
             "topP": 0.95,
-            "minP": 0,
-            "repeatPenalty": 1,
-            "presencePenalty": 0
+            "minP": 0.0,
+            "repeatPenalty": 1.0,
+            "presencePenalty": 0.0
+          },
+          "group": "hybrid"
+        },
+        {
+          "id": "gemma4-31b-it-q3_k_s",
+          "title": "31B · Q3_K_S",
+          "detail": "Large Gemma model in a compact quantization. All tensors and KV cache remain on the GPU.",
+          "group": "gpuLarge",
+          "family": "gemma4",
+          "parameterCountBillions": 30.7,
+          "quantization": "Q3_K_S",
+          "contextWindow": {
+            "maximumTokens": 262144
+          },
+          "contextSourceURL": "https://huggingface.co/google/gemma-4-31B-it",
+          "sourceRepository": "google/gemma-4-31B-it",
+          "repository": "unsloth/gemma-4-31B-it-GGUF",
+          "revision": "c1ac76e99d5513b141e8adde7288b85c3f9c32ec",
+          "fileName": "gemma-4-31B-it-Q3_K_S.gguf",
+          "byteCount": 13210856384,
+          "sha256": "02cdd36af753d2a61832c3e71b621e6d6be65906bbee4adfcde9f62b42154d97",
+          "licenseIdentifier": "Apache-2.0",
+          "licenseURL": "https://www.apache.org/licenses/LICENSE-2.0",
+          "inferencePreset": {
+            "flashAttention": "on",
+            "cacheTypeK": "q8_0",
+            "cacheTypeV": "q8_0",
+            "batchSize": 2048,
+            "microBatchSize": 512,
+            "threads": 8,
+            "temperature": 1.0,
+            "topK": 64,
+            "topP": 0.95,
+            "minP": 0.0,
+            "repeatPenalty": 1.0,
+            "presencePenalty": 0.0
+          }
+        },
+        {
+          "id": "gemma4-12b-it-q6_k",
+          "title": "12B · Q6_K",
+          "detail": "Higher-precision 12B Gemma with more context headroom than the 31B GPU-only model.",
+          "group": "medium",
+          "family": "gemma4",
+          "parameterCountBillions": 11.9,
+          "quantization": "Q6_K",
+          "contextWindow": {
+            "maximumTokens": 262144
+          },
+          "contextSourceURL": "https://huggingface.co/google/gemma-4-12B-it",
+          "sourceRepository": "google/gemma-4-12B-it",
+          "repository": "unsloth/gemma-4-12B-it-GGUF",
+          "revision": "fc034cfff751157913579611efad8462ac1be606",
+          "fileName": "gemma-4-12b-it-Q6_K.gguf",
+          "byteCount": 9786022720,
+          "sha256": "6f394336500bb5409bd68c31aa9d75097b5e6104f6cf30c82a09a7b64df41faf",
+          "licenseIdentifier": "Apache-2.0",
+          "licenseURL": "https://www.apache.org/licenses/LICENSE-2.0",
+          "inferencePreset": {
+            "flashAttention": "on",
+            "cacheTypeK": "q8_0",
+            "cacheTypeV": "q8_0",
+            "batchSize": 2048,
+            "microBatchSize": 512,
+            "threads": 8,
+            "temperature": 1.0,
+            "topK": 64,
+            "topP": 0.95,
+            "minP": 0.0,
+            "repeatPenalty": 1.0,
+            "presencePenalty": 0.0
+          }
+        },
+        {
+          "id": "gemma4-e2b-it-qat-q4_0",
+          "title": "E2B · QAT Q4_0",
+          "detail": "Google E2B model: 2.3B effective parameters, approximately 4.6B stored in this GGUF including embeddings.",
+          "group": "small",
+          "family": "gemma4",
+          "parameterCountBillions": 4.6,
+          "quantization": "QAT Q4_0",
+          "contextWindow": {
+            "maximumTokens": 131072
+          },
+          "contextSourceURL": "https://huggingface.co/google/gemma-4-E2B-it",
+          "sourceRepository": "google/gemma-4-E2B-it",
+          "repository": "google/gemma-4-E2B-it-qat-q4_0-gguf",
+          "revision": "675cff42a74c774d6cb76f76d8eacb49b48c9b93",
+          "fileName": "gemma-4-E2B_q4_0-it.gguf",
+          "byteCount": 3349516256,
+          "sha256": "fa401b55b07ee70a54c6dae3903c783a6e65064312529ea57175cb5f8dec6634",
+          "licenseIdentifier": "Apache-2.0",
+          "licenseURL": "https://www.apache.org/licenses/LICENSE-2.0",
+          "inferencePreset": {
+            "flashAttention": "on",
+            "cacheTypeK": "q8_0",
+            "cacheTypeV": "q8_0",
+            "batchSize": 2048,
+            "microBatchSize": 512,
+            "threads": 8,
+            "temperature": 1.0,
+            "topK": 64,
+            "topP": 0.95,
+            "minP": 0.0,
+            "repeatPenalty": 1.0,
+            "presencePenalty": 0.0
           }
         }
       ]

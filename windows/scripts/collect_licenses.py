@@ -8,8 +8,9 @@ import sys
 root = Path(__file__).resolve().parents[1]
 destination = root / "licenses" / "python"
 destination.mkdir(parents=True, exist_ok=True)
-packages = ["PySide6-Essentials", "shiboken6", "sherpa-onnx", "sherpa-onnx-core", "sounddevice", "soxr", "numpy", "cryptography",
-            "zeroconf", "qrcode", "ifaddr", "cffi", "pycparser", "colorama", "PyInstaller", "pywin32-ctypes"]
+packages = ["PySide6-Essentials", "shiboken6", "sherpa-onnx", "sounddevice", "soxr", "numpy", "cryptography",
+            "zeroconf", "qrcode", "ifaddr", "cffi", "pycparser", "colorama", "PyInstaller", "pywin32-ctypes",
+            "nvidia-cuda-runtime-cu12", "nvidia-cuda-nvrtc-cu12", "nvidia-cublas-cu12", "nvidia-cufft-cu12", "nvidia-cudnn-cu12"]
 for name in packages:
     package = metadata.distribution(name)
     folder = destination / f"{package.metadata['Name']}-{package.version}"

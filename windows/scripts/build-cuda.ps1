@@ -36,6 +36,12 @@ try {
         & $PythonPath -m venv $environmentRoot
         if($LASTEXITCODE -ne 0){throw 'Install Python 3.12 or newer, or pass -PythonPath with its full path.'}
     }
+    $legacySpeech=& $python -c "from importlib import metadata; print(int(any(d.metadata['Name'].lower().replace('_','-') == 'sherpa-onnx-core' for d in metadata.distributions())))"
+    if($legacySpeech -eq '1') {
+        # The CPU core owns files also supplied by the monolithic CUDA wheel.
+        & $python -m pip uninstall -y sherpa-onnx sherpa-onnx-core
+        if($LASTEXITCODE -ne 0){throw 'Could not replace the legacy CPU speech package.'}
+    }
     & $python -m pip install --disable-pip-version-check --only-binary=:all: --cache-dir (Join-Path $repositoryRoot '.agent-local/pip-cache') -r (Join-Path $windowsRoot 'requirements-build.txt')
     if($LASTEXITCODE -ne 0){throw 'Python dependency installation failed.'}
     & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'prepare-native.ps1')
@@ -94,7 +100,13 @@ try {
             $checkedStage=Assert-OwnedPath $stage $workRoot
             $pending=New-Object 'System.Collections.Generic.Stack[string]';$pending.Push($checkedStage)
             while($pending.Count -gt 0){foreach($entry in Get-ChildItem -LiteralPath $pending.Pop() -Force){if(($entry.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0){throw 'Unsafe build cleanup entry.'};if($entry.PSIsContainer){$pending.Push($entry.FullName)}}}
-            Remove-Item -LiteralPath $checkedStage -Recurse -Force
+            try {
+                Remove-Item -LiteralPath $checkedStage -Recurse -Force
+            } catch {
+                # A running copy can hold the renamed previous.exe open even
+                # after the new, verified executable has been promoted.
+                Write-Warning ('The new EXE is ready. Old build files are still in use and remain at: '+$checkedStage)
+            }
         }
     }
 }

@@ -9,7 +9,6 @@ import time
 
 import numpy as np
 import sounddevice as sd
-import sherpa_onnx
 import soxr
 
 from .files import atomic_write, check_cancel, identifier, json_bytes, read_json, require_regular, safe_path
@@ -150,19 +149,13 @@ class Timeline:
                     position += count
 
 
-def open_recognizer(directory: Path):
-    return sherpa_onnx.OfflineRecognizer.from_transducer(
-        encoder=str(directory / "encoder.int8.onnx"), decoder=str(directory / "decoder.int8.onnx"),
-        joiner=str(directory / "joiner.int8.onnx"), tokens=str(directory / "tokens.txt"),
-        num_threads=4, sample_rate=RATE, feature_dim=80, model_type="nemo_transducer", provider="cpu")
+def open_recognizer(directory: Path, cancel=None, runtime_directory=None):
+    from .speech_client import CudaSpeechRecognizer
+    return CudaSpeechRecognizer(directory, cancel, runtime_directory)
 
 
 def recognize(recognizer, pcm: bytes) -> str:
-    samples = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768
-    stream = recognizer.create_stream()
-    stream.accept_waveform(RATE, samples)
-    recognizer.decode_stream(stream)
-    return stream.result.text.strip()
+    return recognizer.transcribe(pcm)
 
 
 def microphone_format(device):
@@ -229,7 +222,7 @@ class Recorder:
         rate, channels = microphone_format(device)
         converter = MicrophonePCM(rate, channels)
         self.models.verify_speech(cancel)
-        recognizer = open_recognizer(self.models.speech_directory)
+        recognizer = open_recognizer(self.models.speech_directory, cancel, self.profile.root / "runtime" / "speech")
         check_cancel(cancel)
         meeting = self.store.create("Meeting " + time.strftime("%d %b %H:%M"), "recording")
         self.meeting_id = meeting["id"]
@@ -268,7 +261,7 @@ class Recorder:
                 if text:
                     self.store.insert("segment", dict(id=identifier(), meetingId=self.meeting_id, sequence=sequence,
                         startSample=writer.total - len(data) // 2, endSample=writer.total, text=text,
-                        modelRevision="parakeet-v3-onnx@" + self.models.speech_revision))
+                        modelRevision="parakeet-v3-cuda@" + self.models.speech_revision))
                     self.changed(text)
                 sequence += 1
             def save(data):
@@ -304,6 +297,11 @@ class Recorder:
                 self.error = error
                 self.stopping.set()
             finally:
+                if hasattr(recognizer, "close"):
+                    try:
+                        recognizer.close()
+                    except Exception as error:
+                        self.error = self.error or error
                 try:
                     manifest = writer.finish()
                     self.store.finish(self.meeting_id, manifest["totalFrames"], "interrupted" if self.error else "completed")
@@ -326,6 +324,8 @@ class Recorder:
             if self.stream:
                 self.stream.close()
             self.stream = self.worker = None
+            if hasattr(recognizer, "close"):
+                recognizer.close()
             self.store.finish(self.meeting_id, writer.total, "failed")
             raise
 

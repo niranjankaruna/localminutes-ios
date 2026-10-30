@@ -22,7 +22,7 @@ llama.cpp b11900 (MIT), ggml-org / Georgi Gerganov and contributors.
 Source: https://github.com/ggml-org/llama.cpp/tree/b11900
 License: llama.cpp-MIT.txt. OpenMP terms: LICENSE-LLVM-OpenMP.
 
-sherpa-onnx 2.0.1 (Apache-2.0), Xiaomi Corporation and contributors.
+sherpa-onnx 2.0.1+cuda12.cudnn9 (Apache-2.0), Xiaomi Corporation and contributors.
 Source: https://github.com/k2-fsa/sherpa-onnx
 License: sherpa-onnx-Apache-2.0.txt and the Python package license.
 ONNX Runtime (MIT), Microsoft Corporation and contributors.
@@ -41,8 +41,13 @@ No redistributable installer is executed.
 The CUDA edition includes NVIDIA CUDA runtime and cuBLAS 13.4 libraries from
 the pinned llama.cpp bundle. Terms: NVIDIA-CUDA-EULA.html.
 
+CUDA speech also bundles NVIDIA CUDA Runtime 12.9.79, NVRTC 12.9.86,
+cuBLAS 12.9.2.10, cuFFT 11.4.1.4 and cuDNN 9.27.0.42 from official NVIDIA
+Windows wheels. Their exact metadata, licenses and notices are included
+under licenses/python/nvidia_*. No CUDA toolkit installation is required.
+
 Model weights are not bundled. Their publisher terms apply separately.
 Publisher/revision/license URLs are retained in the Windows catalog.
 Speech model conversion:
-https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8/tree/2bda32ec70b097a55adaa07d9a7173915b43cc78
+https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3/tree/1a468a35cbba69418f126de829e75261dea4a4e4
 Original publisher: https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3

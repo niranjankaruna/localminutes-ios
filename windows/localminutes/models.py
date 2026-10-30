@@ -10,12 +10,13 @@ import urllib.request
 from .files import atomic_write, check_cancel, digest, json_bytes, read_json, safe_path
 
 
-SPEECH_REVISION = "2bda32ec70b097a55adaa07d9a7173915b43cc78"
-SPEECH_REPOSITORY = "csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8"
+SPEECH_REVISION = "1a468a35cbba69418f126de829e75261dea4a4e4"
+SPEECH_REPOSITORY = "csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3"
 SPEECH_FILES = [
-    ("encoder.int8.onnx", 652184281, "acfc2b4456377e15d04f0243af540b7fe7c992f8d898d751cf134c3a55fd2247"),
-    ("decoder.int8.onnx", 11845275, "179e50c43d1a9de79c8a24149a2f9bac6eb5981823f2a2ed88d655b24248db4e"),
-    ("joiner.int8.onnx", 6355277, "3164c13fc2821009440d20fcb5fdc78bff28b4db2f8d0f0b329101719c0948b3"),
+    ("encoder.onnx", 41766257, "3eed7ce424bf8339ad09233533c687e2dbd07e74ccf5027b5e7344019ea373b0"),
+    ("encoder.weights", 2435420160, "3af3f51af5f2d01dbbf5af47d42c7962a2c205f11004254bb4f2b979862f39a8"),
+    ("decoder.onnx", 47233743, "d593cdb0e571f5a457ec2219af9968cbf6b0e8198e8f7839b40a8754593bf68c"),
+    ("joiner.onnx", 25286330, "b9b0bcf88ac571902e69a6536223ed2d94885e981b85045410f1403d53121a63"),
     ("tokens.txt", 93939, "d58544679ea4bc6ac563d1f545eb7d474bd6cfa467f0a6e2c1dc1c7d37e3c35d"),
 ]
 
@@ -26,12 +27,15 @@ class Models:
     def __init__(self, profile):
         self.profile = profile
         catalog = read_json(Path(__file__).parent / "resources" / "SummaryCatalog.json")
+        self.groups = catalog["groups"]
+        groups = {group["id"]: group for group in self.groups}
         self.recommended_id = catalog.get("recommendedModelId")
-        self.summaries = [dict(model, familyTitle=family["title"]) for family in catalog["families"] for model in family["variants"]]
+        self.summaries = [dict(model, familyTitle=family["title"], allowCpuOffload=groups[model["group"]]["allowCpuOffload"])
+                          for family in catalog["families"] for model in family["variants"]]
         self.summaries.sort(key=lambda model: (model["id"] != self.recommended_id, "inferencePreset" not in model))
         self.selection_path = profile.root / "model-selection.json"
         self.selected_id = read_json(self.selection_path, 4096) if self.selection_path.exists() else None
-        self.speech_directory = safe_path(profile.models, "parakeet-v3-onnx")
+        self.speech_directory = safe_path(profile.models, "parakeet-v3-cuda")
         self.lock = threading.Lock()
 
     @staticmethod

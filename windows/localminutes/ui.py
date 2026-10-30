@@ -131,7 +131,6 @@ class MainWindow(QMainWindow):
         self.pair_dialog = None
         self.settings_path = profile.root / "settings.json"
         self.settings = read_json(self.settings_path, 4096) if self.settings_path.exists() else {}
-        self.intelligence.use_gpu = self.settings.get("useGpu", True)
         apply_theme(QApplication.instance(), self.settings.get("dark", False))
         self.sync = SyncHost(profile, store, lambda: not self.busy and not self.recorder.active,
                              self.bridge.message.emit, self.request_import, self.bridge.import_finished.emit, self.bridge.imported.emit)
@@ -278,20 +277,23 @@ class MainWindow(QMainWindow):
         widget, layout = self.page_header("Settings", "Your models, library and preferences. Everything stays on this PC.")
         model_group, group = panel(14, 24); model_group.setObjectName("readingSurface")
         group.addWidget(label("Summaries & answers", "section"))
-        group.addWidget(label("Quality first · 16 GB NVIDIA GPU + 64 GB system RAM", "muted"))
+        group.addWidget(label("NVIDIA RTX 5070 Ti · 16 GB VRAM", "muted"))
+        self.model_groups = QComboBox()
+        for item in self.models.groups:
+            self.model_groups.addItem(item["title"], item["id"])
+        initial = self.models.selected or next(model for model in self.models.summaries if model["id"] == self.models.recommended_id)
+        self.model_groups.setCurrentIndex(self.model_groups.findData(initial["group"]))
+        group.addWidget(self.model_groups)
         self.model_choices = QComboBox()
-        for model in self.models.summaries:
-            recommended = "Recommended · " if model["id"] == self.models.recommended_id else ""
-            self.model_choices.addItem(f"{recommended}{self.models.name(model)}  ·  {model['byteCount'] / 1000000000:.2f} GB", model)
-        if self.models.selected:
-            self.model_choices.setCurrentIndex(self.models.summaries.index(self.models.selected))
         group.addWidget(self.model_choices)
         self.model_details = label("", "muted", True); self.model_details.setTextInteractionFlags(Qt.TextSelectableByMouse)
         group.addWidget(self.model_details)
         self.model_choices.currentIndexChanged.connect(lambda _: self.update_model_details())
+        self.model_groups.currentIndexChanged.connect(lambda _: self.populate_model_choices())
+        self.populate_model_choices()
         group.addWidget(row(button("Download", self.download_model, "primary"), button("Use model", self.equip_model), button("Remove", self.remove_model, "quiet"), None))
         self.model_status = label("", "muted", True); group.addWidget(self.model_status)
-        self.gpu = QCheckBox("Use NVIDIA GPU for summaries and answers"); self.gpu.setChecked(self.intelligence.use_gpu); self.gpu.toggled.connect(self.save_settings); group.addWidget(self.gpu)
+        group.addWidget(label("Thinking is on. Context follows the model and available memory; there is no fixed app token or time budget. Only the current larger Q8 group may use CPU/system RAM.", "muted", True))
         group.addSpacing(12); group.addWidget(label("Speech transcription", "section"))
         self.speech_status = label("", "muted"); group.addWidget(self.speech_status)
         group.addWidget(row(button("Download Parakeet v3", self.download_speech), button("Remove", self.remove_speech, "quiet"), None)); layout.addWidget(model_group)
@@ -543,9 +545,23 @@ class MainWindow(QMainWindow):
 
     def update_models(self):
         selected = self.models.selected
-        self.model_status.setText("Using " + self.models.name(selected) if selected else "Choose a model, download it, then select Use model.")
+        self.model_status.setText("Using " + self.models.name(selected) + (" · GPU + RAM" if selected["allowCpuOffload"] else " · GPU only") if selected else "Choose a model, download it, then select Use model.")
         self.update_model_details()
-        self.speech_status.setText("NVIDIA Parakeet v3 · 0.6B · CPU transcription · " + ("downloaded" if self.models.speech_present else "approximately 670 MB download"))
+        self.speech_status.setText("NVIDIA Parakeet v3 · 0.6B · CUDA transcription · " + ("downloaded" if self.models.speech_present else "2.55 GB CUDA model download required"))
+
+    def populate_model_choices(self):
+        self.model_choices.blockSignals(True)
+        self.model_choices.clear()
+        for model in self.models.summaries:
+            if model["group"] == self.model_groups.currentData():
+                recommended = "Recommended · " if model["id"] == self.models.recommended_id else ""
+                self.model_choices.addItem(f"{recommended}{self.models.name(model)}  ·  {model['byteCount'] / 1000000000:.2f} GB", model)
+        for index in range(self.model_choices.count()):
+            if self.model_choices.itemData(index)["id"] == self.models.selected_id:
+                self.model_choices.setCurrentIndex(index)
+                break
+        self.model_choices.blockSignals(False)
+        self.update_model_details()
 
     def update_model_details(self):
         model = self.model_choices.currentData()
@@ -553,13 +569,11 @@ class MainWindow(QMainWindow):
             return
         lines = [model["detail"]]
         if preset := model.get("inferencePreset"):
-            lines.append(f"{model['parameterCountBillions']:g}B parameters · {model['quantization']} · {preset['contextTokens']:,} total tokens · up to {preset['maximumOutputTokens']:,} output tokens")
-            if self.intelligence.use_gpu:
-                lines.append(f"CUDA + system RAM · automatic layer placement · {preset['fitTargetMiB'] / 1024:g} GiB GPU reserve · Flash Attention · Q8 KV cache")
-            else:
-                lines.append("GPU is disabled · CPU inference with F16 KV cache")
+            lines.append(f"{model['parameterCountBillions']:g}B stored parameters · {model['quantization']} · native context up to {model['contextWindow']['maximumTokens']:,} tokens")
+            lines.append("CUDA + CPU/system RAM · offloading allowed" if model["allowCpuOffload"] else "GPU only · all model tensors and KV cache · CPU fallback disabled")
+            lines.append("Thinking on · automatic context allocation · no fixed generation budget · Flash Attention · Q8 KV cache")
             lines.append(f"Temperature {preset['temperature']:g} · top-p {preset['topP']:g} · top-k {preset['topK']} · min-p {preset['minP']:g}")
-            lines.append(f"Batch {preset['batchSize']} / microbatch {preset['microBatchSize']} · {preset['threads']} CPU threads · direct answers, thinking off")
+            lines.append(f"Batch {preset['batchSize']} / microbatch {preset['microBatchSize']} · {preset['threads']} host threads for coordination")
         else:
             lines.append(f"GGUF · compatible with the bundled NVIDIA CUDA engine · model context up to {model['contextWindow']['maximumTokens']:,} tokens")
         self.model_details.setText("\n".join(lines))
@@ -585,7 +599,8 @@ class MainWindow(QMainWindow):
     def save_settings(self):
         if not hasattr(self, "dark"):
             return
-        self.settings.update(dark=self.dark.isChecked(), useGpu=self.gpu.isChecked()); self.intelligence.use_gpu = self.gpu.isChecked()
+        self.settings.pop("useGpu", None)
+        self.settings.update(dark=self.dark.isChecked())
         self.update_model_details()
         self.invoke(lambda: atomic_write(self.settings_path, json_bytes(self.settings)))
         apply_theme(QApplication.instance(), self.dark.isChecked())
