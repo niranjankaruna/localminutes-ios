@@ -18,7 +18,7 @@ from . import exchange, library
 from .audio import Playback, Recorder, reconcile_recordings
 from .files import atomic_write, identifier, json_bytes, read_json, runtime_path, assets
 from .intelligence import Intelligence
-from .models import Models
+from .models import Models, SPEECH_FILES
 from .sync import SyncHost, local_addresses
 from .theme import apply_theme
 
@@ -273,39 +273,110 @@ class MainWindow(QMainWindow):
         return widget
 
     def _settings_page(self):
-        scroll = QScrollArea(); scroll.setWidgetResizable(True)
-        widget, layout = self.page_header("Settings", "Your models, library and preferences. Everything stays on this PC.")
-        model_group, group = panel(14, 24); model_group.setObjectName("readingSurface")
+        widget, layout = self.page_header("Settings", "Make this PC ready for your next meeting.")
+        self.settings_tabs = QTabWidget(); self.settings_tabs.setObjectName("settingsTabs")
+        layout.addWidget(self.settings_tabs, 1)
+
+        def settings_tab(title):
+            scroll = QScrollArea(); scroll.setWidgetResizable(True)
+            content, items = panel(20, 22)
+            items.setAlignment(Qt.AlignTop)
+            scroll.setWidget(content)
+            self.settings_tabs.addTab(scroll, title.replace("&", "&&"))
+            return items
+
+        models_layout = settings_tab("Models")
+        models_layout.addWidget(label("Download once. Use on this PC.", "section"))
+        models_layout.addWidget(label("Speech turns audio into a transcript. A second model writes summaries and answers. Both run locally and require a compatible NVIDIA graphics card.", "muted", True))
+
+        speech, speech_layout = panel(10, 20); speech.setObjectName("settingsSection")
+        speech_layout.addWidget(label("Speech transcription", "section"))
+        self.speech_status = label("", "muted", True)
+        speech_layout.addWidget(self.speech_status)
+        self.speech_download = button("Download speech model · 2.55 GB", self.download_speech, "primary")
+        self.speech_remove = button("Remove…", self.remove_speech, "quiet")
+        self.speech_remove.setAccessibleName("Remove speech model")
+        speech_layout.addWidget(row(self.speech_download, self.speech_remove, None))
+        models_layout.addWidget(speech)
+
+        model_group, group = panel(12, 20); model_group.setObjectName("settingsSection")
         group.addWidget(label("Summaries & answers", "section"))
-        group.addWidget(label("NVIDIA RTX 5070 Ti · 16 GB VRAM", "muted"))
+        self.model_status = label("", "settingsStatus", True); group.addWidget(self.model_status)
+        selectors = QWidget(); fields = QHBoxLayout(selectors); fields.setContentsMargins(0, 0, 0, 0); fields.setSpacing(18)
         self.model_groups = QComboBox()
+        group_titles = {"hybrid": "Highest precision · GPU + RAM", "gpuLarge": "Large · GPU only", "medium": "Medium · GPU only", "small": "Small · GPU only"}
         for item in self.models.groups:
-            self.model_groups.addItem(item["title"], item["id"])
+            self.model_groups.addItem(group_titles.get(item["id"], item["title"]), item["id"])
         initial = self.models.selected or next(model for model in self.models.summaries if model["id"] == self.models.recommended_id)
         self.model_groups.setCurrentIndex(self.model_groups.findData(initial["group"]))
-        group.addWidget(self.model_groups)
         self.model_choices = QComboBox()
-        group.addWidget(self.model_choices)
+        for title, control, stretch in (("Model &size", self.model_groups, 2), ("&Model", self.model_choices, 3)):
+            field, field_layout = panel(7)
+            caption = label(title); caption.setBuddy(control)
+            control.setAccessibleName(title.replace("&", ""))
+            control.setObjectName("settingsCombo")
+            control.setMinimumContentsLength(12)
+            control.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
+            field_layout.addWidget(caption); field_layout.addWidget(control); fields.addWidget(field, stretch)
+        group.addWidget(selectors)
+        self.model_guidance = label("", "muted", True); group.addWidget(self.model_guidance)
+        self.model_candidate_status = label("", "settingsModelState", True); group.addWidget(self.model_candidate_status)
+        self.model_action = button("Download model", self.activate_model, "primary")
+        self.model_remove = button("Remove…", self.remove_model, "quiet")
+        self.model_remove.setAccessibleName("Remove selected summary model")
+        group.addWidget(row(self.model_action, self.model_remove, None))
+        self.model_technical_toggle = button("Show technical details", self.toggle_model_details, "quiet")
+        self.model_technical_toggle.setCheckable(True)
+        group.addWidget(row(self.model_technical_toggle, None))
+        self.model_technical, technical = panel(10)
         self.model_details = label("", "muted", True); self.model_details.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        group.addWidget(self.model_details)
+        technical.addWidget(self.model_details)
+        self.model_repair = button("Download again", self.download_model)
+        self.model_repair.setToolTip("Replace the model files if loading or verification fails.")
+        technical.addWidget(row(self.model_repair, None))
+        self.model_technical.hide(); group.addWidget(self.model_technical)
         self.model_choices.currentIndexChanged.connect(lambda _: self.update_model_details())
         self.model_groups.currentIndexChanged.connect(lambda _: self.populate_model_choices())
-        self.populate_model_choices()
-        group.addWidget(row(button("Download", self.download_model, "primary"), button("Use model", self.equip_model), button("Remove", self.remove_model, "quiet"), None))
-        self.model_status = label("", "muted", True); group.addWidget(self.model_status)
-        group.addWidget(label("Thinking is on. Context follows the model and available memory; there is no fixed app token or time budget. Only the current larger Q8 group may use CPU/system RAM.", "muted", True))
-        group.addSpacing(12); group.addWidget(label("Speech transcription", "section"))
-        self.speech_status = label("", "muted"); group.addWidget(self.speech_status)
-        group.addWidget(row(button("Download Parakeet v3", self.download_speech), button("Remove", self.remove_speech, "quiet"), None)); layout.addWidget(model_group)
-        preferences, prefs = panel(12, 24); preferences.setObjectName("readingSurface")
+        models_layout.addWidget(model_group)
+
+        storage = settings_tab("Library & storage")
+        storage.addWidget(label("Your meeting library", "section"))
+        storage.addWidget(label("Keep a copy of your meetings or bring in a library from another device. Exports include recordings, transcripts, notes and saved answers, but not downloaded models or pairing details.", "muted", True))
+        self.library_export = button("Export library…", self.export_library)
+        self.library_import = button("Import library…", self.import_library)
+        storage.addWidget(row(self.library_export, self.library_import, None))
+        storage.addWidget(label("Importing replaces matching edits and keeps meetings that exist only on this PC. Exported folders contain private meeting data and are not encrypted by the app.", "muted", True))
+        storage.addSpacing(12); storage.addWidget(label("Saved on this PC", "section"))
+        data_path = QLineEdit(str(self.profile.root)); data_path.setReadOnly(True); data_path.setAccessibleName("Application data folder")
+        storage.addWidget(data_path)
+        storage.addWidget(row(button("Open data folder", lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.profile.root)))), None))
+        storage.addWidget(label("Meetings, models and preferences stay here when you replace the application.", "muted", True))
+
+        prefs = settings_tab("Appearance")
         prefs.addWidget(label("Appearance", "section"))
+        prefs.addWidget(label("Choose a comfortable look for this PC. Changes are saved automatically.", "muted", True))
         self.dark = QCheckBox("Dark appearance"); self.dark.setChecked(self.settings.get("dark", False)); self.dark.toggled.connect(self.save_settings); prefs.addWidget(self.dark)
-        prefs.addSpacing(12); prefs.addWidget(label("Library & storage", "section"))
-        prefs.addWidget(row(button("Import library", self.import_library), button("Export library", self.export_library), None))
-        prefs.addWidget(label(str(self.profile.root), "muted", True))
-        prefs.addWidget(row(button("Open data folder", lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.profile.root))), "quiet"), button("Open-source licenses", self.show_licenses, "quiet"), None))
-        layout.addWidget(preferences); layout.addStretch(); scroll.setWidget(widget)
-        return scroll
+        prefs.addSpacing(18); prefs.addWidget(label("About LocalMinutes", "section"))
+        prefs.addWidget(label("Local recording, transcription and meeting notes. No account required.", "muted", True))
+        prefs.addWidget(row(button("Open-source licenses", self.show_licenses, "quiet"), None))
+
+        self.settings_operation = None
+        self.settings_feedback, feedback = panel(8, 14); self.settings_feedback.setObjectName("settingsFeedback")
+        self.settings_feedback_title = label("", "settingsModelState")
+        self.settings_feedback_text = label("", "muted", True)
+        self.settings_cancel = button("Cancel download", self.cancel_current)
+        feedback.addWidget(row(self.settings_feedback_title, None, self.settings_cancel))
+        feedback.addWidget(self.settings_feedback_text)
+        self.settings_progress = QProgressBar(); self.settings_progress.setRange(0, 0); self.settings_progress.setTextVisible(False)
+        feedback.addWidget(self.settings_progress)
+        self.settings_feedback.hide(); layout.addWidget(self.settings_feedback)
+        self.settings_availability = label("", "muted", True); self.settings_availability.hide(); layout.addWidget(self.settings_availability)
+        self.populate_model_choices()
+        return widget
+
+    def toggle_model_details(self, checked):
+        self.model_technical.setVisible(checked)
+        self.model_technical_toggle.setText("Hide technical details" if checked else "Show technical details")
 
     def invoke(self, action):
         try:
@@ -320,36 +391,48 @@ class MainWindow(QMainWindow):
         if self.sync.connected_phone and self.pair_dialog:
             self.pair_dialog.close(); self.pair_dialog = None
 
-    def show_error(self, text):
+    def show_work_status(self, text):
         self.show_status(text)
+        if self.settings_operation:
+            self.settings_feedback_text.setText(text)
+
+    def show_error(self, text):
+        self.show_work_status(text)
         if not text.startswith("Operation cancelled"):
             QMessageBox.warning(self, "LocalMinutes", text)
 
     def run_work(self, action, result=None):
         if self.busy:
-            self.show_status("Wait for the current operation to finish."); return
+            self.show_status("Wait for the current operation to finish."); return False
         try:
             self.flush()
         except Exception as error:
-            self.show_error(str(error)); return
+            self.show_error(str(error)); return False
         self.busy = True; self.detail.setEnabled(False); self.meeting_list.setEnabled(False); self.search.setEnabled(False)
+        self.settings_feedback.hide()
+        self.update_settings_controls()
         self.cancel = threading.Event(); self.cancel_button.show(); self.progress.setRange(0, 0); self.progress.show()
         work = Work(action, self.cancel); self.work = work
-        work.signals.progress.connect(self.show_status)
+        work.signals.progress.connect(self.show_work_status)
         if result:
             work.signals.result.connect(result)
         work.signals.failed.connect(self.show_error)
         work.signals.finished.connect(self.work_finished)
         QThreadPool.globalInstance().start(work)
+        return True
 
     def work_finished(self):
         self.busy = False; self.work = None; self.detail.setEnabled(True); self.meeting_list.setEnabled(True); self.search.setEnabled(True)
         self.progress.hide(); self.cancel_button.hide(); self.update_models(); self.update_recording()
+        self.settings_operation = None; self.settings_progress.hide(); self.settings_cancel.hide()
         if self.close_pending:
             self.close()
 
     def cancel_current(self):
         self.cancel.set()
+        if self.settings_operation:
+            self.settings_feedback_text.setText("Cancelling download… Unfinished downloads will need to start again.")
+            self.settings_cancel.setEnabled(False)
 
     def switch_page(self, index):
         try:
@@ -538,6 +621,7 @@ class MainWindow(QMainWindow):
         self.record_button.setText("Stop recording" if self.recorder.active else "Start recording")
         self.record_button.setEnabled(not self.busy)
         self.record_state.setText("Recording · Original audio is saved locally" if self.recorder.active and not self.recorder.error else "Recording interrupted — stop to finish saving" if self.recorder.active else "Ready when you are")
+        self.update_settings_controls()
 
     def open_recording(self):
         if self.recorder.meeting_id:
@@ -545,17 +629,29 @@ class MainWindow(QMainWindow):
 
     def update_models(self):
         selected = self.models.selected
-        self.model_status.setText("Using " + self.models.name(selected) + (" · GPU + RAM" if selected["allowCpuOffload"] else " · GPU only") if selected else "Choose a model, download it, then select Use model.")
+        if selected and self.models.present(selected):
+            self.model_status.setText("In use: " + self.models.name(selected))
+        elif selected:
+            self.model_status.setText("Selected model needs downloading: " + self.models.name(selected))
+        else:
+            self.model_status.setText("No model in use. Download a model below, then choose Use model.")
+        self.speech_available = self.models.speech_present
+        self.speech_removable = any((self.models.speech_directory / filename).exists()
+                                    for name, _, _ in SPEECH_FILES for filename in (name, name + ".partial"))
+        self.speech_status.setText("Parakeet v3 is downloaded and will be used for recording." if self.speech_available
+                                   else "Parakeet v3 converts your voice into text. Download it before your first recording.")
+        self.speech_download.setText("Download speech model again" if self.speech_available else "Download speech model · 2.55 GB")
+        self.speech_download.setObjectName("quiet" if self.speech_available else "primary")
+        self.speech_download.style().unpolish(self.speech_download); self.speech_download.style().polish(self.speech_download)
+        self.speech_remove.setVisible(self.speech_removable)
         self.update_model_details()
-        self.speech_status.setText("NVIDIA Parakeet v3 · 0.6B · CUDA transcription · " + ("downloaded" if self.models.speech_present else "2.55 GB CUDA model download required"))
 
     def populate_model_choices(self):
         self.model_choices.blockSignals(True)
         self.model_choices.clear()
         for model in self.models.summaries:
             if model["group"] == self.model_groups.currentData():
-                recommended = "Recommended · " if model["id"] == self.models.recommended_id else ""
-                self.model_choices.addItem(f"{recommended}{self.models.name(model)}  ·  {model['byteCount'] / 1000000000:.2f} GB", model)
+                self.model_choices.addItem(self.models.name(model), model)
         for index in range(self.model_choices.count()):
             if self.model_choices.itemData(index)["id"] == self.models.selected_id:
                 self.model_choices.setCurrentIndex(index)
@@ -577,24 +673,94 @@ class MainWindow(QMainWindow):
         else:
             lines.append(f"GGUF · compatible with the bundled NVIDIA CUDA engine · model context up to {model['contextWindow']['maximumTokens']:,} tokens")
         self.model_details.setText("\n".join(lines))
+        guidance = {
+            "hybrid": "Highest weight precision. These large downloads also use system memory and may run more slowly.",
+            "gpuLarge": "Larger models with compressed weights to fit on the graphics card. Less room for long meetings than the smaller choices.",
+            "medium": "Smaller downloads than Large, with more room for long meetings on the graphics card.",
+            "small": "The smallest downloads and lowest graphics-memory needs in this catalog.",
+        }
+        self.model_guidance.setText(guidance.get(model["group"], model["detail"]))
+        self.model_available = self.models.present(model)
+        self.model_in_use = self.model_available and model["id"] == self.models.selected_id
+        path = self.models.path(model)
+        self.model_removable = path.exists() or path.with_name(path.name + ".partial").exists()
+        state = "In use" if self.model_in_use else "Downloaded · ready to use" if self.model_available else "Not downloaded"
+        recommendation = " · Recommended" if model["id"] == self.models.recommended_id else ""
+        self.model_candidate_status.setText(f"{state} · {model['byteCount'] / 1000000000:.2f} GB{recommendation}")
+        self.model_action.setText("In use" if self.model_in_use else "Use model" if self.model_available else f"Download model · {model['byteCount'] / 1000000000:.2f} GB")
+        self.model_remove.setVisible(self.model_removable)
+        self.model_repair.setVisible(self.model_available)
+        # Keep downloaded/active alternatives discoverable without changing selection.
+        for index in range(self.model_choices.count()):
+            candidate = self.model_choices.itemData(index)
+            present = self.models.present(candidate)
+            suffix = " — In use" if present and candidate["id"] == self.models.selected_id else " — Downloaded" if present else ""
+            self.model_choices.setItemText(index, self.models.name(candidate) + suffix)
+        self.model_choices.setToolTip(self.model_choices.currentText())
+        self.update_settings_controls()
+
+    def update_settings_controls(self):
+        available = not self.busy and not self.recorder.active
+        self.model_action.setEnabled(available and not getattr(self, "model_in_use", False))
+        self.model_remove.setEnabled(available)
+        self.model_repair.setEnabled(available)
+        self.speech_download.setEnabled(available)
+        self.speech_remove.setEnabled(available)
+        self.library_import.setEnabled(available); self.library_export.setEnabled(available)
+        reason = "Stop recording before changing models or transferring your library." if self.recorder.active else "Model and library changes are paused until the current operation finishes."
+        self.settings_availability.setText(reason)
+        self.settings_availability.setVisible(not available)
+
+    def settings_ready(self):
+        if self.busy or self.recorder.active:
+            self.show_status("Finish the current operation or stop recording before changing models.")
+            return False
+        return True
+
+    def activate_model(self):
+        if self.models.present(self.model_choices.currentData()):
+            self.equip_model()
+        else:
+            self.download_model()
+
+    def download_with_feedback(self, title, action, completion):
+        if not self.settings_ready():
+            return
+        if self.run_work(action, lambda _: self.show_work_status(completion)):
+            self.settings_operation = title
+            self.settings_feedback_title.setText(title)
+            self.settings_feedback_text.setText("Preparing download…")
+            self.settings_cancel.setEnabled(True); self.settings_cancel.show(); self.settings_progress.show()
+            self.settings_feedback.show()
 
     def download_model(self):
-        model = self.model_choices.currentData(); self.run_work(lambda progress, cancel: self.models.download_summary(model, progress, cancel))
+        model = self.model_choices.currentData()
+        self.download_with_feedback(self.models.name(model), lambda progress, cancel: self.models.download_summary(model, progress, cancel),
+                                    "Download complete. Choose Use model to use it for summaries and answers.")
 
     def equip_model(self):
-        if not self.busy:
-            self.invoke(lambda: (self.models.equip(self.model_choices.currentData()), self.update_models()))
+        if self.settings_ready():
+            model = self.model_choices.currentData()
+            self.invoke(lambda: (self.models.equip(model), self.update_models(), self.show_status("Now using " + self.models.name(model))))
+            self.settings_feedback.hide()
 
     def download_speech(self):
-        self.run_work(lambda progress, cancel: self.models.download_speech(progress, cancel))
+        self.download_with_feedback("Parakeet v3 speech model", lambda progress, cancel: self.models.download_speech(progress, cancel),
+                                    "Speech model downloaded. You can now start a recording.")
 
     def remove_model(self):
-        if not self.recorder.active:
-            model = self.model_choices.currentData(); self.run_work(lambda progress, cancel: self.models.remove_summary(model))
+        if not self.settings_ready():
+            return
+        model = self.model_choices.currentData()
+        text = f"Remove {self.models.name(model)} from this PC?\n\nYour meetings and saved summaries will stay. You will need to download the model again to use it."
+        if model["id"] == self.models.selected_id:
+            text += "\n\nThis model is in use. Choose another downloaded model to generate new summaries and answers."
+        if QMessageBox.question(self, "Remove summary model?", text, QMessageBox.Yes | QMessageBox.No, QMessageBox.No) == QMessageBox.Yes:
+            self.run_work(lambda progress, cancel: self.models.remove_summary(model), lambda _: self.show_status("Model removed. Your meetings are unchanged."))
 
     def remove_speech(self):
-        if not self.recorder.active:
-            self.run_work(lambda progress, cancel: self.models.remove_speech())
+        if self.settings_ready() and QMessageBox.question(self, "Remove speech model?", "Remove Parakeet v3 from this PC?\n\nYour recordings and transcripts will stay. Download it again before starting another recording.", QMessageBox.Yes | QMessageBox.No, QMessageBox.No) == QMessageBox.Yes:
+            self.run_work(lambda progress, cancel: self.models.remove_speech(), lambda _: self.show_status("Speech model removed. Your recordings are unchanged."))
 
     def save_settings(self):
         if not hasattr(self, "dark"):
@@ -650,6 +816,7 @@ class MainWindow(QMainWindow):
             if self.busy or self.recorder.active or self.close_pending or self.sync.stopping.is_set():
                 raise ValueError("Finish the active operation before syncing.")
             self.flush(); self.playback.stop(); self.busy = True; self.detail.setEnabled(False); self.meeting_list.setEnabled(False); self.search.setEnabled(False)
+            self.update_settings_controls()
         except Exception as error:
             request["error"] = str(error)
         finally:
@@ -657,6 +824,7 @@ class MainWindow(QMainWindow):
 
     def end_import(self):
         self.busy = False; self.detail.setEnabled(True); self.meeting_list.setEnabled(True); self.search.setEnabled(True)
+        self.update_settings_controls()
         if self.close_pending:
             self.close()
 

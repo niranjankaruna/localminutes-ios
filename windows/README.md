@@ -25,10 +25,12 @@ The [PyInstaller bootloader](https://pyinstaller.org/en/stable/operating-mode.ht
 
 ## First use
 
-1. In Settings, download **Parakeet v3**, then choose one of the four model groups, download a model, and select **Use model**.
+1. In **Settings → Models**, download the **Parakeet v3** speech model. Under **Summaries & answers**, choose a model size and model, download it, then select **Use model**. The page shows the model in use separately from the model you are browsing. Downloaded alternatives are labeled in the model list; sampling and context information is under **Show technical details**.
 2. In Record, select your microphone and start recording. Stop before generating a summary, asking a question or syncing.
 3. Meetings provides Summary, Transcript, Notes and Ask views. Notes save automatically. Generated edits remain separate from original JSON. Sources verifies citations against the transcript; double-click a source to play its original audio.
-4. Settings imports iPhone .localminutesbackup or .lmtransfer directory packages. Export includes saved meeting data and original audio, excluding models and credentials.
+4. **Settings → Library & storage** imports iPhone .localminutesbackup or .lmtransfer directory packages. Export includes saved meeting data and original audio, excluding models and credentials. This tab also opens the application data folder. **Settings → Appearance** changes the light/dark appearance and provides dependency licenses.
+
+Model downloads show progress and cancellation within Settings. After downloading a summary model, select **Use model** to activate it. Removing a model asks for confirmation and preserves your meetings. Model changes and library transfers are disabled while recording or another operation is running.
 
 The window follows the [Figcraft layout](./Design/LocalMinutes-Windows-Plan.figcraft), with Apple-inspired spacing, system typography, clear focus/pressed states, and light/dark appearances. Standard Windows window controls remain available.
 

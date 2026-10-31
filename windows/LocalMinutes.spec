@@ -2,9 +2,16 @@
 from pathlib import Path
 from importlib import metadata
 import os
+import sys
 from PyInstaller.utils.hooks import collect_dynamic_libs, copy_metadata
 
 root = Path(SPECPATH)
+# Resolve Windows system libraries against Windows, not unrelated development
+# tools on the caller's PATH (for example Poppler's incompatible icuuc.dll).
+# Package hooks still add their own PySide/numpy library directories.
+system_root = Path(os.environ['SystemRoot'])
+os.environ['PATH'] = os.pathsep.join((str(Path(sys.executable).parent),
+                                    str(system_root / 'System32'), str(system_root)))
 native = root / '.native' / 'llama-cuda'
 names = {'llama.dll', 'llama-common.dll', 'llama-completion-impl.dll', 'mtmd.dll', 'libomp.dll',
          'llama-completion.exe', 'llama-tokenize.exe', 'llama-fit-params.exe', 'llama-fit-params-impl.dll'}

@@ -1,6 +1,16 @@
 # Windows and local sync implementation status
 
-Updated 30 October 2026. Work remains on main. No GitHub Actions were started.
+Updated 31 October 2026. Work remains on main. No GitHub Actions were started.
+
+## Windows Settings usability update
+
+Settings now separates Models, Library & storage, and Appearance. Speech setup and summary selection have distinct sections. Model size and model selectors are labeled, downloaded alternatives are identified, and the active model remains visible while browsing. Download, Use model and In use actions follow installation state. Technical details are collapsed by default; the hardcoded graphics-card label has been removed.
+
+Download progress and cancellation appear inside Settings. Removal requires confirmation and preserves the library. Model changes and library transfers are disabled during recording or other active operations. The Windows README describes the new navigation.
+
+All 58 Windows regression tests passed, including 10 UI tests covering model selection, missing files, removal, busy/recording guards, and successful/failed/cancelled downloads. Light and dark Settings previews were checked at 1440×900 and 1080×720, including expanded details. These checks use isolated synthetic profiles and do not modify the user's library.
+
+The rebuilt [LocalMinutes-CUDA.exe](../windows/dist/LocalMinutes-CUDA.exe) passed its archive audit and isolated packaged startup check. It is **2,352,487,228 bytes**, SHA-256 `29bc29fecd65110cb5592546e7242f7ca5975dce5628cb70d574cbb6fb5336c2`. Packaging now isolates its DLL search path from unrelated development tools; the audit rejects bundled copies of Windows system ICU/API libraries. This prevents an incompatible Poppler ICU library from breaking Qt startup. Model inference was not rerun for this UI change; the earlier runtime validation is recorded below.
 
 ## Windows 0.3.0
 
@@ -21,7 +31,7 @@ Parakeet uses its 2.55 GB floating-point CUDA pack and a private stdio worker. I
 
 The verified CUDA speech pack has also been copied into the user's application model directory. Existing meetings, settings, pairing and older model files were preserved.
 
-## Validation
+## Earlier CUDA runtime validation
 
 - **49 regression tests passed**, covering storage/sync, microphone conversion and recovery, four-group selection, context budgeting, GPU-only placement refusal, thinking/final-output separation and CUDA speech safeguards.
 - All six GPU-only variants passed actual thinking-enabled summaries and source-backed answers on the RTX 5070 Ti, with zero estimated host model/KV allocation.
@@ -32,9 +42,7 @@ The verified CUDA speech pack has also been copied into the user's application m
 - Light/dark application previews and the four-group settings layout were rendered. No live microphone audio was recorded for validation.
 - The release archive audit verifies bundled Python, UI, both CUDA runtime sets, cuDNN, speech provider, memory planner and dependency notices. It excludes model weights, personal meeting data, server executables and retired .NET code.
 
-The release is [LocalMinutes-CUDA.exe](../windows/dist/LocalMinutes-CUDA.exe), **2,353,482,338 bytes** (about 2.35 GB), SHA-256 `cb7219ee95e960cd6b4fa9d59443f7f9ad0bf47ebc015d6a250db7ea7f979d21`. It is larger because it now bundles the CUDA/cuDNN speech runtime as well as the llama.cpp CUDA runtime. The distribution directory contains one EXE.
-
-The currently running older app holds its renamed backup open in the build cache. The verified new release was promoted successfully; old-build cleanup is deferred until that process exits. The build script now treats this cleanup condition as a warning after successful promotion.
+The distribution directory contains one EXE, including both the CUDA/cuDNN speech runtime and the llama.cpp CUDA runtime. The build script treats cleanup of an older executable still held open by a running process as a warning after successful promotion.
 
 ## iOS and sync
 

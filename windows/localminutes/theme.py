@@ -1,5 +1,7 @@
 """Quiet desktop surfaces, system typography, and immediate input feedback."""
 
+from pathlib import Path
+
 from PySide6.QtGui import QFont, QPalette, QColor
 
 
@@ -15,12 +17,17 @@ def apply_theme(app, dark=False):
     app.setPalette(palette)
     font = QFont("Segoe UI Variable Text", 10)
     app.setFont(font)
+    colors["chevron"] = (Path(__file__).parent / "resources" / ("chevron-light.svg" if dark else "chevron-dark.svg")).as_posix()
     app.setStyleSheet("""
         QWidget { color: %(ink)s; font-family: 'Segoe UI Variable Text', 'Segoe UI'; font-size: 14px; }
         QMainWindow, QDialog { background: %(canvas)s; }
         QWidget#sidebar { background: %(sidebar)s; border-right: 1px solid %(line)s; }
         QWidget#meetingColumn { background: %(surface)s; border-right: 1px solid %(line)s; }
         QWidget#readingSurface, QFrame#group { background: %(surface)s; border-radius: 14px; }
+        QWidget#settingsSection { background: %(surface)s; border: 1px solid %(line)s; border-radius: 10px; }
+        QWidget#settingsFeedback { background: %(selected)s; border-radius: 10px; }
+        QLabel#settingsStatus { color: %(ink)s; background: %(selected)s; padding: 12px; border-radius: 7px; }
+        QLabel#settingsModelState { font-weight: 600; }
         QLabel { background: transparent; }
         QLabel#title { font-size: 27px; font-weight: 600; letter-spacing: -0.5px; }
         QLabel#section { font-size: 19px; font-weight: 600; }
@@ -32,6 +39,7 @@ def apply_theme(app, dark=False):
         QPushButton:pressed { background: %(selected)s; }
         QPushButton:focus { border: 2px solid %(accent)s; padding: 7px 14px; }
         QPushButton:disabled { color: %(muted)s; }
+        QPushButton#primary:disabled { background: %(hover)s; border-color: %(line)s; color: %(muted)s; }
         QPushButton#primary { background: %(accent)s; color: white; border-color: %(accent)s; }
         QPushButton#primary:hover { background: #006be0; }
         QPushButton#record { background: #e84646; color: white; border: none; padding: 13px 22px; border-radius: 24px; }
@@ -44,6 +52,8 @@ def apply_theme(app, dark=False):
         QLineEdit:focus, QComboBox:focus { border: 1px solid %(accent)s; }
         QComboBox QAbstractItemView { background: %(surface)s; border: 1px solid %(line)s; selection-background-color: %(selected)s; padding: 6px; }
         QComboBox::drop-down { border: none; width: 25px; }
+        QComboBox#settingsCombo { padding-right: 30px; }
+        QComboBox#settingsCombo::down-arrow { image: url("%(chevron)s"); width: 12px; height: 12px; }
         QPlainTextEdit, QTextEdit { background: %(surface)s; border: none; border-radius: 10px; padding: 15px; font-size: 15px; selection-background-color: %(selected)s; }
         QListWidget { background: transparent; border: none; outline: none; }
         QListWidget::item { padding: 12px; border-radius: 10px; margin: 2px 8px; }
@@ -53,6 +63,7 @@ def apply_theme(app, dark=False):
         QTabBar::tab { background: transparent; padding: 9px 23px; color: %(muted)s; border-radius: 8px; margin: 5px 2px; }
         QTabBar::tab:selected { background: %(surface)s; color: %(ink)s; font-weight: 600; }
         QTabBar { background: %(sidebar)s; border-radius: 10px; }
+        QTabWidget#settingsTabs::pane { background: transparent; }
         QScrollArea { border: none; background: transparent; }
         QScrollBar:vertical { width: 9px; background: transparent; margin: 2px; }
         QScrollBar::handle:vertical { background: %(line)s; border-radius: 3px; min-height: 30px; }

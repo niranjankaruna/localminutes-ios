@@ -11,6 +11,8 @@ archive = CArchiveReader(str(executable))
 names = {name.replace("\\", "/") for name in archive.toc}
 for name in names:
     path = PurePosixPath(name)
+    if path.name.casefold() in {'icuuc.dll', 'icuin.dll', 'icudt.dll', 'ucrtbase.dll'} or path.name.casefold().startswith(('api-ms-win-', 'ext-ms-win-')):
+        raise ValueError("Windows 11 system library must not be shadowed by a bundled tool dependency: " + name)
     if path.is_absolute() or ".." in path.parts or ":" in name:
         raise ValueError("Unsafe archive entry: " + name)
     if re.search(r"\.(?:gguf|onnx|weights|sqlite|sqlite3|db|caf|wav|m4a|pfx|pem|key|p12|pdb)$", name, re.I):

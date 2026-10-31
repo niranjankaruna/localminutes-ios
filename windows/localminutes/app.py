@@ -111,6 +111,21 @@ def render_preview(window, destination: Path):
     window.reload(meeting["id"]); window.show(); QApplication.processEvents()
     for index, name in ((0, "meetings"), (1, "record"), (2, "sync"), (3, "settings")):
         window.switch_page(index); QApplication.processEvents(); window.grab().save(str(destination / (name + ".png")))
+    for dark in (False, True):
+        window.dark.setChecked(dark)
+        for width, height in ((1440, 900), (1080, 720)):
+            window.resize(width, height)
+            for tab, name in ((0, "models"), (1, "storage"), (2, "appearance")):
+                window.settings_tabs.setCurrentIndex(tab); QApplication.processEvents()
+                window.grab().save(str(destination / f"settings-{name}-{'dark' if dark else 'light'}-{width}.png"))
+        window.settings_tabs.setCurrentIndex(0)
+        window.model_technical_toggle.setChecked(True); window.toggle_model_details(True)
+        QApplication.processEvents()
+        window.settings_tabs.widget(0).verticalScrollBar().setValue(window.settings_tabs.widget(0).verticalScrollBar().maximum())
+        QApplication.processEvents(); window.grab().save(str(destination / f"settings-details-{'dark' if dark else 'light'}.png"))
+        window.model_technical_toggle.setChecked(False); window.toggle_model_details(False)
+        window.settings_tabs.widget(0).verticalScrollBar().setValue(0)
+    window.resize(1440, 900)
     window.dark.setChecked(True); window.switch_page(0); QApplication.processEvents(); window.grab().save(str(destination / "meetings-dark.png"))
     window.dark.setChecked(False); window.resize(1080, 720); QApplication.processEvents(); window.grab().save(str(destination / "meetings-small.png"))
 
